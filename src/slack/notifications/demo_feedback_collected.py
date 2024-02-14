@@ -10,7 +10,6 @@ from src.utils.slack import URL_MAP
 
 
 class DemoFeedbackCollectedNotification(SlackNotificationClass):
-
     """A Slack notification that is sent whenever the SDR gives feedback on a Demo
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
@@ -98,7 +97,12 @@ class DemoFeedbackCollectedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
+            if (
+                not self.prospect_id
+                or not self.rating
+                or not self.notes
+                or not self.demo_status
+            ):
                 return False
             fields = get_fields()
 
@@ -203,9 +207,9 @@ class DemoFeedbackCollectedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": "*Date of demo:* {demo_date}".format(
-                            demo_date=demo_date.strftime("%B %d, %Y")
-                            if demo_date
-                            else "-",
+                            demo_date=(
+                                demo_date.strftime("%B %d, %Y") if demo_date else "-"
+                            ),
                         ),
                     },
                 },

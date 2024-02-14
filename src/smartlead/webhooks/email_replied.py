@@ -136,9 +136,9 @@ def process_email_replied_webhook(payload_id: int):
 
         metadata = {
             "prospect_email": prospect.email,
-            "email_title": payload.get("subject"),
-            "email_snippet": sent_message,
-            "prospect_message": reply_message,
+            "email_sent_subject": payload.get("subject"),
+            "email_sent_body": sent_message,
+            "email_reply_body": reply_message,
         }
 
         # Set the Prospect Email to "ACTIVE_CONVO"

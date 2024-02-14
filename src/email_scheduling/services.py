@@ -216,6 +216,23 @@ def create_email_messaging_schedule_entry(
     Returns:
         int: The ID of the created email_messaging_schedule entry
     """
+    # As a double check, in case celery goes down or we accidentally doubley create scheduling entries
+    # Let's enforce a uniqueness policy that a schedule entry exists iff there is one with the same:
+    # - prospect_email_id
+    # - email_type
+    # - email_body_template_id
+    existing_email_messaging_schedule: EmailMessagingSchedule = (
+        EmailMessagingSchedule.query.filter(
+            EmailMessagingSchedule.prospect_email_id == prospect_email_id,
+            EmailMessagingSchedule.email_type == email_type,
+            EmailMessagingSchedule.email_body_template_id == email_body_template_id,
+        )
+        .order_by(EmailMessagingSchedule.id.desc())
+        .first()
+    )
+    if existing_email_messaging_schedule:
+        return existing_email_messaging_schedule.id
+
     email_messaging_schedule: EmailMessagingSchedule = EmailMessagingSchedule(
         client_sdr_id=client_sdr_id,
         prospect_email_id=prospect_email_id,

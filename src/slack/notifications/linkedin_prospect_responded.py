@@ -8,7 +8,7 @@ from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
 
 
-class LinkedinProspectSchedulingNotification(SlackNotificationClass):
+class LinkedinProspectRespondedNotification(SlackNotificationClass):
     """A Slack notification that is sent when the Prospect accepts a LinkedIn invite
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
@@ -53,8 +53,8 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                     auth_token=client_sdr.auth_token,
                 ),
                 "conversation": [
-                    f"*{client_sdr.name}:* Hey John, if utilizing AI is a priority for you, I'd love to connect and share how we're helping other CEOs at AI companies like yours. Also, Go Bears!",
-                    f"*John Doe:* Sounds good, let's schedule a time to chat?",
+                    f"*{client_sdr.name}:* Hey John, As the CEO at International Intimates, your expertise in developling customized reporting and implementing large-scale ERP systems must be invaluable. In our data-rich world, managing and accessing data can be quite complex. How about we connect and discuss this further?",
+                    f"*John Doe:* Happy to chat, nice to meet you {client_sdr.name}",
                 ],
                 "initial_send_date": "January 1, 2022",
             }
@@ -140,7 +140,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🙏🔥 {prospect_name} is scheduling!",
+                        "text": f"🙌 {prospect_name} responded to your Linkedin Invite!",
                         "emoji": True,
                     },
                 },
@@ -180,7 +180,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
 
         message_blocks.extend(
             [
-                {  # Add SDR information
+                {
                     "type": "context",
                     "elements": [
                         {
@@ -227,9 +227,9 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
 
         # Send the message
         slack_bot_send_message(
-            notification_type=SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING,
+            notification_type=SlackNotificationType.LINKEDIN_PROSPECT_RESPONDED,
             client_id=client.id,
-            base_message=f"🙏🔥 {prospect_name} is scheduling!",
+            base_message=f"🙌 {prospect_name} responded to your Linkedin Invite!",
             blocks=message_blocks,
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,

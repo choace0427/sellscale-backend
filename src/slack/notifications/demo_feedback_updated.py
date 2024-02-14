@@ -1,19 +1,24 @@
+import datetime
 from typing import Optional
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.li_conversation.models import LinkedinConversationEntry
-from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect
+from src.client.models import DemoFeedback
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
+from src.utils.slack import URL_MAP
 
 
-class LinkedinProspectSchedulingNotification(SlackNotificationClass):
-    """A Slack notification that is sent when the Prospect accepts a LinkedIn invite
+class DemoFeedbackUpdatedNotification(SlackNotificationClass):
+    """A Slack notification that is sent whenever the SDR gives feedback on a Demo
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
     `developer_mode` (MANDATORY): Whether or not the notification is being sent in developer mode. Defaults to False.
-    `prospect_id`: The ID of the Prospect that the AI replied to
+    `prospect_id`: The ID of the Prospect that the feedback was given for
+    `rating`: The rating that the ClientSDR gave the Demo
+    `notes`: The notes that the ClientSDR gave the Demo
+    `demo_status`: The status of the Demo
+    `ai_adjustment`: The AI Adjustment of the Demo
 
     This class inherits from SlackNotificationClass.
     """
@@ -23,9 +28,17 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
         prospect_id: Optional[int] = None,
+        rating: Optional[str] = None,
+        notes: Optional[str] = None,
+        demo_status: Optional[str] = None,
+        ai_adjustment: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
+        self.rating = rating
+        self.notes = notes
+        self.demo_status = demo_status
+        self.ai_adjustment = ai_adjustment
 
         return
 
@@ -44,19 +57,19 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
             return {
+                "rep": client_sdr.name,
+                "rating": "4",
+                "notes": "It went pretty well during this call. They followed up with an email and we have another call scheduled. Not sure if they are totally convinced.",
+                "ai_adjustment": "Let's change my targetting to only companies that have large sales outbound motions.",
                 "prospect_name": "John Doe",
-                "prospect_title": "CEO",
                 "prospect_company": "SomeCompany",
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
+                "demo_date": datetime.datetime.now(),
+                "demo_status": "OCCURRED",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
-                "conversation": [
-                    f"*{client_sdr.name}:* Hey John, if utilizing AI is a priority for you, I'd love to connect and share how we're helping other CEOs at AI companies like yours. Also, Go Bears!",
-                    f"*John Doe:* Sounds good, let's schedule a time to chat?",
-                ],
-                "initial_send_date": "January 1, 2022",
             }
 
         def get_fields() -> dict:
@@ -66,38 +79,22 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
             client_archetype: ClientArchetype = ClientArchetype.query.get(
                 prospect.archetype_id
             )
-            urn_id = prospect.li_conversation_urn_id
-            convo: list[LinkedinConversationEntry] = (
-                LinkedinConversationEntry.query.filter_by(
-                    conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
-                )
-                .order_by(LinkedinConversationEntry.created_at.desc())
-                .limit(5)
-                .all()
-            )
-            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
-                id=prospect.approved_outreach_message_id
-            ).first()
-
-            # Get the conversation
-            conversation = []
-            for c in reversed(
-                convo
-            ):  # Reverse the conversation so that the most recent message is at the bottom
-                conversation.append(f"*{c.author}:* {c.message}")
 
             return {
+                "rep": client_sdr.name,
+                "rating": self.rating,
+                "notes": self.notes,
+                "ai_adjustment": self.ai_adjustment,
                 "prospect_name": prospect.full_name,
-                "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
                 "archetype_name": client_archetype.archetype,
                 "archetype_emoji": client_archetype.emoji,
+                "demo_date": prospect.demo_date,
+                "demo_status": self.demo_status,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
-                    prospect_id=prospect.id,
+                    prospect_id=self.prospect_id if self.prospect_id else "",
                 ),
-                "conversation": conversation,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
             }
 
         # Get the required objects / fields
@@ -105,42 +102,56 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
+            if (
+                not self.rating
+                or not self.notes
+                or not self.ai_adjustment
+                or not self.prospect_id
+            ):
                 return False
             fields = get_fields()
 
         # Get the fields
+        rep = fields.get("rep")
+        rating = fields.get("rating")
+        notes = fields.get("notes")
+        ai_adjustment = fields.get("ai_adjustment")
         prospect_name = fields.get("prospect_name")
-        prospect_title = fields.get("prospect_title")
         prospect_company = fields.get("prospect_company")
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
+        demo_date = fields.get("demo_date")
+        demo_status = fields.get("demo_status")
         direct_link = fields.get("direct_link")
-        conversation = fields.get("conversation")
-        initial_send_date = fields.get("initial_send_date")
         if (
-            not prospect_name
-            or not prospect_title
+            not rep
+            or not rating
+            or not notes
+            or not ai_adjustment
+            or not prospect_name
             or not prospect_company
             or not archetype_name
+            or not archetype_emoji
+            or not demo_date
+            or not demo_status
             or not direct_link
-            or not conversation
-            or not initial_send_date
         ):
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
 
-        # Craft the message blocks
-        message_blocks: list[dict] = []
-        message_blocks.extend(
-            [
+        # Send the message
+        slack_bot_send_message(
+            notification_type=SlackNotificationType.DEMO_FEEDBACK_UPDATED,
+            client_id=client.id,
+            base_message=f"🎊 ✍️ UPDATED Demo Feedback",
+            blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🙏🔥 {prospect_name} is scheduling!",
+                        "text": "🎊 ✍️ UPDATED Demo Feedback",
                         "emoji": True,
                     },
                 },
@@ -148,60 +159,28 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Persona:* {emoji} {persona}".format(
-                            persona=archetype_name if archetype_name else "-",
-                            emoji=archetype_emoji,
+                        "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: `{ai_adjustments}`".format(
+                            rating=rating,
+                            rep=client_sdr.name,
+                            notes=notes,
+                            ai_adjustments=ai_adjustment,
                         ),
                     },
                 },
+                {"type": "divider"},
                 {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Title:* {title}\n*Company:* {company}".format(
-                            title=prospect_title if prospect_title else "-",
-                            company=prospect_company if prospect_company else "-",
-                        ),
-                    },
-                },
-            ]
-        )
-
-        for message in conversation:
-            message_blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"{message}",
-                    },
-                }
-            )
-
-        message_blocks.extend(
-            [
-                {  # Add SDR information
                     "type": "context",
                     "elements": [
                         {
-                            "type": "plain_text",
-                            "text": "😎 Contact: {sdr}".format(
-                                sdr=client_sdr.name,
+                            "type": "mrkdwn",
+                            "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {demo_date}\n*Demo*: {demo_status}".format(
+                                prospect=prospect_name,
+                                company=prospect_company,
+                                persona=archetype_name,
+                                demo_date=demo_date.strftime("%B %d, %Y"),
+                                demo_status=demo_status,
                             ),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📆 Initial Send: {date_sent}".format(
-                                date_sent=initial_send_date,
-                            ),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📤 Outbound channel: LinkedIn",
-                            "emoji": True,
-                        },
+                        }
                     ],
                 },
                 {
@@ -222,15 +201,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                         "action_id": "button-action",
                     },
                 },
-            ]
-        )
-
-        # Send the message
-        slack_bot_send_message(
-            notification_type=SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING,
-            client_id=client.id,
-            base_message=f"🙏🔥 {prospect_name} is scheduling!",
-            blocks=message_blocks,
+            ],
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
             testing=self.developer_mode,

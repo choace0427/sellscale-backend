@@ -34,7 +34,7 @@ from src.prospecting.models import ProspectEvent
 from model_import import DemoFeedback, BumpFramework
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
-from src.client.models import ClientProduct
+from src.client.models import ClientArchetypeAssets, ClientProduct
 from sqlalchemy import or_
 from click import Option
 from src.client.models import DemoFeedback
@@ -426,7 +426,7 @@ def create_client_archetype(
             "End with Best, (new line) (My Name) (new line) (Title)",
         ],
         contract_size=persona_contract_size or c.contract_size,
-        li_bump_amount=3,
+        li_bump_amount=0,
         persona_cta_framework_company=cta_blanks_company,
         persona_cta_framework_persona=cta_blanks_persona,
         persona_cta_framework_action=cta_blanks_solution,
@@ -4443,7 +4443,7 @@ def get_tam_industries(client_sdr_id: int):
     results = db.session.execute(
         """
         select
-          company,
+          industry,
           count(distinct prospect.id)
         from prospect
         where prospect.client_id = {client_id}
@@ -4457,7 +4457,7 @@ def get_tam_industries(client_sdr_id: int):
 
     # index to status map
     key_map = {
-        0: "company",
+        0: "industry",
         1: "count",
     }
 
@@ -4664,3 +4664,43 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
     db.session.commit()
 
     return True
+
+
+def create_archetype_asset(
+    client_id: int,
+    client_archetype_ids: list[int],
+    asset_key: str,
+    asset_value: str,
+    asset_reason: str,
+):
+    """
+    Creates an asset for a client archetype
+    """
+    asset = ClientArchetypeAssets(
+        client_id=client_id,
+        client_archetype_ids=client_archetype_ids,
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_reason=asset_reason,
+    )
+    db.session.add(asset)
+    db.session.commit()
+    return True
+
+
+def get_archetype_assets(client_archetype_id: int):
+    """
+    Gets all assets for a client archetype
+    """
+    assets = ClientArchetypeAssets.query.filter_by(
+        client_archetype_ids.contains([client_archetype_id])
+    ).all()
+    return [asset.to_dict() for asset in assets]
+
+
+def get_client_assets(client_id: int):
+    """
+    Gets all assets for a client
+    """
+    assets = ClientArchetypeAssets.query.filter_by(client_id=client_id).all()
+    return [asset.to_dict() for asset in assets]

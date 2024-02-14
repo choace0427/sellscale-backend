@@ -1,10 +1,12 @@
 from app import db, celery
+import datetime
 from src.client.models import ClientArchetype
 from src.email_outbound.models import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
 )
+from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
 
@@ -119,11 +121,28 @@ def process_email_sent_webhook(payload_id: int):
             return False, "No Prospect Email found"
 
         # Set the Prospect Email to "SENT"
+        now = datetime.datetime.now()
         update_prospect_status_email(
             prospect_id=prospect.id,
             new_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
         )
         prospect_email.email_status = ProspectEmailStatus.SENT
+        prospect_email.date_sent = now
+        db.session.commit()
+
+        # If the prospect_email has messages attached, mark those as SENT as well
+        subject_line: GeneratedMessage = GeneratedMessage.query.get(
+            prospect_email.personalized_subject_line
+        )
+        if subject_line:
+            subject_line.date_sent = now
+            subject_line.message_status = GeneratedMessageStatus.SENT
+        body: GeneratedMessage = GeneratedMessage.query.get(
+            prospect_email.personalized_body
+        )
+        if body:
+            body.date_sent = now
+            body.message_status = GeneratedMessageStatus.SENT
         db.session.commit()
 
         # TEMPORARY: Send slack notification

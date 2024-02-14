@@ -194,15 +194,16 @@ def run_message_rule_engine(message_id: int):
     problems = []
     highlighted_words = []
 
-    # NER AI
-    run_check_message_has_bad_entities(message_id)
-    format_entities(
-        message.unknown_named_entities,
-        problems,
-        highlighted_words,
-        whitelisted_names,
-        cta.text_value if cta else "",
-    )
+    # NER AI for Linkedin only
+    if message.message_type == GeneratedMessageType.LINKEDIN:
+        run_check_message_has_bad_entities(message_id)
+        format_entities(
+            message.unknown_named_entities,
+            problems,
+            highlighted_words,
+            whitelisted_names,
+            cta.text_value if cta else "",
+        )
 
     # Strict Rules
     rule_no_profanity(completion, problems, highlighted_words)
@@ -224,12 +225,17 @@ def run_message_rule_engine(message_id: int):
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
     rule_catch_im_a(completion, prompt, problems, highlighted_words)
     rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
-    rule_catch_has_6_or_more_consecutive_upper_case(
-        case_preserved_completion, prompt, problems, highlighted_words
-    )
+
+    if message.message_type != GeneratedMessageType.EMAIL:
+        rule_catch_has_6_or_more_consecutive_upper_case(
+            case_preserved_completion, prompt, problems, highlighted_words
+        )
     # rule_no_ampersand(completion, problems, highlighted_words)
     rule_no_fancying_a_chat(completion, problems, highlighted_words)
-    rule_no_ingratiation(completion, problems, highlighted_words)
+
+    if message.message_type != GeneratedMessageType.EMAIL:
+        rule_no_ingratiation(completion, problems, highlighted_words)
+
     rule_no_sdr_blacklist_words(completion, problems, highlighted_words, client_sdr_id)
 
     # Only run for Email Subject Lines
@@ -327,7 +333,7 @@ def rule_no_symbols(
 
     \p{S} matches any math symbols, currency signs, dingbats, box-drawing characters, etc
     """
-    ALLOWED_SYMBOLS = ["+", "$"]
+    ALLOWED_SYMBOLS = ["+", "$", "|"]
     if message_type == GeneratedMessageType.EMAIL:
         ALLOWED_SYMBOLS.extend(["@", "<", ">"])
 

@@ -400,30 +400,9 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
     db.session.commit()
 
     if active:
-        send_slack_notif_campaign_active(client_sdr_id, archetype_id, "LinkedIn")
-
         generate_notification_for_campaign_active(
             archetype_id=archetype_id,
         )
-
-        # create_operator_dashboard_entry(
-        #     client_sdr_id=client_sdr_id,
-        #     urgency=OperatorDashboardEntryPriority.HIGH,
-        #     tag="linkedin_campaign_active_{}".format(archetype_id),
-        #     emoji=archetype.emoji,
-        #     title="Review new LinkedIn Campaign",
-        #     subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary..".format(
-        #         archetype.archetype
-        #     ),
-        #     cta="Review Campaign",
-        #     cta_url="/setup/linkedin?campaign_id={}".format(archetype_id),
-        #     status=OperatorDashboardEntryStatus.PENDING,
-        #     due_date=datetime.datetime.now() + datetime.timedelta(days=1),
-        #     task_type=OperatorDashboardTaskType.LINKEDIN_CAMPAIGN_REVIEW,
-        #     task_data={
-        #         "campaign_id": archetype_id,
-        #     },
-        # )
 
     return jsonify({"status": "success"}), 200
 
@@ -451,11 +430,22 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
         # Find emails for prospects under this archetype
         find_emails_for_archetype.delay(archetype_id=archetype_id)
 
+        # Send slack notification
+        send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
+
+        # Turn on auto generate and auto sending for this SDR
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        sdr.auto_send_email_campaign = True
+        client: Client = Client.query.get(sdr.client_id)
+        client.auto_generate_email_messages = True
+        db.session.commit()
+
         # Sync this campaign to Smartlead
         success, message, smartlead_id = create_smartlead_campaign(
             archetype_id=archetype_id,
             sync_to_archetype=True,
         )
+
         if not success:
             return (
                 jsonify(
@@ -466,84 +456,5 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
                 ),
                 400,
             )
-
-        # Send slack notification
-        send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
-
-        # Create an operator dashboard entry
-        # create_operator_dashboard_entry(
-        #     client_sdr_id=client_sdr_id,
-        #     urgency=OperatorDashboardEntryPriority.HIGH,
-        #     tag="email_campaign_active_{}".format(archetype_id),
-        #     emoji=archetype.emoji,
-        #     title="Review new Email Campaign",
-        #     subtitle="Launched campaign for '{}'. Review prospects and copy as needed and provide feedback if necessary.".format(
-        #         archetype.archetype
-        #     ),
-        #     cta="Review Campaign",
-        #     cta_url="/setup/email?campaign_id={}".format(archetype_id),
-        #     status=OperatorDashboardEntryStatus.PENDING,
-        #     due_date=datetime.datetime.now() + datetime.timedelta(days=1),
-        #     task_type=OperatorDashboardTaskType.EMAIL_CAMPAIGN_REVIEW,
-        #     task_data={
-        #         "campaign_id": archetype_id,
-        #     },
-        # )
-
-        # Generate a notification with example message for the client SDR
-        random_prospects = (
-            Prospect.query.filter(
-                Prospect.archetype_id == archetype_id,
-            )
-            .filter(Prospect.icp_fit_score <= 4)
-            .order_by(Prospect.icp_fit_score.desc())
-            .limit(3)
-            .all()
-        )
-        num_prospects = Prospect.query.filter(
-            Prospect.archetype_id == archetype_id,
-        ).count()
-        first_template = ai_initial_email_prompt(
-            client_sdr_id=client_sdr_id,
-            prospect_id=random_prospects[0].id,
-        )
-        email_body = generate_email(prompt=first_template)
-        email_body = email_body.get("body")
-        create_notification(
-            client_sdr_id=client_sdr_id,
-            title="Review New Campaign",
-            subtitle="Launched {}".format(datetime.datetime.now().strftime("%b %d")),
-            stars=0,
-            cta="View and Mark as Complete",
-            data={
-                "campaign_name": archetype.archetype,
-                "example_message": email_body,
-                "render_message_as_html": True,
-                "random_prospects": [
-                    {
-                        "full_name": p.full_name,
-                        "linkedin_url": p.linkedin_url,
-                        "img_url": p.img_url,
-                        "title": p.title,
-                        "company": p.company,
-                        "icp_fit_score": p.icp_fit_score,
-                    }
-                    for p in random_prospects
-                ],
-                "num_prospects": num_prospects,
-                "linkedin_active": archetype.linkedin_active,
-                "email_active": archetype.email_active,
-                "archetype_id": archetype.id,
-            },
-            priority=OperatorNotificationPriority.HIGH,
-            notification_type=OperatorNotificationType.REVIEW_NEW_CAMPAIGN,
-        )
-
-        # Turn on auto generate and auto sending for this SDR
-        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        sdr.auto_send_email_campaign = True
-        client: Client = Client.query.get(sdr.client_id)
-        client.auto_generate_email_messages = True
-        db.session.commit()
 
     return jsonify({"status": "success"}), 200

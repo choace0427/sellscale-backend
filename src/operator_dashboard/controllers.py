@@ -89,7 +89,10 @@ def mark_task_complete_endpoint(client_sdr_id: int, task_id: int):
 @OPERATOR_DASHBOARD_BLUEPRINT.route("/dismiss/<int:task_id>", methods=["POST"])
 @require_user
 def dismiss_task_endpoint(client_sdr_id: int, task_id: int):
-    success = dismiss_task(client_sdr_id=client_sdr_id, task_id=task_id)
+
+    days = get_request_parameter("days", request, json=True, required=False) or 7
+
+    success = dismiss_task(client_sdr_id=client_sdr_id, task_id=task_id, days=days)
     if not success:
         return {"success": False}, 400
 

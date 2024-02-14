@@ -42,7 +42,9 @@ def process_deltas_message_created(
 
 
 @celery.task(bind=True, max_retries=5)
-def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[bool, str]:
+def process_single_message_created(
+    self, delta: dict, payload_id: int
+) -> tuple[bool, str]:
     """Process a single `message.created` delta from a Nylas webhook notification.
 
     Args:
@@ -54,8 +56,7 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
     """
     try:
         # Get payload and set it to "PROCESSING"
-        payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
-            payload_id)
+        payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(payload_id)
         if not payload:
             return False, "No payload found"
         payload.processing_status = NylasWebhookProcessingStatus.PROCESSING
@@ -125,8 +126,7 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
             payload.processing_fail_reason = "No participants in thread"
             db.session.commit()
             return False, "No participants in thread"
-        participants = [participant.get("email")
-                        for participant in participants]
+        participants = [participant.get("email") for participant in participants]
 
         prospect: Prospect = Prospect.query.filter(
             Prospect.client_id == client_sdr.client_id,
@@ -153,7 +153,7 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
             client_sdr_id=client_sdr.id,
             prospect_id=prospect.id,
             nylas_account_id=account_id,
-            thread_id=thread.get("id")
+            thread_id=thread.get("id"),
         )
         for message in messages:
             # Check if message is bounced
@@ -186,15 +186,16 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
                 prospect: Prospect = Prospect.query.get(prospect_id)
 
                 # Send Slack Notification if updated
-                if updated:
-                    send_status_change_slack_block(
-                        outreach_type=ProspectChannels.EMAIL,
-                        prospect=prospect,
-                        new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                        custom_message=" responded to your email! 🙌🏽",
-                        metadata={},
-                        last_email_message=message.get("snippet"),
-                    )
+                # DEPRECATED: Redundant because thread_replied should be a better / more reliable hook
+                # if updated:
+                #     send_status_change_slack_block(
+                #         outreach_type=ProspectChannels.EMAIL,
+                #         prospect=prospect,
+                #         new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                #         custom_message=" responded to your email! 🙌🏽",
+                #         metadata={},
+                #         last_email_message=message.get("snippet"),
+                #     )
 
                 # Calculate prospect overall status
                 calculate_prospect_overall_status(prospect.id)
@@ -203,8 +204,7 @@ def process_single_message_created(self, delta: dict, payload_id: int) -> tuple[
         db.session.commit()
         return True, "Successfully saved new thread"
     except Exception as e:
-        payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(
-            payload_id)
+        payload: NylasWebhookPayloads = NylasWebhookPayloads.query.get(payload_id)
         if not payload:
             return False, "No payload found"
 

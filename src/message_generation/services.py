@@ -430,14 +430,20 @@ def generate_batch_of_research_points_from_config(
     )
     prospect: Prospect = Prospect.query.get(prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    transformer_blocklist_initial_values = [
-        x for x in archetype.transformer_blocklist_initial
-    ]
-    allowed_research_point_types_in_config = [
-        x.research_point_type
-        for x in all_research_points
-        if x.research_point_type not in transformer_blocklist_initial_values
-    ]
+    transformer_blocklist_initial_values = (
+        [x for x in archetype.transformer_blocklist_initial]
+        if archetype.transformer_blocklist_initial
+        else []
+    )
+    allowed_research_point_types_in_config = (
+        [
+            x.research_point_type
+            for x in all_research_points
+            if x.research_point_type not in transformer_blocklist_initial_values
+        ]
+        if all_research_points
+        else []
+    )
 
     # If there are no research points, return an empty list
     if not all_research_points or len(all_research_points) == 0:

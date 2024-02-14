@@ -79,6 +79,7 @@ from src.prospecting.upload.services import (
     collect_and_run_celery_jobs_for_upload,
     run_and_assign_health_score,
 )
+from src.slack.notifications.email_multichanneled import EmailMultichanneledNotification
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 from src.utils.email.html_cleaning import clean_html
 from src.utils.request_helpers import get_request_parameter
@@ -383,7 +384,6 @@ def patch_prospect_endpoint(client_sdr_id: int, prospect_id: int):
 @PROSPECTING_BLUEPRINT.route("/<int:prospect_id>/demo_set", methods=["PATCH"])
 @require_user
 def patch_prospect_demo_set_endpoint(client_sdr_id: int, prospect_id: int):
-
     type = get_request_parameter(
         "type", request, json=True, required=False, parameter_type=str
     )
@@ -413,7 +413,6 @@ def patch_prospect_demo_set_endpoint(client_sdr_id: int, prospect_id: int):
         return jsonify({"status": "error", "message": "Failed to update prospect"}), 400
 
     if type == "HANDOFF":
-
         send_slack_message(
             message="",
             webhook_urls=[client.pipeline_notifications_webhook_url],
@@ -619,44 +618,53 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         if client.pipeline_notifications_webhook_url:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
 
-        send_slack_message(
-            webhook_urls=webhook_urls,
-            message=f"SellScale just multi-channeled",
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "📧 SellScale just multi-channeled",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "A prospect requested to be contacted via email. SellScale sent them an email on your behalf.",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*SDR*: {client_sdr.name} ({from_email})",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Prospect*: {prospect.full_name}",
-                        },
-                    ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Message from {prospect.full_name}*:\n>{prospect.li_last_message_from_prospect}\n\n*Subject*:\n>{subject}\n\n*Body*:\n>{prettier_body}",
-                    },
-                },
-            ],
+        multichannel_notification = EmailMultichanneledNotification(
+            client_sdr_id=client_sdr.id,
+            prospect_id=prospect.id,
+            from_email=from_email,
+            email_sent_subject=subject,
+            email_sent_body=prettier_body,
         )
+        multichannel_notification.send_notification(preview_mode=False)
+
+        # send_slack_message(
+        #     webhook_urls=webhook_urls,
+        #     message=f"SellScale just multi-channeled",
+        #     blocks=[
+        #         {
+        #             "type": "header",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "text": "📧 SellScale just multi-channeled",
+        #                 "emoji": True,
+        #             },
+        #         },
+        #         {
+        #             "type": "context",
+        #             "elements": [
+        #                 {
+        #                     "type": "mrkdwn",
+        #                     "text": "A prospect requested to be contacted via email. SellScale sent them an email on your behalf.",
+        #                 },
+        #                 {
+        #                     "type": "mrkdwn",
+        #                     "text": f"*SDR*: {client_sdr.name} ({from_email})",
+        #                 },
+        #                 {
+        #                     "type": "mrkdwn",
+        #                     "text": f"*Prospect*: {prospect.full_name}",
+        #                 },
+        #             ],
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": f"*Message from {prospect.full_name}*:\n>{prospect.li_last_message_from_prospect}\n\n*Subject*:\n>{subject}\n\n*Body*:\n>{prettier_body}",
+        #             },
+        #         },
+        #     ],
+        # )
 
     return jsonify({"message": "Success", "data": result}), 200
 
@@ -1746,9 +1754,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 

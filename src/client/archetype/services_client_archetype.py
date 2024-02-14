@@ -42,52 +42,70 @@ def get_archetype_generation_upcoming(
 
     # Loop through the SDRs
     payload = []
-    for sdr in sdrs:
-        # Get the archetypes for this SDR that are active and have LinkedIn active
-        archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
-            ClientArchetype.client_sdr_id == sdr.id,
-            ClientArchetype.active == True
-            if active_only
-            else ClientArchetype.active == ClientArchetype.active,
-            ClientArchetype.linkedin_active == True,
-        ).all()
+    channel_types = ["LINKEDIN", "EMAIL"]
+    for channel in channel_types:
+        for sdr in sdrs:
+            # Get the archetypes for this SDR that are active and have LinkedIn active
+            archetypes_query = ClientArchetype.query.filter(
+                ClientArchetype.client_sdr_id == sdr.id,
+                (
+                    ClientArchetype.active == True
+                    if active_only
+                    else ClientArchetype.active == ClientArchetype.active
+                ),
+            )
 
-        # Get the total available SLA per day for this SDR
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        sla_schedule: SLASchedule = SLASchedule.query.filter(
-            SLASchedule.client_sdr_id == client_sdr_id,
-            func.date(SLASchedule.start_date) <= today.date(),
-            func.date(SLASchedule.end_date) >= tomorrow.date(),
-        ).first()
-        available_sla = sla_schedule.linkedin_volume // 5 if sla_schedule else 0
-        sla_per_campaign = (
-            available_sla // len(archetypes) if len(archetypes) > 0 else 0
-        )
-        leftover_sla = available_sla % len(archetypes) if len(archetypes) > 0 else 0
+            if channel == "EMAIL":
+                archetypes_query = archetypes_query.filter(
+                    ClientArchetype.email_active == True
+                )
+            else:
+                archetypes_query = archetypes_query.filter(
+                    ClientArchetype.linkedin_active == True
+                )
 
-        # Calculate the SLA per archetype
-        sla_counts = [sla_per_campaign] * (len(archetypes) - leftover_sla) + [
-            sla_per_campaign + 1
-        ] * leftover_sla
+            archetypes = archetypes_query.all()
 
-        for index, archetype in enumerate(archetypes):
-            contact_count: Prospect = Prospect.query.filter(
-                Prospect.archetype_id == archetype.id
-            ).count()
+            # Get the total available SLA per day for this SDR
+            today = datetime.now()
+            tomorrow = today + timedelta(days=1)
+            sla_schedule: SLASchedule = SLASchedule.query.filter(
+                SLASchedule.client_sdr_id == client_sdr_id,
+                func.date(SLASchedule.start_date) <= today.date(),
+                func.date(SLASchedule.end_date) >= tomorrow.date(),
+            ).first()
+            if channel == "EMAIL":
+                volume = sla_schedule.email_volume if sla_schedule else 0
+            else:
+                volume = sla_schedule.linkedin_volume if sla_schedule else 0
+            available_sla = volume // 5 if sla_schedule else 0
+            sla_per_campaign = (
+                available_sla // len(archetypes) if len(archetypes) > 0 else 0
+            )
+            leftover_sla = available_sla % len(archetypes) if len(archetypes) > 0 else 0
 
-            archetype_data = {
-                "id": archetype.id,
-                "archetype": archetype.archetype,
-                "active": archetype.active,
-                "linkedin_active": archetype.linkedin_active,
-                "email_active": archetype.email_active,
-                "sdr_name": sdr.name,
-                "sdr_img_url": sdr.img_url,
-                "contact_count": contact_count,
-                "daily_sla_count": sla_counts[index],
-            }
-            payload.append(archetype_data)
+            # Calculate the SLA per archetype
+            sla_counts = [sla_per_campaign] * (len(archetypes) - leftover_sla) + [
+                sla_per_campaign + 1
+            ] * leftover_sla
+
+            for index, archetype in enumerate(archetypes):
+                contact_count: Prospect = Prospect.query.filter(
+                    Prospect.archetype_id == archetype.id
+                ).count()
+
+                archetype_data = {
+                    "id": archetype.id,
+                    "archetype": archetype.archetype + " - (" + channel + ")",
+                    "active": archetype.active,
+                    "linkedin_active": archetype.linkedin_active,
+                    "email_active": archetype.email_active,
+                    "sdr_name": sdr.name,
+                    "sdr_img_url": sdr.img_url,
+                    "contact_count": contact_count,
+                    "daily_sla_count": sla_counts[index],
+                }
+                payload.append(archetype_data)
 
     return payload
 
@@ -317,6 +335,78 @@ def send_slack_campaign_message(
     )
 
 
+def send_email_campaign_activated_slack_notification(
+    sequence_name,
+    example_prospect_name,
+    example_prospect_linkedin_url,
+    example_prospect_title,
+    example_prospect_company,
+    webhook_url,
+    direct_link,
+):
+    """
+    Send a Slack message for a new email campaign.
+
+    :param sequence_name: Name of the sequence.
+    :param example_prospect_name: Name of the example prospect.
+    :param example_prospect_linkedin_url: LinkedIn URL of the example prospect.
+    :param example_prospect_title: Title of the example prospect.
+    :param example_prospect_company: Company of the example prospect.
+    :param example_first_generation: Example first generation message.
+    :param client_sdr_name: Name of the client SDR.
+    :param campaign_id: ID of the campaign.
+    :param webhook_url: Slack webhook URL for sending the message.
+    """
+    send_slack_message(
+        message="SellScale AI activated a new email campaign",
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "SellScale AI activated a new email campaign 🚀",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Campaign*: {}".format(sequence_name),
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Example Prospect*: <{}|{}> ({} @ {})".format(
+                        "https://www." + example_prospect_linkedin_url,
+                        example_prospect_name,
+                        example_prospect_title,
+                        example_prospect_company,
+                    ),
+                },
+            },
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": " "},
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "View Campaign",
+                        "emoji": True,
+                    },
+                    "value": direct_link,
+                    "url": direct_link,
+                    "action_id": "button-action",
+                },
+            },
+        ],
+        webhook_urls=[webhook_url],
+    )
+
+
 def generate_notification_for_campaign_active(archetype_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     random_prospects: Prospect = (
@@ -418,72 +508,12 @@ def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type
     next_day = datetime.utcnow() + timedelta(days=1)
     formatted_next_day = next_day.strftime("%b %d, %Y")
 
-    # next_message = GeneratedMessage.query.filter(
-    #     GeneratedMessage.message_status == 'QUEUED_FOR_OUTREACH',
-    #     GeneratedMessage. > datetime.utcnow()
-    # ).order_by(GeneratedMessage.message_date).first()
-
-    # send_slack_message(
-    #     message=f"New [{type}] campaign activated! 🚀",
-    #     blocks=[
-    #         {
-    #             "type": "header",
-    #             "text": {
-    #                 "type": "plain_text",
-    #                 "text": f"New [{type}] campaign activated! 🚀",
-    #                 "emoji": True,
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": f"*Persona:* {archetype.archetype}\n",
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": f"*Contacts:* {len(prospects)}\n",
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": f"*Steps:* {len(archetype.email_blocks_configuration) if type == 'email' else archetype.li_bump_amount+1} steps\n",
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": f"*Sending on:* {formatted_next_day} (+1 day)\n",
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": f"Please review in operator dashboard\n",
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {"type": "mrkdwn", "text": " "},
-    #             "accessory": {
-    #                 "type": "button",
-    #                 "text": {
-    #                     "type": "plain_text",
-    #                     "text": "View Campaign →",
-    #                     "emoji": True,
-    #                 },
-    #                 "url": campaign_url,
-    #                 "action_id": "button-action",
-    #             },
-    #         },
-    #         {"type": "divider"},
-    #     ],
-    #     webhook_urls=[webhook_url] if webhook_url else [],
-    # )
+    send_email_campaign_activated_slack_notification(
+        sequence_name=archetype.emoji + " " + archetype.archetype,
+        example_prospect_name=prospects[0].full_name,
+        example_prospect_linkedin_url=prospects[0].linkedin_url,
+        example_prospect_title=prospects[0].title,
+        example_prospect_company=prospects[0].company,
+        webhook_url=webhook_url,
+        direct_link=campaign_url,
+    )

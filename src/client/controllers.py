@@ -12,7 +12,9 @@ from src.personas.services import (
 )
 from src.prospecting.models import Prospect
 from src.client.services import (
+    create_archetype_asset,
     get_available_times_via_calendly,
+    get_client_assets,
     get_tam_data,
     msg_analytics_report,
     remove_prospects_caught_by_filters,
@@ -40,6 +42,9 @@ from src.client.services import (
 from src.client.services import mark_prospect_removed
 from src.slack.notifications.demo_feedback_collected import (
     DemoFeedbackCollectedNotification,
+)
+from src.slack.notifications.demo_feedback_updated import (
+    DemoFeedbackUpdatedNotification,
 )
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
@@ -2241,51 +2246,62 @@ def patch_demo_feedback(client_sdr_id: int):
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(df.prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-    send_slack_message(
-        message="🎊 ✍️ UPDATED Demo Feedback",
-        webhook_urls=[
-            URL_MAP["csm-demo-feedback"],
-            client.pipeline_notifications_webhook_url,
-        ],
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🎊 ✍️ UPDATED Demo Feedback",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
-                        rating=rating,
-                        rep=client_sdr.name,
-                        notes=feedback,
-                        ai_adjustments=ai_adjustments,
-                    ),
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
-                            prospect=prospect.full_name,
-                            company=prospect.company,
-                            persona=archetype.archetype,
-                            date=str(prospect.demo_date),
-                            showed=status,
-                        ),
-                    }
-                ],
-            },
-        ],
+
+    updated_feedback_notification = DemoFeedbackUpdatedNotification(
+        client_sdr_id=client_sdr.id,
+        prospect_id=prospect.id,
+        rating=rating,
+        notes=feedback,
+        demo_status=status,
+        ai_adjustment=ai_adjustments,
     )
+    updated_feedback_notification.send_notification(preview_mode=False)
+
+    # send_slack_message(
+    #     message="🎊 ✍️ UPDATED Demo Feedback",
+    #     webhook_urls=[
+    #         URL_MAP["csm-demo-feedback"],
+    #         client.pipeline_notifications_webhook_url,
+    #     ],
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": "🎊 ✍️ UPDATED Demo Feedback",
+    #                 "emoji": True,
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Rep*: {rep}\n*Rating*: {rating}\n*Notes*: {notes}\n*AI Adjustments*: {ai_adjustments}".format(
+    #                     rating=rating,
+    #                     rep=client_sdr.name,
+    #                     notes=feedback,
+    #                     ai_adjustments=ai_adjustments,
+    #                 ),
+    #             },
+    #         },
+    #         {"type": "divider"},
+    #         {
+    #             "type": "context",
+    #             "elements": [
+    #                 {
+    #                     "type": "mrkdwn",
+    #                     "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {date}\n*Demo*: {showed}".format(
+    #                         prospect=prospect.full_name,
+    #                         company=prospect.company,
+    #                         persona=archetype.archetype,
+    #                         date=str(prospect.demo_date),
+    #                         showed=status,
+    #                     ),
+    #                 }
+    #             ],
+    #         },
+    #     ],
+    # )
 
     return jsonify({"status": "success", "data": {"message": "Success"}}), 200
 
@@ -2894,3 +2910,43 @@ def post_territory_name(client_sdr_id: int):
         return "Failed to update territory name", 400
 
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/create_archetype_asset", methods=["POST"])
+@require_user
+def post_create_archetype_asset(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    client_archetype_ids = get_request_parameter(
+        "client_archetype_ids", request, json=True, required=False, parameter_type=int
+    )
+    asset_key = get_request_parameter(
+        "asset_key", request, json=True, required=True, parameter_type=str
+    )
+    asset_value = get_request_parameter(
+        "asset_value", request, json=True, required=True, parameter_type=str
+    )
+    asset_reason = get_request_parameter(
+        "asset_reason", request, json=True, required=True, parameter_type=str
+    )
+
+    success = create_archetype_asset(
+        client_id=client_id,
+        client_archetype_ids=client_archetype_ids,
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_reason=asset_reason,
+    )
+
+    if not success:
+        return "Failed to create archetype asset", 400
+
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/get_assets", methods=["GET"])
+@require_user
+def get_assets_edpoint(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    assets = get_client_assets(client_sdr.client_id)
+    return jsonify({"message": "Success", "data": assets}), 200

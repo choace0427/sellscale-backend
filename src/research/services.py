@@ -43,7 +43,9 @@ def create_research_payload(
     payload = ResearchPayload(
         prospect_id=prospect_id,
         research_type=research_type,
-        research_sub_type=sub_type,
+        research_sub_type=(
+            convert_to_research_point_type_name(sub_type) if sub_type else None
+        ),
         payload=payload,
     )
     db.session.add(payload)
@@ -117,12 +119,20 @@ def create_custom_research_point_type(
     )
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    return create_research_point_type(
+    value = create_research_point_type(
         name=label,
         description="Custom research point",
         client_sdr_id=prospect.client_sdr_id,
         function_name="get_custom_research",
     )
+
+    from src.research.generate_research import generate_research_points
+
+    generate_research_points(
+        prospect_id=prospect_id,
+    )
+
+    return value
 
 
 def flag_research_point(research_point_id: int):

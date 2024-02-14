@@ -1,20 +1,21 @@
+import datetime
 from typing import Optional
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect
+from src.ai_requests.models import AIRequest
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
 
 
-class LinkedInInviteAcceptedNotification(SlackNotificationClass):
-    """A Slack notification that is sent when the Prospect accepts a LinkedIn invite
+class AITaskCompletedNotification(SlackNotificationClass):
+    """A Slack notification that is sent whenever the SDR gives feedback on a Demo
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
     `developer_mode` (MANDATORY): Whether or not the notification is being sent in developer mode. Defaults to False.
-    `prospect_id`: The ID of the Prospect that the AI replied to
-    `prospect_message`: The message that the Prospect sent
-    `ai_response`: The response that the AI sent
+    `title`: The title of task
+    `description`: The description of the task
+    `minutes_worked`: The number of minutes that the AI spent on this task
 
     This class inherits from SlackNotificationClass.
     """
@@ -23,10 +24,14 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
         self,
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
-        prospect_id: Optional[int] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        minutes_worked: Optional[int] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
-        self.prospect_id = prospect_id
+        self.title = title
+        self.description = description
+        self.minutes_worked = minutes_worked
 
         return
 
@@ -45,41 +50,38 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
             return {
-                "prospect_name": "John Doe",
-                "prospect_title": "CEO",
-                "prospect_company": "SomeCompany",
-                "archetype_name": "CEOs at AI Companies",
-                "archetype_emoji": "🤖",
-                "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
-                    auth_token=client_sdr.auth_token,
+                "title": "Remove Security Ops titles",
+                "minutes_worked": 5,
+                "description": "Removed 500+ instances of 'Security Operations' titles",
+                "contact": client_sdr.name,
+                "request_date": datetime.datetime.now().strftime("%B %d, %Y"),
+                "completed_date": datetime.datetime.now().strftime("%B %d, %Y"),
+                "dashboard_url": (
+                    "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                    + client_sdr.auth_token
+                    + "&redirect=ai-request"
                 ),
-                "invite_message": "Hey John, if utilizing AI is a priority for you, I'd love to connect and share how we're helping other CEOs at AI companies like yours. Also, Go Bears!",
-                "initial_send_date": "January 1, 2022",
             }
 
         def get_fields() -> dict:
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
-            prospect: Prospect = Prospect.query.get(self.prospect_id)
-            client_archetype: ClientArchetype = ClientArchetype.query.get(
-                prospect.archetype_id
-            )
-            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
-                id=prospect.approved_outreach_message_id
-            ).first()
+            request: AIRequest = AIRequest.query.get(self.client_sdr_id)
 
             return {
-                "prospect_name": prospect.full_name,
-                "prospect_title": prospect.title,
-                "prospect_company": prospect.company,
-                "archetype_name": client_archetype.archetype,
-                "archetype_emoji": client_archetype.emoji,
-                "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
-                    auth_token=client_sdr.auth_token,
-                    prospect_id=prospect.id,
+                "title": self.title,
+                "minutes_worked": self.minutes_worked,
+                "description": self.description,
+                "contact": client_sdr.name,
+                "request_date": (
+                    request.created_at.strftime("%B %d, %Y") if request else "-"
                 ),
-                "invite_message": generated_message.completion,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
+                "completed_date": datetime.datetime.now().strftime("%B %d, %Y"),
+                "dashboard_url": (
+                    "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+                    + client_sdr.auth_token
+                    + "&redirect=ai-request"
+                ),
             }
 
         # Get the required objects / fields
@@ -87,27 +89,26 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
+            if not self.title or not self.minutes_worked or not self.description:
                 return False
             fields = get_fields()
 
         # Get the fields
-        prospect_name = fields.get("prospect_name")
-        prospect_title = fields.get("prospect_title")
-        prospect_company = fields.get("prospect_company")
-        archetype_name = fields.get("archetype_name")
-        archetype_emoji = fields.get("archetype_emoji")
-        direct_link = fields.get("direct_link")
-        invite_message = fields.get("invite_message")
-        initial_send_date = fields.get("initial_send_date")
+        title = fields.get("title")
+        minutes_worked = fields.get("minutes_worked")
+        description = fields.get("description")
+        contact = fields.get("contact")
+        request_date = fields.get("request_date")
+        completed_date = fields.get("completed_date")
+        dashboard_url = fields.get("dashboard_url")
         if (
-            not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not archetype_name
-            or not direct_link
-            or not invite_message
-            or not initial_send_date
+            not title
+            or not minutes_worked
+            or not description
+            or not contact
+            or not request_date
+            or not completed_date
+            or not dashboard_url
         ):
             return False
 
@@ -116,15 +117,15 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
 
         # Send the message
         slack_bot_send_message(
-            notification_type=SlackNotificationType.LINKEDIN_INVITE_ACCEPTED,
+            notification_type=SlackNotificationType.AI_TASK_COMPLETED,
             client_id=client.id,
-            base_message=f"😀 A LinkedIn invite was accepted by {prospect_name} ({prospect_title}) at {prospect_company} ({archetype_name}).",
+            base_message=f"✅ SellScale AI completed a new task for you!",
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"😀 {prospect_name} accepted your LinkedIn connection request!",
+                        "text": "✅ SellScale AI completed a new task for you!",
                         "emoji": True,
                     },
                 },
@@ -132,9 +133,15 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Persona:* {emoji} {persona}".format(
-                            persona=archetype_name if archetype_name else "-",
-                            emoji=archetype_emoji,
+                        "text": "*Task:* {title}".format(title=title if title else "-"),
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*AI Run Time:* {minutes_worked} minutes ⏱️".format(
+                            minutes_worked=minutes_worked if minutes_worked else "-",
                         ),
                     },
                 },
@@ -142,61 +149,51 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Title:* {title}\n*Company:* {company}".format(
-                            title=prospect_title if prospect_title else "-",
-                            company=prospect_company if prospect_company else "-",
+                        "text": "*Description:* {description}".format(
+                            description=description if description else "-"
                         ),
                     },
                 },
+                {"type": "divider"},
                 {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*{sdr}:* {invite_message}".format(
-                            sdr=client_sdr.name,
-                            invite_message=invite_message,
-                        ),
-                    },
-                },
-                {  # Add SDR information
                     "type": "context",
                     "elements": [
                         {
                             "type": "plain_text",
-                            "text": "😎 Contact: {sdr}".format(
+                            "text": "Contact: {sdr}".format(
                                 sdr=client_sdr.name,
                             ),
                             "emoji": True,
                         },
                         {
                             "type": "plain_text",
-                            "text": "📆 Initial Send: {date_sent}".format(
-                                date_sent=initial_send_date,
+                            "text": "Date Requested: {request_date}".format(
+                                request_date=request_date,
                             ),
                             "emoji": True,
                         },
                         {
                             "type": "plain_text",
-                            "text": "📤 Outbound channel: LinkedIn",
+                            "text": "Date Completed: {complete_date}".format(
+                                complete_date=datetime.datetime.now().strftime(
+                                    "%B %d, %Y"
+                                ),
+                            ),
                             "emoji": True,
                         },
                     ],
                 },
                 {
                     "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": " ",
-                    },
+                    "text": {"type": "mrkdwn", "text": " "},
                     "accessory": {
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "View Convo in Sight",
+                            "text": "View in Dashboard →",
                             "emoji": True,
                         },
-                        "value": direct_link,
-                        "url": direct_link,
+                        "url": dashboard_url,
                         "action_id": "button-action",
                     },
                 },

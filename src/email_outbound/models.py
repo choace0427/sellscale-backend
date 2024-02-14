@@ -361,9 +361,9 @@ class ProspectEmail(db.Model):
             "prospect_id": self.prospect_id,
             "outbound_campaign_id": self.outbound_campaign_id,
             "email_status": self.email_status.value if self.email_status else None,
-            "outreach_status": self.outreach_status.value
-            if self.outreach_status
-            else None,
+            "outreach_status": (
+                self.outreach_status.value if self.outreach_status else None
+            ),
             "personalized_first_line": personalized_first_line,
             "personalized_subject_line": personalized_subject_line,
             "personalized_body": personalized_body,
@@ -604,6 +604,20 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO,
         ProspectEmailOutreachStatus.SCHEDULING,
         ProspectEmailOutreachStatus.NOT_INTERESTED,
+    ],
+    ProspectEmailOutreachStatus.ACTIVE_CONVO_REFERRAL: [
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_QUAL_NEEDED,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_OBJECTION,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO,
+        ProspectEmailOutreachStatus.SCHEDULING,
+        ProspectEmailOutreachStatus.NOT_INTERESTED,
+        ProspectEmailOutreachStatus.DEMO_SET,
+        ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
     ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION: [
         ProspectEmailOutreachStatus.ACTIVE_CONVO,

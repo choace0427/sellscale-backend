@@ -128,7 +128,7 @@ class EmailAIReplyNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.AI_REPLY_TO_EMAIL,
             client_id=client.id,
-            base_message="SellScale AI just replied to prospect on Email!",
+            base_message="💬 SellScale AI just replied to prospect on Email!",
             blocks=[
                 {
                     "type": "header",
@@ -154,9 +154,11 @@ class EmailAIReplyNotification(SlackNotificationClass):
                         "text": "*{prospect_first_name}*:\n>{prospect_message}\n\n*{first_name} (AI)*:\n>{ai_response}".format(
                             prospect_first_name=prospect_first_name,
                             prospect_message=prospect_message[:150],
-                            ai_response=ai_response[:400] + "..."
-                            if len(ai_response) > 400
-                            else ai_response,
+                            ai_response=(
+                                ai_response[:400] + "..."
+                                if len(ai_response) > 400
+                                else ai_response
+                            ),
                             first_name=client_sdr.name.split(" ")[0],
                         ),
                     },

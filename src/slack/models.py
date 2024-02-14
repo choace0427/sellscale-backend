@@ -8,14 +8,22 @@ class SlackNotificationType(Enum):
 
     # LINKEDIN
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
+    LINKEDIN_PROSPECT_RESPONDED = "LINKEDIN_PROSPECT_RESPONDED"
     LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
+    LINKEDIN_PROSPECT_REMOVED = "LINKEDIN_PROSPECT_REMOVED"
+    LINKEDIN_DEMO_SET = "LINKEDIN_DEMO_SET"
 
     # EMAIL
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
     EMAIL_LINK_CLICKED = "EMAIL_LINK_CLICKED"
+    EMAIL_PROSPECT_REPLIED = "EMAIL_PROSPECT_REPLIED"
+    EMAIL_MULTICHANNELED = "EMAIL_MULTICHANNELED"
 
     # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
+    DEMO_FEEDBACK_UPDATED = "DEMO_FEEDBACK_UPDATED"
+
+    AI_TASK_COMPLETED = "AI_TASK_COMPLETED"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -37,12 +45,33 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.linkedin_invite_accepted import (
         LinkedInInviteAcceptedNotification,
     )
+    from src.slack.notifications.linkedin_prospect_responded import (
+        LinkedinProspectRespondedNotification,
+    )
+    from src.slack.notifications.linkedin_demo_set import (
+        LinkedInDemoSetNotification,
+    )
     from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
+    from src.slack.notifications.demo_feedback_updated import (
+        DemoFeedbackUpdatedNotification,
+    )
     from src.slack.notifications.demo_feedback_collected import (
         DemoFeedbackCollectedNotification,
     )
     from src.slack.notifications.linkedin_prospect_scheduling import (
         LinkedinProspectSchedulingNotification,
+    )
+    from src.slack.notifications.email_prospect_replied import (
+        EmailProspectRepliedNotification,
+    )
+    from src.slack.notifications.email_multichanneled import (
+        EmailMultichanneledNotification,
+    )
+    from src.slack.notifications.ai_task_completed import (
+        AITaskCompletedNotification,
+    )
+    from src.slack.notifications.linkedin_prospect_removed import (
+        LinkedinProspectRemovedNotification,
     )
 
     map_slack_notification_type_to_metadata = {
@@ -52,10 +81,28 @@ def get_slack_notification_type_metadata():
             "class": LinkedInInviteAcceptedNotification,
             "outbound_channel": "linkedin",
         },
+        SlackNotificationType.LINKEDIN_PROSPECT_RESPONDED: {
+            "name": "Linkedin Prospect Responded",
+            "description": "A Slack notification that is sent when a Prospect has responded to your LinkedIn message for the first time.",
+            "class": LinkedinProspectRespondedNotification,
+            "outbound_channel": "linkedin",
+        },
         SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING: {
             "name": "LinkedIn Prospect Scheduling",
             "description": "A Slack notification that is sent when a Prospect is scheduling a meeting with you on LinkedIn",
             "class": LinkedinProspectSchedulingNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_PROSPECT_REMOVED: {
+            "name": "Linkedin Prospect Removed",
+            "description": "A Slack notification that is sent when a Prospect is removed from your pipeline",
+            "class": LinkedinProspectRemovedNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_DEMO_SET: {
+            "name": "LinkedIn Demo Set",
+            "description": "A Slack notification that is sent when a Prospect schedules a demo through LinkedIn",
+            "class": LinkedInDemoSetNotification,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.AI_REPLY_TO_EMAIL: {
@@ -70,10 +117,34 @@ def get_slack_notification_type_metadata():
             "class": EmailLinkClickedNotification,
             "outbound_channel": "email",
         },
+        SlackNotificationType.EMAIL_PROSPECT_REPLIED: {
+            "name": "Email Prospect Replied",
+            "description": "A Slack notification that is sent when a Prospect responds to your email",
+            "class": EmailProspectRepliedNotification,
+            "outbound_channel": "email",
+        },
+        SlackNotificationType.EMAIL_MULTICHANNELED: {
+            "name": "Email Multichannel",
+            "description": "A Slack notification that is sent when a Prospect requests a response on email, from a different channel.",
+            "class": EmailMultichanneledNotification,
+            "outbound_channel": "email",
+        },
         SlackNotificationType.DEMO_FEEDBACK_COLLECTED: {
             "name": "Demo Feedback Collected",
             "description": "A Slack notification that is sent whenever you give feedback on a Demo",
             "class": DemoFeedbackCollectedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.DEMO_FEEDBACK_UPDATED: {
+            "name": "Demo Feedback Updated",
+            "description": "A Slack notification that is sent whenever you give update feedback on a Demo",
+            "class": DemoFeedbackUpdatedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.AI_TASK_COMPLETED: {
+            "name": "AI Task Completed",
+            "description": "A Slack notification that is sent whenever the AI completes a task for you",
+            "class": AITaskCompletedNotification,
             "outbound_channel": "all",
         },
     }

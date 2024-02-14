@@ -227,39 +227,33 @@ def daily_generate_linkedin_campaign_for_sdr(
                         GeneratedMessageType.LINKEDIN,
                     )
                 )
-                if num_to_generate <= num_available_prospects:
-                    # Create the campaign
-                    oc = create_outbound_campaign(
-                        prospect_ids=[],
-                        num_prospects=num_to_generate,
-                        campaign_type=GeneratedMessageType.LINKEDIN,
-                        client_archetype_id=archetype.id,
-                        client_sdr_id=client_sdr.id,
-                        campaign_start_date=start_date,
-                        campaign_end_date=end_date,
-                        ctas=[cta.id for cta in ctas],
-                        is_daily_generation=True,
-                    )
-                    if not oc:
-                        send_slack_message(
-                            f"🤖 ❌ ❓ Daily Campaign (LI): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
-                            [SLACK_CHANNEL],
-                        )
-                    # Generate the campaign
-                    else:
-                        generating = generate_campaign(oc.id)
-                        if not generating:
-                            send_slack_message(
-                                f"🤖 ❌ ❓ Daily Campaign (LI): Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
-                                [SLACK_CHANNEL],
-                            )
-                        else:
-                            linkedin_campaigns_generated.append(archetype.archetype)
-                else:
+                # Create the campaign
+                oc = create_outbound_campaign(
+                    prospect_ids=[],
+                    num_prospects=num_to_generate,
+                    campaign_type=GeneratedMessageType.LINKEDIN,
+                    client_archetype_id=archetype.id,
+                    client_sdr_id=client_sdr.id,
+                    campaign_start_date=start_date,
+                    campaign_end_date=end_date,
+                    ctas=[cta.id for cta in ctas],
+                    is_daily_generation=True,
+                )
+                if not oc:
                     send_slack_message(
-                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (LI): Not enough prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
+                        f"🤖 ❌ ❓ Daily Campaign (LI): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
                         [SLACK_CHANNEL],
                     )
+                # Generate the campaign
+                else:
+                    generating = generate_campaign(oc.id)
+                    if not generating:
+                        send_slack_message(
+                            f"🤖 ❌ ❓ Daily Campaign (LI): Error queuing messages for generation. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
+                            [SLACK_CHANNEL],
+                        )
+                    else:
+                        linkedin_campaigns_generated.append(archetype.archetype)
 
         # 6. Send appropriate slack messages
         if len(linkedin_campaigns_generated) == 0:

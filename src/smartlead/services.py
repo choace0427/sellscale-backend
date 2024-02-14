@@ -900,9 +900,9 @@ def sync_prospect_with_lead(
 
         metadata = {
             "prospect_email": lead.lead_email,
-            "email_title": lead.email_subject,
-            "email_snippet": sent_message,
-            "prospect_message": prospect_message,
+            "email_sent_subject": lead.email_subject,
+            "email_sent_body": sent_message,
+            "email_reply_body": prospect_message,
         }
         print('Updating prospect email status to "ACTIVE_CONVO"')
         if prospect_email.outreach_status == ProspectEmailOutreachStatus.EMAIL_OPENED:
@@ -991,7 +991,7 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
             )
             body: GeneratedMessage = GeneratedMessage.query.get(message.body_id)
             custom_fields["Subject_Line"] = subject_line.completion
-            custom_fields[f"Body_{index+1}"] = body.completion
+            custom_fields[f"Body_1"] = body.completion
         if message.email_type == EmailMessagingType.FOLLOW_UP_EMAIL:
             email_body: GeneratedMessage = GeneratedMessage.query.get(message.body_id)
             custom_fields[f"Body_{index+1}"] = email_body.completion

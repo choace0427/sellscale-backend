@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from src.ai_requests.models import AIRequest, AIRequestStatus
 from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.slack.notifications.ai_task_completed import AITaskCompletedNotification
 from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack utility
 from src.client.models import Client, ClientSDR
 
@@ -115,85 +116,93 @@ def update_ai_requests(
         # Send slack notification
         if status == AIRequestStatus.COMPLETED:
             sdr: ClientSDR = ClientSDR.query.get(ai_request.client_sdr_id)
-            client: Client = Client.query.get(sdr.client_id)
-            dashboard_url = (
-                "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-                + sdr.auth_token
-                + "&redirect=ai-request"
-            )
 
-            send_slack_message(
-                message=f"Your AI completed a new task for you!",
-                blocks=[
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": f"Your AI completed a new task for you! ✅",
-                            "emoji": True,
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Task*: {ai_request.title}\n",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*AI Run Time*: `{minutes_worked}` minutes ⏱\n",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Description:*\n{details}\n",
-                        },
-                    },
-                    {"type": "divider"},
-                    {
-                        "type": "context",
-                        "elements": [
-                            {
-                                "type": "plain_text",
-                                "text": f"Contact: {sdr.name}",
-                                "emoji": True,
-                            },
-                            {
-                                "type": "plain_text",
-                                "text": f"Date Requested: {ai_request.creation_date.strftime('%m/%d/%Y')}",
-                                "emoji": True,
-                            },
-                            {
-                                "type": "plain_text",
-                                "text": f"Date Completed: {datetime.utcnow().strftime('%m/%d/%Y')}",
-                                "emoji": True,
-                            },
-                        ],
-                    },
-                    {
-                        "type": "section",
-                        "text": {"type": "mrkdwn", "text": " "},
-                        "accessory": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "View in Dashboard →",
-                                "emoji": True,
-                            },
-                            "url": dashboard_url,
-                            "action_id": "button-action",
-                        },
-                    },
-                ],
-                webhook_urls=[client.pipeline_notifications_webhook_url]
-                if client.pipeline_notifications_webhook_url
-                else [],
+            ai_task_complete_notif = AITaskCompletedNotification(
+                client_sdr_id=sdr.id,
+                title=ai_request.title,
+                description=details,
+                minutes_worked=minutes_worked,
             )
+            ai_task_complete_notif.send_notification(preview_mode=False)
+
+            # client: Client = Client.query.get(sdr.client_id)
+            # dashboard_url = (
+            #     "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+            #     + sdr.auth_token
+            #     + "&redirect=ai-request"
+            # )
+            # send_slack_message(
+            #     message=f"Your AI completed a new task for you!",
+            #     blocks=[
+            #         {
+            #             "type": "header",
+            #             "text": {
+            #                 "type": "plain_text",
+            #                 "text": f"Your AI completed a new task for you! ✅",
+            #                 "emoji": True,
+            #             },
+            #         },
+            #         {
+            #             "type": "section",
+            #             "text": {
+            #                 "type": "mrkdwn",
+            #                 "text": f"*Task*: {ai_request.title}\n",
+            #             },
+            #         },
+            #         {
+            #             "type": "section",
+            #             "text": {
+            #                 "type": "mrkdwn",
+            #                 "text": f"*AI Run Time*: `{minutes_worked}` minutes ⏱\n",
+            #             },
+            #         },
+            #         {
+            #             "type": "section",
+            #             "text": {
+            #                 "type": "mrkdwn",
+            #                 "text": f"*Description:*\n{details}\n",
+            #             },
+            #         },
+            #         {"type": "divider"},
+            #         {
+            #             "type": "context",
+            #             "elements": [
+            #                 {
+            #                     "type": "plain_text",
+            #                     "text": f"Contact: {sdr.name}",
+            #                     "emoji": True,
+            #                 },
+            #                 {
+            #                     "type": "plain_text",
+            #                     "text": f"Date Requested: {ai_request.creation_date.strftime('%m/%d/%Y')}",
+            #                     "emoji": True,
+            #                 },
+            #                 {
+            #                     "type": "plain_text",
+            #                     "text": f"Date Completed: {datetime.utcnow().strftime('%m/%d/%Y')}",
+            #                     "emoji": True,
+            #                 },
+            #             ],
+            #         },
+            #         {
+            #             "type": "section",
+            #             "text": {"type": "mrkdwn", "text": " "},
+            #             "accessory": {
+            #                 "type": "button",
+            #                 "text": {
+            #                     "type": "plain_text",
+            #                     "text": "View in Dashboard →",
+            #                     "emoji": True,
+            #                 },
+            #                 "url": dashboard_url,
+            #                 "action_id": "button-action",
+            #             },
+            #         },
+            #     ],
+            #     webhook_urls=[client.pipeline_notifications_webhook_url]
+            #     if client.pipeline_notifications_webhook_url
+            #     else [],
+            # )
 
         return ai_request
 
