@@ -4676,11 +4676,7 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
-    client_id: int,
-    client_archetype_ids: list[int],
-    asset_key: str,
-    asset_value: str,
-    asset_reason: str,
+    client_id: int, client_archetype_ids: list[int], asset_key: str, asset_value: str
 ):
     """
     Creates an asset for a client archetype
@@ -4690,7 +4686,6 @@ def create_archetype_asset(
         client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
         asset_value=asset_value,
-        asset_reason=asset_reason,
     )
     db.session.add(asset)
     db.session.commit()
@@ -4739,7 +4734,6 @@ def update_asset(
     client_sdr_id: int,
     asset_key: Optional[str] = None,
     asset_value: Optional[str] = None,
-    asset_reason: Optional[str] = None,
 ):
     """
     Updates an asset for a client archetype
@@ -4754,8 +4748,6 @@ def update_asset(
         asset.asset_key = asset_key
     if asset_value:
         asset.asset_value = asset_value
-    if asset_reason:
-        asset.asset_reason = asset_reason
     db.session.add(asset)
     db.session.commit()
     return True

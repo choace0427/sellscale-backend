@@ -2958,16 +2958,12 @@ def post_create_archetype_asset(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=True, parameter_type=str
     )
-    asset_reason = get_request_parameter(
-        "asset_reason", request, json=True, required=True, parameter_type=str
-    )
 
     success = create_archetype_asset(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
-        asset_value=asset_value,
-        asset_reason=asset_reason,
+        asset_value=asset_value
     )
 
     if not success:
@@ -3034,16 +3030,12 @@ def update_asset_endpoint(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=False, parameter_type=str
     )
-    asset_reason = get_request_parameter(
-        "asset_reason", request, json=True, required=False, parameter_type=str
-    )
 
     success = update_asset(
         asset_id=asset_id,
         client_sdr_id=client_sdr_id,
         asset_key=asset_key,
-        asset_value=asset_value,
-        asset_reason=asset_reason,
+        asset_value=asset_value
     )
 
     if not success:
