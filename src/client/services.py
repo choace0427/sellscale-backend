@@ -34,7 +34,11 @@ from src.prospecting.models import ProspectEvent
 from model_import import DemoFeedback, BumpFramework
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
-from src.client.models import ClientArchetypeAssets, ClientProduct
+from src.client.models import (
+    ClientArchetypeAssets,
+    ClientProduct,
+    ClientArchetypeAssetReasonMapping,
+)
 from sqlalchemy import or_
 from click import Option
 from src.client.models import DemoFeedback
@@ -4749,5 +4753,40 @@ def update_asset(
     if asset_value:
         asset.asset_value = asset_value
     db.session.add(asset)
+    db.session.commit()
+    return True
+
+
+def delete_client_archetype_asset_mapping(
+    client_archetype_id: int,
+    asset_id: int,
+):
+    """
+    Deletes an asset for a client archetype
+    """
+    asset = ClientArchetypeAssets.query.filter(
+        ClientArchetypeAssets.client_archetype_ids.contains([client_archetype_id]),
+        ClientArchetypeAssets.id == asset_id,
+    ).all()
+    for a in asset:
+        db.session.delete(a)
+    db.session.commit()
+    return True
+
+
+def create_client_archetype_reason_mapping(
+    client_archetype_id: int,
+    asset_id: int,
+    reason: str,
+):
+    """
+    Creates a reason for a client archetype
+    """
+    reason = ClientArchetypeAssetReasonMapping(
+        client_archetype_id=client_archetype_id,
+        asset_id=asset_id,
+        reason=reason,
+    )
+    db.session.add(reason)
     db.session.commit()
     return True

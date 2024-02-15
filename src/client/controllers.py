@@ -14,7 +14,9 @@ from src.personas.services import (
 from src.prospecting.models import Prospect
 from src.client.services import (
     create_archetype_asset,
+    create_client_archetype_reason_mapping,
     delete_archetype_asset,
+    delete_client_archetype_asset_mapping,
     get_available_times_via_calendly,
     get_client_assets,
     get_tam_data,
@@ -3003,14 +3005,22 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     asset_id = get_request_parameter(
         "asset_id", request, json=True, required=True, parameter_type=int
     )
+    reason = get_request_parameter(
+        "reason", request, json=True, required=False, parameter_type=str
+    )
+
+    if not reason:
+        reason = ""
 
     asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
         id=asset_id, client_id=client_id
     ).first()
     if asset.client_archetype_ids and client_archetype_id in asset.client_archetype_ids:
         asset.client_archetype_ids.remove(client_archetype_id)
+        delete_client_archetype_asset_mapping(client_archetype_id, asset_id)
     else:
         asset.client_archetype_ids.append(client_archetype_id)
+        create_client_archetype_reason_mapping(client_archetype_id, asset_id, reason)
     flag_modified(asset, "client_archetype_ids")
     db.session.add(asset)
     db.session.commit()
