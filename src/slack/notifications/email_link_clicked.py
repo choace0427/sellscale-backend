@@ -84,7 +84,11 @@ class EmailLinkClickedNotification(SlackNotificationClass):
                     prospect_id=self.prospect_id if self.prospect_id else "",
                 ),
                 "link_clicked": self.link_clicked,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
+                "initial_send_date": (
+                    generated_message.created_at.strftime("%B %d, %Y")
+                    if generated_message.created_at
+                    else "-"
+                ),
             }
 
         # Get the required objects / fields
