@@ -173,6 +173,55 @@ WHERE
     }
 
 
+def backfill_processing_webhooks():
+    # Get the smartleadwebhookpayload
+    from src.smartlead.webhooks.models import (
+        SmartleadWebhookPayloads,
+        SmartleadWebhookProcessingStatus,
+    )
+
+    payloads: list[SmartleadWebhookPayloads] = (
+        SmartleadWebhookPayloads.query.filter(
+            SmartleadWebhookPayloads.processing_status
+            == SmartleadWebhookProcessingStatus.PROCESSING
+        )
+        .order_by(SmartleadWebhookPayloads.id.asc())
+        .all()
+    )
+
+    for payload in payloads:
+        print(f"{payload.id} - {payload.smartlead_webhook_type.value}")
+        type = payload.smartlead_webhook_type.value
+        if type == "email.sent":
+            from src.smartlead.webhooks.email_sent import process_email_sent_webhook
+
+            process_email_sent_webhook(payload.id)
+        elif type == "email.opened":
+            from src.smartlead.webhooks.email_opened import process_email_opened_webhook
+
+            process_email_opened_webhook(payload.id)
+        elif type == "email.replied":
+            from src.smartlead.webhooks.email_replied import (
+                process_email_replied_webhook,
+            )
+
+            process_email_replied_webhook(payload.id)
+        elif type == "email.bounced":
+            from src.smartlead.webhooks.email_bounced import (
+                process_email_bounce_webhook,
+            )
+
+            process_email_bounce_webhook(payload.id)
+        elif type == "email.link_clicked":
+            from src.smartlead.webhooks.email_link_clicked import (
+                process_email_link_clicked_webhook,
+            )
+
+            process_email_link_clicked_webhook(payload.id)
+
+    return True
+
+
 def get_message_history_for_prospect(
     prospect_id: int,
     smartlead_campaign_id: Optional[int] = None,
@@ -251,6 +300,9 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
             reply_email_time = last_message["time"]
             reply_email_body = last_message["email_body"]
             break
+
+    if not last_message:
+        return False
 
     # Send the reply
     response = sl.reply_to_lead(

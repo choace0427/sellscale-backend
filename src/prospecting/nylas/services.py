@@ -658,8 +658,8 @@ def nylas_send_email(
                     "name": client_sdr.name,
                 }
             ],
-            "bcc": [{"name": _bcc, "email": _bcc} for _bcc in bcc],
-            "cc": [{"name": _cc, "email": _cc} for _cc in cc],
+            "bcc": [{"name": _bcc, "email": _bcc} for _bcc in bcc] if bcc else [],
+            "cc": [{"name": _cc, "email": _cc} for _cc in cc] if cc else [],
             "reply_to_message_id": reply_to_message_id,
             "tracking": {  # Track opens and thread replies
                 "opens": True,
