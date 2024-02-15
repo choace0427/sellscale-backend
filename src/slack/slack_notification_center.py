@@ -66,7 +66,12 @@ def create_and_send_slack_notification_class_message(
         slack_notification_class: SlackNotificationClass = (
             notification_type.get_class()(**arguments)
         )
-        slack_notification_class.send_notification(preview_mode=False)
+        status = slack_notification_class.send_notification(preview_mode=False)
+        if not status:
+            log.status = "FAILED"
+            log.error = "Something went wrong while sending the Slack notification, something returned False or Null"
+            db.session.commit()
+            return False
     except Exception as e:
         log.status = "ERROR"
         log.error = str(e)

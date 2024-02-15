@@ -81,7 +81,7 @@ class EmailLinkClickedNotification(SlackNotificationClass):
                 "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
                 "archetype_name": archetype.archetype,
-                "archetype_emoji": archetype.emoji,
+                "archetype_emoji": archetype.emoji if archetype.emoji else "",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=self.prospect_id if self.prospect_id else "",

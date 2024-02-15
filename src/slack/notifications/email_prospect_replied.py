@@ -99,7 +99,9 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
                 "prospect_company": prospect.company,
                 "prospect_email": prospect.email,
                 "archetype_name": client_archetype.archetype,
-                "archetype_emoji": client_archetype.emoji,
+                "archetype_emoji": (
+                    client_archetype.emoji if client_archetype.emoji else ""
+                ),
                 "email_sent_subject": self.email_sent_subject,
                 "email_sent_body": self.email_sent_body,
                 "email_reply_body": self.email_reply_body,
