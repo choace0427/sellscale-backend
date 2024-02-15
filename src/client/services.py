@@ -4784,7 +4784,7 @@ def create_client_archetype_reason_mapping(
     """
     reason = ClientArchetypeAssetReasonMapping(
         client_archetype_id=client_archetype_id,
-        asset_id=asset_id,
+        client_archetype_asset_id=asset_id,
         reason=reason,
     )
     db.session.add(reason)
