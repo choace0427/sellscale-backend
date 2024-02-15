@@ -4770,6 +4770,18 @@ def delete_client_archetype_asset_mapping(
     for a in asset:
         db.session.delete(a)
     db.session.commit()
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_id = client_archetype.client_id
+
+    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_id
+    ).first()
+    asset.client_archetype_ids.remove(client_archetype_id)
+    flag_modified(asset, "client_archetype_ids")
+    db.session.add(asset)
+    db.session.commit()
+
     return True
 
 
@@ -4787,5 +4799,16 @@ def create_client_archetype_reason_mapping(
         reason=reason,
     )
     db.session.add(reason)
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_id = client_archetype.client_id
+
+    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_id
+    ).first()
+    asset.client_archetype_ids.append(client_archetype_id)
+    flag_modified(asset, "client_archetype_ids")
+    db.session.add(asset)
     db.session.commit()
+
     return True
