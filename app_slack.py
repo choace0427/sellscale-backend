@@ -6,6 +6,21 @@ from slack_bolt.adapter.flask import SlackRequestHandler
 from src.utils.access import is_celery, is_production, is_scheduling_instance
 
 
+class SlackAppHandlerPair:
+    _app_instance = None
+    _handler_instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._app_instance or not cls._handler_instance:
+            cls._app_instance = super().__new__(cls)
+            cls._handler_instance = super().__new__(cls)
+
+            # Initialize the Slack app
+            cls._app_instance, cls._handler_instance = initialize_slack_app()
+
+        return cls._app_instance, cls._handler_instance
+
+
 def authorize(enterprise_id, team_id, logger) -> SlackAuthorizeResult:
     """Authorization function for Slack
 
