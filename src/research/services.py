@@ -7,6 +7,7 @@ from model_import import (
     ResearchType,
     ClientSDR,
     Prospect,
+    ClientArchetype,
 )
 from src.research.models import (
     IScraperPayloadCache,
@@ -79,6 +80,7 @@ def run_create_custom_research_entries(
     client_sdr_id: int,
     label: str,
     entries: list[dict],
+    category: str,
 ) -> bool:
     from src.prospecting.services import find_prospect_id_from_li_or_email
 
@@ -99,7 +101,10 @@ def run_create_custom_research_entries(
                 continue
 
             research_point_id = create_custom_research_point_type(
-                prospect_id=prospect_id, label=label, data={"custom": value}
+                prospect_id=prospect_id,
+                label=label,
+                data={"custom": value},
+                category=category,
             )
 
         db.session.commit()
@@ -110,7 +115,7 @@ def run_create_custom_research_entries(
 
 
 def create_custom_research_point_type(
-    prospect_id: int, label: str, data: dict
+    prospect_id: int, label: str, data: dict, category: Optional[str] = None
 ) -> list[int]:
     """Creates a custom research point"""
 
@@ -124,6 +129,8 @@ def create_custom_research_point_type(
         description="Custom research point",
         client_sdr_id=prospect.client_sdr_id,
         function_name="get_custom_research",
+        archetype_id=prospect.archetype_id,
+        category=category,
     )
 
     from src.research.generate_research import generate_research_points
@@ -152,6 +159,8 @@ def create_research_point_type(
     description: str,
     client_sdr_id: int,
     function_name: str,
+    category: Optional[str] = None,
+    archetype_id: Optional[int] = None,
 ):
     """Creates a research point type"""
     name = convert_to_research_point_type_name(name)
@@ -172,6 +181,8 @@ def create_research_point_type(
         client_sdr_id=client_sdr_id,
         client_id=client_sdr.client_id,
         function_name=function_name,
+        archetype_id=archetype_id,
+        category=category,
     )
     db.session.add(research_point_type)
     db.session.commit()
@@ -179,9 +190,14 @@ def create_research_point_type(
     return research_point_type.id
 
 
-def get_all_research_point_types(client_sdr_id: Optional[int] = None, names_only=False):
+def get_all_research_point_types(
+    client_sdr_id: Optional[int] = None,
+    names_only=False,
+    archetype_id: Optional[int] = None,
+):
     # Get all generic research point types (no client id) and client specific research point types
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     research_point_types: list[ResearchPointType] = ResearchPointType.query.filter(
         ResearchPointType.active.is_(True),
         db.or_(
@@ -189,6 +205,22 @@ def get_all_research_point_types(client_sdr_id: Optional[int] = None, names_only
             ResearchPointType.client_id == client_sdr.client_id if client_sdr else None,
         ),
     ).all()
+
+    def filter_rpt(rpt: ResearchPointType):
+        if rpt.category == "CLIENT" or rpt.category is None:
+            return True
+        elif rpt.category == "ARCHETYPE":
+            return rpt.archetype_id == archetype_id
+        elif rpt.category == "SDR":
+            return rpt.client_sdr_id == client_sdr_id
+        else:
+            return False
+
+    research_point_types = [
+        research_point_type
+        for research_point_type in research_point_types
+        if filter_rpt(research_point_type)
+    ]
 
     if names_only:
         return [rpt.name for rpt in research_point_types]

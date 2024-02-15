@@ -71,9 +71,9 @@ class BumpFramework(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "client_archetype_archetype": archetype.archetype if archetype else None,
-            "overall_status": self.overall_status.value
-            if self.overall_status
-            else None,
+            "overall_status": (
+                self.overall_status.value if self.overall_status else None
+            ),
             "substatus": self.substatus,
             "default": self.default,
             "bump_length": self.bump_length.value if self.bump_length else None,
@@ -83,13 +83,17 @@ class BumpFramework(db.Model):
             "use_account_research": self.use_account_research,
             "etl_num_times_used": self.etl_num_times_used,
             "etl_num_times_converted": self.etl_num_times_converted,
-            "transformer_blocklist": [t for t in self.transformer_blocklist]
-            if self.transformer_blocklist
-            else [],
+            "transformer_blocklist": (
+                [t for t in self.transformer_blocklist]
+                if self.transformer_blocklist
+                else []
+            ),
             "active_transformers": [
                 t
                 for t in get_all_research_point_types(
-                    self.client_sdr_id, names_only=True
+                    self.client_sdr_id,
+                    names_only=True,
+                    archetype_id=self.client_archetype_id,
                 )
                 if not self.transformer_blocklist or t not in self.transformer_blocklist
             ],
@@ -150,12 +154,16 @@ class BumpFrameworkTemplates(db.Model):
             "length": self.length,
             "active": self.active,
             "bumped_counts": self.bumped_counts,
-            "overall_statuses": [o.value for o in self.overall_statuses]
-            if self.overall_statuses
-            else None,
-            "transformer_blocklist": [t for t in self.transformer_blocklist]
-            if self.transformer_blocklist
-            else [],
+            "overall_statuses": (
+                [o.value for o in self.overall_statuses]
+                if self.overall_statuses
+                else None
+            ),
+            "transformer_blocklist": (
+                [t for t in self.transformer_blocklist]
+                if self.transformer_blocklist
+                else []
+            ),
             "labels": self.labels,
             "tone": self.tone,
         }
