@@ -665,6 +665,15 @@ class PLGProductLeads(db.Model):
     is_test = db.Column(db.Boolean, nullable=True, default=False)
 
 
+# asset type: PDF, TEXT, URL
+
+
+class ClientArchetypeAssetType(enum.Enum):
+    PDF = "PDF"
+    TEXT = "TEXT"
+    URL = "URL"
+
+
 class ClientArchetypeAssets(db.Model):
     __tablename__ = "client_archetype_assets"
 
@@ -675,6 +684,11 @@ class ClientArchetypeAssets(db.Model):
     asset_key = db.Column(db.String)
     asset_value = db.Column(db.String)
     asset_reason = db.Column(db.String)
+
+    asset_type = db.Column(
+        sa.Enum(ClientArchetypeAssetType, create_constraint=False), nullable=True
+    )
+    asset_tags = db.Column(db.ARRAY(db.String), nullable=True)
 
     def to_dict(self) -> dict:
         return {
