@@ -4764,9 +4764,8 @@ def delete_client_archetype_asset_mapping(
     """
     Deletes an asset for a client archetype
     """
-    asset = ClientArchetypeAssets.query.filter(
-        ClientArchetypeAssets.client_archetype_ids.contains([client_archetype_id]),
-        ClientArchetypeAssets.id == asset_id,
+    asset = ClientArchetypeAssetReasonMapping.query.filter_by(
+        client_archetype_id=client_archetype_id, client_archetype_asset_id=asset_id
     ).all()
     for a in asset:
         db.session.delete(a)

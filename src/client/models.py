@@ -6,6 +6,8 @@ from src.prospecting.models import ProspectStatus, Prospect
 import sqlalchemy as sa
 import json
 from src.subscriptions.models import Subscription
+from sqlalchemy.dialects.postgresql import ARRAY
+
 
 from src.utils.hasher import generate_uuid
 
@@ -680,7 +682,7 @@ class ClientArchetypeAssets(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
-    client_archetype_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
+    client_archetype_ids = db.Column(ARRAY(db.Integer), nullable=True)
     asset_key = db.Column(db.String)
     asset_value = db.Column(db.String)
 
