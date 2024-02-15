@@ -2275,7 +2275,7 @@ def patch_demo_feedback(client_sdr_id: int):
             "rating": rating,
             "notes": feedback,
             "demo_status": status,
-            "ai_adjustments": ai_adjustments,
+            "ai_adjustment": ai_adjustments,
         },
     )
 
@@ -3020,6 +3020,7 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     db.session.commit()
 
     return "OK", 200
+
 
 @CLIENT_BLUEPRINT.route("/update_asset", methods=["POST"])
 @require_user

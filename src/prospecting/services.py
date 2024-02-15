@@ -707,7 +707,10 @@ def update_prospect_status_linkedin(
             #     metadata=message,
             # )
 
-    if new_status == ProspectStatus.SCHEDULING:
+    if (
+        new_status == ProspectStatus.SCHEDULING
+        or new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING
+    ):
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
