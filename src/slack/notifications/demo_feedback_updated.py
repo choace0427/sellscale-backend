@@ -104,12 +104,7 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if (
-                not self.rating
-                or not self.notes
-                or not self.ai_adjustment
-                or not self.prospect_id
-            ):
+            if not self.rating or not self.prospect_id:
                 return False
             fields = get_fields()
 
@@ -128,12 +123,9 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
         if (
             not rep
             or not rating
-            or not notes
-            or not ai_adjustment
             or not prospect_name
             or not prospect_company
             or not archetype_name
-            or not archetype_emoji
             or not demo_date
             or not demo_status
             or not direct_link
@@ -178,7 +170,7 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
                             "text": "*Prospect*: {prospect}\n*Company*: {company}\n*Persona*: {persona}\n*Date of demo*: {demo_date}\n*Demo*: {demo_status}".format(
                                 prospect=prospect_name,
                                 company=prospect_company,
-                                persona=archetype_name,
+                                persona=f"{archetype_emoji} {archetype_name}",
                                 demo_date=demo_date.strftime("%B %d, %Y"),
                                 demo_status=demo_status,
                             ),
