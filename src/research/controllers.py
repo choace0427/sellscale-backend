@@ -236,12 +236,15 @@ def post_create_custom_research_points(client_sdr_id: int):
     label = get_request_parameter(
         "label", request, json=True, required=True, parameter_type=str
     )
+    category = get_request_parameter(
+        "category", request, json=True, required=False, parameter_type=str
+    )
     entries = get_request_parameter(
         "entries", request, json=True, required=True, parameter_type=list
     )
 
     run_create_custom_research_entries.apply_async(
-        args=[client_sdr_id, label, entries],
+        args=[client_sdr_id, label, entries, category],
         queue="prospecting",
         routing_key="prospecting",
         priority=1,

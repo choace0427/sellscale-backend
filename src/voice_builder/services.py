@@ -157,7 +157,7 @@ def create_voice_builder_sample(
         ) = get_sample_prompt_from_config_details(
             generated_message_type=voice_builder_onboarding.generated_message_type.value,
             research_point_types=get_all_research_point_types(
-                archetype.client_sdr_id, names_only=True
+                archetype.client_sdr_id, names_only=True, archetype_id=archetype_id
             ),
             configuration_type="DEFAULT",
             client_id=voice_builder_onboarding.client_id,
@@ -359,18 +359,18 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     if archetype:
         priority = 5
 
-    baseline_srmc: Optional[
-        StackRankedMessageGenerationConfiguration
-    ] = StackRankedMessageGenerationConfiguration.query.filter_by(
-        client_id=voice_builder_onboarding.client_id, archetype_id=None
-    ).first()
+    baseline_srmc: Optional[StackRankedMessageGenerationConfiguration] = (
+        StackRankedMessageGenerationConfiguration.query.filter_by(
+            client_id=voice_builder_onboarding.client_id, archetype_id=None
+        ).first()
+    )
 
     srmc: StackRankedMessageGenerationConfiguration = (
         StackRankedMessageGenerationConfiguration(
             configuration_type="DEFAULT",
             generated_message_type=voice_builder_onboarding.generated_message_type,
             research_point_types=get_all_research_point_types(
-                archetype.client_sdr_id, names_only=True
+                archetype.client_sdr_id, names_only=True, archetype_id=archetype.id
             ),
             instruction=voice_builder_onboarding.instruction,
             computed_prompt=computed_prompt,
@@ -404,7 +404,7 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
                 configuration_type="DEFAULT",
                 generated_message_type=voice_builder_onboarding.generated_message_type,
                 research_point_types=get_all_research_point_types(
-                    archetype.client_sdr_id, names_only=True
+                    archetype.client_sdr_id, names_only=True, archetype_id=archetype.id
                 ),
                 instruction=voice_builder_onboarding.instruction,
                 computed_prompt=computed_prompt,

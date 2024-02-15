@@ -89,6 +89,11 @@ class ResearchPointType(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
     function_name = db.Column(db.String, nullable=False)
 
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
+    category = db.Column(db.String, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -98,6 +103,8 @@ class ResearchPointType(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_id": self.client_id,
             "function_name": self.function_name,
+            "archetype_id": self.archetype_id,
+            "category": self.category,
         }
 
 

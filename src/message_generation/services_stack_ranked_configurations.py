@@ -213,9 +213,9 @@ def get_stack_ranked_config_ordering(
     )
 
     if prospect_id and prospect_id != -1:
-        research_points: list[
-            ResearchPoints
-        ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+        research_points: list[ResearchPoints] = (
+            ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+        )
         research_point_types = [
             research_point.research_point_type for research_point in research_points
         ]
@@ -511,7 +511,7 @@ def generate_completion_for_prospect(
     prompt, _, _, _, _, _ = get_sample_prompt_from_config_details(
         generated_message_type="LINKEDIN",
         research_point_types=get_all_research_point_types(
-            client_sdr_id, names_only=True
+            client_sdr_id, names_only=True, archetype_id=prospect.archetype_id
         ),
         configuration_type="DEFAULT",
         client_id=client_sdr.client_id,

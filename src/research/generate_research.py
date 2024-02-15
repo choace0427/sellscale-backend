@@ -54,7 +54,9 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
 
     try:
         # We generate all the points (including ones a blocklist) because they're filtered later
-        for research_point_type in get_all_research_point_types(client_sdr.id):
+        for research_point_type in get_all_research_point_types(
+            client_sdr.id, archetype_id=prospect.archetype_id
+        ):
             # If is custom, use corresponding custom payload
             if research_point_type.get("client_id"):
                 payload: ResearchPayload = ResearchPayload.query.filter(
