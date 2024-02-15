@@ -2950,7 +2950,7 @@ def post_create_archetype_asset(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
     client_archetype_ids = get_request_parameter(
-        "client_archetype_ids", request, json=True, required=False, parameter_type=int
+        "client_archetype_ids", request, json=True, required=False, parameter_type=list
     )
     asset_key = get_request_parameter(
         "asset_key", request, json=True, required=True, parameter_type=str
