@@ -72,6 +72,9 @@ class EmailLinkClickedNotification(SlackNotificationClass):
             generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
                 id=prospect_email.personalized_body
             ).first()
+            initial_send_date = "-"
+            if generated_message:
+                initial_send_date = generated_message.created_at.strftime("%B %d, %Y")
 
             return {
                 "prospect_name": prospect.full_name,
@@ -84,11 +87,7 @@ class EmailLinkClickedNotification(SlackNotificationClass):
                     prospect_id=self.prospect_id if self.prospect_id else "",
                 ),
                 "link_clicked": self.link_clicked,
-                "initial_send_date": (
-                    generated_message.created_at.strftime("%B %d, %Y")
-                    if generated_message.created_at
-                    else "-"
-                ),
+                "initial_send_date": initial_send_date,
             }
 
         # Get the required objects / fields
