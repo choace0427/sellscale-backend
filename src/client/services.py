@@ -4732,3 +4732,30 @@ def delete_archetype_asset(asset_id: int, client_sdr_id: int):
     db.session.delete(asset)
     db.session.commit()
     return True
+
+
+def update_asset(
+    asset_id: int,
+    client_sdr_id: int,
+    asset_key: Optional[str] = None,
+    asset_value: Optional[str] = None,
+    asset_reason: Optional[str] = None,
+):
+    """
+    Updates an asset for a client archetype
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    asset = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_sdr.client_id
+    ).first()
+    if not asset:
+        return False
+    if asset_key:
+        asset.asset_key = asset_key
+    if asset_value:
+        asset.asset_value = asset_value
+    if asset_reason:
+        asset.asset_reason = asset_reason
+    db.session.add(asset)
+    db.session.commit()
+    return True

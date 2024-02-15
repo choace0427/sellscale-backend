@@ -21,6 +21,7 @@ from src.client.services import (
     msg_analytics_report,
     remove_prospects_caught_by_filters,
     toggle_client_sdr_auto_send_email_campaign,
+    update_asset,
     update_client_auto_generate_email_messages_setting,
     update_client_sdr_territory_name,
 )
@@ -3018,4 +3019,32 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     db.session.add(asset)
     db.session.commit()
 
+    return "OK", 200
+
+@CLIENT_BLUEPRINT.route("/update_asset", methods=["POST"])
+@require_user
+def update_asset_endpoint(client_sdr_id: int):
+    asset_id = get_request_parameter(
+        "asset_id", request, json=True, required=True, parameter_type=int
+    )
+    asset_key = get_request_parameter(
+        "asset_key", request, json=True, required=False, parameter_type=str
+    )
+    asset_value = get_request_parameter(
+        "asset_value", request, json=True, required=False, parameter_type=str
+    )
+    asset_reason = get_request_parameter(
+        "asset_reason", request, json=True, required=False, parameter_type=str
+    )
+
+    success = update_asset(
+        asset_id=asset_id,
+        client_sdr_id=client_sdr_id,
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_reason=asset_reason,
+    )
+
+    if not success:
+        return "Failed to update asset", 400
     return "OK", 200
