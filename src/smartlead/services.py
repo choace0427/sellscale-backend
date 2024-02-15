@@ -9,6 +9,10 @@ from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingTy
 from src.email_sequencing.models import EmailSequenceStep
 from src.message_generation.email.services import create_email_automated_reply_entry
 from src.message_generation.models import GeneratedMessage
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.utils.datetime.dateparse_utils import (
     convert_string_to_datetime,
     convert_string_to_datetime_or_none,
@@ -278,14 +282,24 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
     )
 
     # Send the Slack message
-    notification = EmailAIReplyNotification(
-        client_sdr_id=client_sdr.id,
-        developer_mode=False,
-        prospect_id=prospect_id,
-        prospect_message=reply_email_body,
-        ai_response=message,
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.AI_REPLY_TO_EMAIL,
+        arguments={
+            "client_sdr_id": client_sdr.id,
+            "prospect_id": prospect_id,
+            "prospect_message": reply_email_body,
+            "ai_response": message,
+        },
     )
-    success = notification.send_notification(preview_mode=False)
+
+    # notification = EmailAIReplyNotification(
+    #     client_sdr_id=client_sdr.id,
+    #     developer_mode=False,
+    #     prospect_id=prospect_id,
+    #     prospect_message=reply_email_body,
+    #     ai_response=message,
+    # )
+    # success = notification.send_notification(preview_mode=False)
 
     # Mark the prospect email as hidden until 3 days from now
     p_email: ProspectEmail = ProspectEmail.query.get(

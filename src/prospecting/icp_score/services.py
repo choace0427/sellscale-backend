@@ -20,6 +20,7 @@ from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
 from tqdm import tqdm
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+import hashlib
 
 import queue
 import concurrent.futures
@@ -164,6 +165,10 @@ def update_icp_scoring_ruleset(
     db.session.add(icp_scoring_ruleset)
     db.session.commit()
 
+    hash = get_ruleset_hash(client_archetype_id)
+    icp_scoring_ruleset.hash = hash
+    db.session.commit()
+
     return icp_scoring_ruleset
 
 
@@ -184,7 +189,7 @@ def count_num_icp_attributes(client_archetype_id: int):
     ):
         count += 1
     if (
-        icp_scoring_ruleset.included_individual_seniority_keywords 
+        icp_scoring_ruleset.included_individual_seniority_keywords
         or icp_scoring_ruleset.excluded_individual_seniority_keywords
     ):
         count += 1
@@ -464,7 +469,6 @@ def score_one_prospect(
                 if keyword.lower() in enriched_prospect_company.prospect_title.lower():
                     valid_title = keyword
                     reasoning += "(✅ prospect seniority: " + valid_title + ") "
-
 
         # Prospect Industry
         if (
@@ -929,6 +933,7 @@ def apply_icp_scoring_ruleset_filters_task(
             apply_icp_scoring_ruleset_filters(
                 icp_scoring_job_id=icp_scoring_job_queue_id,
                 client_archetype_id=client_archetype_id,
+                prospect_ids=prospect_ids,
             )
         else:
             apply_icp_scoring_ruleset_filters.apply_async(
@@ -1619,6 +1624,10 @@ def update_icp_filters(client_archetype_id: int, filters, merge=False):
         # Commit the changes to the database
         db.session.commit()
 
+        hash = get_ruleset_hash(client_archetype_id)
+        icp_scoring_ruleset.hash = hash
+        db.session.commit()
+
         return True
     else:
         return False
@@ -1666,3 +1675,58 @@ JSON:""",
     db.session.commit()
 
     return True
+
+
+def get_ruleset_hash(archetype_id: int):
+
+    icp_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=archetype_id
+    ).first()
+    if not icp_ruleset:
+        return None
+
+    icp_ruleset_dict = icp_ruleset.to_dict()
+    icp_ruleset_dict.pop("id")
+    icp_ruleset_dict.pop("client_archetype_id")
+    icp_ruleset_dict.pop("created_at")
+    icp_ruleset_dict.pop("updated_at")
+
+    return hashlib.md5(
+        json.dumps(icp_ruleset_dict, sort_keys=True).encode()
+    ).hexdigest()
+
+
+@celery.task(bind=True, max_retries=3)
+def auto_run_icp_scoring():
+
+    archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+        ClientArchetype.is_unassigned_contact_archetype == False,
+        ClientArchetype.active == True,
+    ).all()
+
+    for archetype in archetypes:
+
+        icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+            client_archetype_id=archetype.id
+        ).first()
+
+        prospects: list[Prospect] = Prospect.query.filter_by(
+            archetype_id=archetype.id
+        ).all()
+        rescore_prospect_ids = [
+            prospect.id
+            for prospect in prospects
+            if prospect.icp_fit_last_hash != icp_scoring_ruleset.hash
+        ]
+
+        if len(rescore_prospect_ids) > 0:
+            success = apply_icp_scoring_ruleset_filters_task(
+                client_archetype_id=archetype.id,
+                prospect_ids=rescore_prospect_ids,
+            )
+
+            # Update prospects
+            for prospect in prospects:
+                prospect.icp_fit_last_hash = icp_scoring_ruleset.hash
+
+            db.session.commit()

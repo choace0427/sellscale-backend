@@ -68,6 +68,13 @@ def run_next_client_sdr_li_conversation_scraper_job():
         )
 
 
+def icp_scoring_job():
+    from src.prospecting.icp_score.services import auto_run_icp_scoring
+
+    if is_scheduling_instance():
+        auto_run_icp_scoring.delay()
+
+
 # Using Voyager!
 def scrape_li_inboxes():
     from src.li_conversation.services import scrape_conversations_inbox
@@ -373,6 +380,7 @@ def run_auto_resolve_linkedin_tasks():
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
+daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
 )
@@ -412,6 +420,7 @@ scheduler.add_job(run_auto_resolve_linkedin_tasks, trigger="interval", minutes=1
 scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=10)
 # scheduler.add_job(func=generate_email_bumps, trigger="interval", minutes=2)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
+scheduler.add_job(func=icp_scoring_job, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
@@ -451,7 +460,7 @@ scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_notify_about_scheduling, trigger=daily_trigger)
 scheduler.add_job(run_daily_task_reminders, trigger=weekday_trigger)
 scheduler.add_job(
-    run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_trigger
+    run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_2am_trigger
 )
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)

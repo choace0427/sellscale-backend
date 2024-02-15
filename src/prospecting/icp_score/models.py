@@ -119,6 +119,8 @@ class ICPScoringRuleset(db.Model):
         db.ARRAY(db.String), nullable=True
     )
 
+    hash = db.Column(db.String, nullable=True)
+
     def to_dict(self):
         return {
             "client_archetype_id": self.client_archetype_id,

@@ -24,7 +24,11 @@ from model_import import Client
 from src.client.models import ClientSDR
 from src.slack.auth.models import SlackAuthentication
 from src.slack.channels.models import SlackConnectedChannel
-from src.slack.models import SlackNotificationType
+from src.slack.models import (
+    SlackNotificationClassLogger,
+    SlackNotificationType,
+)
+from src.slack.slack_notification_class import SlackNotificationClass
 
 
 NOTIFICATION_TESTING_CHANNEL = (
@@ -33,6 +37,50 @@ NOTIFICATION_TESTING_CHANNEL = (
 SLACK_ERROR_CHANNEL = (
     "https://hooks.slack.com/services/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"
 )
+
+
+def create_and_send_slack_notification_class_message(
+    notification_type: SlackNotificationType,
+    arguments: dict,
+) -> bool:
+    """Create a Slack Notification and send it. This is used to help track potential errors.
+
+    Args:
+        notification_type (SlackNotificationType): The type of the notification that is being sent.
+        arguments (dict): The arguments to be passed to the Slack Notification.
+
+    Returns:
+        bool: Whether or not the message was successfully sent
+    """
+    # Create the log entry
+    log: SlackNotificationClassLogger = SlackNotificationClassLogger(
+        notification_type=notification_type,
+        arguments=arguments,
+        status="IN_PROGRESS",
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    # Create the Slack Notification
+    try:
+        slack_notification_class: SlackNotificationClass = (
+            notification_type.get_class()(**arguments)
+        )
+        status = slack_notification_class.send_notification(preview_mode=False)
+        if not status:
+            log.status = "FAILED"
+            log.error = "Something went wrong while sending the Slack notification, something returned False or Null"
+            db.session.commit()
+            return False
+    except Exception as e:
+        log.status = "ERROR"
+        log.error = str(e)
+        db.session.commit()
+        return False
+
+    log.status = "SUCCESS"
+    db.session.commit()
+    return True
 
 
 class WebhookDict(TypedDict):

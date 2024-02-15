@@ -201,6 +201,24 @@ class SentSlackNotification(db.Model):  # type: ignore
     error = db.Column(db.String, nullable=True)
 
 
+class SlackNotificationClassLogger(db.Model):  # type: ignore
+    __tablename__ = "slack_notification_class_logger"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # The notification type
+    notification_type = db.Column(db.Enum(SlackNotificationType), nullable=False)
+
+    # Arguments passed
+    arguments = db.Column(JSONB, nullable=True)
+
+    # Status
+    status = db.Column(db.String, nullable=True)
+
+    # Error
+    error = db.Column(db.String, nullable=True)
+
+
 def populate_slack_notifications():
     """Populate the Slack notifications table with all of the Slack notifications. Should be called after introducing a new Slack notification type."""
     for slack_notification_type in SlackNotificationType:

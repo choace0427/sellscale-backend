@@ -21,6 +21,7 @@ from src.client.services import (
     msg_analytics_report,
     remove_prospects_caught_by_filters,
     toggle_client_sdr_auto_send_email_campaign,
+    update_asset,
     update_client_auto_generate_email_messages_setting,
     update_client_sdr_territory_name,
 )
@@ -42,11 +43,15 @@ from src.client.services import (
     write_client_pre_onboarding_survey,
 )
 from src.client.services import mark_prospect_removed
+from src.slack.models import SlackNotificationType
 from src.slack.notifications.demo_feedback_collected import (
     DemoFeedbackCollectedNotification,
 )
 from src.slack.notifications.demo_feedback_updated import (
     DemoFeedbackUpdatedNotification,
+)
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
 )
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
@@ -2061,14 +2066,25 @@ def post_demo_feedback(client_sdr_id: int):
     )
 
     # Send the Slack Notification
-    notification = DemoFeedbackCollectedNotification(
-        client_sdr_id=client_sdr.id,
-        prospect_id=prospect_id,
-        rating=rating,
-        notes=feedback,
-        demo_status=status,
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.DEMO_FEEDBACK_COLLECTED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "prospect_id": prospect_id,
+            "rating": rating,
+            "notes": feedback,
+            "demo_status": status,
+        },
     )
-    notification.send_notification(preview_mode=False)
+
+    # notification = DemoFeedbackCollectedNotification(
+    #     client_sdr_id=client_sdr.id,
+    #     prospect_id=prospect_id,
+    #     rating=rating,
+    #     notes=feedback,
+    #     demo_status=status,
+    # )
+    # notification.send_notification(preview_mode=False)
 
     # REMOVE THIS CODE
     # direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
@@ -2250,15 +2266,28 @@ def patch_demo_feedback(client_sdr_id: int):
     prospect: Prospect = Prospect.query.get(df.prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
-    updated_feedback_notification = DemoFeedbackUpdatedNotification(
-        client_sdr_id=client_sdr.id,
-        prospect_id=prospect.id,
-        rating=rating,
-        notes=feedback,
-        demo_status=status,
-        ai_adjustment=ai_adjustments,
+    # Send the Slack Notification
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.DEMO_FEEDBACK_UPDATED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "prospect_id": prospect.id,
+            "rating": rating,
+            "notes": feedback,
+            "demo_status": status,
+            "ai_adjustment": ai_adjustments,
+        },
     )
-    updated_feedback_notification.send_notification(preview_mode=False)
+
+    # updated_feedback_notification = DemoFeedbackUpdatedNotification(
+    #     client_sdr_id=client_sdr.id,
+    #     prospect_id=prospect.id,
+    #     rating=rating,
+    #     notes=feedback,
+    #     demo_status=status,
+    #     ai_adjustment=ai_adjustments,
+    # )
+    # updated_feedback_notification.send_notification(preview_mode=False)
 
     # send_slack_message(
     #     message="🎊 ✍️ UPDATED Demo Feedback",
@@ -2921,7 +2950,7 @@ def post_create_archetype_asset(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
     client_archetype_ids = get_request_parameter(
-        "client_archetype_ids", request, json=True, required=False, parameter_type=int
+        "client_archetype_ids", request, json=True, required=False, parameter_type=list
     )
     asset_key = get_request_parameter(
         "asset_key", request, json=True, required=True, parameter_type=str
@@ -2990,4 +3019,33 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     db.session.add(asset)
     db.session.commit()
 
+    return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/update_asset", methods=["POST"])
+@require_user
+def update_asset_endpoint(client_sdr_id: int):
+    asset_id = get_request_parameter(
+        "asset_id", request, json=True, required=True, parameter_type=int
+    )
+    asset_key = get_request_parameter(
+        "asset_key", request, json=True, required=False, parameter_type=str
+    )
+    asset_value = get_request_parameter(
+        "asset_value", request, json=True, required=False, parameter_type=str
+    )
+    asset_reason = get_request_parameter(
+        "asset_reason", request, json=True, required=False, parameter_type=str
+    )
+
+    success = update_asset(
+        asset_id=asset_id,
+        client_sdr_id=client_sdr_id,
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_reason=asset_reason,
+    )
+
+    if not success:
+        return "Failed to update asset", 400
     return "OK", 200

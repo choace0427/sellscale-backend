@@ -61,17 +61,9 @@ from src.prospecting.models import (
 )
 from app import db, celery
 from src.segment.models import Segment
-from src.slack.notifications.email_prospect_replied import (
-    EmailProspectRepliedNotification,
-)
-from src.slack.notifications.linkedin_prospect_removed import (
-    LinkedinProspectRemovedNotification,
-)
-from src.slack.notifications.linkedin_prospect_responded import (
-    LinkedinProspectRespondedNotification,
-)
-from src.slack.notifications.linkedin_prospect_scheduling import (
-    LinkedinProspectSchedulingNotification,
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
 )
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.email.html_cleaning import clean_html
@@ -538,13 +530,24 @@ def update_prospect_status_linkedin(
             prospect_id=p.id,
         )
         disqualification_reason = p.disqualification_reason or "Unknown"
-        prospect_removed_notification = LinkedinProspectRemovedNotification(
-            client_sdr_id=p.client_sdr_id,
-            prospect_id=p.id,
-            old_status=current_status.value,
-            new_status=new_status.value,
+
+        # Send the notification
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.LINKEDIN_PROSPECT_REMOVED,
+            arguments={
+                "client_sdr_id": p.client_sdr_id,
+                "prospect_id": p.id,
+                "old_status": current_status.value,
+                "new_status": new_status.value,
+            },
         )
-        success = prospect_removed_notification.send_notification(preview_mode=False)
+        # prospect_removed_notification = LinkedinProspectRemovedNotification(
+        #     client_sdr_id=p.client_sdr_id,
+        #     prospect_id=p.id,
+        #     old_status=current_status.value,
+        #     new_status=new_status.value,
+        # )
+        # success = prospect_removed_notification.send_notification(preview_mode=False)
 
         # send_slack_message(
         #     message="",
@@ -649,15 +652,20 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
 
-        from src.slack.notifications.linkedin_invite_accepted import (
-            LinkedInInviteAcceptedNotification,
+        # Send the notification
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.LINKEDIN_INVITE_ACCEPTED,
+            arguments={
+                "client_sdr_id": p.client_sdr_id,
+                "prospect_id": p.id,
+            },
         )
 
-        invite_accepted_notification = LinkedInInviteAcceptedNotification(
-            client_sdr_id=p.client_sdr_id,
-            prospect_id=p.id,
-        )
-        success = invite_accepted_notification.send_notification(preview_mode=False)
+        # invite_accepted_notification = LinkedInInviteAcceptedNotification(
+        #     client_sdr_id=p.client_sdr_id,
+        #     prospect_id=p.id,
+        # )
+        # success = invite_accepted_notification.send_notification(preview_mode=False)
 
         # send_status_change_slack_block(
         #     outreach_type=ProspectChannels.LINKEDIN,
@@ -678,11 +686,19 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
         if not quietly:
-            responded_notification = LinkedinProspectRespondedNotification(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
+            # Send the notification
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.LINKEDIN_PROSPECT_RESPONDED,
+                arguments={
+                    "client_sdr_id": p.client_sdr_id,
+                    "prospect_id": p.id,
+                },
             )
-            success = responded_notification.send_notification(preview_mode=False)
+            # responded_notification = LinkedinProspectRespondedNotification(
+            #     client_sdr_id=p.client_sdr_id,
+            #     prospect_id=p.id,
+            # )
+            # success = responded_notification.send_notification(preview_mode=False)
             # send_status_change_slack_block(
             #     outreach_type=ProspectChannels.LINKEDIN,
             #     prospect=p,
@@ -691,7 +707,10 @@ def update_prospect_status_linkedin(
             #     metadata=message,
             # )
 
-    if new_status == ProspectStatus.SCHEDULING:
+    if (
+        new_status == ProspectStatus.SCHEDULING
+        or new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING
+    ):
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
@@ -700,11 +719,19 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
         if not quietly:
-            scheduling_notification = LinkedinProspectSchedulingNotification(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
+            # Send the notification
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING,
+                arguments={
+                    "client_sdr_id": p.client_sdr_id,
+                    "prospect_id": p.id,
+                },
             )
-            success = scheduling_notification.send_notification(preview_mode=False)
+            # scheduling_notification = LinkedinProspectSchedulingNotification(
+            #     client_sdr_id=p.client_sdr_id,
+            #     prospect_id=p.id,
+            # )
+            # success = scheduling_notification.send_notification(preview_mode=False)
 
             # send_status_change_slack_block(
             #     outreach_type=ProspectChannels.LINKEDIN,
@@ -722,15 +749,20 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
 
-        from src.slack.notifications.linkedin_demo_set import (
-            LinkedInDemoSetNotification,
-        )
-
         if p.meta_data and p.meta_data.get("demo_set", {}).get("type", {}) == "HANDOFF":
-            notification = LinkedInDemoSetNotification(
-                client_sdr_id=p.client_sdr_id, prospect_id=p.id, is_hand_off=True
+            # Send the handoff notification
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.LINKEDIN_DEMO_SET,
+                arguments={
+                    "client_sdr_id": p.client_sdr_id,
+                    "prospect_id": p.id,
+                    "is_hand_off": True,
+                },
             )
-            success = notification.send_notification(preview_mode=False)
+            # notification = LinkedInDemoSetNotification(
+            #     client_sdr_id=p.client_sdr_id, prospect_id=p.id, is_hand_off=True
+            # )
+            # success = notification.send_notification(preview_mode=False)
 
             # send_status_change_slack_block(
             #     outreach_type=ProspectChannels.LINKEDIN,
@@ -740,11 +772,16 @@ def update_prospect_status_linkedin(
             #     metadata={"threadUrl": p.li_conversation_thread_id},
             # )
         else:
-            notification = LinkedInDemoSetNotification(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
+            # Send the normal demo set notification
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.LINKEDIN_DEMO_SET,
+                arguments={"client_sdr_id": p.client_sdr_id, "prospect_id": p.id},
             )
-            success = notification.send_notification(preview_mode=False)
+            # notification = LinkedInDemoSetNotification(
+            #     client_sdr_id=p.client_sdr_id,
+            #     prospect_id=p.id,
+            # )
+            # success = notification.send_notification(preview_mode=False)
 
             # send_status_change_slack_block(
             #     outreach_type=ProspectChannels.LINKEDIN,
@@ -1100,14 +1137,26 @@ def update_prospect_status_email(
             email_sent_body = metadata.get("email_sent_body") if metadata else None
             email_reply_body = metadata.get("email_reply_body") if metadata else None
 
-            email_replied_notification = EmailProspectRepliedNotification(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
-                email_sent_subject=email_sent_subject,
-                email_sent_body=email_sent_body,
-                email_reply_body=email_reply_body,
+            # Send a slack message
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.EMAIL_PROSPECT_REPLIED,
+                arguments={
+                    "client_sdr_id": p.client_sdr_id,
+                    "prospect_id": p.id,
+                    "email_sent_subject": email_sent_subject,
+                    "email_sent_body": email_sent_body,
+                    "email_reply_body": email_reply_body,
+                },
             )
-            success = email_replied_notification.send_notification(preview_mode=False)
+
+            # email_replied_notification = EmailProspectRepliedNotification(
+            #     client_sdr_id=p.client_sdr_id,
+            #     prospect_id=p.id,
+            #     email_sent_subject=email_sent_subject,
+            #     email_sent_body=email_sent_body,
+            #     email_reply_body=email_reply_body,
+            # )
+            # success = email_replied_notification.send_notification(preview_mode=False)
 
             # send_status_change_slack_block(
             #     outreach_type=ProspectChannels.EMAIL,
@@ -1626,7 +1675,7 @@ def create_prospect_from_linkedin_link(
     is_lookalike_profile: bool = False,
 ) -> tuple[bool, int or str]:
     from src.research.linkedin.services import research_personal_profile_details
-    
+
     # Add an activity log
     # add_activity_log(
     #     client_sdr_id=client_sdr_id,

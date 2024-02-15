@@ -479,6 +479,8 @@ class Prospect(db.Model):
     icp_fit_error = db.Column(db.String, nullable=True)
     # account_research_description = db.Column(db.String, nullable=True)
 
+    icp_fit_last_hash = db.Column(db.String, nullable=True)
+
     img_url = db.Column(db.String, nullable=True)
     img_expire = db.Column(db.Numeric(20, 0), server_default="0", nullable=False)
 
@@ -533,6 +535,7 @@ class Prospect(db.Model):
             "valid_primary_email": self.valid_primary_email,
             "industry": self.industry,
             "icp_fit_score": self.icp_fit_score,
+            "icp_fit_last_hash": self.icp_fit_last_hash,
             "icp_fit_reason": self.icp_fit_reason,
             "li_public_id": (
                 self.linkedin_url.split("/in/")[1].split("/")[0]
@@ -635,6 +638,7 @@ class Prospect(db.Model):
                 "title": self.title,
                 "email": self.email,
                 "icp_fit_score": self.icp_fit_score,
+                "icp_fit_last_hash": self.icp_fit_last_hash,
                 "icp_fit_reason": self.icp_fit_reason,
                 "li_public_id": (
                     self.linkedin_url.split("/in/")[1].split("/")[0]
@@ -792,6 +796,7 @@ class Prospect(db.Model):
             "is_lead": self.is_lead,
             "generated_message_info": generated_message_info,
             "icp_fit_score": self.icp_fit_score,
+            "icp_fit_last_hash": self.icp_fit_last_hash,
             "icp_fit_reason": self.icp_fit_reason,
             "icp_fit_error": self.icp_fit_error,
             "img_url": self.img_url,

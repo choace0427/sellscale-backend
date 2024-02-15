@@ -83,7 +83,9 @@ class DemoFeedbackCollectedNotification(SlackNotificationClass):
                 "prospect_name": prospect.full_name,
                 "prospect_company": prospect.company,
                 "archetype_name": client_archetype.archetype,
-                "archetype_emoji": client_archetype.emoji,
+                "archetype_emoji": (
+                    client_archetype.emoji if client_archetype.emoji else ""
+                ),
                 "demo_date": prospect.demo_date,
                 "demo_status": self.demo_status,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(

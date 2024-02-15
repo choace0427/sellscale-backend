@@ -10,7 +10,11 @@ from src.email_outbound.models import (
 )
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
+from src.slack.models import SlackNotificationType
 from src.slack.notifications.email_link_clicked import EmailLinkClickedNotification
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.smartlead.services import generate_smart_email_response
 
 from src.smartlead.webhooks.models import (
@@ -133,12 +137,21 @@ def process_email_link_clicked_webhook(payload_id: int):
         )
 
         # Send a Slack Notification
-        notification = EmailLinkClickedNotification(
-            client_sdr_id=prospect.client_sdr_id,
-            prospect_id=prospect.id,
-            link_clicked=payload.get("link_details")[0],
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.EMAIL_LINK_CLICKED,
+            arguments={
+                "client_sdr_id": prospect.client_sdr_id,
+                "prospect_id": prospect.id,
+                "link_clicked": payload.get("link_details")[0],
+            },
         )
-        success = notification.send_notification(preview_mode=False)
+
+        # notification = EmailLinkClickedNotification(
+        #     client_sdr_id=prospect.client_sdr_id,
+        #     prospect_id=prospect.id,
+        #     link_clicked=payload.get("link_details")[0],
+        # )
+        # success = notification.send_notification(preview_mode=False)
 
         # Set the payload to "SUCCEEDED"
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED

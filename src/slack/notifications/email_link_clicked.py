@@ -72,19 +72,22 @@ class EmailLinkClickedNotification(SlackNotificationClass):
             generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
                 id=prospect_email.personalized_body
             ).first()
+            initial_send_date = "-"
+            if generated_message:
+                initial_send_date = generated_message.created_at.strftime("%B %d, %Y")
 
             return {
                 "prospect_name": prospect.full_name,
                 "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
                 "archetype_name": archetype.archetype,
-                "archetype_emoji": archetype.emoji,
+                "archetype_emoji": archetype.emoji if archetype.emoji else "",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=self.prospect_id if self.prospect_id else "",
                 ),
                 "link_clicked": self.link_clicked,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
+                "initial_send_date": initial_send_date,
             }
 
         # Get the required objects / fields
