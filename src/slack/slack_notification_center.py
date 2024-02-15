@@ -39,7 +39,7 @@ SLACK_ERROR_CHANNEL = (
 )
 
 
-def create_and_send_slack_message(
+def create_and_send_slack_notification_class_message(
     notification_type: SlackNotificationType,
     arguments: dict,
 ) -> bool:

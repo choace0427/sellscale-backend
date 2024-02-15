@@ -79,7 +79,11 @@ from src.prospecting.upload.services import (
     collect_and_run_celery_jobs_for_upload,
     run_and_assign_health_score,
 )
+from src.slack.models import SlackNotificationType
 from src.slack.notifications.email_multichanneled import EmailMultichanneledNotification
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 from src.utils.email.html_cleaning import clean_html
 from src.utils.request_helpers import get_request_parameter
@@ -618,14 +622,26 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         if client.pipeline_notifications_webhook_url:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
 
-        multichannel_notification = EmailMultichanneledNotification(
-            client_sdr_id=client_sdr.id,
-            prospect_id=prospect.id,
-            from_email=from_email,
-            email_sent_subject=subject,
-            email_sent_body=prettier_body,
+        # Send the notification
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.EMAIL_MULTICHANNELED,
+            arguments={
+                "client_sdr_id": client_sdr_id,
+                "prospect_id": prospect_id,
+                "from_email": from_email,
+                "email_sent_subject": subject,
+                "email_sent_body": prettier_body,
+            },
         )
-        multichannel_notification.send_notification(preview_mode=False)
+
+        # multichannel_notification = EmailMultichanneledNotification(
+        #     client_sdr_id=client_sdr.id,
+        #     prospect_id=prospect.id,
+        #     from_email=from_email,
+        #     email_sent_subject=subject,
+        #     email_sent_body=prettier_body,
+        # )
+        # multichannel_notification.send_notification(preview_mode=False)
 
         # send_slack_message(
         #     webhook_urls=webhook_urls,

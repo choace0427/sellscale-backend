@@ -42,11 +42,15 @@ from src.client.services import (
     write_client_pre_onboarding_survey,
 )
 from src.client.services import mark_prospect_removed
+from src.slack.models import SlackNotificationType
 from src.slack.notifications.demo_feedback_collected import (
     DemoFeedbackCollectedNotification,
 )
 from src.slack.notifications.demo_feedback_updated import (
     DemoFeedbackUpdatedNotification,
+)
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
 )
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
@@ -2061,14 +2065,25 @@ def post_demo_feedback(client_sdr_id: int):
     )
 
     # Send the Slack Notification
-    notification = DemoFeedbackCollectedNotification(
-        client_sdr_id=client_sdr.id,
-        prospect_id=prospect_id,
-        rating=rating,
-        notes=feedback,
-        demo_status=status,
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.DEMO_FEEDBACK_COLLECTED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "prospect_id": prospect_id,
+            "rating": rating,
+            "notes": feedback,
+            "demo_status": status,
+        },
     )
-    notification.send_notification(preview_mode=False)
+
+    # notification = DemoFeedbackCollectedNotification(
+    #     client_sdr_id=client_sdr.id,
+    #     prospect_id=prospect_id,
+    #     rating=rating,
+    #     notes=feedback,
+    #     demo_status=status,
+    # )
+    # notification.send_notification(preview_mode=False)
 
     # REMOVE THIS CODE
     # direct_link = "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
@@ -2250,15 +2265,28 @@ def patch_demo_feedback(client_sdr_id: int):
     prospect: Prospect = Prospect.query.get(df.prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
 
-    updated_feedback_notification = DemoFeedbackUpdatedNotification(
-        client_sdr_id=client_sdr.id,
-        prospect_id=prospect.id,
-        rating=rating,
-        notes=feedback,
-        demo_status=status,
-        ai_adjustment=ai_adjustments,
+    # Send the Slack Notification
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.DEMO_FEEDBACK_UPDATED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "prospect_id": prospect.id,
+            "rating": rating,
+            "notes": feedback,
+            "demo_status": status,
+            "ai_adjustments": ai_adjustments,
+        },
     )
-    updated_feedback_notification.send_notification(preview_mode=False)
+
+    # updated_feedback_notification = DemoFeedbackUpdatedNotification(
+    #     client_sdr_id=client_sdr.id,
+    #     prospect_id=prospect.id,
+    #     rating=rating,
+    #     notes=feedback,
+    #     demo_status=status,
+    #     ai_adjustment=ai_adjustments,
+    # )
+    # updated_feedback_notification.send_notification(preview_mode=False)
 
     # send_slack_message(
     #     message="🎊 ✍️ UPDATED Demo Feedback",

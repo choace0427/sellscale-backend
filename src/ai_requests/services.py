@@ -4,7 +4,9 @@ from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.slack.models import SlackNotificationType
 from src.slack.notifications.ai_task_completed import AITaskCompletedNotification
-from src.slack.slack_notification_center import create_and_send_slack_message
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack utility
 from src.client.models import Client, ClientSDR
 
@@ -119,7 +121,7 @@ def update_ai_requests(
         if status == AIRequestStatus.COMPLETED:
             sdr: ClientSDR = ClientSDR.query.get(ai_request.client_sdr_id)
 
-            success = create_and_send_slack_message(
+            success = create_and_send_slack_notification_class_message(
                 notification_type=SlackNotificationType.AI_TASK_COMPLETED,
                 arguments={
                     "client_sdr_id": sdr.id,

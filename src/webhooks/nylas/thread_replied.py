@@ -21,8 +21,9 @@ from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect, ProspectChannels
 from src.prospecting.nylas.services import nylas_update_messages, nylas_update_threads
 from src.prospecting.services import calculate_prospect_overall_status
-from src.slack.notifications.email_prospect_replied import (
-    EmailProspectRepliedNotification,
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
 )
 from src.webhooks.models import NylasWebhookPayloads, NylasWebhookProcessingStatus
 
@@ -246,14 +247,25 @@ def process_single_thread_replied(
                     prospect_email.personalized_subject_line
                 )
 
-                email_replied_notification = EmailProspectRepliedNotification(
-                    client_sdr_id=client_sdr_id,
-                    prospect_id=prospect.id,
-                    email_sent_subject=subject.completion,
-                    email_sent_body=body.completion,
-                    email_reply_body=message_snippet,
+                # Send Slack notification
+                success = create_and_send_slack_notification_class_message(
+                    notification_type=SlackNotificationType.EMAIL_PROSPECT_REPLIED,
+                    arguments={
+                        "client_sdr_id": client_sdr_id,
+                        "prospect_id": prospect.id,
+                        "email_sent_subject": subject.completion,
+                        "email_sent_body": body.completion,
+                        "email_reply_body": message_snippet,
+                    },
                 )
-                email_replied_notification.send_notification(preview_mode=False)
+                # email_replied_notification = EmailProspectRepliedNotification(
+                #     client_sdr_id=client_sdr_id,
+                #     prospect_id=prospect.id,
+                #     email_sent_subject=subject.completion,
+                #     email_sent_body=body.completion,
+                #     email_reply_body=message_snippet,
+                # )
+                # email_replied_notification.send_notification(preview_mode=False)
 
                 # send_status_change_slack_block(
                 #     outreach_type=ProspectChannels.EMAIL,
