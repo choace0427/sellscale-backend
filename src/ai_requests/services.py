@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 from src.ai_requests.models import AIRequest, AIRequestStatus
 from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.slack.models import SlackNotificationType
 from src.slack.notifications.ai_task_completed import AITaskCompletedNotification
+from src.slack.slack_notification_center import create_and_send_slack_message
 from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack utility
 from src.client.models import Client, ClientSDR
 
@@ -117,13 +119,23 @@ def update_ai_requests(
         if status == AIRequestStatus.COMPLETED:
             sdr: ClientSDR = ClientSDR.query.get(ai_request.client_sdr_id)
 
-            ai_task_complete_notif = AITaskCompletedNotification(
-                client_sdr_id=sdr.id,
-                title=ai_request.title,
-                description=details,
-                minutes_worked=minutes_worked,
+            success = create_and_send_slack_message(
+                notification_type=SlackNotificationType.AI_TASK_COMPLETED,
+                arguments={
+                    "client_sdr_id": sdr.id,
+                    "title": ai_request.title,
+                    "description": details,
+                    "minutes_worked": minutes_worked,
+                },
             )
-            ai_task_complete_notif.send_notification(preview_mode=False)
+
+            # ai_task_complete_notif = AITaskCompletedNotification(
+            #     client_sdr_id=sdr.id,
+            #     title=ai_request.title,
+            #     description=details,
+            #     minutes_worked=minutes_worked,
+            # )
+            # ai_task_complete_notif.send_notification(preview_mode=False)
 
             # client: Client = Client.query.get(sdr.client_id)
             # dashboard_url = (
