@@ -316,7 +316,8 @@ def get_prospects_for_icp_table(
                     else FALSE
                 end has_been_sent_outreach,
                 prospect.email,
-                prospect.valid_primary_email
+                prospect.valid_primary_email,
+                prospect.icp_fit_last_hash
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
                 left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
@@ -358,6 +359,7 @@ def get_prospects_for_icp_table(
                 "has_been_sent_outreach": r[9],
                 "email": r[10],
                 "valid_primary_email": r[11],
+                "icp_fit_last_hash": r[12],
             }
         )
 
@@ -2609,9 +2611,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2682,11 +2684,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,

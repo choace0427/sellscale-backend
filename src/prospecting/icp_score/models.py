@@ -150,4 +150,5 @@ class ICPScoringRuleset(db.Model):
             "excluded_individual_education_keywords": self.excluded_individual_education_keywords,
             "included_individual_seniority_keywords": self.included_individual_seniority_keywords,
             "excluded_individual_seniority_keywords": self.excluded_individual_seniority_keywords,
+            "hash": self.hash,
         }

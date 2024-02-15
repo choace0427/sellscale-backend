@@ -924,6 +924,7 @@ def apply_icp_scoring_ruleset_filters_task(
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
         id=client_archetype_id
     ).first()
+
     # Get the ClientSDR ID
     client_sdr_id = client_archetype.client_sdr_id
 
@@ -982,6 +983,7 @@ def apply_icp_scoring_ruleset_filters(
     client_archetype_id: int,
     prospect_ids: Optional[list[int]] = None,
 ):
+
     try:
         """
         Apply the ICP scoring ruleset to all prospects in the client archetype.
@@ -1114,6 +1116,7 @@ def apply_icp_scoring_ruleset_filters(
                     "id": prospect_id,
                     "icp_fit_score": label,
                     "icp_fit_reason": reasoning,
+                    "icp_fit_last_hash": icp_scoring_ruleset.hash,
                 }
             )
 
@@ -1686,10 +1689,6 @@ def get_ruleset_hash(archetype_id: int):
         return None
 
     icp_ruleset_dict = icp_ruleset.to_dict()
-    icp_ruleset_dict.pop("id")
-    icp_ruleset_dict.pop("client_archetype_id")
-    icp_ruleset_dict.pop("created_at")
-    icp_ruleset_dict.pop("updated_at")
 
     return hashlib.md5(
         json.dumps(icp_ruleset_dict, sort_keys=True).encode()
@@ -1724,9 +1723,5 @@ def auto_run_icp_scoring():
                 client_archetype_id=archetype.id,
                 prospect_ids=rescore_prospect_ids,
             )
-
-            # Update prospects
-            for prospect in prospects:
-                prospect.icp_fit_last_hash = icp_scoring_ruleset.hash
 
             db.session.commit()
