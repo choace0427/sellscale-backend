@@ -698,7 +698,7 @@ class ClientArchetypeAssets(db.Model):
             "client_archetype_ids": self.client_archetype_ids,
             "asset_key": self.asset_key,
             "asset_value": self.asset_value,
-            "asset_type": self.asset_type,
+            "asset_type": self.asset_type and self.asset_type.value,
             "asset_tags": self.asset_tags,
         }
 
