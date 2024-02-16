@@ -856,7 +856,7 @@ def auto_send_campaign(campaign_id: int):
 
     # Check if 75% of the messages have been approved
     num_approved = len([message for message in messages if message.ai_approved])
-    if num_approved / len(messages) < SUCCESS_THRESHOLD:
+    if len(messages) > 0 and num_approved / len(messages) < SUCCESS_THRESHOLD:
         percentage_failed = round(((1 - (num_approved / len(messages))) * 100), 1)
         send_slack_message(
             f"🟡 ({campaign_type.value}) Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: {percentage_failed}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
