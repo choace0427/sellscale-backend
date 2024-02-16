@@ -36,8 +36,8 @@ def initialize_slack_app():
     Returns:
         SlackApp (slack_bolt.App): The Slack app
     """
-    # If this is not PURELY production, or if this is a celery instance, or if this is a scheduling instance, do not initialize Slack
-    if not is_production() or is_celery() or is_scheduling_instance():
+    # If this is not PURELY production
+    if not is_production():
         print("Not in production environment, Slack App will not be initialized")
         return None, None
 
