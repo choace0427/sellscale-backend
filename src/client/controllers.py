@@ -154,6 +154,7 @@ from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.client.models import (
     ClientArchetype,
+    ClientArchetypeAssetType,
     ClientArchetypeAssets,
     ClientSDR,
     Client,
@@ -2960,12 +2961,20 @@ def post_create_archetype_asset(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=True, parameter_type=str
     )
+    asset_type = get_request_parameter(
+        "asset_type", request, json=True, required=False, parameter_type=str
+    )
+    asset_tags = get_request_parameter(
+        "asset_tags", request, json=True, required=False, parameter_type=list
+    )
 
     success = create_archetype_asset(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
-        asset_value=asset_value
+        asset_value=asset_value,
+        asset_type=asset_type or ClientArchetypeAssetType.TEXT,
+        asset_tags=asset_tags or [],
     )
 
     if not success:
@@ -3036,12 +3045,20 @@ def update_asset_endpoint(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=False, parameter_type=str
     )
+    asset_type = get_request_parameter(
+        "asset_type", request, json=True, required=False, parameter_type=str
+    )
+    asset_tags = get_request_parameter(
+        "asset_tags", request, json=True, required=False, parameter_type=list
+    )
 
     success = update_asset(
         asset_id=asset_id,
         client_sdr_id=client_sdr_id,
         asset_key=asset_key,
-        asset_value=asset_value
+        asset_value=asset_value,
+        asset_type=asset_type,
+        asset_tags=asset_tags,
     )
 
     if not success:
