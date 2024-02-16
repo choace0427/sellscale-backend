@@ -34,7 +34,12 @@ from src.prospecting.models import ProspectEvent
 from model_import import DemoFeedback, BumpFramework
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
-from src.client.models import ClientArchetypeAssets, ClientProduct
+from src.client.models import (
+    ClientArchetypeAssetType,
+    ClientArchetypeAssets,
+    ClientProduct,
+    ClientArchetypeAssetReasonMapping,
+)
 from sqlalchemy import or_
 from click import Option
 from src.client.models import DemoFeedback
@@ -4676,11 +4681,7 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
-    client_id: int,
-    client_archetype_ids: list[int],
-    asset_key: str,
-    asset_value: str,
-    asset_reason: str,
+    client_id: int, client_archetype_ids: list[int], asset_key: str, asset_value: str, asset_type: ClientArchetypeAssetType, asset_tags: list[str]
 ):
     """
     Creates an asset for a client archetype
@@ -4690,7 +4691,8 @@ def create_archetype_asset(
         client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
         asset_value=asset_value,
-        asset_reason=asset_reason,
+        asset_type=asset_type,
+        asset_tags=asset_tags,
     )
     db.session.add(asset)
     db.session.commit()
@@ -4739,13 +4741,14 @@ def update_asset(
     client_sdr_id: int,
     asset_key: Optional[str] = None,
     asset_value: Optional[str] = None,
-    asset_reason: Optional[str] = None,
+    asset_type: Optional[ClientArchetypeAssetType] = None,
+    asset_tags: Optional[list[str]] = None,
 ):
     """
     Updates an asset for a client archetype
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    asset = ClientArchetypeAssets.query.filter_by(
+    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
         id=asset_id, client_id=client_sdr.client_id
     ).first()
     if not asset:
@@ -4754,8 +4757,67 @@ def update_asset(
         asset.asset_key = asset_key
     if asset_value:
         asset.asset_value = asset_value
-    if asset_reason:
-        asset.asset_reason = asset_reason
+    if asset_type:
+        asset.asset_type = asset_type
+    if asset_tags:
+        asset.asset_tags = asset_tags
     db.session.add(asset)
     db.session.commit()
+    return True
+
+
+def delete_client_archetype_asset_mapping(
+    client_archetype_id: int,
+    asset_id: int,
+):
+    """
+    Deletes an asset for a client archetype
+    """
+    asset = ClientArchetypeAssetReasonMapping.query.filter_by(
+        client_archetype_id=client_archetype_id, client_archetype_asset_id=asset_id
+    ).all()
+    for a in asset:
+        db.session.delete(a)
+    db.session.commit()
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_id = client_archetype.client_id
+
+    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_id
+    ).first()
+    asset.client_archetype_ids.remove(client_archetype_id)
+    flag_modified(asset, "client_archetype_ids")
+    db.session.add(asset)
+    db.session.commit()
+
+    return True
+
+
+def create_client_archetype_reason_mapping(
+    client_archetype_id: int,
+    asset_id: int,
+    reason: str,
+):
+    """
+    Creates a reason for a client archetype
+    """
+    reason = ClientArchetypeAssetReasonMapping(
+        client_archetype_id=client_archetype_id,
+        client_archetype_asset_id=asset_id,
+        reason=reason,
+    )
+    db.session.add(reason)
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_id = client_archetype.client_id
+
+    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+        id=asset_id, client_id=client_id
+    ).first()
+    asset.client_archetype_ids.append(client_archetype_id)
+    flag_modified(asset, "client_archetype_ids")
+    db.session.add(asset)
+    db.session.commit()
+
     return True

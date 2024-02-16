@@ -6,6 +6,8 @@ from src.prospecting.models import ProspectStatus, Prospect
 import sqlalchemy as sa
 import json
 from src.subscriptions.models import Subscription
+from sqlalchemy.dialects.postgresql import ARRAY
+
 
 from src.utils.hasher import generate_uuid
 
@@ -665,16 +667,29 @@ class PLGProductLeads(db.Model):
     is_test = db.Column(db.Boolean, nullable=True, default=False)
 
 
+# asset type: PDF, TEXT, URL
+
+
+class ClientArchetypeAssetType(enum.Enum):
+    PDF = "PDF"
+    TEXT = "TEXT"
+    URL = "URL"
+
+
 class ClientArchetypeAssets(db.Model):
     __tablename__ = "client_archetype_assets"
 
     id = db.Column(db.Integer, primary_key=True)
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
-    client_archetype_ids = db.Column(db.ARRAY(db.Integer), nullable=True)
+    client_archetype_ids = db.Column(ARRAY(db.Integer), nullable=True)
     asset_key = db.Column(db.String)
     asset_value = db.Column(db.String)
-    asset_reason = db.Column(db.String)
+
+    asset_type = db.Column(
+        sa.Enum(ClientArchetypeAssetType, create_constraint=False), nullable=True
+    )
+    asset_tags = db.Column(db.ARRAY(db.String), nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -683,5 +698,28 @@ class ClientArchetypeAssets(db.Model):
             "client_archetype_ids": self.client_archetype_ids,
             "asset_key": self.asset_key,
             "asset_value": self.asset_value,
-            "asset_reason": self.asset_reason,
+            "asset_type": self.asset_type and self.asset_type.value,
+            "asset_tags": self.asset_tags,
+        }
+
+
+class ClientArchetypeAssetReasonMapping(db.Model):
+    __tablename__ = "client_archetype_asset_reason_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_archetype_asset_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype_assets.id"), nullable=False
+    )
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+    )
+    reason = db.Column(db.String, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_archetype_asset_id": self.client_archetype_asset_id,
+            "client_archetype_id": self.client_archetype_id,
+            "reason": self.reason,
         }

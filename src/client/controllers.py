@@ -14,7 +14,9 @@ from src.personas.services import (
 from src.prospecting.models import Prospect
 from src.client.services import (
     create_archetype_asset,
+    create_client_archetype_reason_mapping,
     delete_archetype_asset,
+    delete_client_archetype_asset_mapping,
     get_available_times_via_calendly,
     get_client_assets,
     get_tam_data,
@@ -152,6 +154,7 @@ from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.client.models import (
     ClientArchetype,
+    ClientArchetypeAssetType,
     ClientArchetypeAssets,
     ClientSDR,
     Client,
@@ -2958,8 +2961,11 @@ def post_create_archetype_asset(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=True, parameter_type=str
     )
-    asset_reason = get_request_parameter(
-        "asset_reason", request, json=True, required=True, parameter_type=str
+    asset_type = get_request_parameter(
+        "asset_type", request, json=True, required=False, parameter_type=str
+    )
+    asset_tags = get_request_parameter(
+        "asset_tags", request, json=True, required=False, parameter_type=list
     )
 
     success = create_archetype_asset(
@@ -2967,7 +2973,8 @@ def post_create_archetype_asset(client_sdr_id: int):
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
         asset_value=asset_value,
-        asset_reason=asset_reason,
+        asset_type=asset_type or ClientArchetypeAssetType.TEXT,
+        asset_tags=asset_tags or [],
     )
 
     if not success:
@@ -3007,17 +3014,21 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     asset_id = get_request_parameter(
         "asset_id", request, json=True, required=True, parameter_type=int
     )
+    reason = get_request_parameter(
+        "reason", request, json=True, required=False, parameter_type=str
+    )
+
+    if not reason:
+        reason = ""
 
     asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
         id=asset_id, client_id=client_id
     ).first()
     if asset.client_archetype_ids and client_archetype_id in asset.client_archetype_ids:
-        asset.client_archetype_ids.remove(client_archetype_id)
+        delete_client_archetype_asset_mapping(client_archetype_id, asset_id)
     else:
-        asset.client_archetype_ids.append(client_archetype_id)
-    flag_modified(asset, "client_archetype_ids")
-    db.session.add(asset)
-    db.session.commit()
+        create_client_archetype_reason_mapping(client_archetype_id, asset_id, reason)
+    
 
     return "OK", 200
 
@@ -3034,8 +3045,11 @@ def update_asset_endpoint(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=False, parameter_type=str
     )
-    asset_reason = get_request_parameter(
-        "asset_reason", request, json=True, required=False, parameter_type=str
+    asset_type = get_request_parameter(
+        "asset_type", request, json=True, required=False, parameter_type=str
+    )
+    asset_tags = get_request_parameter(
+        "asset_tags", request, json=True, required=False, parameter_type=list
     )
 
     success = update_asset(
@@ -3043,7 +3057,8 @@ def update_asset_endpoint(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         asset_key=asset_key,
         asset_value=asset_value,
-        asset_reason=asset_reason,
+        asset_type=asset_type,
+        asset_tags=asset_tags,
     )
 
     if not success:

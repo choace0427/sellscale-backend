@@ -9,7 +9,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 
 from flask_sqlalchemy import SQLAlchemy
-from app_slack import initialize_slack_app
+from app_slack import SlackAppHandlerPair
 from src.setup.TimestampedModel import TimestampedModel
 from src.utils.scheduler import *
 from src.utils.slack import URL_MAP
@@ -56,7 +56,7 @@ if is_production():
     sys.excepthook = sentry_excepthook
 
 
-slack_app, slack_app_handler = initialize_slack_app()
+slack_app, slack_app_handler = SlackAppHandlerPair()
 
 
 def make_celery(app):
