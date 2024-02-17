@@ -2304,6 +2304,7 @@ def send_sent_by_sellscale_notification(
                 "prospect_id": prospect_id,
                 "bump_framework_id": bump_framework_id,
                 "status": status,
+                "ai_response": message,
             },
         )
 

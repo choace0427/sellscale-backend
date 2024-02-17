@@ -27,6 +27,7 @@ class LinkedInAIReplyNotification(SlackNotificationClass):
         prospect_id: Optional[int] = None,
         bump_framework_id: Optional[int] = None,
         status: Optional[str] = None,
+        ai_response: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
