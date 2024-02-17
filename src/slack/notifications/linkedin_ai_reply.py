@@ -33,6 +33,7 @@ class LinkedInAIReplyNotification(SlackNotificationClass):
         self.prospect_id = prospect_id
         self.bump_framework_id = bump_framework_id
         self.status = status
+        self.ai_response = ai_response
 
         return
 
@@ -73,7 +74,7 @@ class LinkedInAIReplyNotification(SlackNotificationClass):
                 "prospect_company": prospect.company,
                 "prospect_message": prospect.li_last_message_from_prospect,
                 "prospect_status": self.status,
-                "ai_response": prospect.li_last_message_from_sdr,
+                "ai_response": self.ai_response,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=prospect.id,
