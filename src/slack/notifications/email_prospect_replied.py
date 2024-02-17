@@ -82,11 +82,14 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
             generated_message: GeneratedMessage = GeneratedMessage.query.get(
                 prospect_email.personalized_body
             )
-            send_date = (  # Ideally we want to use the date_sent field, but some legacy code made it such that older messages don't have this field populated correctly. This is a safeguard.
-                generated_message.date_sent.strftime("%B %d, %Y")
-                if generated_message.date_sent
-                else generated_message.created_at.strftime("%B %d, %Y")
-            )
+            if generated_message:
+                send_date = (  # Ideally we want to use the date_sent field, but some legacy code made it such that older messages don't have this field populated correctly. This is a safeguard.
+                    generated_message.date_sent.strftime("%B %d, %Y")
+                    if generated_message.date_sent
+                    else generated_message.created_at.strftime("%B %d, %Y")
+                )
+            else:
+                send_date = "-"
 
             if not self.email_sent_body or not self.email_reply_body:
                 raise ValueError(
