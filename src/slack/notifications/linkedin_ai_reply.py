@@ -26,10 +26,12 @@ class LinkedInAIReplyNotification(SlackNotificationClass):
         developer_mode: Optional[bool] = False,
         prospect_id: Optional[int] = None,
         bump_framework_id: Optional[int] = None,
+        status: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
         self.bump_framework_id = bump_framework_id
+        self.status = status
 
         return
 
@@ -69,7 +71,7 @@ class LinkedInAIReplyNotification(SlackNotificationClass):
                 "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
                 "prospect_message": prospect.li_last_message_from_prospect,
-                "prospect_status": prospect.status,
+                "prospect_status": self.status,
                 "ai_response": prospect.li_last_message_from_sdr,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
@@ -148,7 +150,7 @@ class LinkedInAIReplyNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": '*{prospect_name}*:\n>"{prospect_message}"\n\n*{sdr_name} (AI)*:\n>"{ai_response}"'.format(
+                        "text": "*{prospect_name}*:\n>{prospect_message}\n\n*{sdr_name} (AI)*:\n>{ai_response}".format(
                             prospect_name=prospect_name,
                             prospect_message=(prospect_message.replace("\n", " ")),
                             sdr_name=client_sdr.name,

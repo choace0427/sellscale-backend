@@ -602,9 +602,9 @@ def generate_linkedin_outreaches_with_configurations(
                 message_cta=cta_id,
                 message_type=GeneratedMessageType.LINKEDIN,
                 few_shot_prompt=few_shot_prompt,
-                stack_ranked_message_generation_configuration_id=TOP_CONFIGURATION.id
-                if TOP_CONFIGURATION
-                else None,
+                stack_ranked_message_generation_configuration_id=(
+                    TOP_CONFIGURATION.id if TOP_CONFIGURATION else None
+                ),
                 priority_rating=campaign.priority_rating if campaign else 0,
             )
             db.session.add(message)
@@ -2296,100 +2296,113 @@ def send_sent_by_sellscale_notification(
         status: str = prospect.status.value if prospect.status else "UNKNOWN"
         status = status.split("_")
         status = " ".join(word.capitalize() for word in status)
-        send_slack_message(
-            message="SellScale AI just replied to prospect!",
-            webhook_urls=[
-                URL_MAP["eng-sandbox"],
-                client.pipeline_notifications_webhook_url,
-            ],
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "💬 SellScale AI just replied to " + prospect_name,
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"Convo Status: `{status}`",
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*✨ AI Reply Framework:* `{bump_framework_name}`".format(
-                            bump_framework_name=bump_framework_name
-                            if bump_framework_name
-                            else "-"
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": '*{prospect_first_name}*:\n>"{prospect_message}"\n\n*{first_name} (AI)*:\n>"{ai_response}"'.format(
-                            prospect_first_name=prospect.first_name,
-                            prospect_name=prospect_name,
-                            prospect_message=prospect.li_last_message_from_prospect.replace(
-                                "\n", " "
-                            )
-                            if prospect.li_last_message_from_prospect
-                            else "-",
-                            ai_response=message.replace("\n", " "),
-                            first_name=client_sdr.name.split(" ")[0],
-                        ),
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "plain_text",
-                            "text": "🧳 Title: "
-                            + str(prospect.title)
-                            + " @ "
-                            + str(prospect.company)[0:20]
-                            + ("..." if len(prospect.company) > 20 else ""),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "🪜 Status: "
-                            + prospect.status.value.replace("_", " ").lower(),
-                            "emoji": True,
-                        },
-                        {
-                            "type": "plain_text",
-                            "text": "📌 SDR: " + client_sdr.name,
-                            "emoji": True,
-                        },
-                    ],
-                },
-                {
-                    "type": "section",
-                    "block_id": "sectionBlockWithLinkButton",
-                    "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "View Convo",
-                            "emoji": True,
-                        },
-                        "value": direct_link,
-                        "url": direct_link,
-                        "action_id": "button-action",
-                    },
-                },
-            ],
+
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.LINKEDIN_AI_REPLY,
+            arguments={
+                "client_sdr_id": client_sdr.id,
+                "prospect_id": prospect_id,
+                "bump_framework_id": bump_framework_id,
+                "status": status,
+            },
         )
+
+        # send_slack_message(
+        #     message="SellScale AI just replied to prospect!",
+        #     webhook_urls=[
+        #         URL_MAP["eng-sandbox"],
+        #         client.pipeline_notifications_webhook_url,
+        #     ],
+        #     blocks=[
+        #         {
+        #             "type": "header",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "text": "💬 SellScale AI just replied to " + prospect_name,
+        #                 "emoji": True,
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": f"Convo Status: `{status}`",
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*✨ AI Reply Framework:* `{bump_framework_name}`".format(
+        #                     bump_framework_name=bump_framework_name
+        #                     if bump_framework_name
+        #                     else "-"
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": '*{prospect_first_name}*:\n>"{prospect_message}"\n\n*{first_name} (AI)*:\n>"{ai_response}"'.format(
+        #                     prospect_first_name=prospect.first_name,
+        #                     prospect_name=prospect_name,
+        #                     prospect_message=prospect.li_last_message_from_prospect.replace(
+        #                         "\n", " "
+        #                     )
+        #                     if prospect.li_last_message_from_prospect
+        #                     else "-",
+        #                     ai_response=message.replace("\n", " "),
+        #                     first_name=client_sdr.name.split(" ")[0],
+        #                 ),
+        #             },
+        #         },
+        #         {"type": "divider"},
+        #         {
+        #             "type": "context",
+        #             "elements": [
+        #                 {
+        #                     "type": "plain_text",
+        #                     "text": "🧳 Title: "
+        #                     + str(prospect.title)
+        #                     + " @ "
+        #                     + str(prospect.company)[0:20]
+        #                     + ("..." if len(prospect.company) > 20 else ""),
+        #                     "emoji": True,
+        #                 },
+        #                 {
+        #                     "type": "plain_text",
+        #                     "text": "🪜 Status: "
+        #                     + prospect.status.value.replace("_", " ").lower(),
+        #                     "emoji": True,
+        #                 },
+        #                 {
+        #                     "type": "plain_text",
+        #                     "text": "📌 SDR: " + client_sdr.name,
+        #                     "emoji": True,
+        #                 },
+        #             ],
+        #         },
+        #         {
+        #             "type": "section",
+        #             "block_id": "sectionBlockWithLinkButton",
+        #             "text": {"type": "mrkdwn", "text": "View Conversation in Sight"},
+        #             "accessory": {
+        #                 "type": "button",
+        #                 "text": {
+        #                     "type": "plain_text",
+        #                     "text": "View Convo",
+        #                     "emoji": True,
+        #                 },
+        #                 "value": direct_link,
+        #                 "url": direct_link,
+        #                 "action_id": "button-action",
+        #             },
+        #         },
+        #     ],
+        # )
+
+    return True
 
 
 @celery.task
@@ -2813,18 +2826,18 @@ def generate_followup_response(
             "response": response,
             "prompt": prompt,
             "bump_framework_id": best_framework.get("id") if best_framework else None,
-            "bump_framework_title": best_framework.get("title")
-            if best_framework
-            else None,
-            "bump_framework_description": best_framework.get("description")
-            if best_framework
-            else None,
-            "bump_framework_length": best_framework.get("bump_length")
-            if best_framework
-            else None,
-            "bump_framework_delay": best_framework.get("bump_delay_days")
-            if best_framework
-            else None,
+            "bump_framework_title": (
+                best_framework.get("title") if best_framework else None
+            ),
+            "bump_framework_description": (
+                best_framework.get("description") if best_framework else None
+            ),
+            "bump_framework_length": (
+                best_framework.get("bump_length") if best_framework else None
+            ),
+            "bump_framework_delay": (
+                best_framework.get("bump_delay_days") if best_framework else None
+            ),
             "account_research_points": account_research_points,
         }
 
