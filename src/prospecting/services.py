@@ -92,6 +92,8 @@ from collections import Counter
 import statistics
 import random
 
+from src.webhooks.services import handle_webhook
+
 
 def search_prospects(
     query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
@@ -2280,7 +2282,12 @@ def calculate_prospect_overall_status(prospect_id: int):
         db.session.add(prospect)
         db.session.commit()
 
-        # todo(Aakash) - handle webhook here with handle_webhook(prospect, previous_status, new_status)
+        if prospect.overall_status and prospect.overall_status != previous_status:
+            handle_webhook(
+                prospect_id=prospect_id,
+                previous_status=previous_status,
+                new_status=prospect.overall_status,
+            )
 
     # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED
     if prospect.overall_status == ProspectOverallStatus.REMOVED:
