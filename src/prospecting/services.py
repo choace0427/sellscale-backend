@@ -2271,11 +2271,16 @@ def calculate_prospect_overall_status(prospect_id: int):
 
     # get max status based on .get_rank()
     if all_channel_statuses:
+        previous_status = prospect.overall_status
+
         max_status = max(all_channel_statuses, key=lambda x: x.get_rank())
         prospect = Prospect.query.get(prospect_id)
         prospect.overall_status = max_status
+
         db.session.add(prospect)
         db.session.commit()
+
+        # todo(Aakash) - handle webhook here with handle_webhook(prospect, previous_status, new_status)
 
     # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED
     if prospect.overall_status == ProspectOverallStatus.REMOVED:

@@ -83,6 +83,8 @@ class Client(db.Model):
 
     merge_crm_account_token = db.Column(db.String, nullable=True)
 
+    on_demo_set_webhook = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
