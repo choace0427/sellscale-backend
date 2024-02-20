@@ -94,14 +94,14 @@ def post_campaign_settings_tracking(client_sdr_id: int):
     track_open = get_request_parameter(
         "track_open", request, json=True, required=False, parameter_type=bool
     )
-    track_reply = get_request_parameter(
-        "track_reply", request, json=True, required=False, parameter_type=bool
+    track_link = get_request_parameter(
+        "track_link", request, json=True, required=False, parameter_type=bool
     )
 
     success = update_smartlead_campaign_tracking_settings(
         campaign_id=campaign_id,
         track_open=track_open,
-        track_reply=track_reply,
+        track_link=track_link,
     )
     if not success:
         return (
