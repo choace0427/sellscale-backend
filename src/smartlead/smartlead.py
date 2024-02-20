@@ -211,6 +211,30 @@ class Smartlead:
             return self.create_campaign(campaign_name)
         return response.json()
 
+    def update_campaign_general_settings(self, campaign_id: int, settings: dict):
+        """Settings can look like this:
+
+        ```
+        settings = {
+            "track_settings": ["DONT_TRACK_EMAIL_OPEN"], // allowed values are -> DONT_TRACK_EMAIL_OPEN | DONT_TRACK_LINK_CLICK | DONT_TRACK_REPLY_TO_AN_EMAIL
+            "stop_lead_settings": "REPLY_TO_AN_EMAIL", // allowed values are -> CLICK_ON_A_LINK | OPEN_AN_EMAIL
+            "unsubscribe_text": "",
+            "send_as_plain_text": false,
+            "follow_up_percentage": 100, // max allowed 100 min allowed 0
+            "client_id": 33 // leave as null if not needed,
+            "enable_ai_esp_matching": true // by default is false
+        }
+        ```
+        """
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/settings?api_key={self.api_key}"
+        data = settings
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.update_campaign_settings(campaign_id, settings)
+        return response.json()
+
     def fetch_campaign_sequence(self, campaign_id: int):
         url = (
             f"{self.BASE_URL}/campaigns/{campaign_id}/sequences?api_key={self.api_key}"

@@ -10,6 +10,7 @@ from src.smartlead.services import (
     smartlead_reply_to_prospect,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
+    update_smartlead_campaign_tracking_settings,
 )
 from app import db
 import os
@@ -82,6 +83,38 @@ def post_sync_campaigns(client_sdr_id: int):
     sync_campaign_leads_for_sdr.delay(client_sdr_id)
 
     return jsonify({"message": "Success", "data": {}}), 200
+
+
+@SMARTLEAD_BLUEPRINT.route("/campaign/settings/tracking", methods=["POST"])
+@require_user
+def post_campaign_settings_tracking(client_sdr_id: int):
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True, parameter_type=int
+    )
+    track_open = get_request_parameter(
+        "track_open", request, json=True, required=False, parameter_type=bool
+    )
+    track_reply = get_request_parameter(
+        "track_reply", request, json=True, required=False, parameter_type=bool
+    )
+
+    success = update_smartlead_campaign_tracking_settings(
+        campaign_id=campaign_id,
+        track_open=track_open,
+        track_reply=track_reply,
+    )
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Failed to update tracking settings",
+                }
+            ),
+            400,
+        )
+
+    return jsonify({"status": "success"}), 200
 
 
 @SMARTLEAD_BLUEPRINT.route("/prospect/replied", methods=["GET"])
@@ -227,19 +260,3 @@ def post_set_client_sdr_id(client_sdr_id: int):
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
-
-
-# DEPRECATED
-# @SMARTLEAD_BLUEPRINT.route("/sync_prospects_to_campaign", methods=["POST"])
-# @require_user
-# def post_set_client_sdr_id(client_sdr_id: int):
-#     archetype_id = get_request_parameter(
-#         "archetype_id", request, json=True, required=True, parameter_type=int
-#     )
-
-#     success, amount = sync_prospects_to_campaign(client_sdr_id, archetype_id)
-
-#     return (
-#         jsonify({"message": "Success", "data": {"success": success, "amount": amount}}),
-#         200,
-#     )

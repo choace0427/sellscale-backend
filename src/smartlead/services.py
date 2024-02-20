@@ -527,6 +527,18 @@ def create_smartlead_campaign(
     if not smartlead_campaign_id:
         return False, "Failed to create campaign", -1
 
+    # 2b. Update the general settings for tracking settings
+    track_settings = []
+    if not client_sdr.email_open_tracking_enabled:
+        track_settings.append("DONT_TRACK_EMAIL_OPEN")
+    if not client_sdr.email_link_tracking_enabled:
+        track_settings.append("DONT_TRACK_LINK_CLICK")
+    general_settings = {"track_settings": track_settings}
+    sl.update_campaign_general_settings(
+        campaign_id=smartlead_campaign_id,
+        settings=general_settings,
+    )
+
     # 3. Create the Smartlead campaign sequence, using the archetype's sequence
     delay_days = 0
     sequence = []
@@ -652,6 +664,48 @@ def create_smartlead_campaign(
         db.session.commit()
 
     return True, "Success", smartlead_campaign_id
+
+
+def update_smartlead_campaign_tracking_settings(
+    campaign_id: int,
+    track_open: Optional[bool] = None,
+    track_link: Optional[bool] = None,
+) -> bool:
+    """Updates the tracking settings for a Smartlead campaign
+
+    Args:
+        campaign_id (int): The ID of the Smartlead campaign
+        track_open (Optional[bool], optional): Whether or not to track email opens. Defaults to None.
+        track_link (Optional[bool], optional): Whether or not to track link clicks. Defaults to None.
+
+    Returns:
+        bool: True if successful
+    """
+    # Update the Smartlead campaign
+    sl = Smartlead()
+    track_settings = []
+    if track_open is not None and not track_open:
+        track_settings.append("DONT_TRACK_EMAIL_OPEN")
+    if track_open is not None and not not track_link:
+        track_settings.append("DONT_TRACK_LINK_CLICK")
+    general_settings = {"track_settings": track_settings}
+    result = sl.update_campaign_general_settings(
+        campaign_id=campaign_id,
+        settings=general_settings,
+    )
+    success = result.get("ok")
+
+    # Update the ClientArchetype
+    if success:
+        archetypes: List[ClientArchetype] = ClientArchetype.query.filter(
+            ClientArchetype.smartlead_campaign_id == campaign_id,
+        ).all()
+        for archetype in archetypes:
+            archetype.email_open_tracking_enabled = track_open
+            archetype.email_link_tracking_enabled = track_link
+        db.session.commit()
+
+    return success
 
 
 def set_campaign_id(archetype_id: int, campaign_id: int) -> bool:

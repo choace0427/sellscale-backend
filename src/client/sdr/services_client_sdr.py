@@ -135,34 +135,42 @@ def compute_sdr_linkedin_health(
         {
             "criteria": "Good Title",
             "status": sdr.li_health_good_title,
-            "message": "Good LinkedIn title"
-            if sdr.li_health_good_title
-            else (
-                title_fail_reason
-                if title_fail_reason
-                else "Your title may appear sales-y. Avoid sales-y words in your title."
+            "message": (
+                "Good LinkedIn title"
+                if sdr.li_health_good_title
+                else (
+                    title_fail_reason
+                    if title_fail_reason
+                    else "Your title may appear sales-y. Avoid sales-y words in your title."
+                )
             ),
         },
         {
             "criteria": "Premium Account",
             "status": sdr.li_health_premium,
-            "message": "Premium LinkedIn account"
-            if sdr.li_health_premium
-            else "You do not have a premium LinkedIn account. Consider upgrading to a premium account.",
+            "message": (
+                "Premium LinkedIn account"
+                if sdr.li_health_premium
+                else "You do not have a premium LinkedIn account. Consider upgrading to a premium account."
+            ),
         },
         {
             "criteria": "Profile Picture",
             "status": sdr.li_health_profile_photo,
-            "message": "Profile picture found"
-            if sdr.li_health_profile_photo
-            else "You do not have a profile picture. Consider adding one.",
+            "message": (
+                "Profile picture found"
+                if sdr.li_health_profile_photo
+                else "You do not have a profile picture. Consider adding one."
+            ),
         },
         {
             "criteria": "Cover Photo",
             "status": sdr.li_health_cover_image,
-            "message": "Cover photo found"
-            if sdr.li_health_cover_image
-            else "You do not have a cover photo. Consider adding one.",
+            "message": (
+                "Cover photo found"
+                if sdr.li_health_cover_image
+                else "You do not have a cover photo. Consider adding one."
+            ),
         },
     ]
 
@@ -733,3 +741,34 @@ def update_custom_conversion_pct(
     db.session.commit()
 
     return True, "Success"
+
+
+def update_sdr_email_tracking_settings(
+    client_sdr_id: int,
+    track_open: Optional[bool] = None,
+    track_link: Optional[bool] = None,
+) -> bool:
+    """Updates the email tracking settings for a Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        track_open (Optional[bool], optional): Whether to track email opens. Defaults to None.
+        track_link (Optional[bool], optional): Whether or not to track link clicks. Defaults to None.
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the Client SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    # Update the Client SDR
+    if track_open is not None:
+        sdr.email_open_tracking_enabled = track_open
+    if track_link is not None:
+        sdr.email_link_tracking_enabled = track_link
+
+    db.session.commit()
+
+    return True
