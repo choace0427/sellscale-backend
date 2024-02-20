@@ -2968,7 +2968,7 @@ def post_create_archetype_asset(client_sdr_id: int):
         "asset_tags", request, json=True, required=False, parameter_type=list
     )
 
-    success = create_archetype_asset(
+    asset_dict = create_archetype_asset(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
@@ -2977,10 +2977,10 @@ def post_create_archetype_asset(client_sdr_id: int):
         asset_tags=asset_tags or [],
     )
 
-    if not success:
+    if not asset_dict:
         return "Failed to create archetype asset", 400
 
-    return "OK", 200
+    return jsonify({"message": "Success", "data": asset_dict}), 200
 
 
 @CLIENT_BLUEPRINT.route("/get_assets", methods=["GET"])

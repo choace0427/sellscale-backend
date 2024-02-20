@@ -4686,7 +4686,7 @@ def create_archetype_asset(
     """
     Creates an asset for a client archetype
     """
-    asset = ClientArchetypeAssets(
+    asset: ClientArchetypeAssets = ClientArchetypeAssets(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
@@ -4696,7 +4696,8 @@ def create_archetype_asset(
     )
     db.session.add(asset)
     db.session.commit()
-    return True
+
+    return asset.to_dict()
 
 
 def get_archetype_assets(client_archetype_id: int):
