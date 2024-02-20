@@ -3254,6 +3254,8 @@ def get_personas_page_details(client_sdr_id: int):
             )
             .label("num_unused_email_prospects"),
             ClientArchetype.email_active,
+            ClientArchetype.email_link_tracking_enabled,
+            ClientArchetype.email_open_tracking_enabled,
             ClientArchetype.linkedin_active,
         )
         .select_from(ClientArchetype)
@@ -4681,7 +4683,12 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
-    client_id: int, client_archetype_ids: list[int], asset_key: str, asset_value: str, asset_type: ClientArchetypeAssetType, asset_tags: list[str]
+    client_id: int,
+    client_archetype_ids: list[int],
+    asset_key: str,
+    asset_value: str,
+    asset_type: ClientArchetypeAssetType,
+    asset_tags: list[str],
 ):
     """
     Creates an asset for a client archetype
