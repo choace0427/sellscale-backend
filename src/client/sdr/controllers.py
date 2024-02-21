@@ -128,6 +128,32 @@ def patch_sla_schedule(client_sdr_id: int):
     return jsonify({"status": "success", "data": {}}), 200
 
 
+@CLIENT_SDR_BLUEPRINT.route("/sla/schedule/bulk", methods=["PATCH"])
+@require_user
+def patch_sla_schedule_bulk(client_sdr_id: int):
+    schedule_map = get_request_parameter(
+        "schedule_map", request, json=True, required=True, parameter_type=dict
+    )
+
+    for schedule_id, schedule in schedule_map.items():
+        linkedin_volume = schedule.get("linkedin_volume")
+        linkedin_special_notes = schedule.get("linkedin_special_notes")
+        email_volume = schedule.get("email_volume")
+        email_special_notes = schedule.get("email_special_notes")
+
+        success, message = update_sla_schedule(
+            client_sdr_id=client_sdr_id,
+            sla_schedule_id=schedule_id,
+            linkedin_volume=linkedin_volume,
+            linkedin_special_notes=linkedin_special_notes,
+            email_volume=email_volume,
+            email_special_notes=email_special_notes,
+        )
+
+        if not success:
+            return jsonify({"status": "error", "message": message}), 400
+
+
 @CLIENT_SDR_BLUEPRINT.route("/sla/schedule", methods=["POST"])
 @require_user
 def post_sla_schedule(client_sdr_id: int):

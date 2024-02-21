@@ -541,6 +541,30 @@ class Smartlead:
             return self.add_campaign_leads(campaign_id, leads)
         return response.json()
 
+    def add_or_update_warmup(self, email_account_id: int, warmup_data: dict) -> dict:
+        """`warmup_data` format is
+
+        warmup_data = {
+            "warmup_enabled": true, // set false to disable warmup
+            "total_warmup_per_day": 35,
+            "daily_rampup": 2, // set this value to have daily ramup increase in warmup emails
+            "reply_rate_percentage": 38,
+            "warmup_key_id": "apple-juice" //string value if passed will update the custom warmup-key identifier
+        }
+        """
+        url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup?api_key={self.api_key}"
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+            },
+            data=json.dumps(warmup_data),
+        )
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.add_or_update_warmup(email_account_id, warmup_data)
+        return response.json()
+
     def get_warmup_stats(self, email_account_id):
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
