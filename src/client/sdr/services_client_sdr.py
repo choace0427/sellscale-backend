@@ -558,7 +558,7 @@ def adjust_sla_schedules(client_sdr_id: int) -> bool:
 
     for schedule in sla_schedules:
         schedule.linkedin_volume = last_week_sla_schedule.linkedin_volume
-        schedule.email_volume = last_week_sla_schedule.email_volume
+        # schedule.email_volume = last_week_sla_schedule.email_volume
 
     db.session.commit()
 
