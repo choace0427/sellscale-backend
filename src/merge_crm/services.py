@@ -277,7 +277,6 @@ def create_contact(client_sdr_id: int, prospect_id: int):
         model=ContactRequest(
             first_name=p.first_name,
             last_name=p.last_name,
-            account=p.company,
             addresses=[
                 # AddressRequest(
                 #     street_1="50 Bowling Green Dr",

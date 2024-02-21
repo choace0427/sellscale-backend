@@ -1012,9 +1012,11 @@ def get_client_archetype_stats(client_archetype_id):
         linkedin_sequence = []
         for i, record in enumerate(simulation_records):
             entry = {
-                "title": record.meta_data.get("bump_framework_title")
-                if i > 0
-                else "Invite Message",
+                "title": (
+                    record.meta_data.get("bump_framework_title")
+                    if i > 0
+                    else "Invite Message"
+                ),
                 "description": record.data.get("message"),
                 "bumped_count": i - 1,
                 "bump_framework_delay": record.meta_data
@@ -1075,6 +1077,7 @@ def get_client_archetype_stats(client_archetype_id):
         },
         "linkedin": {"sequence": linkedin_sequence},
         "email": {"sequence": email_sequence},
+        "assets_used": [],
         "top_attributes": {
             "top_titles": get_top_attributes_list("title"),
             "top_industries": get_top_attributes_list("industry"),
