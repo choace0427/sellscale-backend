@@ -12,7 +12,7 @@ from src.automation.models import (
     SalesNavigatorLaunchStatus,
 )
 
-from src.client.models import Client, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.utils.slack import send_slack_message, URL_MAP
 
 
@@ -29,9 +29,9 @@ def reset_sales_navigator_config_counts() -> None:
     Returns:
         None
     """
-    configs: list[
-        PhantomBusterSalesNavigatorConfig
-    ] = PhantomBusterSalesNavigatorConfig.query.all()
+    configs: list[PhantomBusterSalesNavigatorConfig] = (
+        PhantomBusterSalesNavigatorConfig.query.all()
+    )
     for config in configs:
         config.daily_trigger_count = 0
         config.daily_prospect_count = 0
@@ -274,6 +274,17 @@ def register_phantom_buster_sales_navigator_url(
     db.session.add(launch)
     db.session.commit()
 
+    # Import filters automatically
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if archetype and not archetype.is_unassigned_contact_archetype:
+        from src.prospecting.icp_score.services import (
+            update_icp_titles_from_sales_nav_url,
+        )
+
+        update_icp_titles_from_sales_nav_url(
+            client_archetype_id=client_archetype_id, sales_nav_url=sales_navigator_url
+        )
+
     return True, "Success"
 
 
@@ -303,12 +314,13 @@ def collect_and_load_sales_navigator_results(self) -> None:
         return result_processed
 
     # Find all SalesNavigatorLaunch entries with status=RUNNING and pb_container_id set
-    launches: list[
-        PhantomBusterSalesNavigatorLaunch
-    ] = PhantomBusterSalesNavigatorLaunch.query.filter(
-        PhantomBusterSalesNavigatorLaunch.status == SalesNavigatorLaunchStatus.RUNNING,
-        PhantomBusterSalesNavigatorLaunch.pb_container_id != None,
-    ).all()
+    launches: list[PhantomBusterSalesNavigatorLaunch] = (
+        PhantomBusterSalesNavigatorLaunch.query.filter(
+            PhantomBusterSalesNavigatorLaunch.status
+            == SalesNavigatorLaunchStatus.RUNNING,
+            PhantomBusterSalesNavigatorLaunch.pb_container_id != None,
+        ).all()
+    )
 
     for launch in launches:
         # Query the PhantomBuster API for the results of each pb_container_id
@@ -472,20 +484,21 @@ def trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(
 def collect_and_trigger_phantom_buster_sales_navigator_launches() -> None:
     """Collects and triggers PhantomBusterSalesNavigatorLaunch entries"""
     # Find all available SalesNavigator Agents
-    agents: list[
-        PhantomBusterSalesNavigatorConfig
-    ] = PhantomBusterSalesNavigatorConfig.query.filter(
-        PhantomBusterSalesNavigatorConfig.in_use == False,
-    ).all()
+    agents: list[PhantomBusterSalesNavigatorConfig] = (
+        PhantomBusterSalesNavigatorConfig.query.filter(
+            PhantomBusterSalesNavigatorConfig.in_use == False,
+        ).all()
+    )
     agent_ids = [agent.id for agent in agents]
 
     # Collect all queued PhantomBusterSalesNavigatorLaunch on available agents
-    launches: list[
-        PhantomBusterSalesNavigatorLaunch
-    ] = PhantomBusterSalesNavigatorLaunch.query.filter(
-        PhantomBusterSalesNavigatorLaunch.sales_navigator_config_id.in_(agent_ids),
-        PhantomBusterSalesNavigatorLaunch.status == SalesNavigatorLaunchStatus.QUEUED,
-    ).all()
+    launches: list[PhantomBusterSalesNavigatorLaunch] = (
+        PhantomBusterSalesNavigatorLaunch.query.filter(
+            PhantomBusterSalesNavigatorLaunch.sales_navigator_config_id.in_(agent_ids),
+            PhantomBusterSalesNavigatorLaunch.status
+            == SalesNavigatorLaunchStatus.QUEUED,
+        ).all()
+    )
     for launch in launches:
         # Mark agents as in use
         agent: PhantomBusterSalesNavigatorConfig = (
