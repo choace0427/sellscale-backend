@@ -533,6 +533,8 @@ def create_smartlead_campaign(
         track_settings.append("DONT_TRACK_EMAIL_OPEN")
     if not client_sdr.email_link_tracking_enabled:
         track_settings.append("DONT_TRACK_LINK_CLICK")
+    if len(track_settings) == 0:
+        track_settings = None
     general_settings = {"track_settings": track_settings}
     sl.update_campaign_general_settings(
         campaign_id=smartlead_campaign_id,
@@ -686,17 +688,17 @@ def update_smartlead_campaign_tracking_settings(
     track_settings = []
     if track_open is not None and not track_open:
         track_settings.append("DONT_TRACK_EMAIL_OPEN")
-    if track_open is not None and not not track_link:
+    if track_open is not None and not track_link:
         track_settings.append("DONT_TRACK_LINK_CLICK")
-    if track_settings:
-        general_settings = {"track_settings": track_settings}
-        result = sl.update_campaign_general_settings(
-            campaign_id=campaign_id,
-            settings=general_settings,
-        )
-        success = result.get("ok")
-    else:
-        return True
+    if len(track_settings) == 0:
+        track_settings = None
+
+    general_settings = {"track_settings": track_settings}
+    result = sl.update_campaign_general_settings(
+        campaign_id=campaign_id,
+        settings=general_settings,
+    )
+    success = result.get("ok")
 
     # Update the ClientArchetype
     if success:
