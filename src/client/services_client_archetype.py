@@ -1077,10 +1077,37 @@ def get_client_archetype_stats(client_archetype_id):
         },
         "linkedin": {"sequence": linkedin_sequence},
         "email": {"sequence": email_sequence},
-        "assets_used": [],
+        "assets_used": fetch_archetype_assets(client_archetype_id),
         "top_attributes": {
             "top_titles": get_top_attributes_list("title"),
             "top_industries": get_top_attributes_list("industry"),
             "top_companies": get_top_attributes_list("company"),
         },
     }
+
+
+def fetch_archetype_assets(client_archetype_id: int):
+
+    assets_query = """
+      select
+        client_archetype_assets.asset_key "title",
+        client_archetype_assets.asset_value "value",
+        client_archetype_asset_reason_mapping.reason "reason"
+      from client_archetype_assets
+        left join client_archetype_asset_reason_mapping 
+          on client_archetype_asset_reason_mapping.client_archetype_asset_id = client_archetype_assets.id
+              and client_archetype_asset_reason_mapping.client_archetype_id = {ARCHETYPE_ID}
+      where 
+        {ARCHETYPE_ID} = any(client_archetype_assets.client_archetype_ids);
+    """.format(
+        ARCHETYPE_ID=client_archetype_id
+    )
+    assets_data = db.session.execute(assets_query).fetchall()
+    return [
+        {
+            "title": row[0],
+            "value": row[1],
+            "reason": row[2],
+        }
+        for row in assets_data
+    ]
