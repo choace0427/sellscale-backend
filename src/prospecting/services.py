@@ -10,6 +10,7 @@ from src.email_outbound.email_store.services import (
     email_store_hunter_verify,
     find_email_for_prospect_id,
 )
+from src.merge_crm.models import ClientSyncCRM
 
 from src.individual.services import add_individual_from_prospect
 from src.campaigns.models import OutboundCampaign
@@ -753,6 +754,19 @@ def update_prospect_status_linkedin(
             engagement_metadata=message,
         )
 
+        # Check if the client has a CRM sync and if the event handler is set to create a lead
+        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+            client_id=p.client_id
+        ).first()
+        if (
+            client_sync_crm
+            and client_sync_crm.event_handlers
+            and client_sync_crm.event_handlers.get("on_demo_set", "") == "create_lead"
+        ):
+            from src.merge_crm.services import create_contact
+
+            create_contact(client_sdr_id=p.client_sdr_id, prospect_id=p.id)
+
         if p.meta_data and p.meta_data.get("demo_set", {}).get("type", {}) == "HANDOFF":
             # Send the handoff notification
             success = create_and_send_slack_notification_class_message(
@@ -1221,6 +1235,20 @@ def update_prospect_status_email(
                 custom_webhook_urls=custom_webhook_urls,
             )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
+
+        # Check if the client has a CRM sync and if the event handler is set to create a lead
+        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+            client_id=p.client_id
+        ).first()
+        if (
+            client_sync_crm
+            and client_sync_crm.event_handlers
+            and client_sync_crm.event_handlers.get("on_demo_set", "") == "create_lead"
+        ):
+            from src.merge_crm.services import create_contact
+
+            create_contact(client_sdr_id=p.client_sdr_id, prospect_id=p.id)
+
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,

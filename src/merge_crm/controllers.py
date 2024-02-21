@@ -7,9 +7,11 @@ from src.merge_crm.services import (
     delete_account_token,
     get_integrations,
     retrieve_account_token,
+    update_crm_sync,
 )
 from src.utils.request_helpers import get_request_parameter
-
+from model_import import ClientSDR
+from src.merge_crm.models import ClientSyncCRM
 
 MERGE_CRM_BLUEPRINT = Blueprint("merge_crm", __name__)
 
@@ -57,3 +59,39 @@ def delete_link(client_sdr_id: int):
 def make_test_account(client_sdr_id: int):
     create_test_account(client_sdr_id=client_sdr_id)
     return jsonify({"success": True})
+
+
+@MERGE_CRM_BLUEPRINT.route("/update_crm_sync", methods=["PUT"])
+@require_user
+def put_update_crm_sync_endpoint(client_sdr_id: int):
+
+    sync_type = get_request_parameter("sync_type", request, json=True, required=False)
+    status_mapping = get_request_parameter(
+        "status_mapping", request, json=True, required=False
+    )
+    event_handlers = get_request_parameter(
+        "event_handlers", request, json=True, required=False
+    )
+
+    result = update_crm_sync(
+        client_sdr_id=client_sdr_id,
+        sync_type=sync_type,
+        status_mapping=status_mapping,
+        event_handlers=event_handlers,
+    )
+
+    return jsonify({"success": True, "data": result})
+
+
+@MERGE_CRM_BLUEPRINT.route("/crm_sync", methods=["GET"])
+@require_user
+def get_crm_sync_endpoint(client_sdr_id: int):
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=sdr.client_id
+    ).first()
+
+    result = client_sync_crm.to_dict() if client_sync_crm else None
+
+    return jsonify({"success": True, "data": result})
