@@ -133,7 +133,7 @@ Prospect #{prospect_i}
         create_operator_dashboard_entry(
             client_sdr_id=prospect.client_sdr_id,
             urgency=OperatorDashboardEntryPriority.MEDIUM,
-            tag="demo_feedback_{prospect_id}".format(prospect_id=prospect.id),
+            tag="scheduling_feedback_{prospect_id}".format(prospect_id=prospect.id),
             emoji="📋",
             title="Scheduling feedback needed",
             subtitle="This prospect has been in scheduling for 3+ days. Please indicate what happened.",

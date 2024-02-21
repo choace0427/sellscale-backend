@@ -802,6 +802,38 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SCHEDULING.value,
             engagement_metadata=message,
         )
+
+        if client_sdr.meta_data and not client_sdr.meta_data.get(
+            "response_options", {}
+        ).get("use_scheduling", True):
+            from src.operator_dashboard.services import (
+                create_operator_dashboard_entry,
+                OperatorDashboardEntryPriority,
+                OperatorDashboardEntryStatus,
+                OperatorDashboardTaskType,
+            )
+
+            # If the SDR doesn't use scheduling, we create a task for them
+            create_operator_dashboard_entry(
+                client_sdr_id=p.client_sdr_id,
+                urgency=OperatorDashboardEntryPriority.HIGH,
+                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
+                emoji="📋",
+                title="Scheduling needed",
+                subtitle="Please set up a time to demo with {prospect_name}".format(
+                    prospect_name=p.full_name
+                ),
+                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
+                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
+                status=OperatorDashboardEntryStatus.PENDING,
+                due_date=datetime.now() + timedelta(days=2),
+                task_type=OperatorDashboardTaskType.SCHEDULING_NEEDED,
+                task_data={
+                    "prospect_id": p.id,
+                    "prospect_full_name": p.full_name,
+                },
+            )
+
         if not quietly:
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.LINKEDIN,

@@ -601,6 +601,13 @@ def patch_sdr(client_sdr_id: int):
         parameter_type=bool,
     )
 
+    meta_data = get_request_parameter(
+        "meta_data",
+        request,
+        json=True,
+        required=False,
+    )
+
     success = update_client_sdr_details(
         client_sdr_id=client_sdr_id,
         name=name,
@@ -610,6 +617,7 @@ def patch_sdr(client_sdr_id: int):
         ai_outreach=ai_outreach,
         browser_extension_ui_overlay=browser_extension_ui_overlay,
         auto_archive_convos=auto_archive_convos,
+        meta_data=meta_data,
     )
     if not success:
         return jsonify({"message": "Failed to update client SDR"}), 404
@@ -3028,7 +3036,6 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
         delete_client_archetype_asset_mapping(client_archetype_id, asset_id)
     else:
         create_client_archetype_reason_mapping(client_archetype_id, asset_id, reason)
-    
 
     return "OK", 200
 
