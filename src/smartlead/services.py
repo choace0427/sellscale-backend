@@ -688,7 +688,7 @@ def update_smartlead_campaign_tracking_settings(
     track_settings = []
     if track_open is not None and not track_open:
         track_settings.append("DONT_TRACK_EMAIL_OPEN")
-    if track_open is not None and not not track_link:
+    if track_open is not None and not track_link:
         track_settings.append("DONT_TRACK_LINK_CLICK")
     if len(track_settings) == 0:
         track_settings = None
