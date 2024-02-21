@@ -71,7 +71,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
             return {
                 "title": self.title,
                 "minutes_worked": self.minutes_worked,
-                "description": self.description,
+                "description": self.description if self.description else "-",
                 "contact": client_sdr.name,
                 "request_date": (
                     request.created_at.strftime("%B %d, %Y") if request else "-"
@@ -89,7 +89,7 @@ class AITaskCompletedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.title or not self.minutes_worked or not self.description:
+            if not self.title:
                 return False
             fields = get_fields()
 
@@ -103,8 +103,6 @@ class AITaskCompletedNotification(SlackNotificationClass):
         dashboard_url = fields.get("dashboard_url")
         if (
             not title
-            or not minutes_worked
-            or not description
             or not contact
             or not request_date
             or not completed_date

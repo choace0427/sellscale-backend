@@ -106,7 +106,11 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
                     prospect_id=prospect.id,
                 ),
                 "conversation": conversation,
-                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
+                "initial_send_date": (
+                    generated_message.created_at.strftime("%B %d, %Y")
+                    if generated_message
+                    else "-"
+                ),
             }
 
         # Get the required objects / fields
