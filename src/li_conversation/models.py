@@ -155,6 +155,8 @@ class LinkedinConversationEntry(db.Model):
 
     bump_analytics_processed = db.Column(db.Boolean, default=False)
 
+    latest_reply_from_sdr_date = db.Column(db.DateTime, nullable=True)
+
     def li_conversation_thread_by_prospect_id(prospect_id: int) -> list:
         p: Prospect = Prospect.query.filter_by(id=prospect_id).first()
         li_conversation_thread_id = p.li_conversation_thread_id
