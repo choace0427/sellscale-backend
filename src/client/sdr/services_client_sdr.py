@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 from app import db, celery
 from sqlalchemy import or_
+from src.campaigns.models import OutboundCampaign
 
 from src.client.models import Client, ClientSDR, SLASchedule
+from src.message_generation.models import GeneratedMessage
 from src.utils.datetime.dateutils import (
     get_current_monday_friday,
     get_current_monday_sunday,
@@ -394,6 +396,8 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
+    adjust_sla_schedules(client_sdr_id)
+
     # Get the furthest into the future SLA schedule
     furthest_sla_schedule: SLASchedule = (
         SLASchedule.query.filter_by(client_sdr_id=client_sdr_id)
@@ -517,6 +521,48 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
         webhook_urls=[URL_MAP["operations-sla-updater"]],
     )
     return True, []
+
+
+def adjust_sla_schedules(client_sdr_id: int) -> bool:
+    """Adjusts the SLA schedules for a Client SDR. This function will look at the all_time send count to ensure that messages have bee nsent, and if not, it will adjust the SLA schedules accordingly.
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Get the all time send count
+    stats = get_sdr_send_statistics(client_sdr_id=client_sdr_id)
+    all_time_send_count = stats.get("all_time_send_count", 0)
+    if all_time_send_count != 0:
+        return False  # No need to adjust the SLA schedules
+
+    # Get all future SLA schedules
+    monday, _ = get_current_monday_friday(datetime.utcnow())
+    sla_schedules: list[SLASchedule] = SLASchedule.query.filter(
+        SLASchedule.client_sdr_id == client_sdr_id, SLASchedule.start_date >= monday
+    ).all()
+
+    # Adjust the SLA schedules to be equal to last weeks
+    last_week_sla_schedule: SLASchedule = (
+        SLASchedule.query.filter(
+            SLASchedule.client_sdr_id == client_sdr_id,
+            SLASchedule.start_date < monday,
+        )
+        .order_by(SLASchedule.start_date.desc())
+        .first()
+    )
+
+    for schedule in sla_schedules:
+        schedule.linkedin_volume = last_week_sla_schedule.linkedin_volume
+        schedule.email_volume = last_week_sla_schedule.email_volume
+
+    db.session.commit()
+
+    return True
 
 
 def load_sla_alert(client_sdr_id: int, new_schedule_ids: list[int]) -> bool:
@@ -772,3 +818,62 @@ def update_sdr_email_tracking_settings(
     db.session.commit()
 
     return True
+
+
+def get_sdr_send_statistics(client_sdr_id: int) -> dict:
+    """Gets the send statistics for a Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+
+    Returns:
+        dict: The send statistics for the Client SDR
+    """
+    from sqlalchemy import func
+
+    # Get the Client SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return None
+
+    # Get how many were sent in the last 7 days
+    query = """
+        SELECT
+            count(g.*) FILTER (WHERE g.message_status = 'SENT'
+                AND g.message_type = 'LINKEDIN'
+                AND g.date_sent > now() - Interval '7 days')
+        FROM
+            client_sdr AS s
+            LEFT JOIN client AS c ON c.id = s.client_id
+            LEFT JOIN outbound_campaign AS oc ON s.id = oc.client_sdr_id
+            LEFT JOIN generated_message AS g ON g.outbound_campaign_id = oc.id
+        WHERE
+            s.active
+            AND c.active
+            AND s.id = :client_sdr_id
+    """
+    results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
+    last_7_days_count = results[0][0] if results else 0
+
+    # Get all time
+    query = """
+        SELECT
+            count(g.*) FILTER (WHERE g.message_status = 'SENT'
+                AND g.message_type = 'LINKEDIN')
+        FROM
+            client_sdr AS s
+            LEFT JOIN client AS c ON c.id = s.client_id
+            LEFT JOIN outbound_campaign AS oc ON s.id = oc.client_sdr_id
+            LEFT JOIN generated_message AS g ON g.outbound_campaign_id = oc.id
+        WHERE
+            s.active
+            AND c.active
+            AND s.id = :client_sdr_id
+    """
+    results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
+    all_time_count = results[0][0] if results else 0
+
+    return {
+        "last_7_days": last_7_days_count,
+        "all_time": all_time_count,
+    }
