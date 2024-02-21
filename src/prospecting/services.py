@@ -841,7 +841,7 @@ def update_prospect_status_linkedin(
                 cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
                 status=OperatorDashboardEntryStatus.PENDING,
                 due_date=datetime.now() + timedelta(days=2),
-                task_type=OperatorDashboardTaskType.SCHEDULING_NEEDED,
+                task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
                 task_data={
                     "prospect_id": p.id,
                     "prospect_full_name": p.full_name,
