@@ -7,6 +7,7 @@ from src.client.sdr.services_client_sdr import (
     create_sla_schedule,
     get_sla_schedules_for_sdr,
     update_custom_conversion_pct,
+    update_sdr_email_tracking_settings,
     update_sdr_sla_targets,
     update_sla_schedule,
 )
@@ -219,3 +220,27 @@ def get_icp_filter_autofill(client_sdr_id: int):
     results = get_icp_filters_autofill(client_sdr_id, archetype_id)
 
     return jsonify({"status": "success", "data": results}), 200
+
+
+@CLIENT_SDR_BLUEPRINT.route("/email/tracking", methods=["POST"])
+@require_user
+def post_email_tracking_settings(client_sdr_id: int):
+    track_open = get_request_parameter(
+        "track_open", request, json=True, required=False, parameter_type=bool
+    )
+    track_link = get_request_parameter(
+        "track_link", request, json=True, required=False, parameter_type=bool
+    )
+
+    success = update_sdr_email_tracking_settings(
+        client_sdr_id=client_sdr_id, track_open=track_open, track_link=track_link
+    )
+    if not success:
+        return (
+            jsonify(
+                {"status": "error", "message": "Could not update tracking settings"}
+            ),
+            400,
+        )
+
+    return jsonify({"status": "success"}), 200

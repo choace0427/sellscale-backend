@@ -92,6 +92,8 @@ from collections import Counter
 import statistics
 import random
 
+from src.webhooks.services import handle_webhook
+
 
 def search_prospects(
     query: str, client_id: int, client_sdr_id: int, limit: int = 10, offset: int = 0
@@ -800,6 +802,38 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SCHEDULING.value,
             engagement_metadata=message,
         )
+
+        if client_sdr.meta_data and not client_sdr.meta_data.get(
+            "response_options", {}
+        ).get("use_scheduling", True):
+            from src.operator_dashboard.services import (
+                create_operator_dashboard_entry,
+                OperatorDashboardEntryPriority,
+                OperatorDashboardEntryStatus,
+                OperatorDashboardTaskType,
+            )
+
+            # If the SDR doesn't use scheduling, we create a task for them
+            create_operator_dashboard_entry(
+                client_sdr_id=p.client_sdr_id,
+                urgency=OperatorDashboardEntryPriority.HIGH,
+                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
+                emoji="📋",
+                title="Scheduling needed",
+                subtitle="Please set up a time to demo with {prospect_name}".format(
+                    prospect_name=p.full_name
+                ),
+                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
+                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
+                status=OperatorDashboardEntryStatus.PENDING,
+                due_date=datetime.now() + timedelta(days=2),
+                task_type=OperatorDashboardTaskType.SCHEDULING_NEEDED,
+                task_data={
+                    "prospect_id": p.id,
+                    "prospect_full_name": p.full_name,
+                },
+            )
+
         if not quietly:
             send_status_change_slack_block(
                 outreach_type=ProspectChannels.LINKEDIN,
@@ -2271,11 +2305,21 @@ def calculate_prospect_overall_status(prospect_id: int):
 
     # get max status based on .get_rank()
     if all_channel_statuses:
+        previous_status = prospect.overall_status
+
         max_status = max(all_channel_statuses, key=lambda x: x.get_rank())
         prospect = Prospect.query.get(prospect_id)
         prospect.overall_status = max_status
+
         db.session.add(prospect)
         db.session.commit()
+
+        if prospect.overall_status and prospect.overall_status != previous_status:
+            handle_webhook(
+                prospect_id=prospect_id,
+                previous_status=previous_status,
+                new_status=prospect.overall_status,
+            )
 
     # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED
     if prospect.overall_status == ProspectOverallStatus.REMOVED:

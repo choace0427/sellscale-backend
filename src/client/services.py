@@ -218,6 +218,7 @@ def update_client_sdr_details(
     ai_outreach: Optional[bool] = None,
     browser_extension_ui_overlay: Optional[bool] = None,
     auto_archive_convos: Optional[bool] = None,
+    meta_data: Optional[dict] = None,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -237,6 +238,8 @@ def update_client_sdr_details(
         csdr.browser_extension_ui_overlay = browser_extension_ui_overlay
     if auto_archive_convos is not None:
         csdr.auto_archive_convos = auto_archive_convos
+    if meta_data:
+        csdr.meta_data = meta_data
 
     db.session.add(csdr)
     db.session.commit()
@@ -3254,6 +3257,8 @@ def get_personas_page_details(client_sdr_id: int):
             )
             .label("num_unused_email_prospects"),
             ClientArchetype.email_active,
+            ClientArchetype.email_link_tracking_enabled,
+            ClientArchetype.email_open_tracking_enabled,
             ClientArchetype.linkedin_active,
         )
         .select_from(ClientArchetype)
@@ -4681,12 +4686,17 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
-    client_id: int, client_archetype_ids: list[int], asset_key: str, asset_value: str, asset_type: ClientArchetypeAssetType, asset_tags: list[str]
+    client_id: int,
+    client_archetype_ids: list[int],
+    asset_key: str,
+    asset_value: str,
+    asset_type: ClientArchetypeAssetType,
+    asset_tags: list[str],
 ):
     """
     Creates an asset for a client archetype
     """
-    asset = ClientArchetypeAssets(
+    asset: ClientArchetypeAssets = ClientArchetypeAssets(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
@@ -4696,7 +4706,8 @@ def create_archetype_asset(
     )
     db.session.add(asset)
     db.session.commit()
-    return True
+
+    return asset.to_dict()
 
 
 def get_archetype_assets(client_archetype_id: int):

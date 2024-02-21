@@ -1,4 +1,6 @@
 from flask import Blueprint, jsonify, request
+from src.authentication.decorators import require_user
+from src.utils.request_helpers import get_request_parameter
 from src.webhooks.models import NylasWebhookProcessingStatus, NylasWebhookType
 from src.webhooks.nylas.account_invalid import process_deltas_account_invalid
 from src.webhooks.nylas.event_update import process_deltas_event_update
@@ -223,3 +225,36 @@ def nylas_webhook_account_invalid():
     )
 
     return "Deltas for `account.invalid` have been queued", 200
+
+
+@WEBHOOKS_BLUEPRINT.route("/get_client_webhooks", methods=["GET"])
+@require_user
+def get_client_webhooks(client_sdr_id: int):
+    """Get all the webhooks for a client."""
+    from src.client.models import ClientSDR, Client
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    webhooks = {"on_demo_set": client.on_demo_set_webhook}
+
+    return jsonify(webhooks), 200
+
+
+@WEBHOOKS_BLUEPRINT.route("/set_on_demo_set_webhook", methods=["POST"])
+@require_user
+def set_on_demo_set_webhook(client_sdr_id: int):
+    """Set the webhook for when a demo is set."""
+    from src.client.models import ClientSDR, Client
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    on_demo_set_webhook = get_request_parameter(
+        key="on_demo_set_webhook", req=request, required=True, json=True
+    )
+
+    client.on_demo_set_webhook = on_demo_set_webhook
+    db.session.commit()
+
+    return "Webhook set successfully", 200

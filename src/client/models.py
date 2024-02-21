@@ -83,6 +83,8 @@ class Client(db.Model):
 
     merge_crm_account_token = db.Column(db.String, nullable=True)
 
+    on_demo_set_webhook = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
@@ -191,15 +193,17 @@ class ClientArchetype(db.Model):
     sent_activation_notification = db.Column(db.Boolean, nullable=True, default=False)
 
     smartlead_campaign_id = db.Column(db.Integer, nullable=True)
+    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     meta_data = db.Column(db.JSON, nullable=True)
 
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[GeneratedMessageCTA] = (
-            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
-        )
+        ctas: list[
+            GeneratedMessageCTA
+        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
 
         return {
             "id": self.id,
@@ -245,6 +249,8 @@ class ClientArchetype(db.Model):
             "lookalike_profile_5": self.persona_lookalike_profile_5,
             "template_mode": self.template_mode,
             "smartlead_campaign_id": self.smartlead_campaign_id,
+            "email_open_tracking_enabled": self.email_open_tracking_enabled,
+            "email_link_tracking_enabled": self.email_link_tracking_enabled,
             "meta_data": self.meta_data,
         }
 
@@ -417,6 +423,10 @@ class ClientSDR(db.Model):
 
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
+    # Email
+    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+
     # Slack Bot
     slack_user_id = db.Column(db.String, nullable=True)
 
@@ -538,6 +548,8 @@ class ClientSDR(db.Model):
             "disable_ai_on_message_send": self.disable_ai_on_message_send,
             "blacklisted_words": self.blacklisted_words,
             "conversion_percentages": self.conversion_percentages,
+            "email_open_tracking_enabled": self.email_open_tracking_enabled,
+            "email_link_tracking_enabled": self.email_link_tracking_enabled,
             "do_not_contact_keywords": self.do_not_contact_keywords_in_company_names,
             "do_not_contact_company_names": self.do_not_contact_company_names,
             "warmup_linkedin_complete": self.warmup_linkedin_complete,
