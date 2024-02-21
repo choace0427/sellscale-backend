@@ -331,7 +331,11 @@ def populate_email_messaging_schedule_entries(
         email_type=EmailMessagingType.INITIAL_EMAIL,
         email_subject_line_template_id=initial_email_subject_line_template_id,
         email_body_template_id=initial_email_body_template_id,
-        send_status=EmailMessagingStatus.SCHEDULED,
+        send_status=(
+            EmailMessagingStatus.SCHEDULED
+            if not generate_immediately  # Temporary measure to prevent sending (this is through SMARTLEAD for the moment)
+            else EmailMessagingStatus.SENT
+        ),
         date_scheduled=initial_email_send_date,
         subject_line_id=subject_line_id,
         body_id=body_id,
@@ -920,6 +924,8 @@ def send_email_messaging_schedule_entry(
     nylas_message_id = result.get("id")
     nylas_thread_id = result.get("thread_id")
     time_since_epoch = result.get("date")
+    if not time_since_epoch:
+        return False, "Failed to send email"
     utc_datetime = datetime.utcfromtimestamp(time_since_epoch)
 
     # 3b. Update future send dates
