@@ -1,12 +1,16 @@
 import datetime
+from typing import Optional
 from app import db
 from sqlalchemy.orm import attributes
 
 import requests
 import os
 
-from src.client.models import ClientSDR, Client
+import time
+from src.client.models import ClientSDR, Client, Prospect
 from merge.client import Merge
+from src.merge_crm.models import ClientSyncCRM
+from merge.resources.crm import ContactsListRequestExpand
 from merge.resources.crm import (
     AddressRequest,
     ContactRequest,
@@ -67,6 +71,16 @@ def retrieve_account_token(client_sdr_id: int, public_token: str):
     db.session.add(client)
     db.session.commit()
 
+    # Create CRM Sync
+    client_sync_crm = ClientSyncCRM(
+        client_id=client.id,
+        sync_type="leads_only",
+        status_mapping={},
+        event_handlers={},
+    )
+    db.session.add(client_sync_crm)
+    db.session.commit()
+
     return account_token  # Save this in your database
 
 
@@ -88,6 +102,34 @@ def delete_account_token(client_sdr_id: int):
     db.session.commit()
 
     return data
+
+
+def update_crm_sync(
+    client_sdr_id: int,
+    sync_type: Optional[str],
+    status_mapping: Optional[dict],
+    event_handlers: Optional[dict],
+):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=client.id
+    ).first()
+
+    if not client_sync_crm:
+        return None
+
+    if sync_type:
+        client_sync_crm.sync_type = sync_type
+    if status_mapping:
+        client_sync_crm.status_mapping = status_mapping
+    if event_handlers:
+        client_sync_crm.event_handlers = event_handlers
+
+    db.session.add(client_sync_crm)
+    db.session.commit()
+    return client_sync_crm.to_dict()
 
 
 def get_integrations(client_sdr_id: int):
@@ -115,6 +157,154 @@ def get_integrations(client_sdr_id: int):
         "webhook_listener_url": data.webhook_listener_url,
         "is_duplicate": data.is_duplicate,
     }
+
+
+def sync_data(client_sdr_id: int, endpoint: str, timestamp: str):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+
+    while True:
+        # Check the sync status
+        sync_status = merge_client.crm.sync_status.list()
+        sync_status = sync_status.dict().get("results")[0]
+
+        # If the sync status is 'SYNCING', wait and then continue the loop
+        if (
+            sync_status["status"] == "SYNCING"
+            and sync_status["is_initial_sync"] == "true"
+        ):
+            print("Data is still syncing, waiting...")
+            time.sleep(10)
+            continue
+
+        # If the sync status is 'FAILED', 'DISABLED', raise an exception
+        if sync_status["status"] in ["FAILED", "DISABLED", "PAUSED"]:
+            raise Exception(f'Sync failed with status: {sync_status["status"]}')
+
+        # If the sync status is 'SYNCED' or 'PARTIALLY_SYNCED', break the loop and proceed to data retrieval
+        if sync_status["status"] in ["SYNCED", "PARTIALLY_SYNCED", "DONE"]:
+            timestamp == sync_status["last_sync_start"]
+            print("Data sync complete, proceeding to data retrieval...")
+            break
+
+    # Retrieve data from the specified common model endpoint
+    data = getattr(merge_client, endpoint, timestamp)
+
+    return data
+
+
+def get_contacts(client_sdr_id: int):
+
+    sync_data(
+        client_sdr_id=client_sdr_id,
+        endpoint="crm.contacts",
+        timestamp="2022-01-01 00:00:00+00:00",
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+
+    # if there is a next page, load it by passing `next` to the cursor argument
+    start_date = datetime.datetime.fromisoformat("2000-01-01 00:00:00+00:00")
+    response = merge_client.crm.contacts.list(created_after=start_date)
+    while response.next is not None:
+        response = merge_client.crm.contacts.list(
+            cursor=response.next,
+            created_after=start_date,
+            expand=ContactsListRequestExpand.ACCOUNT,
+        )
+
+    contacts = response.dict().get("results")
+
+    # contact_data = [
+    #     get_contact_csm_data(client_sdr_id, contact.get("id")) for contact in contacts
+    # ]
+
+    # print(response.dict())
+
+    # print(merge_client.crm.contacts.list(created_after=start_date).dict())
+    print(merge_client.crm.opportunities.list(created_after=start_date).dict())
+    print(merge_client.crm.stages.list(created_after=start_date).dict())
+    print(merge_client.crm.leads.list(created_after=start_date).dict())
+    print(merge_client.crm.tasks.list(created_after=start_date).dict())
+
+
+def get_contact_csm_data(client_sdr_id: int, contact_id: str):
+
+    from merge.client import Merge
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+    response = merge_client.crm.contacts.meta_post_retrieve(
+        remote_id=contact_id,
+    )
+
+    print(response.dict())
+
+
+def create_contact(client_sdr_id: int, prospect_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    p: Prospect = Prospect.query.get(prospect_id)
+
+    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+    # lead_res = merge_client.crm.leads.create(
+    #     model={
+    #         "leadSource": "SellScale",
+    #         "title": p.title,
+    #         "company": p.company,
+    #         "firstName": p.first_name,
+    #         "lastName": p.last_name,
+    #         "addresses": [],
+    #         "emailAddresses": [
+    #             {
+    #                 "emailAddress": p.email,
+    #                 "emailAddressType": "Work",
+    #             }
+    #         ],
+    #         "phoneNumbers": [],
+    #         "convertedDate": datetime.datetime.utcnow().isoformat(),
+    #     }
+    # )
+
+    contact_res = merge_client.crm.contacts.create(
+        model=ContactRequest(
+            first_name=p.first_name,
+            last_name=p.last_name,
+            account=p.company,
+            addresses=[
+                # AddressRequest(
+                #     street_1="50 Bowling Green Dr",
+                #     street_2="Golden Gate Park",
+                #     city="San Francisco",
+                #     state="CA",
+                #     postal_code="94122",
+                # )
+            ],
+            email_addresses=[
+                EmailAddressRequest(
+                    email_address=p.email,
+                    email_address_type="Work",
+                )
+            ],
+            phone_numbers=[
+                # PhoneNumberRequest(
+                #     phone_number="+3198675309",
+                #     phone_number_type="Mobile",
+                # )
+            ],
+            last_activity_at=datetime.datetime.utcnow().isoformat(),
+        ),
+    )
+
+    print(contact_res)
+    return True
 
 
 def create_test_account(client_sdr_id: int):
