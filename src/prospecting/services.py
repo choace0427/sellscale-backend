@@ -1235,7 +1235,6 @@ def update_prospect_status_email(
                 custom_webhook_urls=custom_webhook_urls,
             )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
-
         # Check if the client has a CRM sync and if the event handler is set to create a lead
         client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
             client_id=p.client_id
@@ -2541,10 +2540,14 @@ def send_to_purgatory(
                         ).format(
                             prospect_message=prospect.li_last_message_from_prospect.replace(
                                 "\n", " "
-                            ),
+                            )
+                            if prospect.li_last_message_from_prospect
+                            else "",
                             ai_response=prospect.li_last_message_from_sdr.replace(
                                 "\n", " "
-                            ),
+                            )
+                            if prospect.li_last_message_from_sdr
+                            else "",
                             sdr_name=client_sdr.name,
                         ),
                     },
@@ -2683,9 +2686,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2756,11 +2759,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[ProspectEmailStatusRecords] = (
-        ProspectEmailStatusRecords.query.filter(
-            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-        ).all()
-    )
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
 
     return {
         "emails": email_history_parsed,
