@@ -6,6 +6,7 @@ from src.merge_crm.services import (
     create_test_account,
     delete_account_token,
     get_integrations,
+    get_operation_availability,
     retrieve_account_token,
     update_crm_sync,
 )
@@ -95,3 +96,18 @@ def get_crm_sync_endpoint(client_sdr_id: int):
     result = client_sync_crm.to_dict() if client_sync_crm else None
 
     return jsonify({"success": True, "data": result})
+
+
+@MERGE_CRM_BLUEPRINT.route("/crm_operation_available", methods=["GET"])
+@require_user
+def get_crm_operation_available_endpoint(client_sdr_id: int):
+
+    operation = get_request_parameter("operation", request, json=False, required=True)
+
+    available = get_operation_availability(
+        client_sdr_id=client_sdr_id, operation_name=operation
+    )
+
+    return jsonify(
+        {"success": True, "data": {"operation": operation, "available": available}}
+    )

@@ -10,7 +10,6 @@ import time
 from src.client.models import ClientSDR, Client, Prospect
 from merge.client import Merge
 from src.merge_crm.models import ClientSyncCRM
-from merge.resources.crm import ContactsListRequestExpand
 from merge.resources.crm import (
     AddressRequest,
     ContactRequest,
@@ -18,6 +17,8 @@ from merge.resources.crm import (
     PhoneNumberRequest,
     LeadRequest,
     AccountRequest,
+    LinkedAccountsListRequestCategory,
+    ContactsListRequestExpand,
 )
 
 API_KEY = os.environ.get("MERGE_API_KEY")
@@ -248,6 +249,47 @@ def get_contact_csm_data(client_sdr_id: int, contact_id: str):
     print(response.dict())
 
 
+def get_operation_availability(client_sdr_id: int, operation_name: str):
+
+    from merge.client import Merge
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+    response = merge_client.crm.linked_accounts.list(
+        category="crm",
+        end_user_email_address=client.contact_email,
+    )
+
+    integrations = response.dict().get("results")
+
+    operations = (
+        integrations[0].get("integration", {}).get("available_model_operations", [])
+        if len(integrations) > 0
+        else []
+    )
+
+    parts = operation_name.split("_")
+    if len(parts) != 2:
+        return False
+
+    model_name = parts[0]
+    op_type = parts[1]
+
+    # print(integrations, model_name, op_type)
+
+    return any(
+        [
+            (
+                model_name == operation.get("model_name")
+                and op_type in operation.get("available_operations", [])
+            )
+            for operation in operations
+        ]
+    )
+
+
 def create_contact(client_sdr_id: int, prospect_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -272,6 +314,9 @@ def create_contact(client_sdr_id: int, prospect_id: int):
     #         "convertedDate": datetime.datetime.utcnow().isoformat(),
     #     }
     # )
+
+    if not get_operation_availability(client_sdr_id, "CRMContact"):
+        return False, "Operation not available"
 
     contact_res = merge_client.crm.contacts.create(
         model=ContactRequest(
@@ -303,7 +348,7 @@ def create_contact(client_sdr_id: int, prospect_id: int):
     )
 
     print(contact_res)
-    return True
+    return True, "Contact created"
 
 
 def create_test_account(client_sdr_id: int):
