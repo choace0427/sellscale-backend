@@ -643,7 +643,7 @@ def create_smartlead_campaign(
         "start_hour": "09:00",
         "end_hour": "18:00",
         "min_time_btw_emails": 10,
-        "max_new_leads_per_day": 20,
+        "max_new_leads_per_day": 10000,
         "schedule_start_time": datetime.datetime.now().isoformat(),
     }
     sl.update_campaign_schedule(
