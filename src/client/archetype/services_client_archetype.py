@@ -4,8 +4,14 @@ from app import db
 from sqlalchemy import func
 
 from model_import import GeneratedMessage
+from src.bump_framework.models import BumpFramework, BumpLength
+from src.bump_framework.services import create_bump_framework
 
 from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
+from src.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.services import create_email_sequence_step
+from src.li_conversation.models import LinkedinInitialMessageTemplate
+from src.message_generation.models import GeneratedMessageCTA
 from src.message_generation.services import generate_li_convo_init_msg
 from src.ml.services import mark_queued_and_classify
 from src.notifications.models import (
@@ -13,7 +19,7 @@ from src.notifications.models import (
     OperatorNotificationType,
 )
 from src.notifications.services import create_notification
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.utils.slack import URL_MAP, send_slack_message
 
 
@@ -517,3 +523,175 @@ def send_slack_notif_campaign_active(client_sdr_id: int, archetype_id: int, type
         webhook_url=webhook_url,
         direct_link=campaign_url,
     )
+
+
+def wipe_linkedin_sequence_steps(campaign_id: int, steps: list):
+    archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
+    archetype.li_bump_amount = len(steps) - 1
+
+    # wipe archetype sequence
+    initial_message_templates: list[LinkedinInitialMessageTemplate] = (
+        LinkedinInitialMessageTemplate.query.filter(
+            LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
+        ).all()
+    )
+    ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
+        GeneratedMessageCTA.archetype_id == campaign_id
+    ).all()
+    bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
+        BumpFramework.client_archetype_id == campaign_id,
+        BumpFramework.overall_status.in_(["ACCEPTED", "BUMPED"]),
+    ).all()
+
+    for template in initial_message_templates:
+        template.active = False
+        db.session.add(template)
+    for cta in ctas:
+        cta.active = False
+        db.session.add(cta)
+    for bump_framework in bump_frameworks:
+        bump_framework.active = False
+        bump_framework.default = False
+        db.session.add(bump_framework)
+    archetype.li_bump_amount = 0
+    db.session.add(archetype)
+
+    db.session.commit()
+
+
+def import_linkedin_sequence_template_mode(
+    campaign_id: int, steps: list, is_template_mode: bool = True
+):
+    """
+    Import linkedin sequence steps
+
+    Args:
+        campaign_id (int): ID of the client archetype or campaign
+        steps (list): List of steps
+        steps is an array with [
+            title: str,
+            template: str
+        ]
+    """
+    wipe_linkedin_sequence_steps(campaign_id, steps)
+
+    # IMPORT SEQUENCE
+    # setup archetype
+    archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
+    archetype.template_mode = is_template_mode
+    archetype.li_bump_amount = len(steps) - 1
+    db.session.add(archetype)
+    db.session.commit()
+
+    if len(steps) == 0:
+        return
+
+    # make initial message templates
+    initial_message_step = steps[0]
+    template = LinkedinInitialMessageTemplate(
+        title=initial_message_step["title"],
+        message=initial_message_step["template"],
+        client_sdr_id=archetype.client_sdr_id,
+        client_archetype_id=archetype.id,
+        active=True,
+        times_used=0,
+        times_accepted=0,
+        sellscale_generated=True,
+        research_points=[],
+        additional_instructions="",
+    )
+    db.session.add(template)
+    db.session.commit()
+
+    if len(steps) <= 1:
+        return
+
+    # make bump frameworks
+    for i, step in enumerate(steps[1:]):
+        status = ProspectOverallStatus.ACCEPTED
+        bumped_count = 0
+        if i >= 1:
+            status = ProspectOverallStatus.BUMPED
+            bumped_count = i
+        create_bump_framework(
+            client_sdr_id=archetype.client_sdr_id,
+            client_archetype_id=archetype.id,
+            title=step["title"],
+            description=step["template"],
+            overall_status=status,
+            length=BumpLength.MEDIUM,
+            additional_instructions="",
+            bumped_count=bumped_count,
+            active=True,
+            default=True,
+        )
+
+        print(
+            "Created bump framework for step {} with title {} with bumped count {}".format(
+                i, step["title"], bumped_count
+            )
+        )
+
+    return True
+
+
+def wipe_email_sequence(campaign_id: int):
+    email_sequence_steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
+        EmailSequenceStep.client_archetype_id == campaign_id
+    ).all()
+
+    for step in email_sequence_steps:
+        step.active = False
+        step.default = False
+        db.session.add(step)
+
+    db.session.commit()
+
+
+def import_email_sequence(
+    campaign_id: int,
+    steps: list,
+):
+    """
+    Import email sequence steps
+
+    Args:
+        campaign_id (int): ID of the client archetype or campaign
+        steps (list): List of steps
+        steps is an array with [
+            title: str,
+            template: str
+        ]
+    """
+    # wipe email sequence
+    wipe_email_sequence(campaign_id)
+
+    # IMPORT SEQUENCE
+    archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
+    for i, step in enumerate(steps):
+        status = ProspectOverallStatus.PROSPECTED
+        bumped_count = 0
+        if i == 1:
+            status = ProspectOverallStatus.ACCEPTED
+            bumped_count = 0
+        if i >= 2:
+            status = ProspectOverallStatus.BUMPED
+            bumped_count = i - 1
+        create_email_sequence_step(
+            client_sdr_id=archetype.client_sdr_id,
+            client_archetype_id=archetype.id,
+            title=step["title"],
+            template=step["template"],
+            overall_status=status,
+            bumped_count=bumped_count,
+            active=True,
+            default=True,
+        )
+
+        print(
+            "Created email sequence step for step {} with title {} with bumped count {}".format(
+                i, step["title"], bumped_count
+            )
+        )
+
+    return True

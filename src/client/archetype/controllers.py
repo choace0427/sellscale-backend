@@ -8,6 +8,8 @@ from src.client.archetype.services_client_archetype import (
     bulk_action_withdraw_prospect_invitations,
     generate_notification_for_campaign_active,
     get_archetype_generation_upcoming,
+    import_email_sequence,
+    import_linkedin_sequence_template_mode,
     send_slack_notif_campaign_active,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
@@ -456,5 +458,46 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
                 ),
                 400,
             )
+
+    return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route(
+    "/<int:archetype_id>/import_sequence", methods=["POST"]
+)
+@require_user
+def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
+    sequence_id = get_request_parameter(
+        "sequence_id", request, json=True, required=True, parameter_type=int
+    )
+    channel_type = get_request_parameter(
+        "channel_type", request, json=True, required=True, parameter_type=str
+    )
+    steps = get_request_parameter(
+        "steps", request, json=True, required=True, parameter_type=list
+    )
+
+    if channel_type not in ["email", "linkedin"]:
+        return jsonify({"status": "error", "message": "Invalid channel type"}), 400
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+
+    success = False
+    if channel_type == "email":
+        success = import_email_sequence(
+            campaign_id=archetype_id,
+            steps=steps,
+        )
+    elif channel_type == "linkedin":
+        success = import_linkedin_sequence_template_mode(
+            campaign_id=archetype_id,
+            steps=steps,
+            is_template_mode=True,
+        )
+
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to import sequence"}), 400
 
     return jsonify({"status": "success"}), 200
