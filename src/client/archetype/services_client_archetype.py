@@ -8,8 +8,11 @@ from src.bump_framework.models import BumpFramework, BumpLength
 from src.bump_framework.services import create_bump_framework
 
 from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
-from src.email_sequencing.models import EmailSequenceStep
-from src.email_sequencing.services import create_email_sequence_step
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email_sequencing.services import (
+    create_email_sequence_step,
+    create_email_subject_line_template,
+)
 from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.message_generation.models import GeneratedMessageCTA
 from src.message_generation.services import create_cta, generate_li_convo_init_msg
@@ -657,12 +660,22 @@ def wipe_email_sequence(campaign_id: int):
         step.default = False
         db.session.add(step)
 
+    email_subject_lines: list[EmailSubjectLineTemplate] = (
+        EmailSubjectLineTemplate.query.filter(
+            EmailSubjectLineTemplate.client_archetype_id == campaign_id
+        ).all()
+    )
+    for subject_line in email_subject_lines:
+        subject_line.active = False
+        db.session.add(subject_line)
+
     db.session.commit()
 
 
 def import_email_sequence(
     campaign_id: int,
     steps: list,
+    subject_lines: list,
 ):
     """
     Import email sequence steps
@@ -670,10 +683,14 @@ def import_email_sequence(
     Args:
         campaign_id (int): ID of the client archetype or campaign
         steps (list): List of steps
-        steps is an array with [
-            title: str,
-            template: str
-        ]
+            steps is an array with [
+                title: str,
+                template: str
+            ]
+        subject_lines (list): List of subject lines
+            subject_lines is an array with [
+                subject_line: str
+            ]
     """
     # wipe email sequence
     wipe_email_sequence(campaign_id)
@@ -704,6 +721,14 @@ def import_email_sequence(
             "Created email sequence step for step {} with title {} with bumped count {}".format(
                 i, step["title"], bumped_count
             )
+        )
+
+    for i, subject_line in enumerate(subject_lines):
+        create_email_subject_line_template(
+            client_sdr_id=archetype.client_sdr_id,
+            client_archetype_id=archetype.id,
+            subject_line=subject_line,
+            active=True,
         )
 
     return True
