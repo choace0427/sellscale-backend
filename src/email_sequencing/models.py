@@ -112,6 +112,25 @@ class EmailSequenceStep(db.Model):
         }
 
 
+class EmailSequenceStepToAssetMapping(db.Model):
+    __tablename__ = "email_sequence_step_to_asset_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email_sequence_step_id = db.Column(
+        db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=False
+    )
+    client_archetype_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype_assets.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email_sequence_step_id": self.email_sequence_step_id,
+            "client_archetype_assets_id": self.client_archetype_assets_id,
+        }
+
+
 class EmailTemplateType(enum.Enum):
     SUBJECT_LINE = "SUBJECT_LINE"
     BODY = "BODY"
