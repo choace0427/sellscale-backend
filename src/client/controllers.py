@@ -44,6 +44,7 @@ from src.client.services import (
     update_phantom_buster_launch_schedule,
     write_client_pre_onboarding_survey,
 )
+from src.vision.services import attempt_chat_completion_with_vision
 from src.client.services import mark_prospect_removed
 from src.slack.models import SlackNotificationType
 from src.slack.notifications.demo_feedback_collected import (
@@ -3071,3 +3072,32 @@ def update_asset_endpoint(client_sdr_id: int):
     if not success:
         return "Failed to update asset", 400
     return "OK", 200
+
+
+@CLIENT_BLUEPRINT.route("/query_gpt_v", methods=["POST"])
+def post_query_gpt_v_endpoint():
+
+    message = get_request_parameter("message", request, json=True, required=True)
+    webpage_url = get_request_parameter(
+        "webpage_url", request, json=True, required=False, parameter_type=str
+    )
+    image_url = get_request_parameter(
+        "image_url", request, json=True, required=False, parameter_type=str
+    )
+    max_tokens = get_request_parameter(
+        "max_tokens", request, json=True, required=False, parameter_type=int
+    )
+
+    success, response = attempt_chat_completion_with_vision(
+        message=message,
+        webpage_url=webpage_url,
+        image_url=image_url,
+        max_tokens=max_tokens,
+    )
+
+    return (
+        jsonify(
+            {"message": "Success", "data": {"success": success, "response": response}}
+        ),
+        200,
+    )
