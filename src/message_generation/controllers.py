@@ -165,6 +165,12 @@ def approve():
     if success:
         return "OK", 200
 
+    # TODO (David): Feeler - Deprecate by 3/1/2024 if not seen in slack channel
+    send_slack_message(
+        message="FEELER: APPROVAL",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
     return "Failed to update", 400
 
 

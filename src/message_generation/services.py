@@ -367,7 +367,7 @@ def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. 
         )
 
         # Run auto approval
-        batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
+        # batch_approve_message_generations_by_heuristic(prospect_ids=[prospect_id])
 
         # Mark the job as completed
         update_generated_message_job_queue_status(
@@ -555,6 +555,8 @@ def generate_linkedin_outreaches_with_configurations(
         )
         db.session.add(message)
         db.session.commit()
+
+        approve_message(message_id=message.id)
 
         return [completion]
 
@@ -797,7 +799,9 @@ def approve_message(message_id: int):
     # If the message has no problems, mark it as "human approved"
     if not message.problems or len(message.problems) == 0:
         message.ai_approved = True
-        db.session.add(message)
+        db.session.commit()
+    else:
+        message.ai_approved = False
         db.session.commit()
 
     return True

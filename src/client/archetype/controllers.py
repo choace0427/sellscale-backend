@@ -9,7 +9,7 @@ from src.client.archetype.services_client_archetype import (
     generate_notification_for_campaign_active,
     get_archetype_generation_upcoming,
     import_email_sequence,
-    import_linkedin_sequence_template_mode,
+    import_linkedin_sequence,
     send_slack_notif_campaign_active,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
@@ -467,14 +467,20 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
 )
 @require_user
 def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
-    sequence_id = get_request_parameter(
-        "sequence_id", request, json=True, required=True, parameter_type=int
-    )
     channel_type = get_request_parameter(
         "channel_type", request, json=True, required=True, parameter_type=str
     )
     steps = get_request_parameter(
         "steps", request, json=True, required=True, parameter_type=list
+    )
+    is_template_mode = get_request_parameter(
+        "is_template_mode", request, json=True, required=False, parameter_type=bool
+    )
+    ctas = get_request_parameter(
+        "ctas", request, json=True, required=False, parameter_type=list
+    )
+    subject_lines = get_request_parameter(
+        "subject_lines", request, json=True, required=False, parameter_type=list
     )
 
     if channel_type not in ["email", "linkedin"]:
@@ -489,12 +495,14 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
         success = import_email_sequence(
             campaign_id=archetype_id,
             steps=steps,
+            subject_lines=subject_lines,
         )
     elif channel_type == "linkedin":
-        success = import_linkedin_sequence_template_mode(
+        success = import_linkedin_sequence(
             campaign_id=archetype_id,
             steps=steps,
-            is_template_mode=True,
+            is_template_mode=is_template_mode,
+            ctas=ctas,
         )
 
     if not success:
