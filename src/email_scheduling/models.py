@@ -26,21 +26,29 @@ class EmailMessagingSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Identification Foreign Keys
-    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
-    prospect_email_id = db.Column(db.Integer, db.ForeignKey("prospect_email.id"), nullable=False)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
+    prospect_email_id = db.Column(
+        db.Integer, db.ForeignKey("prospect_email.id"), nullable=False
+    )
 
     # Type of email
     email_type = db.Column(db.Enum(EmailMessagingType), nullable=False)
 
     # Generated Message and Template Foreign Keys
     subject_line_id = db.Column(
-        db.Integer, db.ForeignKey("generated_message.id"), nullable=True)
+        db.Integer, db.ForeignKey("generated_message.id"), nullable=True
+    )
     body_id = db.Column(
-        db.Integer, db.ForeignKey("generated_message.id"), nullable=True)
+        db.Integer, db.ForeignKey("generated_message.id"), nullable=True
+    )
     email_subject_line_template_id = db.Column(
-        db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True)
+        db.Integer, db.ForeignKey("email_subject_line_template.id"), nullable=True
+    )
     email_body_template_id = db.Column(
-        db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=False)
+        db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=False
+    )
 
     # Send Status
     send_status = db.Column(db.Enum(EmailMessagingStatus), nullable=False)
@@ -48,6 +56,7 @@ class EmailMessagingSchedule(db.Model):
 
     # Scheduled Date
     date_scheduled = db.Column(db.DateTime, nullable=False)
+    date_sent = db.Column(db.DateTime, nullable=True)
 
     # Nylas Data
     nylas_message_id = db.Column(db.String, nullable=True)
@@ -55,16 +64,30 @@ class EmailMessagingSchedule(db.Model):
 
     def to_dict(self):
         # Get the Prospect
-        prospect_email: ProspectEmail = ProspectEmail.query.filter_by(id=self.prospect_email_id).first()
-        prospect: Prospect = Prospect.query.filter_by(id=prospect_email.prospect_id).first()
+        prospect_email: ProspectEmail = ProspectEmail.query.filter_by(
+            id=self.prospect_email_id
+        ).first()
+        prospect: Prospect = Prospect.query.filter_by(
+            id=prospect_email.prospect_id
+        ).first()
 
         # Get the templates
-        subject_line_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.filter_by(id=self.email_subject_line_template_id).first()
-        body_template: EmailSequenceStep = EmailSequenceStep.query.filter_by(id=self.email_body_template_id).first()
+        subject_line_template: EmailSubjectLineTemplate = (
+            EmailSubjectLineTemplate.query.filter_by(
+                id=self.email_subject_line_template_id
+            ).first()
+        )
+        body_template: EmailSequenceStep = EmailSequenceStep.query.filter_by(
+            id=self.email_body_template_id
+        ).first()
 
         # Get the message
-        subject_line: GeneratedMessage = GeneratedMessage.query.filter_by(id=self.subject_line_id).first()
-        body: GeneratedMessage = GeneratedMessage.query.filter_by(id=self.body_id).first()
+        subject_line: GeneratedMessage = GeneratedMessage.query.filter_by(
+            id=self.subject_line_id
+        ).first()
+        body: GeneratedMessage = GeneratedMessage.query.filter_by(
+            id=self.body_id
+        ).first()
 
         return {
             "id": self.id,
@@ -73,13 +96,15 @@ class EmailMessagingSchedule(db.Model):
             "send_status": self.send_status.value,
             "send_status_error": self.send_status_error,
             "date_scheduled": self.date_scheduled,
+            "date_sent": self.date_sent,
             "nylas_message_id": self.nylas_message_id,
             "nylas_thread_id": self.nylas_thread_id,
             "subject_line": subject_line.to_dict() if subject_line else None,
             "body": body.to_dict() if body else None,
-            "subject_line_template": subject_line_template.to_dict() if subject_line_template else None,
+            "subject_line_template": (
+                subject_line_template.to_dict() if subject_line_template else None
+            ),
             "body_template": body_template.to_dict() if body_template else None,
             "prospect_email": prospect_email.to_dict() if prospect_email else None,
-            "prospect": prospect.to_dict() if prospect else None
+            "prospect": prospect.to_dict() if prospect else None,
         }
-

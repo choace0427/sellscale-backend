@@ -256,21 +256,30 @@ def add_match_reasons(
                     {"label": breadcrumb["label"], "value": breadcrumb["value"]}
                 )
             if breadcrumb["signal_field_name"] == "person_locations":
-                if (
-                    contact["country"]
-                    and breadcrumb["value"] in contact["country"].lower()
-                ):
-                    match_reasons.append(
-                        {"label": breadcrumb["label"], "value": breadcrumb["value"]}
-                    )
-                if contact["state"] and breadcrumb["value"] in contact["state"].lower():
-                    match_reasons.append(
-                        {"label": breadcrumb["label"], "value": breadcrumb["value"]}
-                    )
-                if contact["city"] and breadcrumb["value"] in contact["city"].lower():
-                    match_reasons.append(
-                        {"label": breadcrumb["label"], "value": breadcrumb["value"]}
-                    )
+                try:
+                    if (
+                        contact["country"]
+                        and breadcrumb["value"] in contact["country"].lower()
+                    ):
+                        match_reasons.append(
+                            {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                        )
+                    if (
+                        contact["state"]
+                        and breadcrumb["value"] in contact["state"].lower()
+                    ):
+                        match_reasons.append(
+                            {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                        )
+                    if (
+                        contact["city"]
+                        and breadcrumb["value"] in contact["city"].lower()
+                    ):
+                        match_reasons.append(
+                            {"label": breadcrumb["label"], "value": breadcrumb["value"]}
+                        )
+                except:
+                    pass
 
         contact["match_reasons"] = match_reasons
 

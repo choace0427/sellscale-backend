@@ -5,6 +5,8 @@ from src.email_outbound.models import (
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
 )
+from src.email_scheduling.models import EmailMessagingSchedule
+from src.email_sequencing.models import EmailSequenceStep
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
 
@@ -118,6 +120,26 @@ def process_email_opened_webhook(payload_id: int):
             smartlead_payload.processing_fail_reason = "No Prospect Email found"
             db.session.commit()
             return False, "No Prospect Email found"
+
+        # ANALYTICS
+        if prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
+            # Cascading Opens: Get all the email schedule entries up to prospect_email.smartlead_sent_count entries
+            sent_emails: list[EmailMessagingSchedule] = (
+                EmailMessagingSchedule.query.filter(
+                    EmailMessagingSchedule.prospect_email_id == prospect_email.id,
+                )
+                .order_by(EmailMessagingSchedule.created_at.asc())
+                .limit(prospect_email.smartlead_sent_count)
+                .all()
+            )
+            for email in sent_emails:
+                template: EmailSequenceStep = EmailSequenceStep.query.get(
+                    email.email_body_template_id
+                )
+                if template:
+                    if template.times_accepted is None:
+                        template.times_accepted = 0
+                    template.times_accepted += 1
 
         # Set the Prospect Email to "OPENED"
         update_prospect_status_email(

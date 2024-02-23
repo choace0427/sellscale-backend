@@ -69,6 +69,7 @@ class EmailSequenceStep(db.Model):
     # Analytics
     times_used = db.Column(db.Integer, nullable=True, default=0)
     times_accepted = db.Column(db.Integer, nullable=True, default=0)
+    times_replied = db.Column(db.Integer, nullable=True, default=0)
 
     sequence_delay_days = db.Column(db.Integer, nullable=True, default=0)
 
@@ -95,9 +96,9 @@ class EmailSequenceStep(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "client_archetype_id": self.client_archetype_id,
             "client_archetype_archetype": archetype.archetype if archetype else None,
-            "overall_status": self.overall_status.value
-            if self.overall_status
-            else None,
+            "overall_status": (
+                self.overall_status.value if self.overall_status else None
+            ),
             "substatus": self.substatus,
             "default": self.default,
             "bumped_count": self.bumped_count,
@@ -105,10 +106,32 @@ class EmailSequenceStep(db.Model):
             "template": self.template,
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
+            "times_replied": self.times_replied,
             "sequence_delay_days": self.sequence_delay_days,
-            "transformer_blocklist": [t for t in self.transformer_blocklist]
-            if self.transformer_blocklist
-            else [],
+            "transformer_blocklist": (
+                [t for t in self.transformer_blocklist]
+                if self.transformer_blocklist
+                else []
+            ),
+        }
+
+
+class EmailSequenceStepToAssetMapping(db.Model):
+    __tablename__ = "email_sequence_step_to_asset_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email_sequence_step_id = db.Column(
+        db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=False
+    )
+    client_archetype_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype_assets.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email_sequence_step_id": self.email_sequence_step_id,
+            "client_archetype_assets_id": self.client_archetype_assets_id,
         }
 
 
@@ -145,9 +168,11 @@ class EmailTemplatePool(db.Model):
             "template": self.template,
             "template_type": self.template_type.value,
             "active": self.active,
-            "transformer_blocklist": [t for t in self.transformer_blocklist]
-            if self.transformer_blocklist
-            else [],
+            "transformer_blocklist": (
+                [t for t in self.transformer_blocklist]
+                if self.transformer_blocklist
+                else []
+            ),
             "labels": self.labels,
             "tone": self.tone,
         }

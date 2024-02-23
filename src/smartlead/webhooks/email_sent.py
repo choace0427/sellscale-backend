@@ -6,6 +6,8 @@ from src.email_outbound.models import (
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
 )
+from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
@@ -120,6 +122,11 @@ def process_email_sent_webhook(payload_id: int):
             db.session.commit()
             return False, "No Prospect Email found"
 
+        # ANALYTICS: Update the Prospect Email smartlead_sent_count.
+        if not prospect_email.smartlead_sent_count:
+            prospect_email.smartlead_sent_count = 0
+        prospect_email.smartlead_sent_count += 1
+
         # Set the Prospect Email to "SENT"
         now = datetime.datetime.now()
         update_prospect_status_email(
@@ -130,19 +137,50 @@ def process_email_sent_webhook(payload_id: int):
         prospect_email.date_sent = now
         db.session.commit()
 
-        # If the prospect_email has messages attached, mark those as SENT as well
-        subject_line: GeneratedMessage = GeneratedMessage.query.get(
-            prospect_email.personalized_subject_line
-        )
-        if subject_line:
-            subject_line.date_sent = now
-            subject_line.message_status = GeneratedMessageStatus.SENT
-        body: GeneratedMessage = GeneratedMessage.query.get(
-            prospect_email.personalized_body
-        )
-        if body:
-            body.date_sent = now
-            body.message_status = GeneratedMessageStatus.SENT
+        # ANALYTICS: Perform increments on the sequence steps
+        if prospect_email.times_bumped:
+            # If we've only sent 1 email, then we can assume its the first email
+            if prospect_email.times_bumped == 1:
+                subject_line: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect_email.personalized_subject_line
+                )
+                if subject_line:
+                    subject_line.date_sent = now
+                    subject_line.message_status = GeneratedMessageStatus.SENT
+                    # ANALYTICS: Update the times_used count for the EmailSubjectLineTemplate
+                    template: EmailSubjectLineTemplate = (
+                        EmailSubjectLineTemplate.query.get(
+                            subject_line.email_subject_line_template_id
+                        )
+                    )
+                    if template:
+                        template.times_used += 1
+                body: GeneratedMessage = GeneratedMessage.query.get(
+                    prospect_email.personalized_body
+                )
+                if body:
+                    body.date_sent = now
+                    body.message_status = GeneratedMessageStatus.SENT
+            # Otherwise we need to get the smartlead_sent_count'th item in the schedule
+            else:
+                nth_item: EmailMessagingSchedule = (
+                    EmailMessagingSchedule.query.filter_by(
+                        prospect_email_id=prospect_email.id,
+                    )
+                    .order_by(EmailMessagingSchedule.id.asc())
+                    .limit(prospect_email.smartlead_sent_count)
+                    .all()[-1]
+                )
+                if (
+                    nth_item
+                    and nth_item.email_type == EmailMessagingType.FOLLOW_UP_EMAIL
+                ):
+                    nth_item.date_sent = now
+                    template: EmailSequenceStep = EmailSequenceStep.query.get(
+                        nth_item.email_body_template_id
+                    )
+                    if template:
+                        template.times_used += 1
         db.session.commit()
 
         # TEMPORARY: Send slack notification

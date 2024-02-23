@@ -332,6 +332,9 @@ class ProspectEmail(db.Model):
     last_reply_time = db.Column(db.DateTime, nullable=True)
     last_message = db.Column(db.String, nullable=True)
 
+    # Smartlead
+    smartlead_sent_count = db.Column(db.Integer, nullable=True, default=0)
+
     def to_dict(self):
         from src.message_generation.models import GeneratedMessage
 
@@ -375,6 +378,7 @@ class ProspectEmail(db.Model):
             "hidden_until": self.hidden_until,
             "last_reply_time": self.last_reply_time,
             "last_message": self.last_message,
+            "smartlead_sent_count": self.smartlead_sent_count,
         }
 
 

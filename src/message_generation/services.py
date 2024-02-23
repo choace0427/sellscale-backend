@@ -561,7 +561,7 @@ def generate_linkedin_outreaches_with_configurations(
         return [completion]
 
     ### Use legacy CTA + Voice generation ###
-    NUM_GENERATIONS = 3
+    NUM_GENERATIONS = 1
     for i in range(NUM_GENERATIONS):
         TOP_CONFIGURATION: Optional[
             StackRankedMessageGenerationConfiguration
@@ -611,6 +611,8 @@ def generate_linkedin_outreaches_with_configurations(
             )
             db.session.add(message)
             db.session.commit()
+
+            approve_message(message_id=message.id)
 
     return outreaches
 

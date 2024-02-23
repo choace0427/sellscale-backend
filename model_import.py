@@ -81,7 +81,11 @@ from src.daily_notifications.models import (
     EngagementFeedItem,
 )
 from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
-from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email_sequencing.models import (
+    EmailSequenceStep,
+    EmailSubjectLineTemplate,
+    EmailSequenceStepToAssetMapping,
+)
 from src.personas.models import (
     PersonaSplitRequestTaskStatus,
     PersonaSplitRequest,
