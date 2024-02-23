@@ -79,7 +79,7 @@ def ai_initial_email_prompt(
     prospect_name = prospect.full_name
     prospect_title = prospect.title
     prospect_bio = prospect.linkedin_bio
-    prospect_company_name = prospect.company
+    prospect_company_name = prospect.colloquialized_company or prospect.company
 
     # Collect research points
     prospect_research: list[
@@ -499,7 +499,7 @@ def ai_subject_line_prompt(
     prospect_name = prospect.full_name
     prospect_title = prospect.title
     prospect_bio = prospect.linkedin_bio
-    prospect_company_name = prospect.company
+    prospect_company_name = prospect.colloquialized_company or prospect.company
 
     # Collect research points
     # prospect_research: list[

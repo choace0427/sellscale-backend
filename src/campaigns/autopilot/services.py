@@ -873,13 +873,17 @@ def auto_send_campaign(campaign_id: int):
     campaign.prospect_ids = approved_prospect_ids
     db.session.commit()
 
+    # Get the invalid message prospect ID and message IDs
     invalid_prospect_ids: list[int] = [
         message.prospect_id for message in messages if not message.ai_approved
     ]
-
     invalid_message_ids: list[int] = [
         message.id for message in messages if not message.ai_approved
     ]
+    # Turn into a set list to remove duplicates
+    invalid_prospect_ids = list(set(invalid_prospect_ids))
+    invalid_message_ids = list(set(invalid_message_ids))
+
     send_slack_message_for_invalid_messages(
         message_ids=invalid_message_ids,
         campaign_type=campaign_type,
@@ -923,10 +927,29 @@ def send_slack_message_for_invalid_messages(
 
     for message in messages:
         prospect_id = message.prospect_id
-        prospect = Prospect.query.get(prospect_id)
-        client_sdr = ClientSDR.query.get(prospect.client_sdr_id)
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
         problems = "\n- ".join(message.problems)
+
+        # We should combine the problems from the subject line and body
+        # This ensures we don't send "null" if one of the two is empty
+        if not message.problems and message.message_type == GeneratedMessageType.EMAIL:
+            prospect: Prospect = Prospect.query.get(message.prospect_id)
+            prospect_email: ProspectEmail = ProspectEmail.query.get(
+                prospect.approved_prospect_email_id
+            )
+            subject_line: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_subject_line
+            )
+            body: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_body
+            )
+            problems = ""
+            if subject_line.problems:
+                problems += "\n- ".join(subject_line.problems)
+            elif body.problems:
+                problems += "\n- ".join(body.problems)
 
         send_slack_message(
             f"🗑 {campaign_type.value} *Auto-Deleted Message During Autosend for {client_sdr.name}*\n*Prospect:* `{prospect.full_name}`\n*Message:*\n```{message.completion}```\n*Problems:* \n`- {problems}`",

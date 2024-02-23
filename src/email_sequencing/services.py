@@ -455,6 +455,9 @@ def modify_email_subject_line_template(
         return False
 
     if subject_line:
+        if len(subject_line) > 100:
+            return False
+
         template.subject_line = subject_line
 
     template.active = active
@@ -887,10 +890,10 @@ def detect_tones(subject: str, text: str) -> dict:
                 "role": "user",
                 "content": f"""
                 Given the following text, return only 3-6 adjectives that describe the tone of the text. Return these as a JSON array of strings.
-                
+
                 ### Text:
                 {text}
-                
+
                 """,
             }
         ],
@@ -922,10 +925,10 @@ def detect_company(subject: str, text: str) -> dict:
                 "role": "user",
                 "content": f"""
                 Given the following email body, please return the assumed name of the company that's sending out the email. Only respond with the company name. If you have no idea, return with "Unknown"
-                
+
                 ### Email Body:
                 {text}
-                
+
                 """,
             }
         ],
@@ -989,7 +992,7 @@ Output:
 
 -----------------
 copy: ""
-Hi Carlos, 
+Hi Carlos,
 
 Happy belated 5-year anniversary at Mondi! Your expertise in supply chain management and circular economy is truly impressive, especially with your multilingual skills in Spanish, English, German, and Italian.
 
@@ -1067,7 +1070,7 @@ Output:
 -----------------
 Copy: ""
 subject: Enhancing Plastics Circularity: Seeking Your Insights, Carlos
-Hi Carlos, 
+Hi Carlos,
 
 Happy belated 5-year anniversary at Mondi! Your expertise in supply chain management and circular economy is truly impressive, especially with your multilingual skills in Spanish, English, German, and Italian.
 
@@ -1094,7 +1097,7 @@ Copy: ""
 subject: {subject}
 {body}
 ""
-Output:   
+Output:
                 """,
             }
         ],
@@ -1142,7 +1145,7 @@ FALSE
 -----------------
 Copy: ""
 subject: Enhancing Plastics Circularity: Seeking Your Insights, Carlos
-Hi Carlos, 
+Hi Carlos,
 
 Happy belated 5-year anniversary at Mondi! Your expertise in supply chain management and circular economy is truly impressive, especially with your multilingual skills in Spanish, English, German, and Italian.
 
