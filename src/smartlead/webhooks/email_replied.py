@@ -8,6 +8,8 @@ from src.email_outbound.models import (
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
 )
+from src.email_scheduling.models import EmailMessagingSchedule
+from src.email_sequencing.models import EmailSequenceStep
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
 from src.smartlead.services import generate_smart_email_response
@@ -140,6 +142,26 @@ def process_email_replied_webhook(payload_id: int):
             "email_sent_body": sent_message,
             "email_reply_body": reply_message,
         }
+
+        # ANALYTICS
+        if "ACTIVE_CONVO" not in prospect_email.outreach_status.value:
+            # Cascading Replies: Get all the email schedule entries up to prospect_email.smartlead_sent_count entries
+            sent_emails: list[EmailMessagingSchedule] = (
+                EmailMessagingSchedule.query.filter(
+                    EmailMessagingSchedule.prospect_email_id == prospect_email.id,
+                )
+                .order_by(EmailMessagingSchedule.created_at.asc())
+                .limit(prospect_email.smartlead_sent_count)
+                .all()
+            )
+            for email in sent_emails:
+                template: EmailSequenceStep = EmailSequenceStep.query.get(
+                    email.email_body_template_id
+                )
+                if template:
+                    if template.times_replied is None:
+                        template.times_replied = 0
+                    template.times_replied += 1
 
         # Set the Prospect Email to "ACTIVE_CONVO"
         update_prospect_status_email(
