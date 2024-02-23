@@ -8,10 +8,10 @@ def attempt_chat_completion_with_vision(
     webpage_url: Optional[str] = None,
     image_url: Optional[str] = None,
     max_tokens: Optional[int] = 300,
+    image_contents: Optional[str] = None,
 ):
     api_key = os.environ.get("OPENAI_KEY")
 
-    image_contents = None
     if image_url:
         image_contents = image_url
     if webpage_url:

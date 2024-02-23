@@ -3087,12 +3087,16 @@ def post_query_gpt_v_endpoint():
     max_tokens = get_request_parameter(
         "max_tokens", request, json=True, required=False, parameter_type=int
     )
+    image_contents = get_request_parameter(
+        "image_contents", request, json=True, required=False, parameter_type=str
+    )
 
     success, response = attempt_chat_completion_with_vision(
         message=message,
         webpage_url=webpage_url,
         image_url=image_url,
         max_tokens=max_tokens,
+        image_contents=image_contents,
     )
 
     return (
