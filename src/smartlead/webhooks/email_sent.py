@@ -110,10 +110,6 @@ def process_email_sent_webhook(payload_id: int):
             db.session.commit()
             return False, "No Prospect found"
 
-        import pdb
-
-        pdb.set_trace()
-
         # Get the Prospect Email
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
