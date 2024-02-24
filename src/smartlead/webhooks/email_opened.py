@@ -6,7 +6,8 @@ from src.email_outbound.models import (
     ProspectEmailStatus,
 )
 from src.email_scheduling.models import EmailMessagingSchedule
-from src.email_sequencing.models import EmailSequenceStep
+from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.message_generation.models import GeneratedMessage
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
 
@@ -123,6 +124,20 @@ def process_email_opened_webhook(payload_id: int):
 
         # ANALYTICS
         if prospect_email.outreach_status == ProspectEmailOutreachStatus.SENT_OUTREACH:
+            subject_line: GeneratedMessage = GeneratedMessage.query.get(
+                prospect_email.personalized_subject_line
+            )
+            if subject_line:
+                subject_line_template: EmailSubjectLineTemplate = (
+                    EmailSubjectLineTemplate.query.get(
+                        subject_line.email_subject_line_template_id
+                    )
+                )
+                if subject_line_template:
+                    if subject_line_template.times_accepted is None:
+                        subject_line_template.times_accepted = 0
+                    subject_line_template.times_accepted += 1
+
             # Cascading Opens: Get all the email schedule entries up to prospect_email.smartlead_sent_count entries
             sent_emails: list[EmailMessagingSchedule] = (
                 EmailMessagingSchedule.query.filter(
