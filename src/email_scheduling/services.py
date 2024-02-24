@@ -981,19 +981,19 @@ def send_email_messaging_schedule_entry(
     subject_line_template: EmailSubjectLineTemplate = (
         EmailSubjectLineTemplate.query.get(subject_line.email_subject_line_template_id)
     )
-    if subject_line_template:
-        subject_line_template.times_used = (
-            subject_line_template.times_used + 1
-            if subject_line_template.times_used
-            else 1
-        )
+    # if subject_line_template:
+    #     subject_line_template.times_used = (
+    #         subject_line_template.times_used + 1
+    #         if subject_line_template.times_used
+    #         else 1
+    #     )
     body_template: EmailSequenceStep = EmailSequenceStep.query.get(
         body.email_sequence_step_template_id
     )
-    if body_template:
-        body_template.times_used = (
-            body_template.times_used + 1 if body_template.times_used else 1
-        )
+    # if body_template:
+    #     body_template.times_used = (
+    #         body_template.times_used + 1 if body_template.times_used else 1
+    #     )
 
     # 5. Update the prospect_email
     # 5b. Get the appropriate status
