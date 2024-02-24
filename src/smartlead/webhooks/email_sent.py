@@ -110,6 +110,10 @@ def process_email_sent_webhook(payload_id: int):
             db.session.commit()
             return False, "No Prospect found"
 
+        import pdb
+
+        pdb.set_trace()
+
         # Get the Prospect Email
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
@@ -138,9 +142,9 @@ def process_email_sent_webhook(payload_id: int):
         db.session.commit()
 
         # ANALYTICS: Perform increments on the sequence steps
-        if prospect_email.times_bumped:
+        if prospect_email.smartlead_sent_count:
             # If we've only sent 1 email, then we can assume its the first email
-            if prospect_email.times_bumped == 1:
+            if prospect_email.smartlead_sent_count == 1:
                 subject_line: GeneratedMessage = GeneratedMessage.query.get(
                     prospect_email.personalized_subject_line
                 )
@@ -161,6 +165,12 @@ def process_email_sent_webhook(payload_id: int):
                 if body:
                     body.date_sent = now
                     body.message_status = GeneratedMessageStatus.SENT
+                    # ANALYTICS: Update the times_used count for the EmailSequenceStep
+                    template: EmailSequenceStep = EmailSequenceStep.query.get(
+                        body.email_sequence_step_template_id
+                    )
+                    if template:
+                        template.times_used += 1
             # Otherwise we need to get the smartlead_sent_count'th item in the schedule
             else:
                 nth_item: EmailMessagingSchedule = (
