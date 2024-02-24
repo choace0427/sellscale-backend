@@ -27,7 +27,6 @@ class CampaignActivatedNotification(SlackNotificationClass):
         example_prospect_company: Optional[str] = None,
         example_prospect_linkedin_url: Optional[str] = None,
         example_message: Optional[str] = None,
-        direct_link: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.campaign_id = campaign_id
@@ -36,7 +35,6 @@ class CampaignActivatedNotification(SlackNotificationClass):
         self.example_prospect_company = example_prospect_company
         self.example_prospect_linkedin_url = example_prospect_linkedin_url
         self.example_message = example_message
-        self.direct_link = direct_link
 
         return
 
@@ -89,9 +87,6 @@ class CampaignActivatedNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.campaign_id:
-                return False
             fields = get_fields()
 
         # Get the fields

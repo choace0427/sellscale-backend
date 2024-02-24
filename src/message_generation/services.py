@@ -1870,6 +1870,9 @@ def run_check_message_has_bad_entities(message_id: int):
             sanitized_entity not in sanitized_prompt
             and sanitized_entity not in sanitized_cta_text
         ):
+            # HOTFIX: Dr.
+            if "dr." in sanitized_entity:
+                continue
             flagged_entities.append(entity)
 
     generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)

@@ -133,7 +133,7 @@ def run_message_rule_engine_on_linkedin_completion(
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
     rule_catch_im_a(completion, prompt, problems, highlighted_words)
-    rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
+    # rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
     rule_catch_has_6_or_more_consecutive_upper_case(
         case_preserved_completion, prompt, problems, highlighted_words
     )
@@ -224,7 +224,7 @@ def run_message_rule_engine(message_id: int):
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
     rule_catch_im_a(completion, prompt, problems, highlighted_words)
-    rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
+    # rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
 
     if message.message_type != GeneratedMessageType.EMAIL:
         rule_catch_has_6_or_more_consecutive_upper_case(

@@ -23,6 +23,11 @@ from src.notifications.models import (
 )
 from src.notifications.services import create_notification
 from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+    slack_bot_send_message,
+)
 from src.utils.slack import URL_MAP, send_slack_message
 
 
@@ -237,9 +242,11 @@ def bulk_action_withdraw_prospect_invitations(
                         li_list="\n".join(
                             [prospect.linkedin_url for prospect in prospects][0:10]
                         ),
-                        end_message="...and {} more".format(len(prospects) - 10)
-                        if len(prospects) > 10
-                        else "",
+                        end_message=(
+                            "...and {} more".format(len(prospects) - 10)
+                            if len(prospects) > 10
+                            else ""
+                        ),
                     ),
                 },
             },
@@ -260,6 +267,7 @@ def bulk_action_withdraw_prospect_invitations(
 
 
 def send_slack_campaign_message(
+    client_sdr_id,
     sequence_name,
     example_prospect_name,
     example_prospect_linkedin_url,
@@ -284,64 +292,77 @@ def send_slack_campaign_message(
     :param campaign_id: ID of the campaign.
     :param webhook_url: Slack webhook URL for sending the message.
     """
-    send_slack_message(
-        message="SellScale AI activated a new campaign",
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "SellScale AI activated a new campaign 🚀",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Sequence Preview*: {}".format(sequence_name),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*Example Prospect*: <{}|{}> ({} @ {})".format(
-                        "https://www." + example_prospect_linkedin_url,
-                        example_prospect_name,
-                        example_prospect_title,
-                        example_prospect_company,
-                    ),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "> 👥 {client_sdr_name} | Example message\n> _{example_first_generation}_".format(
-                        client_sdr_name=client_sdr_name,
-                        example_first_generation=example_first_generation,
-                    ),
-                },
-            },
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": " "},
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "View Campaign",
-                        "emoji": True,
-                    },
-                    "value": direct_link,
-                    "url": direct_link,
-                    "action_id": "button-action",
-                },
-            },
-        ],
-        webhook_urls=[webhook_url],
+    create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.CAMPAIGN_ACTIVATED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "campaign_id": campaign_id,
+            "example_prospect_name": example_prospect_name,
+            "example_prospect_title": example_prospect_title,
+            "example_prospect_company": example_prospect_company,
+            "example_prospect_linkedin_url": example_prospect_linkedin_url,
+            "example_message": example_first_generation,
+        },
     )
+
+    # send_slack_message(
+    #     message="SellScale AI activated a new campaign",
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": "SellScale AI activated a new campaign 🚀",
+    #                 "emoji": True,
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Sequence Preview*: {}".format(sequence_name),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*Example Prospect*: <{}|{}> ({} @ {})".format(
+    #                     "https://www." + example_prospect_linkedin_url,
+    #                     example_prospect_name,
+    #                     example_prospect_title,
+    #                     example_prospect_company,
+    #                 ),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "> 👥 {client_sdr_name} | Example message\n> _{example_first_generation}_".format(
+    #                     client_sdr_name=client_sdr_name,
+    #                     example_first_generation=example_first_generation,
+    #                 ),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {"type": "mrkdwn", "text": " "},
+    #             "accessory": {
+    #                 "type": "button",
+    #                 "text": {
+    #                     "type": "plain_text",
+    #                     "text": "View Campaign",
+    #                     "emoji": True,
+    #                 },
+    #                 "value": direct_link,
+    #                 "url": direct_link,
+    #                 "action_id": "button-action",
+    #             },
+    #         },
+    #     ],
+    #     webhook_urls=[webhook_url],
+    # )
 
 
 def send_email_campaign_activated_slack_notification(
@@ -456,6 +477,7 @@ def generate_notification_for_campaign_active(archetype_id: int):
     print("Sending Slack message to {}".format(webhook_url))
 
     result = send_slack_campaign_message(
+        client_sdr_id,
         sequence_name,
         example_prospect_name,
         example_prospect_linkedin_url,
@@ -533,11 +555,11 @@ def wipe_linkedin_sequence_steps(campaign_id: int, steps: list):
     archetype.li_bump_amount = len(steps) - 1
 
     # wipe archetype sequence
-    initial_message_templates: list[LinkedinInitialMessageTemplate] = (
-        LinkedinInitialMessageTemplate.query.filter(
-            LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
-        ).all()
-    )
+    initial_message_templates: list[
+        LinkedinInitialMessageTemplate
+    ] = LinkedinInitialMessageTemplate.query.filter(
+        LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
+    ).all()
     ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == campaign_id
     ).all()
@@ -660,11 +682,11 @@ def wipe_email_sequence(campaign_id: int):
         step.default = False
         db.session.add(step)
 
-    email_subject_lines: list[EmailSubjectLineTemplate] = (
-        EmailSubjectLineTemplate.query.filter(
-            EmailSubjectLineTemplate.client_archetype_id == campaign_id
-        ).all()
-    )
+    email_subject_lines: list[
+        EmailSubjectLineTemplate
+    ] = EmailSubjectLineTemplate.query.filter(
+        EmailSubjectLineTemplate.client_archetype_id == campaign_id
+    ).all()
     for subject_line in email_subject_lines:
         subject_line.active = False
         db.session.add(subject_line)
