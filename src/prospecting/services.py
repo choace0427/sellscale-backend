@@ -3577,91 +3577,104 @@ def generate_prospect_upload_report(archetype_state: dict):
             segment_title=segment_title
         )
 
-    try:
-        send_slack_message(
-            message="",
-            blocks=[
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "🚢 {x} new prospects added to prospect list!".format(
-                            x=len(results)
-                        ),
-                        "emoji": True,
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"🤑 SellScale just helped save `${estimated_savings}` of finding contacts.",
-                    },
-                },
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "User: {user} ({company})".format(
-                                user=client_sdr.name, company=client.company
-                            ),
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": persona_or_segment_string,
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "Top Titles: {top_titles}".format(
-                                top_titles=top_titles_str
-                            ),
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "Company Median Size: {company_size}".format(
-                                company_size=company_size_str
-                            ),
-                        },
-                        # {
-                        #     "type": "mrkdwn",
-                        #     "text": "Example Profiles: {example_profiles}".format(
-                        #         example_profiles=example_profiles_str
-                        #     ),
-                        # },
-                    ],
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "View contacts on SellScale",
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "View Convo in Sight",
-                            "emoji": True,
-                        },
-                        "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
-                            auth_token=client_sdr.auth_token
-                        ),
-                        "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
-                            auth_token=client_sdr.auth_token
-                        ),
-                        "action_id": "button-action",
-                    },
-                },
-            ],
-            webhook_urls=[
-                URL_MAP["operations-prospect-uploads"],
-                client.pipeline_notifications_webhook_url,
-            ],
-        )
-    except Exception as e:
-        print("Failed to send slack notification: {}".format(e))
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.PROSPECT_ADDED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "num_new_prospects": len(results),
+            "estimated_savings": estimated_savings,
+            "persona_or_segment_string": persona_or_segment_string,
+            "top_titles": title_counts.most_common(3),
+            "company_size": company_size_str,
+        },
+    )
+
+    # try:
+
+    #     send_slack_message(
+    #         message="",
+    #         blocks=[
+    #             {
+    #                 "type": "header",
+    #                 "text": {
+    #                     "type": "plain_text",
+    #                     "text": "🚢 {x} new prospects added to prospect list!".format(
+    #                         x=len(results)
+    #                     ),
+    #                     "emoji": True,
+    #                 },
+    #             },
+    #             {"type": "divider"},
+    #             {
+    #                 "type": "section",
+    #                 "text": {
+    #                     "type": "mrkdwn",
+    #                     "text": f"🤑 SellScale just helped save `${estimated_savings}` of finding contacts.",
+    #                 },
+    #             },
+    #             {
+    #                 "type": "context",
+    #                 "elements": [
+    #                     {
+    #                         "type": "mrkdwn",
+    #                         "text": "User: {user} ({company})".format(
+    #                             user=client_sdr.name, company=client.company
+    #                         ),
+    #                     },
+    #                     {
+    #                         "type": "mrkdwn",
+    #                         "text": persona_or_segment_string,
+    #                     },
+    #                     {
+    #                         "type": "mrkdwn",
+    #                         "text": "Top Titles: {top_titles}".format(
+    #                             top_titles=top_titles_str
+    #                         ),
+    #                     },
+    #                     {
+    #                         "type": "mrkdwn",
+    #                         "text": "Company Median Size: {company_size}".format(
+    #                             company_size=company_size_str
+    #                         ),
+    #                     },
+    #                     # {
+    #                     #     "type": "mrkdwn",
+    #                     #     "text": "Example Profiles: {example_profiles}".format(
+    #                     #         example_profiles=example_profiles_str
+    #                     #     ),
+    #                     # },
+    #                 ],
+    #             },
+    #             {
+    #                 "type": "section",
+    #                 "text": {
+    #                     "type": "mrkdwn",
+    #                     "text": "View contacts on SellScale",
+    #                 },
+    #                 "accessory": {
+    #                     "type": "button",
+    #                     "text": {
+    #                         "type": "plain_text",
+    #                         "text": "View Convo in Sight",
+    #                         "emoji": True,
+    #                     },
+    #                     "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
+    #                         auth_token=client_sdr.auth_token
+    #                     ),
+    #                     "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
+    #                         auth_token=client_sdr.auth_token
+    #                     ),
+    #                     "action_id": "button-action",
+    #                 },
+    #             },
+    #         ],
+    #         webhook_urls=[
+    #             URL_MAP["operations-prospect-uploads"],
+    #             client.pipeline_notifications_webhook_url,
+    #         ],
+    #     )
+    # except Exception as e:
+    #     print("Failed to send slack notification: {}".format(e))
 
     return True
 
