@@ -152,7 +152,7 @@ class ProspectAddedNotification(SlackNotificationClass):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": "Segment: {persona_or_segment_string}".format(
+                            "text": "{persona_or_segment_string}".format(
                                 persona_or_segment_string=persona_or_segment_string
                             ),
                         },
@@ -171,6 +171,11 @@ class ProspectAddedNotification(SlackNotificationClass):
                     ],
                 },
                 {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": " ",
+                    },
                     "accessory": {
                         "type": "button",
                         "text": {
