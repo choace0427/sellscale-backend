@@ -1207,8 +1207,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
             EmailSequenceStep.active == True,
         ).first()
-        # if template:
-        #     template_id = template.id
+        if template:
+            template_id = template.id
         #     template.times_used = template.times_used + 1 if template.times_used else 1
         initial_email_prompt = ai_initial_email_prompt(
             client_sdr_id=client_sdr_id,
