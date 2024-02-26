@@ -2,17 +2,6 @@ from model_import import LinkedinConversationEntry
 from app import db, celery
 import datetime
 
-query = """
-select array_agg(distinct linkedin_conversation_entry.id order by linkedin_conversation_entry.id desc) 
-from linkedin_conversation_entry 
-join prospect on prospect.li_conversation_urn_id = linkedin_conversation_entry.thread_urn_id 
-join client_sdr on client_sdr.id = prospect.client_sdr_id 
-join client on client.id = client_sdr.client_id 
-where client.active and client_sdr.active and linkedin_conversation_entry.latest_reply_from_sdr_date is null;
-"""
-
-ids = db.session.execute(query).fetchone()[0]
-
 
 @celery.task
 def backfill_last_reply_dates_for_conversations_in_last_day():
