@@ -1,16 +1,11 @@
 from typing import Optional
-from datetime import datetime, timedelta
-from src.client.models import Client, ClientArchetype, ClientSDR
-from src.prospecting.models import Prospect
-from src.company.models import Company
-from src.segment.models import Segment
+from src.client.models import Client, ClientSDR
 from src.slack.models import SlackNotificationType
-from src.slack.slack_notification_center import slack_bot_send_message
+from src.slack.slack_notification_center import (
+    slack_bot_send_message,
+)
 from src.slack.slack_notification_class import SlackNotificationClass
-from collections import Counter
-import statistics
 import random
-from src.utils.slack import URL_MAP
 
 
 class ProspectAddedNotification(SlackNotificationClass):
@@ -70,7 +65,7 @@ class ProspectAddedNotification(SlackNotificationClass):
                 "num_new_prospects": 83,
                 "estimated_savings": estimated_savings,
                 "persona_or_segment_string": persona_or_segment_string,
-                "top_titles": ["Chief Executive Officer", "Founder", "CEO"],
+                "top_titles": [["CEO", 80], ["Founder and CEO", 3]],
                 "company_size_str": 216,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
                     auth_token=client_sdr.auth_token,
@@ -79,6 +74,7 @@ class ProspectAddedNotification(SlackNotificationClass):
 
         def get_fields() -> dict:
             """Gets the fields to be used in the message."""
+            client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
             return {
                 "num_new_prospects": self.num_new_prospects,
@@ -101,7 +97,7 @@ class ProspectAddedNotification(SlackNotificationClass):
         num_new_prospects = fields.get("num_new_prospects")
         estimated_savings = fields.get("estimated_savings")
         persona_or_segment_string = fields.get("persona_or_segment_string")
-        top_titles = ", ".join(fields.get("top_titles"))
+        top_titles = fields.get("top_titles")
         company_size_str = fields.get("company_size_str")
         direct_link = fields.get("direct_link")
         if (
@@ -159,7 +155,14 @@ class ProspectAddedNotification(SlackNotificationClass):
                         {
                             "type": "mrkdwn",
                             "text": "Top Titles: {top_titles}".format(
-                                top_titles=top_titles
+                                top_titles=", ".join(
+                                    [
+                                        "{title} ({count})".format(
+                                            title=title, count=count
+                                        )
+                                        for title, count in top_titles
+                                    ]
+                                )
                             ),
                         },
                         {
