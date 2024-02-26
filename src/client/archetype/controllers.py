@@ -190,11 +190,11 @@ def get_archetype_li_template(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    templates: list[
-        LinkedinInitialMessageTemplate
-    ] = LinkedinInitialMessageTemplate.query.filter(
-        LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
-    ).all()
+    templates: list[LinkedinInitialMessageTemplate] = (
+        LinkedinInitialMessageTemplate.query.filter(
+            LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
+        ).all()
+    )
 
     return (
         jsonify(
@@ -398,6 +398,30 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             403,
         )
 
+    if active and not archetype.linkedin_active:
+        meta_data = archetype.meta_data or {}
+        has_been_active = meta_data.get("linkedin_has_been_active", False)
+        if not has_been_active:
+            archetype.meta_data = {
+                **meta_data,
+                "linkedin_has_been_active": True,
+            }
+            db.session.commit()
+
+            # Send out campaign because it's the first time enabling
+            print("Sending out campaign because it's the first time enabling")
+            from src.campaigns.autopilot.services import (
+                daily_generate_linkedin_campaign_for_sdr,
+            )
+
+            try:
+                daily_generate_linkedin_campaign_for_sdr.apply_async(
+                    args=[client_sdr_id]
+                )
+            except Exception as e:
+                print("Failed to send out campaign from it's the first time enabling")
+                # print(e)
+
     archetype.linkedin_active = active
     db.session.commit()
 
@@ -424,6 +448,30 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             jsonify({"status": "error", "message": "Bad archetype, not authorized"}),
             403,
         )
+
+    if active and not archetype.email_active:
+        meta_data = archetype.meta_data or {}
+        has_been_active = meta_data.get("email_has_been_active", False)
+        if not has_been_active:
+            archetype.meta_data = {
+                **meta_data,
+                "email_has_been_active": True,
+            }
+            db.session.commit()
+
+            # Send out campaign because it's the first time enabling
+            print("Sending out campaign because it's the first time enabling")
+            from src.campaigns.autopilot.services import (
+                daily_generate_email_campaign_for_sdr,
+            )
+
+            try:
+                daily_generate_email_campaign_for_sdr.apply_async(
+                    args=[client_sdr_id],
+                )
+            except Exception as e:
+                print("Failed to send out campaign from it's the first time enabling")
+                # print(e)
 
     archetype.email_active = active
     db.session.commit()

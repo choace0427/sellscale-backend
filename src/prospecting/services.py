@@ -406,7 +406,7 @@ def patch_prospect(
     if contract_size:
         p.contract_size = contract_size
     if meta_data:
-        p.meta_data = meta_data
+        p.meta_data = {**(p.meta_data or {}), **meta_data}
     db.session.commit()
 
     # If email is changed, we add to email store and try to verify
@@ -2538,16 +2538,18 @@ def send_to_purgatory(
                         "text": (
                             "*Last Message from Prospect:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_\n\n\n\n*SDR* {sdr_name}"
                         ).format(
-                            prospect_message=prospect.li_last_message_from_prospect.replace(
-                                "\n", " "
-                            )
-                            if prospect.li_last_message_from_prospect
-                            else "",
-                            ai_response=prospect.li_last_message_from_sdr.replace(
-                                "\n", " "
-                            )
-                            if prospect.li_last_message_from_sdr
-                            else "",
+                            prospect_message=(
+                                prospect.li_last_message_from_prospect.replace(
+                                    "\n", " "
+                                )
+                                if prospect.li_last_message_from_prospect
+                                else ""
+                            ),
+                            ai_response=(
+                                prospect.li_last_message_from_sdr.replace("\n", " ")
+                                if prospect.li_last_message_from_sdr
+                                else ""
+                            ),
                             sdr_name=client_sdr.name,
                         ),
                     },
@@ -2686,9 +2688,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2759,11 +2761,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,

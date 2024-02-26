@@ -239,7 +239,7 @@ def update_client_sdr_details(
     if auto_archive_convos is not None:
         csdr.auto_archive_convos = auto_archive_convos
     if meta_data:
-        csdr.meta_data = meta_data
+        csdr.meta_data = {**(csdr.meta_data or {}), **meta_data}
 
     db.session.add(csdr)
     db.session.commit()
