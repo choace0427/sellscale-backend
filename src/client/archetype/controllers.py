@@ -398,6 +398,9 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             403,
         )
 
+    archetype.linkedin_active = active
+    db.session.commit()
+
     if active and not archetype.linkedin_active:
         meta_data = archetype.meta_data or {}
         has_been_active = meta_data.get("linkedin_has_been_active", False)
@@ -421,9 +424,6 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             except Exception as e:
                 print("Failed to send out campaign from it's the first time enabling")
                 # print(e)
-
-    archetype.linkedin_active = active
-    db.session.commit()
 
     if active:
         generate_notification_for_campaign_active(
@@ -449,6 +449,9 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             403,
         )
 
+    archetype.email_active = active
+    db.session.commit()
+
     if active and not archetype.email_active:
         meta_data = archetype.meta_data or {}
         has_been_active = meta_data.get("email_has_been_active", False)
@@ -472,9 +475,6 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             except Exception as e:
                 print("Failed to send out campaign from it's the first time enabling")
                 # print(e)
-
-    archetype.email_active = active
-    db.session.commit()
 
     if active:
         # Find emails for prospects under this archetype
