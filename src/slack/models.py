@@ -7,6 +7,7 @@ class SlackNotificationType(Enum):
     """The types of Slack notifications that can be sent"""
 
     # LINKEDIN
+    LINKEDIN_CONNECTION_CONNECTED = "LINKEDIN_CONNECTION_CONNECTED"
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
     LINKEDIN_PROSPECT_RESPONDED = "LINKEDIN_PROSPECT_RESPONDED"
     LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
@@ -76,6 +77,9 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.linkedin_prospect_removed import (
         LinkedinProspectRemovedNotification,
     )
+    from src.slack.notifications.linkedin_connection_connected import (
+        LinkedInConnectionConnected,
+    )
     from src.slack.notifications.campaign_activated import (
         CampaignActivatedNotification,
     )
@@ -121,6 +125,12 @@ def get_slack_notification_type_metadata():
             "name": "AI Reply to LinkedIn",
             "description": "A Slack notification that is sent when the AI replies to a LinkedIn message",
             "class": LinkedInAIReplyNotification,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_CONNECTION_CONNECTED: {
+            "name": "LinkedIn Connected",
+            "description": "A Slack notification that is sent when you successfully connect or reconnect your LinkedIn account.",
+            "class": LinkedInConnectionConnected,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.AI_REPLY_TO_EMAIL: {
