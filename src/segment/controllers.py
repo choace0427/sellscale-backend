@@ -92,6 +92,9 @@ def update_segment_endpoint(client_sdr_id: int, segment_id: int):
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>", methods=["DELETE"])
 @require_user
 def delete_segment_endpoint(client_sdr_id: int, segment_id: int):
+
+    wipe_segment_ids_from_prospects_in_segment(segment_id=segment_id)
+
     success, message = delete_segment(
         client_sdr_id=client_sdr_id, segment_id=segment_id
     )
