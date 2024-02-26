@@ -57,7 +57,8 @@ class CampaignActivatedNotification(SlackNotificationClass):
                 "example_prospect_name": "John Doe",
                 "example_prospect_title": "CEO",
                 "example_prospect_company": "SomeCompany",
-                "example_prospect_linkedin_url": client_sdr.linkedin_url,
+                "example_prospect_linkedin_url": client_sdr.linkedin_url
+                or "linkedin.com",
                 "example_message": "Hey John, I saw your post on LinkedIn and wanted to reach out. I'm a big fan of your work and would love to connect. Let me know if you're open to it. Thanks!",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
