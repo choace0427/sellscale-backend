@@ -379,6 +379,15 @@ def run_auto_resolve_linkedin_tasks():
         auto_resolve_linkedin_tasks.delay()
 
 
+def run_hourly_backfill_last_reply_dates_for_conversations_in_last_day():
+    from src.analytics.daily_backfill_response_times_from_sdr import (
+        backfill_last_reply_dates_for_conversations_in_last_day,
+    )
+
+    if is_scheduling_instance():
+        backfill_last_reply_dates_for_conversations_in_last_day.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
@@ -435,6 +444,11 @@ scheduler.add_job(
 # Hourly triggers
 # scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
 # scheduler.add_job(func=clear_daily_notifications, trigger="interval", hours=1)
+scheduler.add_job(
+    func=run_hourly_backfill_last_reply_dates_for_conversations_in_last_day,
+    trigger="interval",
+    hours=1,
+)
 scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
 )

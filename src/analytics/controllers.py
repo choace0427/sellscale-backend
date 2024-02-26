@@ -24,6 +24,9 @@ from src.analytics.scheduling_needed_notification import (
 from src.analytics.daily_message_generation_sample import (
     send_report_email,
 )
+from src.analytics.daily_backfill_response_times_from_sdr import (
+    backfill_last_reply_dates_for_conversations_in_last_day,
+)
 from src.authentication.decorators import require_user
 from model_import import ClientSDR
 
