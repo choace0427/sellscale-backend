@@ -529,9 +529,15 @@ def create_smartlead_campaign(
 
     # 2b. Update the general settings for tracking settings
     track_settings = []
-    if not client_sdr.email_open_tracking_enabled:
+    if (
+        client_sdr.email_open_tracking_enabled is not None
+        and not client_sdr.email_open_tracking_enabled
+    ):
         track_settings.append("DONT_TRACK_EMAIL_OPEN")
-    if not client_sdr.email_link_tracking_enabled:
+    if (
+        client_sdr.email_link_tracking_enabled is not None
+        and not client_sdr.email_link_tracking_enabled
+    ):
         track_settings.append("DONT_TRACK_LINK_CLICK")
     if len(track_settings) == 0:
         track_settings = None
