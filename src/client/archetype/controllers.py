@@ -407,6 +407,7 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
                 "linkedin_has_been_active": True,
             }
             archetype.linkedin_active = active
+            archetype.active = active
             db.session.commit()
 
             # Send out campaign because it's the first time enabling
@@ -424,6 +425,7 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
                 # print(e)
 
     archetype.linkedin_active = active
+    archetype.active = active
     db.session.commit()
 
     if active:
@@ -459,6 +461,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
                 "email_has_been_active": True,
             }
             archetype.email_active = active
+            archetype.active = active
             db.session.commit()
 
             # Send out campaign because it's the first time enabling
@@ -476,6 +479,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
                 # print(e)
 
     archetype.email_active = active
+    archetype.active = active
     db.session.commit()
 
     if active:
