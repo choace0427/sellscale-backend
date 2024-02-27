@@ -692,6 +692,23 @@ def classify_same_company_size_prospects(
             print("")
 
 
+def prune_small_segments(client_sdr_id: int, segment_id: int, print_logs: bool = True):
+    # If a segment has less than MIN_PROSPECTS prospects, delete it
+    MIN_PROSPECTS = 20
+
+    segments: list[Segment] = Segment.query.filter_by(
+        parent_segment_id=segment_id
+    ).all()
+
+    for segment in segments:
+        prospect_ids = get_prospect_ids_for_segment(segment.id)
+        if len(prospect_ids) < MIN_PROSPECTS:
+            if print_logs:
+                print("Pruning small segment: ", segment.segment_title)
+            wipe_and_delete_segment(segment.id)
+            db.session.commit()
+
+
 def run_auto_segment(segment_id: int, auto_filters: dict):
 
     # rep_schools: list = ["University of California, Santa Cruz"]
@@ -783,5 +800,8 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
     #     prospect_ids_in_segment=prospect_ids_in_segment,
     #     auto_filters=auto_filters,
     # )
+
+    print("Pruning Small Segments")
+    prune_small_segments(client_sdr_id=segment.client_sdr_id, segment_id=segment_id)
 
     return True
