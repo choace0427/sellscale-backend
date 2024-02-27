@@ -120,7 +120,7 @@ Message:
         clean_email_body = re.sub(r"\n+", "\n>", email_body)
         clean_email_body = "\n>" + clean_email_body
         success = create_and_send_slack_notification_class_message(
-            notification_type=SlackNotificationType.AI_TASK_COMPLETED,
+            notification_type=SlackNotificationType.PROSPECT_SNOOZED,
             arguments={
                 "client_sdr_id": client_sdr.id,
                 "prospect_id": prospect_id,

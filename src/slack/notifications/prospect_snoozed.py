@@ -151,7 +151,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                         },
                         {
                             "type": "plain_text",
-                            "text": "👤 Persona:*{emoji} {persona}".format(
+                            "text": "👤 Campaign: {emoji} {persona}".format(
                                 persona=archetype_name if archetype_name else "-",
                                 emoji=archetype_emoji,
                             ),

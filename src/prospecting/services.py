@@ -2513,7 +2513,7 @@ def send_to_purgatory(
         client: Client = Client.query.get(client_sdr.client_id)
 
         success = create_and_send_slack_notification_class_message(
-            notification_type=SlackNotificationType.AI_TASK_COMPLETED,
+            notification_type=SlackNotificationType.PROSPECT_SNOOZED,
             arguments={
                 "client_sdr_id": client_sdr.id,
                 "prospect_id": prospect_id,
@@ -3868,7 +3868,7 @@ def snooze_prospect_email(
     last_message = re.sub(r"\n+", "\n>", last_message)
     last_message = "\n>" + last_message
     success = create_and_send_slack_notification_class_message(
-        notification_type=SlackNotificationType.AI_TASK_COMPLETED,
+        notification_type=SlackNotificationType.PROSPECT_SNOOZED,
         arguments={
             "client_sdr_id": client_sdr.id,
             "prospect_id": prospect_id,
