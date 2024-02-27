@@ -13,8 +13,10 @@ from src.segment.services import (
     get_segments_for_sdr,
     remove_prospect_from_segment,
     update_segment,
+    wipe_and_delete_segment,
     wipe_segment_ids_from_prospects_in_segment,
 )
+from src.segment.services_auto_segment import run_auto_segment
 from src.utils.request_helpers import get_request_parameter
 
 SEGMENT_BLUEPRINT = Blueprint("segment", __name__)
@@ -93,9 +95,7 @@ def update_segment_endpoint(client_sdr_id: int, segment_id: int):
 @require_user
 def delete_segment_endpoint(client_sdr_id: int, segment_id: int):
 
-    wipe_segment_ids_from_prospects_in_segment(segment_id=segment_id)
-
-    success, message = delete_segment(
+    success, message = wipe_and_delete_segment(
         client_sdr_id=client_sdr_id, segment_id=segment_id
     )
 
@@ -290,5 +290,22 @@ def post_remove_prospects_from_segment(client_sdr_id: int):
 
     if success:
         return msg, 200
+
+    return "Failed to remove prospects", 400
+
+
+@SEGMENT_BLUEPRINT.route("/auto_split_segment", methods=["POST"])
+@require_user
+def post_auto_split_segment_endpoint(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+
+    auto_filters = get_request_parameter(
+        "auto_filters", request, json=True, required=True
+    )
+
+    success = run_auto_segment(segment_id=segment_id, auto_filters=auto_filters)
+
+    if success:
+        return "Segment split", 200
 
     return "Failed to remove prospects", 400

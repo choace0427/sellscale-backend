@@ -40,6 +40,11 @@ def get_segments_for_sdr(sdr_id: int) -> list[dict]:
     return [segment.to_dict() for segment in all_segments]
 
 
+def get_prospect_ids_for_segment(segment_id: int) -> list[int]:
+    prospects: list[Prospect] = Prospect.query.filter_by(segment_id=segment_id).all()
+    return [prospect.id for prospect in prospects]
+
+
 def update_segment(
     client_sdr_id: int, segment_id: int, segment_title: str, filters: dict
 ) -> Segment:
