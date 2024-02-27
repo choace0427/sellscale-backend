@@ -725,6 +725,7 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
     print("Running autosegment for:", client_sdr_name)
 
     prospect_ids_in_segment = get_prospect_ids_for_segment(segment_id)
+
     wipe_segment_ids_from_prospects_in_segment(segment_id)
 
     print("Do Not Contact Segment")
@@ -757,6 +758,7 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
         auto_filters=auto_filters,
     )
 
+
     print("Same Former Companies Segment")
     classify_same_former_companies_prospects(
         parent_segment_id=segment_id,
@@ -772,13 +774,13 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
         prospect_ids_in_segment=prospect_ids_in_segment,
         auto_filters=auto_filters,
     )
-  
-    print("Same Company Size Segment")
-    classify_same_company_size_prospects(
-        parent_segment_id=segment_id,
-        client_sdr_id=segment.client_sdr_id,
-        prospect_ids_in_segment=prospect_ids_in_segment,
-        auto_filters=auto_filters,
-    )
+
+    # print("Same Company Size Segment")
+    # classify_same_company_size_prospects(
+    #     parent_segment_id=segment_id,
+    #     client_sdr_id=segment.client_sdr_id,
+    #     prospect_ids_in_segment=prospect_ids_in_segment,
+    #     auto_filters=auto_filters,
+    # )
 
     return True
