@@ -25,10 +25,10 @@ class SlackNotificationType(Enum):
     # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
     DEMO_FEEDBACK_UPDATED = "DEMO_FEEDBACK_UPDATED"
-
     AI_TASK_COMPLETED = "AI_TASK_COMPLETED"
     CAMPAIGN_ACTIVATED = "CAMPAIGN_ACTIVATED"
     PROSPECT_ADDED = "PROSPECT_ADDED"
+    PROSPECT_SNOOZED = "PROSPECT_SNOOZED"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -92,6 +92,9 @@ def get_slack_notification_type_metadata():
     )
     from src.slack.notifications.linkedin_connection_disconnected import (
         LinkedInConnectionDisconnected,
+    )
+    from src.slack.notifications.prospect_snoozed import (
+        ProspectSnoozedNotification,
     )
 
     map_slack_notification_type_to_metadata = {
@@ -195,6 +198,12 @@ def get_slack_notification_type_metadata():
             "name": "Prospect Added",
             "description": "A Slack notification that is sent whenever Prospects are added to your pipeline.",
             "class": ProspectAddedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.PROSPECT_SNOOZED: {
+            "name": "Prospect Snoozed",
+            "description": "A Slack notification that is sent whenever Prospects are snoozed",
+            "class": ProspectSnoozedNotification,
             "outbound_channel": "all",
         },
     }
