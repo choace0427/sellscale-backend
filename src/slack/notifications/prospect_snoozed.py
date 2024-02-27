@@ -58,7 +58,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
                 "prospect_name": "John Doe",
-                "prospect_message": f"Hey {client_sdr.name}, maybe circle back with me in a couple of weeks.",
+                "prospect_message": "Hey maybe circle back with me in a couple of weeks.",
                 "ai_response": "No problem at all, John. I'll touch base with you in a couple of weeks. In the meantime, if you have any questions or need any information, feel free to reach out.",
                 "hidden_until": couple_of_weeks.strftime("%B %d, %Y"),
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
@@ -81,7 +81,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                 "prospect_name": prospect.full_name,
                 "prospect_message": self.prospect_message,
                 "ai_response": self.ai_response,
-                "hidden_until": self.hidden_until,
+                "hidden_until": self.hidden_until.strftime("%B %d, %Y"),
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=prospect.id,
@@ -121,7 +121,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                         "text": "⏰ SellScale AI just snoozed "
                         + prospect_name
                         + " to "
-                        + datetime.strftime(hidden_until, "%B %d, %Y")
+                        + hidden_until
                         + ".",
                         "emoji": True,
                     },
@@ -168,7 +168,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": "Message will re-appear in SellScale inbox on "
-                        + datetime.strftime(hidden_until, "%B %d, %Y")
+                        + hidden_until
                         + ".",
                     },
                     "accessory": {
