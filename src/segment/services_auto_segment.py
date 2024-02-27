@@ -93,10 +93,11 @@ def find_all_do_not_contact_prospects(
         prospect_dicts.extend(prospect_dicts_client)
     if prospect_dics_sdrs:
         prospect_dicts.extend(prospect_dics_sdrs)
-    prospect_ids = [prospect["id"] for prospect in prospect_dicts]
 
     # Filter prospect ids to only be the ones in the segment
-    prospect_ids = [x for x in prospect_ids if x in prospect_ids_in_segment]
+    prospect_dicts = [
+        x for x in prospect_dicts if x.get("id") in prospect_ids_in_segment
+    ]
 
     if print_logs:
         print("")
@@ -701,9 +702,10 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
     # ]
     # prospect_titles: list = [
     #     [
-    #         "CEO",
+    #         "CEO", "CTO", "CFO", "COO", "CIO", "VP",
     #     ],
     #     ["Manager", "Director", "Project Manager"],
+    #     ["Analyst"]
     # ]
     prospect_company_size_map: list = [
         {"min": 0, "max": 50, "label": "Startup"},
@@ -757,7 +759,6 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
         prospect_ids_in_segment=prospect_ids_in_segment,
         auto_filters=auto_filters,
     )
-
 
     print("Same Former Companies Segment")
     classify_same_former_companies_prospects(
