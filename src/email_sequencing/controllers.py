@@ -1,8 +1,10 @@
+from numpy import require
 from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import EmailSequenceStep
 from src.email_sequencing.models import (
+    EmailSequenceStepToAssetMapping,
     EmailSubjectLineTemplate,
     EmailTemplatePool,
     EmailTemplateType,
@@ -12,8 +14,11 @@ from src.email_sequencing.services import (
     copy_email_template_body_item,
     copy_email_template_subject_line_item,
     create_email_sequence_step,
+    create_email_sequence_step_asset_mapping,
     create_email_template_pool_item,
     deactivate_sequence_step,
+    delete_email_sequence_step_asset_mapping,
+    get_all_email_sequence_step_assets,
     get_email_template_pool_items,
     get_sequence_step_count_for_sdr,
     get_email_sequence_step_for_sdr,
@@ -816,3 +821,77 @@ def post_grade_email():
         ),
         200,
     )
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/create_asset_mapping", methods=["POST"])
+@require_user
+def create_asset_mapping(client_sdr_id: int):
+    """Creates an asset mapping for a given client SDR"""
+    sequence_step_id = get_request_parameter(
+        "sequence_step_id", request, json=True, required=True
+    )
+    asset_id = get_request_parameter("asset_id", request, json=True, required=True)
+
+    sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(sequence_step_id)
+    if not sequence_step:
+        return jsonify({"error": "Sequence step not found."}), 404
+    elif sequence_step.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This sequence step does not belong to you."}), 401
+
+    create_email_sequence_step_asset_mapping(
+        email_sequence_step_id=sequence_step_id, client_archetype_assets_id=asset_id
+    )
+
+    return jsonify({"message": "Asset mapping created."}), 200
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/delete_asset_mapping", methods=["POST"])
+@require_user
+def delete_asset_mapping(client_sdr_id: int):
+    """Deletes an asset mapping for a given client SDR"""
+    email_sequence_step_to_asset_mapping_id = get_request_parameter(
+        "email_sequence_step_to_asset_mapping_id", request, json=True, required=True
+    )
+
+    email_sequence_step_to_asset_mapping: EmailSequenceStepToAssetMapping = (
+        EmailSequenceStepToAssetMapping.query.get(
+            email_sequence_step_to_asset_mapping_id
+        )
+    )
+    email_sequence_step_id: int = (
+        email_sequence_step_to_asset_mapping.email_sequence_step_id
+    )
+    sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(
+        email_sequence_step_id
+    )
+    if not sequence_step:
+        return jsonify({"error": "Sequence step not found."}), 404
+    elif sequence_step.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This sequence step does not belong to you."}), 401
+
+    delete_email_sequence_step_asset_mapping(
+        email_sequence_step_to_asset_mapping_id=email_sequence_step_to_asset_mapping_id
+    )
+
+    return jsonify({"message": "Asset mapping deleted."}), 200
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/get_all_asset_mapping", methods=["GET"])
+@require_user
+def get_all_asset_mapping(client_sdr_id: int):
+    """Gets all asset mapping for a given client SDR"""
+    sequence_step_id = get_request_parameter(
+        "sequence_step_id", request, json=False, required=True
+    )
+
+    sequence_step: EmailSequenceStep = EmailSequenceStep.query.get(sequence_step_id)
+    if not sequence_step:
+        return jsonify({"error": "Sequence step not found."}), 404
+    elif sequence_step.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This sequence step does not belong to you."}), 401
+
+    mappings = get_all_email_sequence_step_assets(
+        email_sequence_step_id=sequence_step_id
+    )
+
+    return jsonify({"mappings": mappings}), 200

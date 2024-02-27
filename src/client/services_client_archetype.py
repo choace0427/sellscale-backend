@@ -1092,7 +1092,8 @@ def fetch_archetype_assets(client_archetype_id: int):
       select
         client_archetype_assets.asset_key "title",
         client_archetype_assets.asset_value "value",
-        client_archetype_asset_reason_mapping.reason "reason"
+        client_archetype_asset_reason_mapping.reason "reason",
+        client_archetype_assets.id "id"
       from client_archetype_assets
         left join client_archetype_asset_reason_mapping 
           on client_archetype_asset_reason_mapping.client_archetype_asset_id = client_archetype_assets.id
@@ -1104,10 +1105,6 @@ def fetch_archetype_assets(client_archetype_id: int):
     )
     assets_data = db.session.execute(assets_query).fetchall()
     return [
-        {
-            "title": row[0],
-            "value": row[1],
-            "reason": row[2],
-        }
+        {"title": row[0], "value": row[1], "reason": row[2], "id": row[3]}
         for row in assets_data
     ]

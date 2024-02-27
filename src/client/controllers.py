@@ -132,6 +132,7 @@ from src.client.services_client_archetype import (
     activate_client_archetype,
     create_empty_archetype_prospect_filters,
     deactivate_client_archetype,
+    fetch_archetype_assets,
     get_archetype_activity,
     get_archetype_conversion_rates,
     get_client_archetype_stats,
@@ -3105,3 +3106,12 @@ def post_query_gpt_v_endpoint():
         ),
         200,
     )
+
+
+@CLIENT_BLUEPRINT.route("/all_assets/<int:archetype_id>", methods=["GET"])
+@require_user
+def get_archetype_assets(client_sdr_id: int, archetype_id: int):
+    """Gets all assets for a client sdr"""
+    assets = fetch_archetype_assets(client_archetype_id=archetype_id)
+
+    return jsonify({"message": "Success", "data": assets}), 200

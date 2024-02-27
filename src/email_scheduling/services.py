@@ -1025,7 +1025,7 @@ def send_email_messaging_schedule_entry(
 def create_calendar_link_needed_operator_dashboard_card(client_sdr_id: int):
     create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
-        urgency=OperatorDashboardEntryPriority.HIGH,
+        urgency=OperatorDashboardEntryPriority.MEDIUM,
         tag="connect_calendar_{client_sdr_id}".format(client_sdr_id=client_sdr_id),
         emoji="🗓",
         title="Connect Calendar",
