@@ -97,7 +97,7 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
         datagma_email = datagma.find_from_name_and_company(name=name, company=company)
         if datagma_email:
             email = datagma_email.get("email")
-            if email:
+            if email and "," not in email:
                 email = email
                 found = True
                 if datagma_email.get("status") == "Valid":
@@ -121,7 +121,7 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
                 contact = findymail_email.get("contact")
                 if contact:
                     email = contact.get("email")
-                    if email:
+                    if email and "," not in email:
                         email = email
                         found = True
         except:
@@ -140,7 +140,7 @@ def find_email_for_prospect_id(self, prospect_id: int) -> str:
             )
             if success:
                 email = data["email"]
-                if email:
+                if email and "," not in email:
                     email = email
                     found = True
         except:
