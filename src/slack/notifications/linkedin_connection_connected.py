@@ -67,7 +67,7 @@ class LinkedInConnectionConnected(SlackNotificationClass):
         # Get the fields
         num_messages_in_queue = fields.get("num_messages_in_queue")
         direct_link = fields.get("direct_link")
-        if not num_messages_in_queue or not direct_link:
+        if not direct_link:
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
