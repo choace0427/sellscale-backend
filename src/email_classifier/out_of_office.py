@@ -126,7 +126,7 @@ Message:
                 "prospect_id": prospect_id,
                 "prospect_message": clean_email_body,
                 "ai_response": "_No response. Prospect is out of office._",
-                "hidden_until": ooo_until,
+                "hidden_until": ooo_until.strftime("%B %d, %Y"),
                 "outbound_channel": "Email",
             },
         )

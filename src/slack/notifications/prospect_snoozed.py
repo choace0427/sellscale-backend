@@ -26,7 +26,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
         prospect_id: Optional[int] = None,
         prospect_message: Optional[str] = None,
         ai_response: Optional[str] = None,
-        hidden_until: Optional[datetime] = None,
+        hidden_until: Optional[str] = None,
         outbound_channel: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
@@ -81,7 +81,7 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                 "prospect_name": prospect.full_name,
                 "prospect_message": self.prospect_message,
                 "ai_response": self.ai_response,
-                "hidden_until": self.hidden_until.strftime("%B %d, %Y"),
+                "hidden_until": self.hidden_until,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
                     auth_token=client_sdr.auth_token,
                     prospect_id=prospect.id,
@@ -133,8 +133,14 @@ class ProspectSnoozedNotification(SlackNotificationClass):
                         "text": (
                             "*Last Message from Prospect:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_"
                         ).format(
-                            prospect_message=prospect_message.replace("\n", " "),
-                            ai_response=ai_response.replace("\n", " "),
+                            prospect_message=(
+                                prospect_message.replace("\n", " ")
+                                if prospect_message
+                                else "-"
+                            ),
+                            ai_response=(
+                                ai_response.replace("\n", " ") if ai_response else "-"
+                            ),
                         ),
                     },
                 },

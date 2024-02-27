@@ -2519,7 +2519,7 @@ def send_to_purgatory(
                 "prospect_id": prospect_id,
                 "prospect_message": prospect.li_last_message_from_prospect,
                 "ai_response": prospect.li_last_message_from_sdr,
-                "hidden_until": new_hidden_until,
+                "hidden_until": new_hidden_until.strftime("%B %d, %Y"),
                 "outbound_channel": "LinkedIn",
             },
         )
@@ -3874,7 +3874,7 @@ def snooze_prospect_email(
             "prospect_id": prospect_id,
             "prospect_message": last_message,
             "ai_response": "_Prospect snoozed without AI response._",
-            "hidden_until": new_hidden_until,
+            "hidden_until": new_hidden_until.strftime("%B %d, %Y"),
             "outbound_channel": "Email",
         },
     )
