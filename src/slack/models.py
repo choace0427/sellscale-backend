@@ -8,6 +8,7 @@ class SlackNotificationType(Enum):
 
     # LINKEDIN
     LINKEDIN_CONNECTION_CONNECTED = "LINKEDIN_CONNECTION_CONNECTED"
+    LINKEDIN_CONNECTION_DISCONNECTED = "LINKEDIN_CONNECTION_DISCONNECTED"
     LINKEDIN_INVITE_ACCEPTED = "LINKEDIN_INVITE_ACCEPTED"
     LINKEDIN_PROSPECT_RESPONDED = "LINKEDIN_PROSPECT_RESPONDED"
     LINKEDIN_PROSPECT_SCHEDULING = "LINKEDIN_PROSPECT_SCHEDULING"
@@ -89,6 +90,9 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.prospect_added import (
         ProspectAddedNotification,
     )
+    from src.slack.notifications.linkedin_connection_disconnected import (
+        LinkedInConnectionDisconnected,
+    )
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
@@ -131,6 +135,12 @@ def get_slack_notification_type_metadata():
             "name": "LinkedIn Connected",
             "description": "A Slack notification that is sent when you successfully connect or reconnect your LinkedIn account.",
             "class": LinkedInConnectionConnected,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_CONNECTION_DISCONNECTED: {
+            "name": "LinkedIn Disconnected",
+            "description": "A Slack notification that is sent when your LinkedIn account is disconnected from SellScale.",
+            "class": LinkedInConnectionDisconnected,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.AI_REPLY_TO_EMAIL: {

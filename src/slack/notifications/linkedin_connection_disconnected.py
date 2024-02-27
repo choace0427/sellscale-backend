@@ -5,7 +5,7 @@ from src.slack.slack_notification_center import slack_bot_send_message
 from src.slack.slack_notification_class import SlackNotificationClass
 
 
-class LinkedInConnectionConnected(SlackNotificationClass):
+class LinkedInConnectionDisconnected(SlackNotificationClass):
     """A Slack notification that is sent when the user clicks on a link in an email
 
     `client_sdr_id` (MANDATORY): The ID of the ClientSDR that sent the notification
@@ -75,22 +75,22 @@ class LinkedInConnectionConnected(SlackNotificationClass):
 
         # Send the message
         slack_bot_send_message(
-            notification_type=SlackNotificationType.LINKEDIN_CONNECTION_CONNECTED,
+            notification_type=SlackNotificationType.LINKEDIN_CONNECTION_DISCONNECTED,
             client_id=client.id,
-            base_message=f"✅ LinkedIn Reconnected for {client_sdr.name}",
+            base_message=f"🚨 LinkedIn Disconnected for {client_sdr.name}",
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"✅ LinkedIn Reconnected for {client_sdr.name}",
+                        "text": f"🚨 LinkedIn Disconnected for {client_sdr.name}",
                     },
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "There are {num_messages_in_queue} prospects in the LinkedIn outbound queue".format(
+                        "text": "Please reconnect your LinkedIn as soon as possible. There are currently *{num_messages_in_queue}* prospects in the LinkedIn outbound queue. There may be more requiring bumps, replies, etc.".format(
                             num_messages_in_queue=num_messages_in_queue,
                         ),
                     },
@@ -105,7 +105,7 @@ class LinkedInConnectionConnected(SlackNotificationClass):
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "View Connection in Settings",
+                            "text": "Reconnect in Settings",
                             "emoji": True,
                         },
                         "value": direct_link,

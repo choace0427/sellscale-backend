@@ -15,6 +15,10 @@ from src.operator_dashboard.services import (
     create_operator_dashboard_entry,
     mark_task_complete,
 )
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.utils.access import is_production
 
 from tomlkit import datetime
@@ -194,10 +198,18 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
         webhook_urls = [URL_MAP["eng-sandbox"]]
         if client:
             webhook_urls.append(client.pipeline_notifications_webhook_url)
-        send_slack_message(
-            message=f"*Linkedin Reconnected ✅ for {sdr.name} (#{sdr.id})*\nThere are {num_messages_in_queue} in the LinkedIn outbound queue",
-            webhook_urls=webhook_urls,
+
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.LINKEDIN_CONNECTION_CONNECTED,
+            arguments={
+                "client_sdr_id": sdr.id,
+                "num_messages_in_queue": num_messages_in_queue,
+            },
         )
+        # send_slack_message(
+        #     message=f"*Linkedin Reconnected ✅ for {sdr.name} (#{sdr.id})*\nThere are {num_messages_in_queue} in the LinkedIn outbound queue",
+        #     webhook_urls=webhook_urls,
+        # )
     except:
         send_slack_message(
             message=f"🚨 URGENT ALERT 🚨: Failed to create phantom buster agent for client sdr id #{str(client_sdr_id)}",
@@ -487,7 +499,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 def run_fast_analytics_backfill():
     # Fetch and process data
     fetch_query = """
-    SELECT 
+    SELECT
         bump_framework.id,
         COUNT(DISTINCT a.thread_urn_id) AS new_etl_num_times_used,
         COUNT(DISTINCT b.thread_urn_id) FILTER (WHERE b.connection_degree <> 'You') AS new_etl_num_times_converted
