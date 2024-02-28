@@ -713,6 +713,7 @@ class ClientArchetypeAssets(db.Model):
             "asset_value": self.asset_value,
             "asset_type": self.asset_type and self.asset_type.value,
             "asset_tags": self.asset_tags,
+            "asset_raw_value": self.asset_raw_value,
         }
 
 
