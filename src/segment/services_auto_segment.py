@@ -685,7 +685,7 @@ def prune_small_segments(client_sdr_id: int, segment_id: int, print_logs: bool =
         if len(prospect_ids) < MIN_PROSPECTS:
             if print_logs:
                 print("Pruning small segment: ", segment.segment_title)
-            wipe_and_delete_segment(segment.id)
+            wipe_and_delete_segment(client_sdr_id=client_sdr_id, segment_id=segment.id)
             db.session.commit()
 
 
