@@ -773,13 +773,13 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
         auto_filters=auto_filters,
     )
 
-    # print("Same Company Size Segment")
-    # classify_same_company_size_prospects(
-    #     parent_segment_id=segment_id,
-    #     client_sdr_id=segment.client_sdr_id,
-    #     prospect_ids_in_segment=prospect_ids_in_segment,
-    #     auto_filters=auto_filters,
-    # )
+    print("Same Company Size Segment")
+    classify_same_company_size_prospects(
+        parent_segment_id=segment_id,
+        client_sdr_id=segment.client_sdr_id,
+        prospect_ids_in_segment=prospect_ids_in_segment,
+        auto_filters=auto_filters,
+    )
 
     print("Pruning Small Segments")
     prune_small_segments(client_sdr_id=segment.client_sdr_id, segment_id=segment_id)
