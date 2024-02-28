@@ -3050,11 +3050,11 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/asset/reason/<int:reason_id>", methods=["PATCH"])
 @require_user
 def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
-    reason = get_request_parameter(
+    new_reason = get_request_parameter(
         "reason", request, json=True, required=True, parameter_type=str
     )
     modify_client_archetype_reason_mapping(
-        client_archetype_asset_reason_mapping_id=reason_id, reason=reason
+        client_archetype_asset_reason_mapping_id=reason_id, reason=new_reason
     )
 
     return jsonify({"status": "success"}), 200
