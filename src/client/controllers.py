@@ -3047,7 +3047,7 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     return "OK", 200
 
 
-@CLIENT_BLUEPRINT.route("/asset/reason/:reason_id", methods=["PATCH"])
+@CLIENT_BLUEPRINT.route("/asset/reason/<int:reason_id>", methods=["PATCH"])
 @require_user
 def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
     reason = get_request_parameter(
