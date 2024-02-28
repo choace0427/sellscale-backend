@@ -697,6 +697,7 @@ class ClientArchetypeAssets(db.Model):
     client_archetype_ids = db.Column(ARRAY(db.Integer), nullable=True)
     asset_key = db.Column(db.String)
     asset_value = db.Column(db.String)
+    asset_raw_value = db.Column(db.String)
 
     asset_type = db.Column(
         sa.Enum(ClientArchetypeAssetType, create_constraint=False), nullable=True
