@@ -29,6 +29,7 @@ from src.analytics.daily_backfill_response_times_from_sdr import (
 )
 from src.authentication.decorators import require_user
 from model_import import ClientSDR
+from src.analytics.services_asset_analytics import backfill_all_assets_analytics
 
 ANALYTICS_BLUEPRINT = Blueprint("analytics", __name__)
 
