@@ -18,6 +18,12 @@ from src.individual.services import (
 )
 from src.voyager.services import withdraw_li_invite
 from src.client.sdr.email.services_email_bank import sync_email_bank_statistics_for_sdr
+from src.campaigns.autopilot.services import (
+    daily_generate_email_campaign_for_sdr,
+)
+from src.campaigns.autopilot.services import (
+    daily_generate_linkedin_campaign_for_sdr,
+)
 
 
 from src.utils.datetime.dateutils import get_future_datetime
@@ -120,6 +126,18 @@ PROCESS_TYPE_MAP = {
     },
     "smartlead_reply_to_prospect": {
         "function": smartlead_reply_to_prospect,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "daily_generate_email_campaign_for_sdr": {
+        "function": daily_generate_email_campaign_for_sdr,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "daily_generate_linkedin_campaign_for_sdr": {
+        "function": daily_generate_linkedin_campaign_for_sdr,
         "priority": 10,
         "queue": None,
         "routing_key": None,

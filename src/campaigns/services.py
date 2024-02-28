@@ -3,7 +3,6 @@ from sqlalchemy import and_, or_, nullslast
 from typing import Optional
 
 from src.campaigns.models import *
-from src.client.services import get_client
 from model_import import (
     Prospect,
     Client,
@@ -39,7 +38,6 @@ from src.message_generation.services_few_shot_generations import (
 )
 from src.utils.random_string import generate_random_alphanumeric
 from src.utils.slack import send_slack_message, URL_MAP
-from src.client.services import get_cta_stats
 
 import datetime
 
@@ -62,6 +60,8 @@ def get_outbound_campaign_details(
     Returns:
         dict: A dictionary containing campaign details, status code, and message.
     """
+    from src.client.services import get_cta_stats
+
     oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if not oc:
         return {"message": "Campaign not found", "status_code": 404}
@@ -953,6 +953,8 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
         campaign_id (int): Campaign id
         status (OutboundCampaignStatus): New status of the campaign
     """
+    from src.client.services import get_client
+
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     campaign.status = status
     db.session.add(campaign)
@@ -1009,6 +1011,8 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
     Args:
         campaign_id (int): Campaign id
     """
+    from src.client.services import get_client
+
     change_campaign_status(campaign_id, OutboundCampaignStatus.READY_TO_SEND)
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
@@ -1108,6 +1112,8 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     Args:
         campaign_id (int): Campaign id
     """
+    from src.client.services import get_client
+
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     if campaign.status == OutboundCampaignStatus.READY_TO_SEND:
         return False

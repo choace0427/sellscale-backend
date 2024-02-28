@@ -12,6 +12,7 @@ from src.client.archetype.services_client_archetype import (
     import_linkedin_sequence,
     send_slack_notif_campaign_active,
 )
+from src.automation.orchestrator import add_process_for_future
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
@@ -412,17 +413,13 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
 
             # Send out campaign because it's the first time enabling
             print("Sending out campaign because it's the first time enabling")
-            from src.campaigns.autopilot.services import (
-                daily_generate_linkedin_campaign_for_sdr,
+            add_process_for_future(
+                type="daily_generate_linkedin_campaign_for_sdr",
+                args={
+                    "client_sdr_id": client_sdr_id,
+                },
+                minutes=1,
             )
-
-            try:
-                daily_generate_linkedin_campaign_for_sdr.apply_async(
-                    args=[client_sdr_id]
-                )
-            except Exception as e:
-                print("Failed to send out campaign from it's the first time enabling")
-                # print(e)
 
     archetype.linkedin_active = active
     archetype.active = active
@@ -466,17 +463,13 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
 
             # Send out campaign because it's the first time enabling
             print("Sending out campaign because it's the first time enabling")
-            from src.campaigns.autopilot.services import (
-                daily_generate_email_campaign_for_sdr,
+            add_process_for_future(
+                type="daily_generate_email_campaign_for_sdr",
+                args={
+                    "client_sdr_id": client_sdr_id,
+                },
+                minutes=30,
             )
-
-            try:
-                daily_generate_email_campaign_for_sdr.apply_async(
-                    args=[client_sdr_id],
-                )
-            except Exception as e:
-                print("Failed to send out campaign from it's the first time enabling")
-                # print(e)
 
     archetype.email_active = active
     archetype.active = active

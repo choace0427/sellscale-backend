@@ -617,28 +617,8 @@ def classify_same_company_size_prospects(
                 Prospect.client_sdr_id == client_sdr_id,
                 Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
                 Prospect.segment_id == None,
-                cast(
-                    func.json_extract_path_text(
-                        ResearchPayload.payload,
-                        "company",
-                        "details",
-                        "staff",
-                        "total",
-                    ),
-                    Integer,
-                )
-                >= company_size["min"],
-                cast(
-                    func.json_extract_path_text(
-                        ResearchPayload.payload,
-                        "company",
-                        "details",
-                        "staff",
-                        "total",
-                    ),
-                    Integer,
-                )
-                <= company_size["max"],
+                Prospect.company_size >= company_size["min"],
+                Prospect.company_size <= company_size["max"],
             )
             .all()
         )

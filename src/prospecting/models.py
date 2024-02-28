@@ -397,6 +397,7 @@ class Prospect(db.Model):
 
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=True)
     company = db.Column(db.String, nullable=True)
+    company_size = db.Column(db.Integer, nullable=True)
     colloquialized_company = db.Column(db.String, nullable=True)
     colloquialized_title = db.Column(db.String, nullable=True)
     company_url = db.Column(db.String, nullable=True)
@@ -530,6 +531,7 @@ class Prospect(db.Model):
             "first_name": self.first_name,
             "last_name": self.last_name,
             "company": self.company,
+            "company_size": self.company_size,
             "title": self.title,
             "email": self.email,
             "valid_primary_email": self.valid_primary_email,
@@ -635,6 +637,7 @@ class Prospect(db.Model):
                 "location": location,
                 "company": self.company,
                 "company_hq": company_hq,
+                "company_size": self.company_size,
                 "title": self.title,
                 "email": self.email,
                 "icp_fit_score": self.icp_fit_score,
@@ -754,6 +757,7 @@ class Prospect(db.Model):
             "location": location,
             "company": self.company,
             "company_url": self.company_url,
+            "company_size": self.company_size,
             "company_hq": company_hq,
             "employee_count": self.employee_count,
             "first_name": self.first_name,
