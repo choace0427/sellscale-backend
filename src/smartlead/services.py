@@ -635,7 +635,9 @@ def create_smartlead_campaign(
     else:
         for email in all_emails:
             if email.get("from_name") == client_sdr.name:
-                email_account_ids.append(email.get("id"))
+                warmup_details = email.get("warmup_details")
+                if warmup_details and warmup_details.get("warmup_reputation") == "100%":
+                    email_account_ids.append(email.get("id"))
 
     sl.add_email_account_to_campaign(
         campaign_id=smartlead_campaign_id,
