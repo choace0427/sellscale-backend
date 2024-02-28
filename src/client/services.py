@@ -4838,3 +4838,21 @@ def create_client_archetype_reason_mapping(
     db.session.commit()
 
     return True
+
+
+def modify_client_archetype_reason_mapping(
+    client_archetype_asset_reason_mapping_id: int,
+    reason: str,
+) -> bool:
+    """
+    Modifies a reason for a client archetype
+    """
+    reason: ClientArchetypeAssetReasonMapping = (
+        ClientArchetypeAssetReasonMapping.query.get(
+            client_archetype_asset_reason_mapping_id
+        )
+    )
+    reason.reason = reason
+    db.session.add(reason)
+    db.session.commit()
+    return True
