@@ -2285,6 +2285,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.UNSUBSCRIBED: ProspectOverallStatus.REMOVED,
         ProspectEmailOutreachStatus.DEMO_SET: ProspectOverallStatus.DEMO,
