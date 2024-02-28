@@ -2977,6 +2977,9 @@ def post_create_archetype_asset(client_sdr_id: int):
     asset_tags = get_request_parameter(
         "asset_tags", request, json=True, required=False, parameter_type=list
     )
+    asset_raw_value = get_request_parameter(
+        "asset_raw_value", request, json=True, required=False, parameter_type=str
+    )
 
     asset_dict = create_archetype_asset(
         client_id=client_id,
@@ -2985,6 +2988,7 @@ def post_create_archetype_asset(client_sdr_id: int):
         asset_value=asset_value,
         asset_type=asset_type or ClientArchetypeAssetType.TEXT,
         asset_tags=asset_tags or [],
+        asset_raw_value=asset_raw_value or asset_value,
     )
 
     if not asset_dict:

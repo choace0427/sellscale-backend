@@ -4692,6 +4692,7 @@ def create_archetype_asset(
     asset_value: str,
     asset_type: ClientArchetypeAssetType,
     asset_tags: list[str],
+    asset_raw_value: str,
 ):
     """
     Creates an asset for a client archetype
@@ -4703,6 +4704,7 @@ def create_archetype_asset(
         asset_value=asset_value,
         asset_type=asset_type,
         asset_tags=asset_tags,
+        asset_raw_value=asset_raw_value,
     )
     db.session.add(asset)
     db.session.commit()
@@ -4754,6 +4756,7 @@ def update_asset(
     asset_value: Optional[str] = None,
     asset_type: Optional[ClientArchetypeAssetType] = None,
     asset_tags: Optional[list[str]] = None,
+    asset_raw_value: Optional[str] = None,
 ):
     """
     Updates an asset for a client archetype
@@ -4772,6 +4775,8 @@ def update_asset(
         asset.asset_type = asset_type
     if asset_tags:
         asset.asset_tags = asset_tags
+    if asset_raw_value:
+        asset.asset_raw_value = asset_raw_value
     db.session.add(asset)
     db.session.commit()
     return True
