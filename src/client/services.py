@@ -670,6 +670,7 @@ def create_client_sdr(
         do_not_contact_emails=[],
         autopilot_enabled=True,
         auto_send_linkedin_campaign=True,
+        auto_send_email_campaign=True,
     )
     db.session.add(sdr)
     db.session.commit()
