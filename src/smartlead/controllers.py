@@ -5,6 +5,7 @@ from src.message_generation.email.services import get_email_automated_reply_entr
 from src.smartlead.services import (
     generate_smart_email_response,
     create_smartlead_campaign,
+    get_archetype_emails,
     get_message_history_for_prospect,
     get_smartlead_inbox,
     smartlead_reply_to_prospect,
@@ -260,3 +261,15 @@ def post_set_client_sdr_id(client_sdr_id: int):
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
+
+
+@SMARTLEAD_BLUEPRINT.route("/archetype_emails", methods=["GET"])
+@require_user
+def get_archetype_emails_endpoint(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=True, parameter_type=int
+    )
+
+    emails = get_archetype_emails(archetype_id=archetype_id)
+
+    return jsonify({"message": "Success", "data": emails}), 200
