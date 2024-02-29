@@ -314,29 +314,3 @@ def populate_slack_notifications():
             )
             db.session.add(slack_notification)
             db.session.commit()
-
-
-def subscribe_all_sdrs_to_notification(notification_type: SlackNotificationType):
-    """Subscribe all of the SDRs to a Slack notification type. Should be called after introducing a new Slack notification type."""
-    from src.client.models import ClientSDR
-    from src.subscriptions.services import subscribe_to_slack_notification
-
-    # Get the ID of this notification type
-    slack_notification: SlackNotification = SlackNotification.query.filter_by(
-        notification_type=notification_type
-    ).first()
-    if not slack_notification:
-        raise Exception(
-            f"Slack notification of type: {notification_type.value} not found"
-        )
-
-    # Get all of the active SDRs
-    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
-
-    # Create subscriptions to this notification type for all of the SDRs
-    for client_sdr in client_sdrs:
-        subscribe_to_slack_notification(
-            client_sdr_id=client_sdr.id,
-            slack_notification_id=slack_notification.id,
-            new_notification=True,
-        )

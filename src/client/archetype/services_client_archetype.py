@@ -162,8 +162,8 @@ def bulk_action_move_prospects_to_archetype(
         countdown = float(index * 6)
         mark_queued_and_classify.apply_async(
             args=[client_sdr_id, target_archetype_id, prospect_id, countdown],
-            queue="ml_prospect_classification",
-            routing_key="ml_prospect_classification",
+            queue="icp_scoring",
+            routing_key="icp_scoring",
             priority=5,
         )
 
@@ -737,7 +737,7 @@ def import_email_sequence(
             bumped_count=bumped_count,
             active=True,
             default=True,
-            mapped_asset_ids=step.get("asset_ids", [])
+            mapped_asset_ids=step.get("asset_ids", []),
         )
 
         print(
