@@ -21,6 +21,7 @@ from src.ml.services import get_text_generation
 from src.utils.email.html_cleaning import clean_html
 
 from src.utils.lists import chunk_list
+from src.client.models import Client, SDREmailBank
 
 from src.prospecting.services import update_prospect_status_email
 
@@ -394,6 +395,25 @@ def get_archetype_emails(archetype_id: int) -> list[dict]:
     warmings = sl.get_campaign_email_accounts(
         campaign_id=archetype.smartlead_campaign_id
     )
+
+    email_banks: list[SDREmailBank] = SDREmailBank.query.filter_by(
+        client_sdr_id=archetype.client_sdr_id,
+    ).all()
+
+    # Only show emails banks with a matching warmings id
+    email_banks = [
+        email_bank
+        for email_bank in email_banks
+        if email_bank.smartlead_account_id in [warming["id"] for warming in warmings]
+    ]
+
+    # Added email bank active status to the warming
+    for warming in warmings:
+        for email_bank in email_banks:
+            if email_bank.smartlead_account_id == warming["id"]:
+                warming["active"] = email_bank.active
+                break
+
     return warmings
 
 
