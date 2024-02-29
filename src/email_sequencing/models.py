@@ -123,15 +123,15 @@ class EmailSequenceStepToAssetMapping(db.Model):
     email_sequence_step_id = db.Column(
         db.Integer, db.ForeignKey("email_sequence_step.id"), nullable=False
     )
-    client_archetype_assets_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype_assets.id"), nullable=False
+    client_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_assets.id"), nullable=False
     )
 
     def to_dict(self):
         return {
             "id": self.id,
             "email_sequence_step_id": self.email_sequence_step_id,
-            "client_archetype_assets_id": self.client_archetype_assets_id,
+            "client_assets_id": self.client_assets_id,
         }
 
 

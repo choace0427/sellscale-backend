@@ -839,7 +839,7 @@ def create_asset_mapping(client_sdr_id: int):
         return jsonify({"error": "This sequence step does not belong to you."}), 401
 
     create_email_sequence_step_asset_mapping(
-        email_sequence_step_id=sequence_step_id, client_archetype_assets_id=asset_id
+        email_sequence_step_id=sequence_step_id, client_assets_id=asset_id
     )
 
     return jsonify({"message": "Asset mapping created."}), 200
