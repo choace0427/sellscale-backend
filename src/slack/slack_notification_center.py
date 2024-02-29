@@ -323,3 +323,68 @@ def create_sent_slack_notification_entry(
     db.session.commit()
 
     return sent_slack_notification.id
+
+
+def subscribe_all_sdrs_to_notification(
+    notification_type: SlackNotificationType,
+) -> bool:
+    """Subscribe all of the SDRs to a Slack notification type
+
+    Args:
+        notification_type (SlackNotificationType): The type of the notification that the SDRs are being subscribed to
+
+    Returns:
+        bool: Whether or not the SDRs were successfully subscribed to the Slack notification
+    """
+
+    from src.client.models import ClientSDR
+    from src.subscriptions.services import subscribe_to_slack_notification
+    from src.slack.models import SlackNotification
+
+    # Get the ID of this notification type
+    slack_notification: SlackNotification = SlackNotification.query.filter_by(
+        notification_type=notification_type
+    ).first()
+    if not slack_notification:
+        raise Exception(
+            f"Slack notification of type: {notification_type.value} not found"
+        )
+
+    # Get all of the active SDRs
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True).all()
+
+    # Create subscriptions to this notification type for all of the SDRs
+    for client_sdr in client_sdrs:
+        subscribe_to_slack_notification(
+            client_sdr_id=client_sdr.id,
+            slack_notification_id=slack_notification.id,
+            new_notification=True,
+        )
+
+    return True
+
+
+def subscribe_sdr_to_all_notifications(client_sdr_id: int) -> bool:
+    """Subscribe an SDR to all of the Slack notifications
+
+    Args:
+        client_sdr_id (int): The ID of the ClientSDR that is being subscribed to all of the Slack notifications
+
+    Returns:
+        bool: Whether or not the SDR was successfully subscribed to all of the Slack notifications
+    """
+    from src.subscriptions.services import subscribe_to_slack_notification
+    from src.slack.models import SlackNotification
+
+    # Get all of the active Slack notifications
+    slack_notifications: list[SlackNotification] = SlackNotification.query.all()
+
+    # Create subscriptions to all of the Slack notifications for the SDR
+    for slack_notification in slack_notifications:
+        subscribe_to_slack_notification(
+            client_sdr_id=client_sdr_id,
+            slack_notification_id=slack_notification.id,
+            new_notification=True,
+        )
+
+    return True

@@ -29,6 +29,7 @@ from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
+    subscribe_sdr_to_all_notifications,
 )
 from src.vision.services import attempt_chat_completion_with_vision
 from src.individual.models import Individual
@@ -709,6 +710,11 @@ def create_client_sdr(
         client_sdr_id=sdr.id,
         email_address=email,
         email_type=EmailType.ANCHOR,
+    )
+
+    print("Subscribe to all notifications")
+    subscribe_sdr_to_all_notifications(
+        client_sdr_id=sdr.id,
     )
 
     return {"client_sdr_id": sdr.id}
