@@ -26,6 +26,10 @@ from src.operator_dashboard.models import (
     OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.vision.services import attempt_chat_completion_with_vision
 from src.individual.models import Individual
 from src.prospecting.icp_score.services import update_icp_scoring_ruleset
@@ -670,6 +674,7 @@ def create_client_sdr(
         do_not_contact_emails=[],
         autopilot_enabled=True,
         auto_send_linkedin_campaign=True,
+        auto_send_email_campaign=True,
     )
     db.session.add(sdr)
     db.session.commit()
@@ -4686,6 +4691,7 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
+    client_sdr_id: int,
     client_id: int,
     client_archetype_ids: list[int],
     asset_key: str,
@@ -4708,6 +4714,16 @@ def create_archetype_asset(
     )
     db.session.add(asset)
     db.session.commit()
+
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.ASSET_CREATED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "asset_name": asset_key,
+            "asset_tags": asset_tags,
+            "ai_summary": asset_value,
+        },
+    )
 
     return asset.to_dict()
 
@@ -4836,4 +4852,22 @@ def create_client_archetype_reason_mapping(
     db.session.add(asset)
     db.session.commit()
 
+    return True
+
+
+def modify_client_archetype_reason_mapping(
+    client_archetype_asset_reason_mapping_id: int,
+    new_reason: str,
+) -> bool:
+    """
+    Modifies a reason for a client archetype
+    """
+    reason: ClientArchetypeAssetReasonMapping = (
+        ClientArchetypeAssetReasonMapping.query.get(
+            client_archetype_asset_reason_mapping_id
+        )
+    )
+    reason.reason = new_reason
+    db.session.add(reason)
+    db.session.commit()
     return True

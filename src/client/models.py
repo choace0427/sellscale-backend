@@ -704,6 +704,10 @@ class ClientArchetypeAssets(db.Model):
     )
     asset_tags = db.Column(db.ARRAY(db.String), nullable=True)
 
+    num_sends = db.Column(db.Integer, nullable=True)
+    num_opens = db.Column(db.Integer, nullable=True)
+    num_replies = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -714,6 +718,9 @@ class ClientArchetypeAssets(db.Model):
             "asset_type": self.asset_type and self.asset_type.value,
             "asset_tags": self.asset_tags,
             "asset_raw_value": self.asset_raw_value,
+            "num_sends": self.num_sends,
+            "num_opens": self.num_opens,
+            "num_replies": self.num_replies,
         }
 
 

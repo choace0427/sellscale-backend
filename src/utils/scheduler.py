@@ -388,6 +388,13 @@ def run_hourly_backfill_last_reply_dates_for_conversations_in_last_day():
         backfill_last_reply_dates_for_conversations_in_last_day.delay()
 
 
+def run_hourly_backfill_asset_analytics():
+    from src.analytics.services_asset_analytics import backfill_all_assets_analytics
+
+    if is_scheduling_instance():
+        backfill_all_assets_analytics.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
@@ -449,6 +456,7 @@ scheduler.add_job(
     trigger="interval",
     hours=1,
 )
+scheduler.add_job(func=run_hourly_backfill_asset_analytics, trigger="interval", hours=1)
 scheduler.add_job(
     func=update_all_phantom_buster_run_statuses_job, trigger="interval", hours=1
 )

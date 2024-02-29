@@ -20,6 +20,7 @@ from src.client.services import (
     get_available_times_via_calendly,
     get_client_assets,
     get_tam_data,
+    modify_client_archetype_reason_mapping,
     msg_analytics_report,
     remove_prospects_caught_by_filters,
     toggle_client_sdr_auto_send_email_campaign,
@@ -2982,6 +2983,7 @@ def post_create_archetype_asset(client_sdr_id: int):
     )
 
     asset_dict = create_archetype_asset(
+        client_sdr_id=client_sdr_id,
         client_id=client_id,
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
@@ -3046,6 +3048,19 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     return "OK", 200
 
 
+@CLIENT_BLUEPRINT.route("/asset/reason/<int:reason_id>", methods=["PATCH"])
+@require_user
+def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
+    new_reason = get_request_parameter(
+        "reason", request, json=True, required=True, parameter_type=str
+    )
+    modify_client_archetype_reason_mapping(
+        client_archetype_asset_reason_mapping_id=reason_id, new_reason=new_reason
+    )
+
+    return jsonify({"status": "success"}), 200
+
+
 @CLIENT_BLUEPRINT.route("/update_asset", methods=["POST"])
 @require_user
 def update_asset_endpoint(client_sdr_id: int):
@@ -3081,7 +3096,6 @@ def update_asset_endpoint(client_sdr_id: int):
 
 @CLIENT_BLUEPRINT.route("/query_gpt_v", methods=["POST"])
 def post_query_gpt_v_endpoint():
-
     message = get_request_parameter("message", request, json=True, required=True)
     webpage_url = get_request_parameter(
         "webpage_url", request, json=True, required=False, parameter_type=str

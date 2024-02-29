@@ -160,9 +160,12 @@ def post_ai_request(client_sdr_id: int):
     ai_request = get_request_parameter(
         "content", request, json=True, required=True, parameter_type=str
     )
+    days_till_due = get_request_parameter(
+        "days_till_due", request, json=True, required=False, parameter_type=int
+    )
 
     # Uses the service function to create the AI Request object
-    new_request = create_ai_requests(client_sdr_id, ai_request)
+    new_request = create_ai_requests(client_sdr_id, ai_request, days_till_due)
 
     # If the new_request object exists, assumes it's successful
     if new_request:

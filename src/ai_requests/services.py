@@ -11,7 +11,7 @@ from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack util
 from src.client.models import Client, ClientSDR
 
 
-def create_ai_requests(client_sdr_id, description):
+def create_ai_requests(client_sdr_id, description, days_till_due=1):
     try:
         # Generate title using GPT-3.5
         title = generate_title_with_gpt(description)
@@ -23,7 +23,7 @@ def create_ai_requests(client_sdr_id, description):
             description=description,
             percent_complete=0,
             creation_date=datetime.utcnow(),
-            due_date=datetime.utcnow() + timedelta(days=1),
+            due_date=datetime.utcnow() + timedelta(days=days_till_due),
             status=AIRequestStatus.QUEUED,
             message="",
         )

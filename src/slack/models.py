@@ -15,6 +15,7 @@ class SlackNotificationType(Enum):
     LINKEDIN_PROSPECT_REMOVED = "LINKEDIN_PROSPECT_REMOVED"
     LINKEDIN_DEMO_SET = "LINKEDIN_DEMO_SET"
     LINKEDIN_AI_REPLY = "LINKEDIN_AI_REPLY"
+    LINKEDIN_MULTI_THREAD = "LINKEDIN_MULTI_THREAD"
 
     # EMAIL
     AI_REPLY_TO_EMAIL = "AI_REPLY_TO_EMAIL"
@@ -29,6 +30,7 @@ class SlackNotificationType(Enum):
     CAMPAIGN_ACTIVATED = "CAMPAIGN_ACTIVATED"
     PROSPECT_ADDED = "PROSPECT_ADDED"
     PROSPECT_SNOOZED = "PROSPECT_SNOOZED"
+    ASSET_CREATED = "ASSET_CREATED"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -96,6 +98,10 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.prospect_snoozed import (
         ProspectSnoozedNotification,
     )
+    from src.slack.notifications.linkedin_multithread import (
+        LinkedInMultiThreadNotification,
+    )
+    from src.slack.notifications.asset_created import AssetCreatedNotification
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
@@ -144,6 +150,12 @@ def get_slack_notification_type_metadata():
             "name": "LinkedIn Disconnected",
             "description": "A Slack notification that is sent when your LinkedIn account is disconnected from SellScale.",
             "class": LinkedInConnectionDisconnected,
+            "outbound_channel": "linkedin",
+        },
+        SlackNotificationType.LINKEDIN_MULTI_THREAD: {
+            "name": "Linkedin Multi Thread",
+            "description": "A Slack notification that is sent when a Prospect refers you to another person on LinkedIn",
+            "class": LinkedInMultiThreadNotification,
             "outbound_channel": "linkedin",
         },
         SlackNotificationType.AI_REPLY_TO_EMAIL: {
@@ -204,6 +216,12 @@ def get_slack_notification_type_metadata():
             "name": "Prospect Snoozed",
             "description": "A Slack notification that is sent whenever Prospects are snoozed",
             "class": ProspectSnoozedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.ASSET_CREATED: {
+            "name": "Asset Created",
+            "description": "A Slack notification that is sent whenever an asset is created.",
+            "class": AssetCreatedNotification,
             "outbound_channel": "all",
         },
     }

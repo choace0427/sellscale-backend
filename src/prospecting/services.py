@@ -2850,61 +2850,71 @@ def send_li_referral_outreach_connection(prospect_id: int, message: str) -> bool
     # Send a Slack message notifying that a message has been queued for outreach for the referred prospect
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     message_to_referred = gm.completion
-    send_slack_message(
-        message=f"SellScale just multi-threaded",
-        webhook_urls=[
-            URL_MAP["company-pipeline"],
-            client.pipeline_notifications_webhook_url,
-        ],
-        blocks=[
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🧵 SellScale just multi-threaded",
-                    "emoji": True,
-                },
-            },
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "SellScale is reaching out to *{referred_name} ({referred_company})* through a referral from *{referral_name} ({referral_company})* on behalf of *{sdr_name}* for *{archetype_name}*".format(
-                            referral_name=prospect_referring.full_name,
-                            referral_company=prospect_referring.company,
-                            referred_name=prospect_referred.full_name,
-                            referred_company=prospect_referred.company,
-                            sdr_name=client_sdr.name,
-                            archetype_name=archetype.archetype,
-                        ),
-                    }
-                ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*😴 Original Contact*: {referral_name} ({referral_company})\n*Message from Contact*: ```{referral_message}```".format(
-                        referral_name=prospect_referring.full_name,
-                        referral_company=prospect_referring.company,
-                        referral_message=prospect_referring.li_last_message_from_prospect,
-                    ),
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*🆕 New Contact*: {referred_name} ({referred_company})\n*Outreach to new contact*: ```{referred_message}```".format(
-                        referred_name=prospect_referred.full_name,
-                        referred_company=prospect_referred.company,
-                        referred_message=message_to_referred,
-                    ),
-                },
-            },
-        ],
+
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.LINKEDIN_MULTI_THREAD,
+        arguments={
+            "client_sdr_id": client_sdr.id,
+            "referred_prospect_id": prospect_id,
+            "generated_message_id": generated_message_id,
+        },
     )
+
+    # send_slack_message(
+    #     message=f"SellScale just multi-threaded",
+    #     webhook_urls=[
+    #         URL_MAP["company-pipeline"],
+    #         client.pipeline_notifications_webhook_url,
+    #     ],
+    #     blocks=[
+    #         {
+    #             "type": "header",
+    #             "text": {
+    #                 "type": "plain_text",
+    #                 "text": "🧵 SellScale just multi-threaded",
+    #                 "emoji": True,
+    #             },
+    #         },
+    #         {
+    #             "type": "context",
+    #             "elements": [
+    #                 {
+    #                     "type": "mrkdwn",
+    #                     "text": "SellScale is reaching out to *{referred_name} ({referred_company})* through a referral from *{referral_name} ({referral_company})* on behalf of *{sdr_name}* for *{archetype_name}*".format(
+    #                         referral_name=prospect_referring.full_name,
+    #                         referral_company=prospect_referring.company,
+    #                         referred_name=prospect_referred.full_name,
+    #                         referred_company=prospect_referred.company,
+    #                         sdr_name=client_sdr.name,
+    #                         archetype_name=archetype.archetype,
+    #                     ),
+    #                 }
+    #             ],
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*😴 Original Contact*: {referral_name} ({referral_company})\n*Message from Contact*: ```{referral_message}```".format(
+    #                     referral_name=prospect_referring.full_name,
+    #                     referral_company=prospect_referring.company,
+    #                     referral_message=prospect_referring.li_last_message_from_prospect,
+    #                 ),
+    #             },
+    #         },
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "*🆕 New Contact*: {referred_name} ({referred_company})\n*Outreach to new contact*: ```{referred_message}```".format(
+    #                     referred_name=prospect_referred.full_name,
+    #                     referred_company=prospect_referred.company,
+    #                     referred_message=message_to_referred,
+    #                 ),
+    #             },
+    #         },
+    #     ],
+    # )
 
     return True
 
