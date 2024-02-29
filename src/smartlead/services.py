@@ -1385,3 +1385,27 @@ def smartlead_update_prospect_status(
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
     return True, "Success"
+
+
+def toggle_email_account_for_archetype(
+    archetype_id: int, email_account_ids: list[str], enable: bool
+) -> tuple[bool, str]:
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype.smartlead_campaign_id:
+        return False, "No Smartlead campaign ID found"
+
+    sl = Smartlead()
+
+    if enable:
+        result = sl.add_email_account_to_campaign(
+            campaign_id=archetype.smartlead_campaign_id,
+            email_account_ids=email_account_ids,
+        )
+    else:
+        result = sl.remove_email_account_from_campaign(
+            campaign_id=archetype.smartlead_campaign_id,
+            email_account_ids=email_account_ids,
+        )
+
+    return result.get("ok", False), result.get("message", "")

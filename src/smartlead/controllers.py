@@ -11,6 +11,7 @@ from src.smartlead.services import (
     smartlead_reply_to_prospect,
     set_campaign_id,
     sync_campaign_leads_for_sdr,
+    toggle_email_account_for_archetype,
     update_smartlead_campaign_tracking_settings,
 )
 from app import db
@@ -273,3 +274,28 @@ def get_archetype_emails_endpoint(client_sdr_id: int):
     emails = get_archetype_emails(archetype_id=archetype_id)
 
     return jsonify({"message": "Success", "data": emails}), 200
+
+
+@SMARTLEAD_BLUEPRINT.route("/toggle_email_accounts", methods=["POST"])
+@require_user
+def post_toggle_email_accounts_endpoint(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    email_account_ids = get_request_parameter(
+        "email_account_ids", request, json=True, required=True, parameter_type=list
+    )
+    active = get_request_parameter(
+        "active", request, json=True, required=True, parameter_type=bool
+    )
+
+    success, msg = toggle_email_account_for_archetype(
+        archetype_id=archetype_id,
+        email_account_ids=email_account_ids,
+        active=active,
+    )
+
+    return (
+        jsonify({"message": "Success", "data": {"success": success, "message": msg}}),
+        200,
+    )

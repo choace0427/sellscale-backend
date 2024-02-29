@@ -687,3 +687,21 @@ class Smartlead:
             time.sleep(self.DELAY_SECONDS)
             return self.deactivate_email_account(email_account_id)
         return response.json()
+
+    def remove_email_account_from_campaign(
+        self, campaign_id: int, email_account_ids: list[str]
+    ):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
+        response = requests.delete(
+            url,
+            headers={
+                "Content-Type": "application/json",
+            },
+            json={"email_account_ids": email_account_ids},
+        )
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.remove_email_account_from_campaign(
+                campaign_id, email_account_ids
+            )
+        return response.json()
