@@ -292,7 +292,7 @@ def post_toggle_email_accounts_endpoint(client_sdr_id: int):
     success, msg = toggle_email_account_for_archetype(
         archetype_id=archetype_id,
         email_account_ids=email_account_ids,
-        active=active,
+        enable=active,
     )
 
     return (
