@@ -49,6 +49,7 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                 "prospect_name": "John Doe",
                 "prospect_title": "CEO",
                 "prospect_company": "SomeCompany",
+                "prospect_icp_score_reason": "(✅ title: CEO, ✅ company: SomeCompany)",
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
@@ -73,6 +74,7 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                 "prospect_name": prospect.full_name,
                 "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
+                "prospect_icp_score_reason": prospect.icp_fit_reason,
                 "archetype_name": client_archetype.archetype,
                 "archetype_emoji": (
                     client_archetype.emoji if client_archetype.emoji else "-"
@@ -98,6 +100,7 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
         prospect_name = fields.get("prospect_name")
         prospect_title = fields.get("prospect_title")
         prospect_company = fields.get("prospect_company")
+        prospect_icp_score_reason = fields.get("prospect_icp_score_reason")
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
         direct_link = fields.get("direct_link")
@@ -184,6 +187,19 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                             "emoji": True,
                         },
                     ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "{icp_score_reason}".format(
+                            icp_score_reason=(
+                                prospect_icp_score_reason
+                                if prospect_icp_score_reason
+                                else ""
+                            ),
+                        ),
+                    },
                 },
                 {
                     "type": "section",
