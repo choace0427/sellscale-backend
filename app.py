@@ -70,32 +70,27 @@ def make_celery(app):
         "queue_order_strategy": "priority",
     }
 
+    # These configs will be applied across all Celery instances
+
     default_exchange = Exchange("default", type="direct")
-    prospecting_exchange = Exchange("prospecting", type="direct")
-    ml_prospect_classification_exchange = Exchange(
-        "ml_prospect_classification", type="direct"
-    )
-    message_generation_exchange = Exchange("message_generation", type="direct")
-    email_scheduler = Exchange("email_scheduler", type="direct")
+    # prospecting_exchange = Exchange("prospecting", type="direct")
+    # message_generation_exchange = Exchange("message_generation", type="direct")
+    # email_scheduler = Exchange("email_scheduler", type="direct")
     celery.conf.task_queues = (
         Queue("default", default_exchange, routing_key="default"),
-        Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
-        Queue(
-            "ml_prospect_classification",
-            ml_prospect_classification_exchange,
-            routing_key="ml_prospect_classification",
-        ),
-        Queue(
-            "message_generation",
-            message_generation_exchange,
-            routing_key="message_generation",
-        ),
-        Queue(
-            "email_scheduler",
-            email_scheduler,
-            routing_key="email_scheduler",
-        ),
     )
+    #     Queue("prospecting", prospecting_exchange, routing_key="prospecting"),
+    #     Queue(
+    #         "message_generation",
+    #         message_generation_exchange,
+    #         routing_key="message_generation",
+    #     ),
+    #     Queue(
+    #         "email_scheduler",
+    #         email_scheduler,
+    #         routing_key="email_scheduler",
+    #     ),
+    # )
     celery.conf.task_default_queue = "default"
     celery.conf.task_default_exchange = "default"
     celery.conf.task_default_routing_key = "default"

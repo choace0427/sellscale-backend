@@ -488,8 +488,8 @@ def trigger_icp_classification(
             countdown = float(index * 6)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
-                queue="ml_prospect_classification",
-                routing_key="ml_prospect_classification",
+                queue="icp_scoring",
+                routing_key="icp_scoring",
                 priority=1,
             )
     else:
@@ -505,8 +505,8 @@ def trigger_icp_classification(
             countdown = float(index * 6)
             mark_queued_and_classify.apply_async(
                 args=[client_sdr_id, archetype_id, prospect_id, countdown],
-                queue="ml_prospect_classification",
-                routing_key="ml_prospect_classification",
+                queue="icp_scoring",
+                routing_key="icp_scoring",
                 priority=1,
             )
     return True
@@ -574,8 +574,8 @@ def mark_queued_and_classify(
     icp_classify.apply_async(
         args=[prospect.id, client_sdr_id, archetype_id],
         countdown=countdown,
-        queue="ml_prospect_classification",
-        routing_key="ml_prospect_classification",
+        queue="icp_scoring",
+        routing_key="icp_scoring",
         priority=2,
     )
 
@@ -1297,9 +1297,9 @@ def determine_account_research_from_convo_and_bump_framework(
     for message in convo_history:
         messages.append(
             {
-                "role": "user"
-                if message.get("connection_degree") == "You"
-                else "assistant",
+                "role": (
+                    "user" if message.get("connection_degree") == "You" else "assistant"
+                ),
                 "content": message.get("message", ""),
             }
         )

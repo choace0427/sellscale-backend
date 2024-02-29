@@ -67,8 +67,8 @@ PROCESS_TYPE_MAP = {
     "convert_to_prospect": {
         "function": convert_to_prospect,
         "priority": 10,
-        "queue": "individual-to-prospect",
-        "routing_key": "individual-to-prospect",
+        "queue": "prospecting",
+        "routing_key": "prospecting",
     },
     "populate_email_messaging_schedule_entries": {
         "function": populate_email_messaging_schedule_entries,
