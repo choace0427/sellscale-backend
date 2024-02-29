@@ -1087,19 +1087,18 @@ def get_client_archetype_stats(client_archetype_id):
 
 
 def fetch_archetype_assets(client_archetype_id: int):
-
     assets_query = """
       select
-        client_archetype_assets.asset_key "title",
-        client_archetype_assets.asset_value "value",
-        client_archetype_asset_reason_mapping.reason "reason",
-        client_archetype_assets.id "id"
-      from client_archetype_assets
-        left join client_archetype_asset_reason_mapping 
-          on client_archetype_asset_reason_mapping.client_archetype_asset_id = client_archetype_assets.id
-              and client_archetype_asset_reason_mapping.client_archetype_id = {ARCHETYPE_ID}
-      where 
-        {ARCHETYPE_ID} = any(client_archetype_assets.client_archetype_ids);
+        client_assets.asset_key "title",
+        client_assets.asset_value "value",
+        client_asset_archetype_reason_mapping.reason "reason",
+        client_assets.id "id"
+      from client_assets
+        left join client_asset_archetype_reason_mapping
+          on client_asset_archetype_reason_mapping.client_asset_id = client_assets.id
+              and client_asset_archetype_reason_mapping.client_archetype_id = {ARCHETYPE_ID}
+      where
+        {ARCHETYPE_ID} = any(client_assets.client_archetype_ids);
     """.format(
         ARCHETYPE_ID=client_archetype_id
     )

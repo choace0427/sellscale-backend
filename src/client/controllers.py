@@ -16,7 +16,7 @@ from src.client.services import (
     create_archetype_asset,
     create_client_archetype_reason_mapping,
     delete_archetype_asset,
-    delete_client_archetype_asset_mapping,
+    delete_client_asset_archetype_mapping,
     get_available_times_via_calendly,
     get_client_assets,
     get_tam_data,
@@ -157,8 +157,8 @@ from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.client.models import (
     ClientArchetype,
-    ClientArchetypeAssetType,
-    ClientArchetypeAssets,
+    ClientAssetType,
+    ClientAssets,
     ClientSDR,
     Client,
     DemoFeedback,
@@ -2988,7 +2988,7 @@ def post_create_archetype_asset(client_sdr_id: int):
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,
         asset_value=asset_value,
-        asset_type=asset_type or ClientArchetypeAssetType.TEXT,
+        asset_type=asset_type or ClientAssetType.TEXT,
         asset_tags=asset_tags or [],
         asset_raw_value=asset_raw_value or asset_value,
     )
@@ -3037,11 +3037,11 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     if not reason:
         reason = ""
 
-    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+    asset: ClientAssets = ClientAssets.query.filter_by(
         id=asset_id, client_id=client_id
     ).first()
     if asset.client_archetype_ids and client_archetype_id in asset.client_archetype_ids:
-        delete_client_archetype_asset_mapping(client_archetype_id, asset_id)
+        delete_client_asset_archetype_mapping(client_archetype_id, asset_id)
     else:
         create_client_archetype_reason_mapping(client_archetype_id, asset_id, reason)
 
@@ -3055,7 +3055,7 @@ def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
         "reason", request, json=True, required=True, parameter_type=str
     )
     modify_client_archetype_reason_mapping(
-        client_archetype_asset_reason_mapping_id=reason_id, new_reason=new_reason
+        client_asset_archetype_reason_mapping_id=reason_id, new_reason=new_reason
     )
 
     return jsonify({"status": "success"}), 200

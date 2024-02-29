@@ -6,7 +6,7 @@ from model_import import (
     EmailSubjectLineTemplate,
 )
 from app import db
-from src.client.models import ClientArchetype, ClientArchetypeAssets
+from src.client.models import ClientArchetype, ClientAssets
 from src.email_outbound.models import ProspectEmail
 from src.email_sequencing.models import (
     EmailGraderEntry,
@@ -192,7 +192,7 @@ def create_email_sequence_step(
             try:
                 create_email_sequence_step_asset_mapping(
                     email_sequence_step_id=sequence_step_id,
-                    client_archetype_assets_id=asset_id,
+                    client_assets_id=asset_id,
                 )
             except:
                 db.session.rollback()
@@ -1202,11 +1202,11 @@ Output:""",
 
 
 def create_email_sequence_step_asset_mapping(
-    email_sequence_step_id: int, client_archetype_assets_id: int
+    email_sequence_step_id: int, client_assets_id: int
 ):
     mapping: EmailSequenceStepToAssetMapping = EmailSequenceStepToAssetMapping(
         email_sequence_step_id=email_sequence_step_id,
-        client_archetype_assets_id=client_archetype_assets_id,
+        client_assets_id=client_assets_id,
     )
     db.session.add(mapping)
     db.session.commit()
@@ -1230,24 +1230,21 @@ def delete_email_sequence_step_asset_mapping(
 
 
 def get_all_email_sequence_step_assets(email_sequence_step_id: int):
-    mappings: list[EmailSequenceStepToAssetMapping] = (
-        EmailSequenceStepToAssetMapping.query.filter(
-            EmailSequenceStepToAssetMapping.email_sequence_step_id
-            == email_sequence_step_id
-        ).all()
-    )
-    asset_ids = [mapping.client_archetype_assets_id for mapping in mappings]
-    assets: ClientArchetypeAssets = ClientArchetypeAssets.query.filter(
-        ClientArchetypeAssets.id.in_(asset_ids)
+    mappings: list[
+        EmailSequenceStepToAssetMapping
+    ] = EmailSequenceStepToAssetMapping.query.filter(
+        EmailSequenceStepToAssetMapping.email_sequence_step_id == email_sequence_step_id
+    ).all()
+    asset_ids = [mapping.client_assets_id for mapping in mappings]
+    assets: ClientAssets = ClientAssets.query.filter(
+        ClientAssets.id.in_(asset_ids)
     ).all()
     asset_dicts = [asset.to_dict() for asset in assets]
 
     # add 'mapping_id' to each asset
     for i, asset in enumerate(asset_dicts):
         correct_mapping = next(
-            mapping
-            for mapping in mappings
-            if mapping.client_archetype_assets_id == asset["id"]
+            mapping for mapping in mappings if mapping.client_assets_id == asset["id"]
         )
         asset["mapping_id"] = correct_mapping.id
 

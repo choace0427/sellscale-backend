@@ -1,4 +1,4 @@
-from src.client.models import ClientArchetypeAssets, ClientArchetypeAssetReasonMapping
+from src.client.models import ClientAssets, ClientAssetArchetypeReasonMapping
 from model_import import EmailSequenceStep
 from app import db, celery
 
@@ -9,22 +9,20 @@ class AnalyticsComponents:
     num_replies: int
 
 
-def get_email_sequence_analytics(client_archetype_asset_id: int) -> AnalyticsComponents:
+def get_email_sequence_analytics(client_asset_id: int) -> AnalyticsComponents:
     query = """
-    select 
+    select
         sum(email_sequence_step.times_used) times_used,
         sum(email_sequence_step.times_accepted) times_accepted,
         sum(email_sequence_step.times_replied) times_replied
     from email_sequence_step
         left join email_sequence_step_to_asset_mapping on email_sequence_step_to_asset_mapping.email_sequence_step_id = email_sequence_step.id
-        left join client_archetype_assets on client_archetype_assets.id = email_sequence_step_to_asset_mapping.client_archetype_assets_id
-    where 
-        client_archetype_assets.id = :client_archetype_asset_id
+        left join client_assets on client_assets.id = email_sequence_step_to_asset_mapping.client_assets_id
+    where
+        client_assets.id = :client_asset_id
     """
 
-    result = db.session.execute(
-        query, {"client_archetype_asset_id": client_archetype_asset_id}
-    ).fetchone()
+    result = db.session.execute(query, {"client_asset_id": client_asset_id}).fetchone()
 
     analytics = AnalyticsComponents()
     analytics.num_sends = result[0]
@@ -34,12 +32,12 @@ def get_email_sequence_analytics(client_archetype_asset_id: int) -> AnalyticsCom
     return analytics
 
 
-def backfill_asset_analytics(client_archetype_asset_id: int):
-    asset = ClientArchetypeAssets.query.get(client_archetype_asset_id)
+def backfill_asset_analytics(client_asset_id: int):
+    asset = ClientAssets.query.get(client_asset_id)
     if asset is None:
         return
 
-    email_sequence_analytics = get_email_sequence_analytics(client_archetype_asset_id)
+    email_sequence_analytics = get_email_sequence_analytics(client_asset_id)
 
     asset.num_sends = email_sequence_analytics.num_sends or 0
     asset.num_opens = email_sequence_analytics.num_opens or 0
@@ -52,6 +50,6 @@ def backfill_asset_analytics(client_archetype_asset_id: int):
 
 @celery.task
 def backfill_all_assets_analytics():
-    assets = ClientArchetypeAssets.query.all()
+    assets = ClientAssets.query.all()
     for asset in assets:
         backfill_asset_analytics(asset.id)

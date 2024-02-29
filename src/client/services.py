@@ -40,10 +40,10 @@ from model_import import DemoFeedback, BumpFramework
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 from src.client.models import (
-    ClientArchetypeAssetType,
-    ClientArchetypeAssets,
+    ClientAssetType,
+    ClientAssets,
     ClientProduct,
-    ClientArchetypeAssetReasonMapping,
+    ClientAssetArchetypeReasonMapping,
 )
 from sqlalchemy import or_
 from click import Option
@@ -4702,14 +4702,14 @@ def create_archetype_asset(
     client_archetype_ids: list[int],
     asset_key: str,
     asset_value: str,
-    asset_type: ClientArchetypeAssetType,
+    asset_type: ClientAssetType,
     asset_tags: list[str],
     asset_raw_value: str,
 ):
     """
     Creates an asset for a client archetype
     """
-    asset: ClientArchetypeAssets = ClientArchetypeAssets(
+    asset: ClientAssets = ClientAssets(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids,
         asset_key=asset_key,
@@ -4734,23 +4734,13 @@ def create_archetype_asset(
     return asset.to_dict()
 
 
-def get_archetype_assets(client_archetype_id: int):
-    """
-    Gets all assets for a client archetype
-    """
-    assets = ClientArchetypeAssets.query.filter_by(
-        client_archetype_ids.contains([client_archetype_id])
-    ).all()
-    return [asset.to_dict() for asset in assets]
-
-
 def get_client_assets(client_id: int):
     """
     Gets all assets for a client
     """
     assets = (
-        ClientArchetypeAssets.query.filter_by(client_id=client_id)
-        .order_by(ClientArchetypeAssets.created_at.desc())
+        ClientAssets.query.filter_by(client_id=client_id)
+        .order_by(ClientAssets.created_at.desc())
         .all()
     )
     return [asset.to_dict() for asset in assets]
@@ -4761,7 +4751,7 @@ def delete_archetype_asset(asset_id: int, client_sdr_id: int):
     Deletes an asset for a client archetype
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    asset = ClientArchetypeAssets.query.filter_by(
+    asset = ClientAssets.query.filter_by(
         id=asset_id, client_id=client_sdr.client_id
     ).first()
     if not asset:
@@ -4776,7 +4766,7 @@ def update_asset(
     client_sdr_id: int,
     asset_key: Optional[str] = None,
     asset_value: Optional[str] = None,
-    asset_type: Optional[ClientArchetypeAssetType] = None,
+    asset_type: Optional[ClientAssetType] = None,
     asset_tags: Optional[list[str]] = None,
     asset_raw_value: Optional[str] = None,
 ):
@@ -4784,7 +4774,7 @@ def update_asset(
     Updates an asset for a client archetype
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+    asset: ClientAssets = ClientAssets.query.filter_by(
         id=asset_id, client_id=client_sdr.client_id
     ).first()
     if not asset:
@@ -4804,15 +4794,15 @@ def update_asset(
     return True
 
 
-def delete_client_archetype_asset_mapping(
+def delete_client_asset_archetype_mapping(
     client_archetype_id: int,
     asset_id: int,
 ):
     """
     Deletes an asset for a client archetype
     """
-    asset = ClientArchetypeAssetReasonMapping.query.filter_by(
-        client_archetype_id=client_archetype_id, client_archetype_asset_id=asset_id
+    asset = ClientAssetArchetypeReasonMapping.query.filter_by(
+        client_archetype_id=client_archetype_id, client_asset_id=asset_id
     ).all()
     for a in asset:
         db.session.delete(a)
@@ -4821,7 +4811,7 @@ def delete_client_archetype_asset_mapping(
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_id = client_archetype.client_id
 
-    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+    asset: ClientAssets = ClientAssets.query.filter_by(
         id=asset_id, client_id=client_id
     ).first()
     asset.client_archetype_ids.remove(client_archetype_id)
@@ -4840,9 +4830,9 @@ def create_client_archetype_reason_mapping(
     """
     Creates a reason for a client archetype
     """
-    reason = ClientArchetypeAssetReasonMapping(
+    reason = ClientAssetArchetypeReasonMapping(
         client_archetype_id=client_archetype_id,
-        client_archetype_asset_id=asset_id,
+        client_asset_id=asset_id,
         reason=reason,
     )
     db.session.add(reason)
@@ -4850,7 +4840,7 @@ def create_client_archetype_reason_mapping(
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_id = client_archetype.client_id
 
-    asset: ClientArchetypeAssets = ClientArchetypeAssets.query.filter_by(
+    asset: ClientAssets = ClientAssets.query.filter_by(
         id=asset_id, client_id=client_id
     ).first()
     asset.client_archetype_ids.append(client_archetype_id)
@@ -4862,15 +4852,15 @@ def create_client_archetype_reason_mapping(
 
 
 def modify_client_archetype_reason_mapping(
-    client_archetype_asset_reason_mapping_id: int,
+    client_asset_archetype_reason_mapping_id: int,
     new_reason: str,
 ) -> bool:
     """
     Modifies a reason for a client archetype
     """
-    reason: ClientArchetypeAssetReasonMapping = (
-        ClientArchetypeAssetReasonMapping.query.get(
-            client_archetype_asset_reason_mapping_id
+    reason: ClientAssetArchetypeReasonMapping = (
+        ClientAssetArchetypeReasonMapping.query.get(
+            client_asset_archetype_reason_mapping_id
         )
     )
     reason.reason = new_reason

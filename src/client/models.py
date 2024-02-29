@@ -201,9 +201,9 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[GeneratedMessageCTA] = (
-            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
-        )
+        ctas: list[
+            GeneratedMessageCTA
+        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
 
         return {
             "id": self.id,
@@ -682,14 +682,14 @@ class PLGProductLeads(db.Model):
 # asset type: PDF, TEXT, URL
 
 
-class ClientArchetypeAssetType(enum.Enum):
+class ClientAssetType(enum.Enum):
     PDF = "PDF"
     TEXT = "TEXT"
     URL = "URL"
 
 
-class ClientArchetypeAssets(db.Model):
-    __tablename__ = "client_archetype_assets"
+class ClientAssets(db.Model):
+    __tablename__ = "client_assets"
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -700,7 +700,7 @@ class ClientArchetypeAssets(db.Model):
     asset_raw_value = db.Column(db.String)
 
     asset_type = db.Column(
-        sa.Enum(ClientArchetypeAssetType, create_constraint=False), nullable=True
+        sa.Enum(ClientAssetType, create_constraint=False), nullable=True
     )
     asset_tags = db.Column(db.ARRAY(db.String), nullable=True)
 
@@ -724,13 +724,13 @@ class ClientArchetypeAssets(db.Model):
         }
 
 
-class ClientArchetypeAssetReasonMapping(db.Model):
-    __tablename__ = "client_archetype_asset_reason_mapping"
+class ClientAssetArchetypeReasonMapping(db.Model):
+    __tablename__ = "client_asset_archetype_reason_mapping"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    client_archetype_asset_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype_assets.id"), nullable=False
+    client_asset_id = db.Column(
+        db.Integer, db.ForeignKey("client_assets.id"), nullable=False
     )
     client_archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
@@ -740,7 +740,7 @@ class ClientArchetypeAssetReasonMapping(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "client_archetype_asset_id": self.client_archetype_asset_id,
+            "client_asset_id": self.client_asset_id,
             "client_archetype_id": self.client_archetype_id,
             "reason": self.reason,
         }
