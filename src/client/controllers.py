@@ -2983,6 +2983,7 @@ def post_create_archetype_asset(client_sdr_id: int):
     )
 
     asset_dict = create_archetype_asset(
+        client_sdr_id=client_sdr_id,
         client_id=client_id,
         client_archetype_ids=client_archetype_ids or [],
         asset_key=asset_key,

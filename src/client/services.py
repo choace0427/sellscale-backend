@@ -26,6 +26,10 @@ from src.operator_dashboard.models import (
     OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.vision.services import attempt_chat_completion_with_vision
 from src.individual.models import Individual
 from src.prospecting.icp_score.services import update_icp_scoring_ruleset
@@ -4687,6 +4691,7 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
+    client_sdr_id: int,
     client_id: int,
     client_archetype_ids: list[int],
     asset_key: str,
@@ -4709,6 +4714,15 @@ def create_archetype_asset(
     )
     db.session.add(asset)
     db.session.commit()
+
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.ASSET_CREATED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "asset_name": asset_key,
+            "asset_tags": asset_tags,
+        },
+    )
 
     return asset.to_dict()
 
