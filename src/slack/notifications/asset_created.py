@@ -23,10 +23,12 @@ class AssetCreatedNotification(SlackNotificationClass):
         developer_mode: Optional[bool] = False,
         asset_name: Optional[str] = None,
         asset_tags: Optional[str] = None,
+        ai_summary: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.asset_name = asset_name
         self.asset_tags = asset_tags
+        self.ai_summary = ai_summary
 
         return
 
@@ -47,6 +49,7 @@ class AssetCreatedNotification(SlackNotificationClass):
             return {
                 "asset_name": "Fortune 500 Case Study",
                 "asset_tags": "Case Study | Fortune 500",
+                "ai_summary": "A Fortune 500 company greatly benefited by using this product. They saw an increase in all valuable metrics by over 50%. The CEO of the company was very pleased and has provided a testimonial.",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=analytics".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -63,6 +66,7 @@ class AssetCreatedNotification(SlackNotificationClass):
                     if (self.asset_tags and len(self.asset_tags) > 0)
                     else "_No tags_"
                 ),
+                "ai_summary": self.ai_summary,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=analytics".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -77,8 +81,9 @@ class AssetCreatedNotification(SlackNotificationClass):
         # Get the fields
         asset_name = fields.get("asset_name")
         asset_tags = fields.get("asset_tags")
+        ai_summary = fields.get("ai_summary")
         direct_link = fields.get("direct_link")
-        if not asset_name or not asset_tags or not direct_link:
+        if not asset_name or not asset_tags or not ai_summary or not direct_link:
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
@@ -98,14 +103,20 @@ class AssetCreatedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Your SellScale outreach just got smarter from a new asset.",
+                        "text": "📙 *Name*: _{asset_name}_\n*🏷️ Tags*: {asset_tags}\n*AI Summary*:\n```{ai_summary}```".format(
+                            asset_name=asset_name,
+                            asset_tags=asset_tags,
+                            ai_summary=ai_summary,
+                        ),
                     },
                 },
                 {
                     "type": "context",
                     "elements": [
-                        {"type": "mrkdwn", "text": f"📄 Name: {asset_name}"},
-                        {"type": "mrkdwn", "text": f"🔎 Tags: {asset_tags}"},
+                        {
+                            "type": "mrkdwn",
+                            "text": "SellScale ingested a new asset to be used in outreach.",
+                        },
                     ],
                 },
                 {

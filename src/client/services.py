@@ -4721,6 +4721,7 @@ def create_archetype_asset(
             "client_sdr_id": client_sdr_id,
             "asset_name": asset_key,
             "asset_tags": asset_tags,
+            "ai_summary": asset_value,
         },
     )
 
