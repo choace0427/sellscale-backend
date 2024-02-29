@@ -373,17 +373,27 @@ def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
         list[dict]: A list of email warmings
     """
     sl = Smartlead()
-    warmings = sl.get_emails()
-
     # If a client SDR ID is provided, filter out all warmings that are not for that SDR
     if client_sdr_id:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        warmings = [
-            warming
-            for warming in warmings
-            if warming.get("from_name") == client_sdr.name
-        ]
+        warmings = sl.get_emails(username=client_sdr.name)
+    else:
+        warmings = sl.get_emails()
 
+    return warmings
+
+
+def get_archetype_emails(archetype_id: int) -> list[dict]:
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+
+    if not archetype or not archetype.smartlead_campaign_id:
+        return []
+
+    sl = Smartlead()
+    warmings = sl.get_campaign_email_accounts(
+        campaign_id=archetype.smartlead_campaign_id
+    )
     return warmings
 
 

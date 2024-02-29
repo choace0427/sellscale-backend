@@ -449,6 +449,8 @@ Take appropriate action then mark this message as ✅ (_if this classification w
                 webhook_urls=[URL_MAP["csm-urgent-alerts"]],
             )
 
+            print("Updating prospect status to ACTIVE_CONVO_SCHEDULING")
+
             update_prospect_status_linkedin(
                 prospect_id=prospect_id,
                 new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,

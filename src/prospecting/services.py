@@ -724,6 +724,38 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SCHEDULING.value,
             engagement_metadata=message,
         )
+
+        if client_sdr.meta_data and not client_sdr.meta_data.get(
+            "response_options", {}
+        ).get("use_scheduling", True):
+            from src.operator_dashboard.services import (
+                create_operator_dashboard_entry,
+                OperatorDashboardEntryPriority,
+                OperatorDashboardEntryStatus,
+                OperatorDashboardTaskType,
+            )
+
+            # If the SDR doesn't use scheduling, we create a task for them
+            create_operator_dashboard_entry(
+                client_sdr_id=p.client_sdr_id,
+                urgency=OperatorDashboardEntryPriority.HIGH,
+                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
+                emoji="📋",
+                title="Scheduling needed",
+                subtitle="Please set up a time to demo with {prospect_name}".format(
+                    prospect_name=p.full_name
+                ),
+                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
+                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
+                status=OperatorDashboardEntryStatus.PENDING,
+                due_date=datetime.now() + timedelta(days=2),
+                task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
+                task_data={
+                    "prospect_id": p.id,
+                    "prospect_full_name": p.full_name,
+                },
+            )
+
         if not quietly:
             # Send the notification
             success = create_and_send_slack_notification_class_message(
@@ -733,19 +765,7 @@ def update_prospect_status_linkedin(
                     "prospect_id": p.id,
                 },
             )
-            # scheduling_notification = LinkedinProspectSchedulingNotification(
-            #     client_sdr_id=p.client_sdr_id,
-            #     prospect_id=p.id,
-            # )
-            # success = scheduling_notification.send_notification(preview_mode=False)
 
-            # send_status_change_slack_block(
-            #     outreach_type=ProspectChannels.LINKEDIN,
-            #     prospect=p,
-            #     new_status=ProspectStatus.SCHEDULING,
-            #     custom_message=" is scheduling! 🙏🔥",
-            #     metadata={"threadUrl": p.li_conversation_thread_id},
-            # )
     elif new_status == ProspectStatus.DEMO_SET:
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -809,54 +829,6 @@ def update_prospect_status_linkedin(
             #     custom_message=" set a time to demo!! 🎉🎉🎉",
             #     metadata={"threadUrl": p.li_conversation_thread_id},
             # )
-    elif new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
-        create_engagement_feed_item(
-            client_sdr_id=p.client_sdr_id,
-            prospect_id=p.id,
-            channel_type=ProspectChannels.LINKEDIN.value,
-            engagement_type=EngagementFeedType.SCHEDULING.value,
-            engagement_metadata=message,
-        )
-
-        if client_sdr.meta_data and not client_sdr.meta_data.get(
-            "response_options", {}
-        ).get("use_scheduling", True):
-            from src.operator_dashboard.services import (
-                create_operator_dashboard_entry,
-                OperatorDashboardEntryPriority,
-                OperatorDashboardEntryStatus,
-                OperatorDashboardTaskType,
-            )
-
-            # If the SDR doesn't use scheduling, we create a task for them
-            create_operator_dashboard_entry(
-                client_sdr_id=p.client_sdr_id,
-                urgency=OperatorDashboardEntryPriority.HIGH,
-                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
-                emoji="📋",
-                title="Scheduling needed",
-                subtitle="Please set up a time to demo with {prospect_name}".format(
-                    prospect_name=p.full_name
-                ),
-                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
-                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
-                status=OperatorDashboardEntryStatus.PENDING,
-                due_date=datetime.now() + timedelta(days=2),
-                task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
-                task_data={
-                    "prospect_id": p.id,
-                    "prospect_full_name": p.full_name,
-                },
-            )
-
-        if not quietly:
-            send_status_change_slack_block(
-                outreach_type=ProspectChannels.LINKEDIN,
-                prospect=p,
-                new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
-                custom_message=" is scheduling! 🙏🔥",
-                metadata={"threadUrl": p.li_conversation_thread_id},
-            )
 
     # status jumps
     if (
@@ -2703,9 +2675,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2776,11 +2748,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,

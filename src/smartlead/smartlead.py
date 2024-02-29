@@ -473,8 +473,10 @@ class Smartlead:
             return self.get_campaign_statistics_by_id(campaign_id)
         return response.json()
 
-    def get_emails(self, offset=0, limit=100):
+    def get_emails(self, offset=0, limit=100, username: str = None):
         url = f"{self.BASE_URL}/email-accounts/?api_key={self.api_key}&offset={offset}&limit={limit}"
+        if username:
+            url += f"&username={username}"
         response = requests.get(url)
         if response.status_code == 429:
             time.sleep(self.DELAY_SECONDS)
