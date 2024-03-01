@@ -364,8 +364,12 @@ def populate_email_messaging_schedule_entries(
         client_sdr_id=client_sdr_id,
         client_archetype_id=prospect.archetype_id,
         overall_status=ProspectOverallStatus.ACCEPTED,
+        active=True,
         # default=True,
     ).all()
+    if not accepted_sequence_steps:
+        return [True, email_ids]
+
     accepted_sequence_step: EmailSequenceStep = random.choice(accepted_sequence_steps)
     # Find the ACCEPTED sequence step that does NOT use the same assets. Otherwise default to a random one
     for sequence_step in accepted_sequence_steps:
@@ -423,8 +427,12 @@ def populate_email_messaging_schedule_entries(
             client_sdr_id=client_sdr_id,
             client_archetype_id=prospect.archetype_id,
             bumped_count=followups_created,
+            active=True,
             # default=True,
         ).all()
+        if not bumped_sequence_steps:
+            break
+
         bumped_sequence_step = random.choice(bumped_sequence_steps)
 
         # Find the BUMPED sequence step that does NOT use the same assets. Otherwise default to a random one
