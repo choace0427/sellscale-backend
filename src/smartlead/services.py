@@ -407,14 +407,22 @@ def get_archetype_emails(archetype_id: int) -> list[dict]:
         if email_bank.smartlead_account_id in [warming["id"] for warming in warmings]
     ]
 
-    # Added email bank active status to the warming
-    for warming in warmings:
-        for email_bank in email_banks:
+    # Added warming data to the email bank
+    banks = [email_bank.to_dict() for email_bank in email_banks]
+    for email_bank in banks:
+        for warming in warmings:
             if email_bank.smartlead_account_id == warming["id"]:
-                warming["active"] = email_bank.active
+                email_bank["warming"] = warming
                 break
 
-    return warmings
+    # # Added email bank active status to the warming
+    # for warming in warmings:
+    #     for email_bank in email_banks:
+    #         if email_bank.smartlead_account_id == warming["id"]:
+    #             warming["active"] = email_bank.active
+    #             break
+
+    return banks
 
 
 def get_warmup_percentage(sent_count: int) -> int:
