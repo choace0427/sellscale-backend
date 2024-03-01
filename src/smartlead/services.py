@@ -411,7 +411,7 @@ def get_archetype_emails(archetype_id: int) -> list[dict]:
     banks = [email_bank.to_dict() for email_bank in email_banks]
     for email_bank in banks:
         for warming in warmings:
-            if email_bank.smartlead_account_id == warming["id"]:
+            if email_bank.get("smartlead_account_id") == warming["id"]:
                 email_bank["warming"] = warming
                 break
 
