@@ -155,7 +155,7 @@ def post_create_sequence_step(client_sdr_id: int):
         overall_status=overall_status,
         bumped_count=bumped_count,
         substatus=substatus,
-        default=default,
+        # default=default,
         transformer_blocklist=transformer_blocklist,
     )
     if sequence_step_id:
