@@ -280,6 +280,7 @@ class Smartlead:
         self, campaign_id: int, email_account_ids: list[int]
     ):
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
+
         data = {"email_account_ids": email_account_ids}
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))

@@ -400,11 +400,10 @@ def get_archetype_emails(archetype_id: int) -> list[dict]:
         client_sdr_id=archetype.client_sdr_id,
     ).all()
 
-    # Only show emails banks with a matching warmings id
     email_banks = [
         email_bank
         for email_bank in email_banks
-        if email_bank.smartlead_account_id in [warming["id"] for warming in warmings]
+        if email_bank.smartlead_account_id is not None
     ]
 
     # Added warming data to the email bank
