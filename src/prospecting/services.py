@@ -493,6 +493,100 @@ def update_prospect_status_linkedin(
     from src.daily_notifications.models import EngagementFeedType
     from src.voyager.services import archive_convo
 
+    def apply_realtime_response_engine_rules(
+        prospect_id: int, new_status: ProspectStatus
+    ) -> bool:
+
+        p: Prospect = Prospect.query.get(prospect_id)
+        sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+
+        def has_auto_reply_disabled(sdr: ClientSDR, new_status: ProspectStatus) -> bool:
+
+            sdr.meta_data = sdr.meta_data or {}
+            response_options = sdr.meta_data.get("response_options", {})
+
+            if (
+                not response_options.get("use_objections", True)
+                and new_status == ProspectStatus.ACTIVE_CONVO_OBJECTION
+            ):
+                return True
+
+            if (
+                not response_options.get("use_next_steps", True)
+                and new_status == ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
+            ):
+                return True
+
+            if (
+                not response_options.get("use_revival", True)
+                and new_status == ProspectStatus.ACTIVE_CONVO_REVIVAL
+            ):
+                return True
+
+            if (
+                not response_options.get("use_questions", True)
+                and new_status == ProspectStatus.ACTIVE_CONVO_QUESTION
+            ):
+                return True
+
+            if (
+                not response_options.get("use_circle_back", True)
+                and new_status == ProspectStatus.ACTIVE_CONVO_OOO
+            ):
+                return True
+
+            if (
+                not response_options.get("use_scheduling", True)
+                and new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING
+            ):
+                return True
+
+            return False
+
+        if not has_auto_reply_disabled(sdr, new_status):
+            return False
+
+        # Apply disable rules
+        p.deactivate_ai_engagement = True
+        db.session.add(p)
+        db.session.commit()
+
+        if new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
+
+            from src.operator_dashboard.services import (
+                create_operator_dashboard_entry,
+                OperatorDashboardEntryPriority,
+                OperatorDashboardEntryStatus,
+                OperatorDashboardTaskType,
+            )
+
+            # If the SDR doesn't use scheduling, we create a task for them
+            create_operator_dashboard_entry(
+                client_sdr_id=p.client_sdr_id,
+                urgency=OperatorDashboardEntryPriority.HIGH,
+                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
+                emoji="📋",
+                title="Scheduling needed",
+                subtitle="Please set up a time to demo with {prospect_name}".format(
+                    prospect_name=p.full_name
+                ),
+                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
+                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
+                status=OperatorDashboardEntryStatus.PENDING,
+                due_date=datetime.now() + timedelta(days=2),
+                task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
+                task_data={
+                    "prospect_id": p.id,
+                    "prospect_full_name": p.full_name,
+                },
+            )
+
+        return True
+
+    applied = apply_realtime_response_engine_rules(prospect_id, new_status)
+    if applied:
+        print("Realtime response engine rules applied")
+
     p: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -724,37 +818,6 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SCHEDULING.value,
             engagement_metadata=message,
         )
-
-        if client_sdr.meta_data and not client_sdr.meta_data.get(
-            "response_options", {}
-        ).get("use_scheduling", True):
-            from src.operator_dashboard.services import (
-                create_operator_dashboard_entry,
-                OperatorDashboardEntryPriority,
-                OperatorDashboardEntryStatus,
-                OperatorDashboardTaskType,
-            )
-
-            # If the SDR doesn't use scheduling, we create a task for them
-            create_operator_dashboard_entry(
-                client_sdr_id=p.client_sdr_id,
-                urgency=OperatorDashboardEntryPriority.HIGH,
-                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
-                emoji="📋",
-                title="Scheduling needed",
-                subtitle="Please set up a time to demo with {prospect_name}".format(
-                    prospect_name=p.full_name
-                ),
-                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
-                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
-                status=OperatorDashboardEntryStatus.PENDING,
-                due_date=datetime.now() + timedelta(days=2),
-                task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
-                task_data={
-                    "prospect_id": p.id,
-                    "prospect_full_name": p.full_name,
-                },
-            )
 
         if not quietly:
             # Send the notification
@@ -1112,6 +1175,102 @@ def update_prospect_status_email(
     """
     from src.daily_notifications.services import create_engagement_feed_item
     from src.daily_notifications.models import EngagementFeedType
+
+    def apply_realtime_response_engine_rules(
+        prospect_id: int, new_status: ProspectEmailOutreachStatus
+    ) -> bool:
+
+        p: Prospect = Prospect.query.get(prospect_id)
+        sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+
+        def has_auto_reply_disabled(
+            sdr: ClientSDR, new_status: ProspectEmailOutreachStatus
+        ) -> bool:
+
+            sdr.meta_data = sdr.meta_data or {}
+            response_options = sdr.meta_data.get("response_options", {})
+
+            if (
+                not response_options.get("use_objections", True)
+                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_OBJECTION
+            ):
+                return True
+
+            if (
+                not response_options.get("use_next_steps", True)
+                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS
+            ):
+                return True
+
+            if (
+                not response_options.get("use_revival", True)
+                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL
+            ):
+                return True
+
+            if (
+                not response_options.get("use_questions", True)
+                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION
+            ):
+                return True
+
+            if (
+                not response_options.get("use_circle_back", True)
+                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
+            ):
+                return True
+
+            if (
+                not response_options.get("use_scheduling", True)
+                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING
+            ):
+                return True
+
+            return False
+
+        if not has_auto_reply_disabled(sdr, new_status):
+            return False
+
+        # Apply disable rules
+        p.deactivate_ai_engagement = True
+        db.session.add(p)
+        db.session.commit()
+
+        if new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING:
+
+            from src.operator_dashboard.services import (
+                create_operator_dashboard_entry,
+                OperatorDashboardEntryPriority,
+                OperatorDashboardEntryStatus,
+                OperatorDashboardTaskType,
+            )
+
+            # If the SDR doesn't use scheduling, we create a task for them
+            create_operator_dashboard_entry(
+                client_sdr_id=p.client_sdr_id,
+                urgency=OperatorDashboardEntryPriority.HIGH,
+                tag="scheduling_needed_{prospect_id}".format(prospect_id=p.id),
+                emoji="📋",
+                title="Scheduling needed",
+                subtitle="Please set up a time to demo with {prospect_name}".format(
+                    prospect_name=p.full_name
+                ),
+                cta="Talk to {prospect_name}".format(prospect_name=p.full_name),
+                cta_url="/prospects/{prospect_id}".format(prospect_id=p.id),
+                status=OperatorDashboardEntryStatus.PENDING,
+                due_date=datetime.now() + timedelta(days=2),
+                task_type=OperatorDashboardTaskType.SCHEDULING_FEEDBACK_NEEDED,
+                task_data={
+                    "prospect_id": p.id,
+                    "prospect_full_name": p.full_name,
+                },
+            )
+
+        return True
+
+    applied = apply_realtime_response_engine_rules(prospect_id, new_status)
+    if applied:
+        print("Realtime response engine rules applied")
 
     # Get the prospect and email record
     p: Prospect = Prospect.query.get(prospect_id)
