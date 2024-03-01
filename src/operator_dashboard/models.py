@@ -38,6 +38,8 @@ class OperatorDashboardTaskType(enum.Enum):
     ADD_DNC_FILTERS = "ADD_DNC_FILTERS"
     ADD_CALENDAR_LINK = "ADD_CALENDAR_LINK"
 
+    REP_INTERVENTION_NEEDED = "REP_INTERVENTION_NEEDED"
+
 
 class OperatorDashboardEntry(db.Model):
     __tablename__ = "operator_dashboard_entry"

@@ -9,6 +9,7 @@ from src.operator_dashboard.services import (
     dismiss_task,
     send_task_reminder,
 )
+from src.client.services import create_rep_intervention_needed_operator_dashboard_card
 from sqlalchemy.orm.attributes import flag_modified
 from src.utils.request_helpers import get_request_parameter
 
@@ -122,5 +123,20 @@ def post_update_task_data():
 
     db.session.add(entry)
     db.session.commit()
+
+    return "OK", 200
+
+
+@OPERATOR_DASHBOARD_BLUEPRINT.route("/rep_intervention_needed", methods=["POST"])
+@require_user
+def post_rep_intervention_needed(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True
+    )
+    reason = get_request_parameter("reason", request, json=True, required=True)
+
+    success = create_rep_intervention_needed_operator_dashboard_card(
+        client_sdr_id=client_sdr_id, prospect_id=prospect_id, reason=reason
+    )
 
     return "OK", 200

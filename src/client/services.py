@@ -4687,6 +4687,88 @@ def create_do_not_contact_filters_operator_dashboard_card(client_sdr_id: int):
     return True
 
 
+def create_rep_intervention_needed_operator_dashboard_card(
+    client_sdr_id: int, prospect_id: int, reason: str
+):
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Make dash card
+    create_operator_dashboard_entry(
+        client_sdr_id=client_sdr_id,
+        urgency=OperatorDashboardEntryPriority.HIGH,
+        tag="rep_intervention_needed_{client_sdr_id}_{prospect_id}".format(
+            client_sdr_id=client_sdr_id, prospect_id=prospect_id
+        ),
+        emoji="🚨",
+        title="Intervention Needed: {name}".format(name=prospect.full_name),
+        subtitle=reason,
+        cta="Talk to {prospect_name}".format(prospect_name=prospect.full_name),
+        cta_url="/prospects/{prospect_id}".format(prospect_id=prospect.id),
+        status=OperatorDashboardEntryStatus.PENDING,
+        due_date=datetime.now() + timedelta(days=2),
+        task_type=OperatorDashboardTaskType.REP_INTERVENTION_NEEDED,
+        task_data={
+            "prospect_id": prospect.id,
+            "prospect_full_name": prospect.full_name,
+            "reason": reason,
+        },
+    )
+
+    # Send slack message
+    send_slack_message(
+        message=f"SellScale needs your help responding to a prospect!",
+        webhook_urls=[
+            URL_MAP["csm-urgent-alerts"]
+        ],  # [sdr.pipeline_notifications_webhook_url],
+        blocks=[
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"SellScale needs your help responding to a prospect!",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Prospect:* {prospect.full_name} | *Status:* {prospect.overall_status.value}",
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Most recent message*:\n "
+                        + prospect.li_last_message_from_prospect,
+                    },
+                ],
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*AI Notes:* {reason}",
+                    },
+                ],
+            },
+        ],
+    )
+
+    # Disable AI
+    prospect.deactivate_ai_engagement = True
+    db.session.add(prospect)
+    db.session.commit()
+
+    return True
+
+
 def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sdr.territory_name = territory_name
