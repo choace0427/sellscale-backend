@@ -983,11 +983,11 @@ def get_client_archetype_stats(client_archetype_id):
         bumped_count = x["bumped_count"]
         overall_status = x["overall_status"]
 
-        if overall_status == ProspectOverallStatus.PROSPECTED:
+        if overall_status == "PROSPECTED":
             return 0
-        elif overall_status == ProspectOverallStatus.ACCEPTED:
+        elif overall_status == "ACCEPTED":
             return 1
-        elif overall_status == ProspectOverallStatus.BUMPED:
+        elif overall_status == "BUMPED":
             return bumped_count + 2
         else:
             return 20
