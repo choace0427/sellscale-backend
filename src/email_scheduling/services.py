@@ -19,7 +19,11 @@ from src.email_scheduling.models import (
     EmailMessagingType,
     EmailMessagingStatus,
 )
-from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
+from src.email_sequencing.models import (
+    EmailSequenceStep,
+    EmailSequenceStepToAssetMapping,
+    EmailSubjectLineTemplate,
+)
 from src.message_generation.models import (
     GeneratedMessage,
     GeneratedMessageEmailType,
@@ -346,12 +350,35 @@ def populate_email_messaging_schedule_entries(
     )
 
     # Find the ACCEPTED sequence step
-    accepted_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(
+    # Intelligently choose one. Find the assets used by previous steps
+    mappings: list[
+        EmailSequenceStepToAssetMapping
+    ] = EmailSequenceStepToAssetMapping.query.filter_by(
+        email_sequence_step_id=initial_email_body_template_id
+    ).all()
+    used_asset_ids = [mapping.client_assets_id for mapping in mappings]
+
+    accepted_sequence_steps: list[
+        EmailSequenceStep
+    ] = EmailSequenceStep.query.filter_by(
         client_sdr_id=client_sdr_id,
         client_archetype_id=prospect.archetype_id,
         overall_status=ProspectOverallStatus.ACCEPTED,
-        default=True,
-    ).first()
+        # default=True,
+    ).all()
+    accepted_sequence_step: EmailSequenceStep = random.choice(accepted_sequence_steps)
+    # Find the ACCEPTED sequence step that does NOT use the same assets. Otherwise default to a random one
+    for sequence_step in accepted_sequence_steps:
+        mappings: list[
+            EmailSequenceStepToAssetMapping
+        ] = EmailSequenceStepToAssetMapping.query.filter_by(
+            email_sequence_step_id=sequence_step.id
+        ).all()
+        new_asset_ids = [mapping.client_assets_id for mapping in mappings]
+        if not any(asset_id in used_asset_ids for asset_id in new_asset_ids):
+            accepted_sequence_step = sequence_step
+            used_asset_ids.extend(new_asset_ids)
+            break
     if not accepted_sequence_step:
         return [True, email_ids]
 
@@ -390,12 +417,29 @@ def populate_email_messaging_schedule_entries(
     )
     while followups_created < FOLLOWUP_LIMIT:  # 10 followups max
         # Search for a sequence step that is bumped and has a followup number
-        bumped_sequence_step: EmailSequenceStep = EmailSequenceStep.query.filter_by(
+        bumped_sequence_steps: list[
+            EmailSequenceStep
+        ] = EmailSequenceStep.query.filter_by(
             client_sdr_id=client_sdr_id,
             client_archetype_id=prospect.archetype_id,
             bumped_count=followups_created,
-            default=True,
-        ).first()
+            # default=True,
+        ).all()
+        bumped_sequence_step = random.choice(bumped_sequence_steps)
+
+        # Find the BUMPED sequence step that does NOT use the same assets. Otherwise default to a random one
+        for sequence_step in bumped_sequence_steps:
+            mappings: list[
+                EmailSequenceStepToAssetMapping
+            ] = EmailSequenceStepToAssetMapping.query.filter_by(
+                email_sequence_step_id=sequence_step.id
+            ).all()
+            new_asset_ids = [mapping.client_assets_id for mapping in mappings]
+            if not any(asset_id in used_asset_ids for asset_id in new_asset_ids):
+                bumped_sequence_step = sequence_step
+                used_asset_ids.extend(new_asset_ids)
+                break
+
         if not bumped_sequence_step:
             break
 

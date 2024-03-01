@@ -736,7 +736,7 @@ def import_email_sequence(
             overall_status=status,
             bumped_count=bumped_count,
             active=True,
-            default=True,
+            # default=True,
             mapped_asset_ids=step.get("asset_ids", []),
         )
 

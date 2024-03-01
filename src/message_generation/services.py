@@ -1202,14 +1202,14 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
         # 7a. Get the Email Body prompt
         template_id = None
-        template: EmailSequenceStep = EmailSequenceStep.query.filter(
+        templates: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
             EmailSequenceStep.client_archetype_id == prospect.archetype_id,
             EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
             EmailSequenceStep.active == True,
-        ).first()
+        ).all()
+        template: EmailSequenceStep = random.choice(templates) if templates else None
         if template:
             template_id = template.id
-        #     template.times_used = template.times_used + 1 if template.times_used else 1
         initial_email_prompt = ai_initial_email_prompt(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
