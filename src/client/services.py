@@ -4744,8 +4744,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": "*Most recent message*:\n "
-                        + prospect.li_last_message_from_prospect,
+                        "text": f"*Most recent message*:\n {prospect.li_last_message_from_prospect or ''}",
                     },
                 ],
             },
