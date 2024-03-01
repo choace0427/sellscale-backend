@@ -472,7 +472,7 @@ def populate_email_messaging_schedule_entries(
 
     # SMARTLEAD: If we have generated immediately, this implies that we should send the prospect to Smartlead to upload
     if generate_immediately:
-        upload_prospect_to_campaign.delay(prospect.id)
+        upload_prospect_to_campaign(prospect.id)
 
     return [True, email_ids]
 
