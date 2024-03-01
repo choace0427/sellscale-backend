@@ -4695,7 +4695,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     # Make dash card
-    create_operator_dashboard_entry(
+    entry = create_operator_dashboard_entry(
         client_sdr_id=client_sdr_id,
         urgency=OperatorDashboardEntryPriority.HIGH,
         tag="rep_intervention_needed_{client_sdr_id}_{prospect_id}".format(
@@ -4715,6 +4715,9 @@ def create_rep_intervention_needed_operator_dashboard_card(
             "reason": reason,
         },
     )
+
+    if not entry:
+        return False
 
     # Send slack message
     send_slack_message(
@@ -4756,6 +4759,24 @@ def create_rep_intervention_needed_operator_dashboard_card(
                         "text": f"*AI Notes:* {reason}",
                     },
                 ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": " ",
+                },
+                "accessory": {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Review",
+                        "emoji": True,
+                    },
+                    "value": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={sdr.auth_token}&redirect=task/{entry.id}",
+                    "url": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={sdr.auth_token}&redirect=task/{entry.id}",
+                    "action_id": "button-action",
+                },
             },
         ],
     )
