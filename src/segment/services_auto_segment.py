@@ -781,7 +781,7 @@ def run_auto_segment(segment_id: int, auto_filters: dict):
         auto_filters=auto_filters,
     )
 
-    print("Pruning Small Segments")
-    prune_small_segments(client_sdr_id=segment.client_sdr_id, segment_id=segment_id)
+    # print("Pruning Small Segments")
+    # prune_small_segments(client_sdr_id=segment.client_sdr_id, segment_id=segment_id)
 
     return True
