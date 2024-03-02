@@ -836,9 +836,9 @@ def setup_managed_inboxes(
         args={
             "client_sdr_id": client_sdr_id,
             "domain_id": managed_domain.id,
-            "username": usernames[0]
-            if (usernames and len(usernames) >= 1)
-            else first_username,
+            "username": (
+                usernames[0] if (usernames and len(usernames) >= 1) else first_username
+            ),
             "wait_for_domain": True,
         },
         minutes=wait_time,
@@ -848,9 +848,9 @@ def setup_managed_inboxes(
         args={
             "client_sdr_id": client_sdr_id,
             "domain_id": managed_domain.id,
-            "username": usernames[1]
-            if (usernames and len(usernames) >= 2)
-            else first_dot_last,
+            "username": (
+                usernames[1] if (usernames and len(usernames) >= 2) else first_dot_last
+            ),
             "wait_for_domain": True,
         },
         minutes=wait_time,
@@ -1086,6 +1086,19 @@ def domain_purchase_workflow(
     from src.automation.orchestrator import add_process_for_future
 
     # In 30 min, setup the domain
+    send_slack_message(
+        message=f"{domain_name} Domain Registration in Progress, will attempt to setup in 30 minutes",
+        webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"[{domain_name}]\n🔥 Domain registration queued, will attempt to setup in 30 minutes",
+                },
+            }
+        ],
+    )
     add_process_for_future(
         type="domain_setup_workflow",
         args={"domain_name": domain_name, "domain_id": domain_id},
@@ -1129,6 +1142,19 @@ def domain_setup_workflow(
         if status == "IN_PROGRESS":
             from src.automation.orchestrator import add_process_for_future
 
+            send_slack_message(
+                message=f"{domain_name} Domain Setup delayed for 30 minutes due to registration in progress",
+                webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"[{domain_name}]\n🔥 Domain registration still in progress... will attempt to setup in another 30 minutes",
+                        },
+                    }
+                ],
+            )
             add_process_for_future(
                 type="domain_setup_workflow",
                 args={"domain_name": domain_name, "domain_id": domain_id},
