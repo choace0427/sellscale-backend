@@ -4723,7 +4723,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
     send_slack_message(
         message=f"SellScale needs your help responding to a prospect!",
         webhook_urls=[
-            URL_MAP["csm-urgent-alerts"]
+            URL_MAP["ops-rep-intervention"]
         ],  # [sdr.pipeline_notifications_webhook_url],
         blocks=[
             {
