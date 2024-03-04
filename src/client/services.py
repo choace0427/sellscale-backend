@@ -452,6 +452,8 @@ def create_client_archetype(
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
         template_mode=template_mode,
+        transformer_blocklist=["CURRENT_LOCATION"],
+        transformer_blocklist_initial=["CURRENT_LOCATION"],
     )
     db.session.add(client_archetype)
     db.session.commit()
