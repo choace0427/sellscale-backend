@@ -16,6 +16,9 @@ def create_ai_requests(client_sdr_id, description, days_till_due=1):
         # Generate title using GPT-3.5
         title = generate_title_with_gpt(description)
 
+        if not days_till_due:
+            days_till_due = 1
+
         # Create the new backend object in the AIRequest table
         new_request = AIRequest(
             client_sdr_id=client_sdr_id,
