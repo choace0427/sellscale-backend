@@ -1046,20 +1046,21 @@ def create_workmail_inbox(
         ],
     )
 
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    send_slack_message(
-        message="New Inbox Created",
-        webhook_urls=[sdr.pipeline_notifications_webhook_url],
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"📬 *New Inbox Created: {username}@{domain_name}*\n✅ DKIM ✅ DMARC ✅ SPF ✅ Warming Enabled\nEstimated warmup date: {(datetime.utcnow() + timedelta(days=14)).strftime('%B %d, %Y')}",
-                },
-            }
-        ],
-    )
+    # sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    # send_slack_message(
+    #     message="New Inbox Created",
+    #     webhook_urls=[sdr.pipeline_notifications_webhook_url],
+    #     blocks=[
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"📬 *New Inbox Created: {username}@{domain_name}*\n✅ DKIM ✅ DMARC ✅ SPF ✅ Warming Enabled\nEstimated warmup date: {(datetime.utcnow() + timedelta(days=14)).strftime("%B %d, %Y")}",
+    #             },
+    #         }
+    #     ],
+    # )
+
 
     return True, "Workmail inbox created successfully", sdr_email_bank_id
 
