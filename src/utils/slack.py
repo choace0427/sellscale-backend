@@ -7,6 +7,7 @@ from datetime import datetime
 from src.utils.access import is_production
 
 URL_MAP = {
+    "ops-demo-reminders": "https://hooks.slack.com/services/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",
     "autodetect-scheduling": "https://hooks.slack.com/services/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",
     "eng-sandbox": "https://hooks.slack.com/services/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",
     "user-errors": "https://hooks.slack.com/services/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",

@@ -1,5 +1,7 @@
 import datetime
 from typing import Optional
+
+from bs4 import BeautifulSoup
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect
 from src.ai_requests.models import AIRequest
@@ -21,13 +23,15 @@ class AssetCreatedNotification(SlackNotificationClass):
         self,
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
+        client_archetype_ids: Optional[list[int]] = None,
         asset_name: Optional[str] = None,
-        asset_tags: Optional[str] = None,
+        asset_type: Optional[str] = None,
         ai_summary: Optional[str] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
+        self.client_archetype_ids = client_archetype_ids
         self.asset_name = asset_name
-        self.asset_tags = asset_tags
+        self.asset_type = asset_type
         self.ai_summary = ai_summary
 
         return
@@ -47,8 +51,9 @@ class AssetCreatedNotification(SlackNotificationClass):
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
             return {
+                "client_archetype_names": "CEOs of AI Companies",
                 "asset_name": "Fortune 500 Case Study",
-                "asset_tags": "Case Study | Fortune 500",
+                "asset_type": "Case Study | Fortune 500",
                 "ai_summary": "A Fortune 500 company greatly benefited by using this product. They saw an increase in all valuable metrics by over 50%. The CEO of the company was very pleased and has provided a testimonial.",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=analytics".format(
                     auth_token=client_sdr.auth_token,
@@ -59,14 +64,38 @@ class AssetCreatedNotification(SlackNotificationClass):
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
 
+            # Get the campaign names
+            client_archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
+                ClientArchetype.id.in_(self.client_archetype_ids)
+            ).all()
+            client_archetype_names = []
+            for archetype in client_archetypes:
+                client_archetype_names.append(archetype.archetype)
+
+            # Get the formatted AI summary
+            spaced_text = self.ai_summary.replace(
+                "</p>", "</p> "
+            )  # We add a space in between HTML tags in the ai_summary in case there are Links
+            bs = BeautifulSoup(
+                spaced_text, "html.parser"
+            )  # We run the spaced text through beautiful soup. Non-HTML will be okay.
+            formatted_ai_summary = (
+                bs.get_text()
+            )  # We strip the HTML tags by getting the raw text
+            formatted_ai_summary = (
+                formatted_ai_summary.strip()
+            )  # Get rid of any spaces at the beginning or end
+
             return {
+                "client_archetype_names": ", ".join(client_archetype_names)
+                or "_No campaign attached_",
                 "asset_name": self.asset_name,
-                "asset_tags": (
-                    " | ".join(self.asset_tags)
-                    if (self.asset_tags and len(self.asset_tags) > 0)
+                "asset_type": (
+                    " | ".join(self.asset_type)
+                    if (self.asset_type and len(self.asset_type) > 0)
                     else "_No tags_"
                 ),
-                "ai_summary": self.ai_summary,
+                "ai_summary": formatted_ai_summary,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=analytics".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -79,11 +108,12 @@ class AssetCreatedNotification(SlackNotificationClass):
             fields = get_fields()
 
         # Get the fields
+        client_archetype_names = fields.get("client_archetype_names")
         asset_name = fields.get("asset_name")
-        asset_tags = fields.get("asset_tags")
+        asset_type = fields.get("asset_type")
         ai_summary = fields.get("ai_summary")
         direct_link = fields.get("direct_link")
-        if not asset_name or not asset_tags or not ai_summary or not direct_link:
+        if not asset_name or not asset_type or not ai_summary or not direct_link:
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
@@ -103,9 +133,10 @@ class AssetCreatedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "📙 *Name*: _{asset_name}_\n*🏷️ Tags*: {asset_tags}\n*AI Summary*:\n```{ai_summary}```".format(
+                        "text": "📙 *Name*: _{asset_name}_\n*👤 Campaign(s)*: {campaign_names}\n*🏷️ Asset Type*: {asset_type}\n*AI Summary*:\n {ai_summary}".format(
                             asset_name=asset_name,
-                            asset_tags=asset_tags,
+                            campaign_names=client_archetype_names,
+                            asset_type=asset_type,
                             ai_summary=ai_summary,
                         ),
                     },

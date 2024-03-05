@@ -2596,7 +2596,7 @@ def send_upcoming_demo_reminder():
         send_slack_message(
             message="Demo reminder",
             webhook_urls=[
-                URL_MAP["csm-urgent-alerts"],
+                URL_MAP["ops-demo-reminders"],
                 # client.pipeline_notifications_webhook_url,
             ],
             blocks=[
@@ -4692,7 +4692,6 @@ def create_do_not_contact_filters_operator_dashboard_card(client_sdr_id: int):
 def create_rep_intervention_needed_operator_dashboard_card(
     client_sdr_id: int, prospect_id: int, reason: str
 ):
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -4829,8 +4828,9 @@ def create_archetype_asset(
         notification_type=SlackNotificationType.ASSET_CREATED,
         arguments={
             "client_sdr_id": client_sdr_id,
+            "client_archetype_ids": client_archetype_ids,
             "asset_name": asset_key,
-            "asset_tags": asset_tags,
+            "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
             "ai_summary": asset_value,
         },
     )
