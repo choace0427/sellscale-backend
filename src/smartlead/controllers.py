@@ -180,6 +180,9 @@ def post_prospect_conversation(client_sdr_id: int):
     email_body = get_request_parameter(
         "email_body", request, json=True, required=True, parameter_type=str
     )
+    cc_emails = get_request_parameter(
+        "cc_emails", request, json=True, required=False, parameter_type=list
+    )
     scheduled_send_date = get_request_parameter(
         "scheduled_send_date", request, json=True, required=False, parameter_type=str
     )
@@ -196,12 +199,13 @@ def post_prospect_conversation(client_sdr_id: int):
             args={
                 "prospect_id": prospect_id,
                 "email_body": email_body,
+                "cc": cc_emails,
             },
             relative_time=scheduled_send_date,
         )
     else:  # Otherwise, send the email now
         success = smartlead_reply_to_prospect(
-            prospect_id=prospect_id, email_body=email_body
+            prospect_id=prospect_id, email_body=email_body, cc=cc_emails
         )
 
     if not success:
