@@ -3043,9 +3043,13 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     if asset.client_archetype_ids and client_archetype_id in asset.client_archetype_ids:
         delete_client_asset_archetype_mapping(client_archetype_id, asset_id)
     else:
-        create_client_archetype_reason_mapping(client_archetype_id, asset_id, reason)
+        success, message = create_client_archetype_reason_mapping(
+            client_archetype_id, asset_id, reason
+        )
+        if not success:
+            return jsonify({"status": "error", "message": message}), 400
 
-    return "OK", 200
+    return jsonify({"status": "success"}), 200
 
 
 @CLIENT_BLUEPRINT.route("/asset/reason/<int:reason_id>", methods=["PATCH"])

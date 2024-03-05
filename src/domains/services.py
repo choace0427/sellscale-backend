@@ -1045,7 +1045,7 @@ def create_workmail_inbox(
             }
         ],
     )
-    
+
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     send_slack_message(
         message="New Inbox Created",
@@ -1055,7 +1055,7 @@ def create_workmail_inbox(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"📬 *New Inbox Created: {username}@{domain_name}*\n✅ DKIM ✅ DMARC ✅ SPF ✅ Warming Enabled\nEstimated warmup date: {(datetime.utcnow() + timedelta(days=14)).strftime("%B %d, %Y")}",
+                    "text": f"📬 *New Inbox Created: {username}@{domain_name}*\n✅ DKIM ✅ DMARC ✅ SPF ✅ Warming Enabled\nEstimated warmup date: {(datetime.utcnow() + timedelta(days=14)).strftime('%B %d, %Y')}",
                 },
             }
         ],

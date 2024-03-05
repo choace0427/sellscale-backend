@@ -4930,10 +4930,25 @@ def create_client_archetype_reason_mapping(
     client_archetype_id: int,
     asset_id: int,
     reason: str,
-):
+) -> tuple[bool, str]:
     """
     Creates a reason for a client archetype
     """
+    # Get the current asset
+    asset: ClientAssets = ClientAssets.query.get(asset_id)
+    if "Offer" in asset.asset_tags:
+        # Get all the assets that are mapped to this client archetype
+        mappings: list[
+            ClientAssetArchetypeReasonMapping
+        ] = ClientAssetArchetypeReasonMapping.query.filter_by(
+            client_archetype_id=client_archetype_id
+        ).all()
+        for mapping in mappings:
+            # If an offer already exists, we cannot add the new offer
+            old_asset: ClientAssets = ClientAssets.query.get(mapping.client_asset_id)
+            if "Offer" in old_asset.asset_tags:
+                return False, "An offer already exists for this Campaign"
+
     reason = ClientAssetArchetypeReasonMapping(
         client_archetype_id=client_archetype_id,
         client_asset_id=asset_id,
@@ -4952,7 +4967,7 @@ def create_client_archetype_reason_mapping(
     db.session.add(asset)
     db.session.commit()
 
-    return True
+    return True, "Successfully added Asset to Campaign"
 
 
 def modify_client_archetype_reason_mapping(
