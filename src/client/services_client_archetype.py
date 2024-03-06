@@ -999,6 +999,7 @@ def get_client_archetype_stats(client_archetype_id):
             "description": step_data["step"]["template"],
             "bumped_count": step_data["step"]["bumped_count"],
             "overall_status": step_data["step"]["overall_status"],
+            "assets": step_data["assets"],
         }
         for step_data in email_sequence
     ]
