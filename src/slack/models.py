@@ -22,6 +22,7 @@ class SlackNotificationType(Enum):
     EMAIL_LINK_CLICKED = "EMAIL_LINK_CLICKED"
     EMAIL_PROSPECT_REPLIED = "EMAIL_PROSPECT_REPLIED"
     EMAIL_MULTICHANNELED = "EMAIL_MULTICHANNELED"
+    EMAIL_NEW_INBOX_CREATED = "EMAIL_NEW_INBOX_CREATED"
 
     # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
@@ -102,6 +103,9 @@ def get_slack_notification_type_metadata():
         LinkedInMultiThreadNotification,
     )
     from src.slack.notifications.asset_created import AssetCreatedNotification
+    from src.slack.notifications.email_new_inbox_created import (
+        EmailNewInboxCreatedNotification,
+    )
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
@@ -223,6 +227,12 @@ def get_slack_notification_type_metadata():
             "description": "A Slack notification that is sent whenever an asset is created.",
             "class": AssetCreatedNotification,
             "outbound_channel": "all",
+        },
+        SlackNotificationType.EMAIL_NEW_INBOX_CREATED: {
+            "name": "New Inbox Created",
+            "description": "A Slack notification that is sent whenever a new inbox is created.",
+            "class": EmailNewInboxCreatedNotification,
+            "outbound_channel": "email",
         },
     }
 

@@ -410,7 +410,169 @@ def remove_prospect_from_segment(client_sdr_id: int, prospect_ids: list[int]):
     return True, "Prospects removed from segment"
 
 
+def move_segment_prospects(
+    client_sdr_id: int, from_segment_id: int, to_segment_id: int
+):
+    prospects: list[Prospect] = Prospect.query.filter(
+        and_(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.segment_id == from_segment_id,
+        )
+    ).all()
+
+    for prospect in prospects:
+        prospect.segment_id = to_segment_id
+        db.session.add(prospect)
+
+    db.session.commit()
+    return True, "Prospects moved to segment"
+
+
 def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
-    wipe_segment_ids_from_prospects_in_segment(segment_id)
+
+    segment: Segment = Segment.query.filter_by(id=segment_id).first()
+
+    # If segment is child, move to parent else move to segment 0
+    if segment.parent_segment_id:
+        move_segment_prospects(
+            client_sdr_id=client_sdr_id,
+            from_segment_id=segment_id,
+            to_segment_id=segment.parent_segment_id,
+        )
+    else:
+        move_segment_prospects(
+            client_sdr_id=client_sdr_id,
+            from_segment_id=segment_id,
+            to_segment_id=0,
+        )
+
+    # wipe_segment_ids_from_prospects_in_segment(segment_id)
     delete_segment(client_sdr_id, segment_id)
     return True, "Segment wiped and deleted"
+
+
+def get_segment_predicted_prospects(
+    client_sdr_id: int,
+    prospect_industries: list[str] = [],
+    prospect_seniorities: list[str] = [],
+    prospect_education: list[str] = [],
+    prospect_titles: list[str] = [],
+    companies: list[str] = [],
+    company_sizes: list[tuple[int, int]] = [],
+):
+    prospect_industries = prospect_industries + [""]
+    prospect_seniorities = prospect_seniorities + [""]
+    prospect_titles = prospect_titles + [""]
+    prospect_education = prospect_education + [""]
+    companies = companies + [""]
+    company_size = company_sizes + [None]
+    permutations = []
+    index_to_permutation_map = {}
+    index = 0
+    index_to_summary_map = {}
+    for industry in prospect_industries:
+        for seniority in prospect_seniorities:
+            for education in prospect_education:
+                for title in prospect_titles:
+                    for company in companies:
+                        for size in company_size:
+                            print("size: " + str(size))
+                            summary = ""
+                            if industry:
+                                summary += "(✅ industry: {industry}) ".format(
+                                    industry=industry
+                                )
+                            if seniority:
+                                summary += "(✅ seniority: {seniority}) ".format(
+                                    seniority=seniority
+                                )
+                            if title:
+                                summary += "(✅ title: {title}) ".format(title=title)
+                            if education:
+                                summary += "(✅ education: {education}) ".format(
+                                    education=education
+                                )
+                            if company:
+                                summary += "(✅ company: {company}) ".format(
+                                    company=company
+                                )
+                            if size:
+                                summary += "(✅ size: {size}) ".format(
+                                    size=(
+                                        str(size[0]) + " - " + str(size[1])
+                                        if size
+                                        else "any"
+                                    )
+                                )
+                            if not summary:
+                                summary = "any"
+
+                            size_query = "1=1"
+                            if size:
+                                size_query = f"prospect.company_size >= {size[0]} and prospect.company_size <= {size[1]}"
+
+                            permutation = {
+                                "industry": industry,
+                                "seniority": seniority,
+                                "title": title,
+                                "education": education,
+                                "company": company,
+                                "size": size,
+                                "sql_query": "prospect.industry ilike '%{industry}%' and prospect.title ilike '%{title}%' and prospect.title ilike '%{seniority}%' and prospect.company ilike '%{company}%' and (prospect.education_1 ilike '%{education}%' or prospect.education_2 ilike '%{education}%') and {size_query}".format(
+                                    industry=industry,
+                                    title=title,
+                                    education=education,
+                                    seniority=seniority,
+                                    company=company,
+                                    size_query=size_query,
+                                ),
+                                "summary": summary,
+                                "index": index,
+                            }
+                            permutations.append(permutation)
+                            index_to_permutation_map[index] = permutation
+                            index_to_summary_map[index] = summary
+
+                            index += 1
+
+    columns = []
+    for i, permutation in enumerate(permutations):
+        columns.append(
+            'array_agg(distinct prospect.id) filter (where {sql_query}) as "{index}"'.format(
+                sql_query=permutation["sql_query"], index=permutation["index"]
+            )
+        )
+    columns = ",\n".join(columns)
+
+    query = """
+        select
+            {columns}
+        from prospect
+        where prospect.client_sdr_id = {client_sdr_id}
+            and prospect.segment_id is null
+    """.format(
+        columns=columns, client_sdr_id=client_sdr_id
+    )
+
+    print(query)
+
+    result = db.session.execute(query).fetchall()
+    data = []
+    for row in result:
+        for i, column in enumerate(row.keys()):
+            if row[i] == 0:
+                continue
+            data.append(
+                {
+                    "summary": index_to_summary_map[int(column)],
+                    "num_prospects": len(row[i]) if row[i] else 0,
+                    "prospect_ids": row[i],
+                    # "permutation": index_to_permutation_map[int(column)],
+                }
+            )
+
+    order_data_by_num_prospects = sorted(
+        data, key=lambda x: x["num_prospects"], reverse=True
+    )
+
+    return order_data_by_num_prospects

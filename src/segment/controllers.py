@@ -10,6 +10,7 @@ from src.segment.services import (
     delete_segment,
     extract_data_from_sales_navigator_link,
     find_prospects_by_segment_filters,
+    get_segment_predicted_prospects,
     get_segments_for_sdr,
     remove_prospect_from_segment,
     update_segment,
@@ -309,3 +310,36 @@ def post_auto_split_segment_endpoint(client_sdr_id: int):
         return "Segment split", 200
 
     return "Failed to remove prospects", 400
+
+
+@SEGMENT_BLUEPRINT.route("/segment_predictions", methods=["POST"])
+@require_user
+def get_segment_predictions(client_sdr_id: int):
+    prospect_industries = get_request_parameter(
+        "prospect_industries", request, json=True, required=True
+    )
+    prospect_seniorities = get_request_parameter(
+        "prospect_seniorities", request, json=True, required=True
+    )
+    prospect_titles = get_request_parameter(
+        "prospect_titles", request, json=True, required=True
+    )
+    prospect_education = get_request_parameter(
+        "prospect_education", request, json=True, required=True
+    )
+    companies = get_request_parameter("companies", request, json=True, required=True)
+    company_sizes = get_request_parameter(
+        "company_sizes", request, json=True, required=True
+    )
+
+    predictions: list = get_segment_predicted_prospects(
+        client_sdr_id=client_sdr_id,
+        prospect_industries=prospect_industries,
+        prospect_seniorities=prospect_seniorities,
+        prospect_education=prospect_education,
+        prospect_titles=prospect_titles,
+        companies=companies,
+        company_sizes=company_sizes,
+    )
+
+    return jsonify(predictions), 200
