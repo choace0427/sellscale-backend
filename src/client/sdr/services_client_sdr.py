@@ -414,6 +414,10 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
                 LINKEDIN_WARUMP_CONSERVATIVE[1],
                 client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
             ),  # Take the minimum in case the target is less than the conservative schedule
+            email_volume=min(
+                EMAIL_WARMUP_CONSERVATIVE[1],
+                client_sdr.weekly_email_outbound_target or EMAIL_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_1_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
@@ -421,6 +425,10 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
             linkedin_volume=min(
                 LINKEDIN_WARUMP_CONSERVATIVE[2],
                 client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
+            email_volume=min(
+                EMAIL_WARMUP_CONSERVATIVE[2],
+                client_sdr.weekly_email_outbound_target or EMAIL_WARM_THRESHOLD,
             ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_2_id = create_sla_schedule(
@@ -430,6 +438,10 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
                 LINKEDIN_WARUMP_CONSERVATIVE[3],
                 client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
             ),  # Take the minimum in case the target is less than the conservative schedule
+            email_volume=min(
+                EMAIL_WARMUP_CONSERVATIVE[3],
+                client_sdr.weekly_email_outbound_target or EMAIL_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_3_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
@@ -438,6 +450,10 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
                 LINKEDIN_WARUMP_CONSERVATIVE[4],
                 client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
             ),  # Take the minimum in case the target is less than the conservative schedule
+            email_volume=min(
+                EMAIL_WARMUP_CONSERVATIVE[4],
+                client_sdr.weekly_email_outbound_target or EMAIL_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
         )
         week_4_id = create_sla_schedule(
             client_sdr_id=client_sdr_id,
@@ -445,6 +461,10 @@ def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
             linkedin_volume=min(
                 LINKEDIN_WARUMP_CONSERVATIVE[4],
                 client_sdr.weekly_li_outbound_target or LINKEDIN_WARM_THRESHOLD,
+            ),  # Take the minimum in case the target is less than the conservative schedule
+            email_volume=min(
+                EMAIL_WARMUP_CONSERVATIVE[4],
+                client_sdr.weekly_email_outbound_target or EMAIL_WARM_THRESHOLD,
             ),  # Take the minimum in case the target is less than the conservative schedule
         )
 

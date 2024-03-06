@@ -377,10 +377,20 @@ def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
         list[dict]: A list of email warmings
     """
     sl = Smartlead()
-    # If a client SDR ID is provided, filter out all warmings that are not for that SDR
+
+    # If a client SDR ID is provided, get the warmings for the registered email banks
     if client_sdr_id:
-        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        warmings = sl.get_emails(username=client_sdr.name)
+        # Get all the email banks that belong to this SDR that have a Smartlead account ID
+        email_banks: list[SDREmailBank] = SDREmailBank.query.filter(
+            SDREmailBank.client_sdr_id == client_sdr_id,
+            SDREmailBank.smartlead_account_id.isnot(None),
+        ).all()
+
+        warmings = []
+        for email_bank in email_banks:
+            warming = sl.get_emails(username=email_bank.email_address)
+            if warming:
+                warmings.extend(warming)
     else:
         warmings = sl.get_emails()
 
@@ -388,7 +398,6 @@ def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
 
 
 def get_archetype_emails(archetype_id: int) -> list[dict]:
-
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
 
     if not archetype or not archetype.smartlead_campaign_id:
@@ -1420,7 +1429,6 @@ def smartlead_update_prospect_status(
 def toggle_email_account_for_archetype(
     archetype_id: int, email_account_ids: list[str], enable: bool
 ) -> tuple[bool, str]:
-
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype.smartlead_campaign_id:
         return False, "No Smartlead campaign ID found"
