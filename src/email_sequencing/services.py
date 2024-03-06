@@ -64,12 +64,12 @@ def get_email_sequence_step_for_sdr(
 
     sequence_steps_with_assets = (
         db.session.query(EmailSequenceStep, ClientAssets)
-        .join(
+        .outerjoin(
             EmailSequenceStepToAssetMapping,
             EmailSequenceStepToAssetMapping.email_sequence_step_id
             == EmailSequenceStep.id,
         )
-        .join(
+        .outerjoin(
             ClientAssets,
             EmailSequenceStepToAssetMapping.client_assets_id == ClientAssets.id,
         )
@@ -110,13 +110,19 @@ def get_email_sequence_step_for_sdr(
 
     sequence_to_assets = defaultdict(list)
     for step, asset in sequence_steps_with_assets:
-        sequence_to_assets[step].append(asset)
+        # Here, asset could be None if the step has no associated assets
+        if asset:  # Only append if asset is not None
+            sequence_to_assets[step].append(asset)
+        else:  # Ensure the step is included even if it has no assets
+            sequence_to_assets[step]
 
-    # If you need a more structured output, convert it into a list of dicts or similar structure as needed
+    # To create a more structured output
     sequence_to_assets_list = [
         {
             "step": step.to_dict(),
-            "assets": [asset.to_dict() for asset in assets],
+            "assets": (
+                [asset.to_dict() for asset in assets] if assets else []
+            ),  # Handle steps with no assets
         }
         for step, assets in sequence_to_assets.items()
     ]
