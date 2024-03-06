@@ -882,11 +882,23 @@ def get_client_archetype_stats(client_archetype_id):
     num_prospects: int = Prospect.query.filter(
         Prospect.archetype_id == client_archetype_id
     ).count()
+    num_prospects_with_emails: int = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.email.isnot(None),
+    ).count()
 
     sample_prospects = (
         Prospect.query.filter(
             Prospect.archetype_id == client_archetype_id,
-            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            # overall status is not ACTIVE_CONVO, DEMO_SET, NURTURE, or REMOVED
+            Prospect.overall_status.notin_(
+                [
+                    ProspectOverallStatus.ACTIVE_CONVO,
+                    ProspectOverallStatus.DEMO,
+                    ProspectOverallStatus.REMOVED,
+                    ProspectOverallStatus.NURTURE,
+                ]
+            ),
             Prospect.icp_fit_score > 0,
         )
         .order_by(Prospect.icp_fit_score.desc())
@@ -993,6 +1005,18 @@ def get_client_archetype_stats(client_archetype_id):
             return 20
 
     email_sequence = sorted(email_sequence, key=sort_func)
+
+    # Variants Edge Case:
+    #   There may be email_sequence steps that have same bumped_count and overall_status. I only want one of each combo. Use set + for loop to filter it out
+    unique_bump_count_overall_status = set()
+    filtered_email_sequence = []
+    for step_data in email_sequence:
+        bumped_count = step_data["step"]["bumped_count"]
+        overall_status = step_data["step"]["overall_status"]
+        if (bumped_count, overall_status) not in unique_bump_count_overall_status:
+            unique_bump_count_overall_status.add((bumped_count, overall_status))
+            filtered_email_sequence.append(step_data)
+
     email_sequence = [
         {
             "title": step_data["step"]["title"],
@@ -1001,7 +1025,7 @@ def get_client_archetype_stats(client_archetype_id):
             "overall_status": step_data["step"]["overall_status"],
             "assets": step_data["assets"],
         }
-        for step_data in email_sequence
+        for step_data in filtered_email_sequence
     ]
 
     # Linkedin sequence
@@ -1062,6 +1086,7 @@ def get_client_archetype_stats(client_archetype_id):
             "num_replies": num_replies,
             "num_demos": num_demos,
             "num_prospects": num_prospects,
+            "num_prospects_with_emails": num_prospects_with_emails,
         },
         "contacts": {
             "included_individual_title_keywords": included_individual_title_keywords,
