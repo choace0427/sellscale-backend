@@ -410,8 +410,43 @@ def remove_prospect_from_segment(client_sdr_id: int, prospect_ids: list[int]):
     return True, "Prospects removed from segment"
 
 
+def move_segment_prospects(
+    client_sdr_id: int, from_segment_id: int, to_segment_id: int
+):
+    prospects: list[Prospect] = Prospect.query.filter(
+        and_(
+            Prospect.client_sdr_id == client_sdr_id,
+            Prospect.segment_id == from_segment_id,
+        )
+    ).all()
+
+    for prospect in prospects:
+        prospect.segment_id = to_segment_id
+        db.session.add(prospect)
+
+    db.session.commit()
+    return True, "Prospects moved to segment"
+
+
 def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
-    wipe_segment_ids_from_prospects_in_segment(segment_id)
+
+    segment: Segment = Segment.query.filter_by(id=segment_id).first()
+
+    # If segment is child, move to parent else move to segment 0
+    if segment.parent_segment_id:
+        move_segment_prospects(
+            client_sdr_id=client_sdr_id,
+            from_segment_id=segment_id,
+            to_segment_id=segment.parent_segment_id,
+        )
+    else:
+        move_segment_prospects(
+            client_sdr_id=client_sdr_id,
+            from_segment_id=segment_id,
+            to_segment_id=0,
+        )
+
+    # wipe_segment_ids_from_prospects_in_segment(segment_id)
     delete_segment(client_sdr_id, segment_id)
     return True, "Segment wiped and deleted"
 
