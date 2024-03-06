@@ -980,8 +980,8 @@ def get_client_archetype_stats(client_archetype_id):
     )
 
     def sort_func(x):
-        bumped_count = x["bumped_count"]
-        overall_status = x["overall_status"]
+        bumped_count = x["step"]["bumped_count"]
+        overall_status = x["step"]["overall_status"]
 
         if overall_status == "PROSPECTED":
             return 0
@@ -995,12 +995,12 @@ def get_client_archetype_stats(client_archetype_id):
     email_sequence = sorted(email_sequence, key=sort_func)
     email_sequence = [
         {
-            "title": step["title"],
-            "description": step["template"],
-            "bumped_count": step["bumped_count"],
-            "overall_status": step["overall_status"],
+            "title": step_data["step"]["title"],
+            "description": step_data["step"]["template"],
+            "bumped_count": step_data["step"]["bumped_count"],
+            "overall_status": step_data["step"]["overall_status"],
         }
-        for step in email_sequence
+        for step_data in email_sequence
     ]
 
     # Linkedin sequence

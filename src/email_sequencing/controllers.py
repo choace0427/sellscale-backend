@@ -74,7 +74,7 @@ def get_email_sequence_steps(client_sdr_id: int):
         client_archetype_ids = [client_archetype_ids]
     client_archetype_ids = [int(ca_id) for ca_id in client_archetype_ids]
 
-    bump_frameworks: list[dict] = get_email_sequence_step_for_sdr(
+    step_data: list[dict] = get_email_sequence_step_for_sdr(
         client_sdr_id=client_sdr_id,
         overall_statuses=overall_statuses_enumed,
         substatuses=substatuses,
@@ -86,7 +86,7 @@ def get_email_sequence_steps(client_sdr_id: int):
         client_archetype_ids=client_archetype_ids,
     )
 
-    return jsonify({"sequence_steps": bump_frameworks, "counts": counts}), 200
+    return jsonify({"sequence_steps": step_data, "counts": counts}), 200
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step", methods=["POST"])

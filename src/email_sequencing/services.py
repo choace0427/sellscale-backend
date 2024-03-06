@@ -56,25 +56,72 @@ def get_email_sequence_step_for_sdr(
             for ca in ClientArchetype.query.filter_by(client_sdr_id=client_sdr_id).all()
         ]
 
-    steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
-        EmailSequenceStep.client_sdr_id == client_sdr_id,
-        EmailSequenceStep.client_archetype_id.in_(client_archetype_ids),
-        EmailSequenceStep.overall_status.in_(overall_statuses),
+    # steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
+    #     EmailSequenceStep.client_sdr_id == client_sdr_id,
+    #     EmailSequenceStep.client_archetype_id.in_(client_archetype_ids),
+    #     EmailSequenceStep.overall_status.in_(overall_statuses),
+    # )
+
+    sequence_steps_with_assets = (
+        db.session.query(EmailSequenceStep, ClientAssets)
+        .join(
+            EmailSequenceStepToAssetMapping,
+            EmailSequenceStepToAssetMapping.email_sequence_step_id
+            == EmailSequenceStep.id,
+        )
+        .join(
+            ClientAssets,
+            EmailSequenceStepToAssetMapping.client_assets_id == ClientAssets.id,
+        )
+        .filter(
+            EmailSequenceStep.client_sdr_id == client_sdr_id,
+            EmailSequenceStep.client_archetype_id.in_(client_archetype_ids),
+            EmailSequenceStep.overall_status.in_(overall_statuses),
+        )
     )
+
+    # mappings: list[
+    #     EmailSequenceStepToAssetMapping
+    # ] = EmailSequenceStepToAssetMapping.query.filter(
+    #     EmailSequenceStepToAssetMapping.email_sequence_step_id == email_sequence_step_id
+    # ).all()
+    # asset_ids = [mapping.client_assets_id for mapping in mappings]
+    # assets: ClientAssets = ClientAssets.query.filter(
+    #     ClientAssets.id.in_(asset_ids)
+    # ).all()
+    # asset_dicts = [asset.to_dict() for asset in assets]
 
     # If substatuses is specified, filter by substatuses
     if len(substatuses) > 0:
-        steps = steps.filter(EmailSequenceStep.substatus.in_(substatuses))
+        sequence_steps_with_assets = sequence_steps_with_assets.filter(
+            EmailSequenceStep.substatus.in_(substatuses)
+        )
 
     # If activeOnly is specified, filter by active
     if activeOnly:
-        steps = steps.filter(
+        sequence_steps_with_assets = sequence_steps_with_assets.filter(
             EmailSequenceStep.active == True,
         )
 
-    steps: list[EmailSequenceStep] = steps.all()
+    sequence_steps_with_assets = sequence_steps_with_assets.all()
 
-    return [step.to_dict() for step in steps]
+    # Organize the results into a structure that maps sequence steps to their assets
+    from collections import defaultdict
+
+    sequence_to_assets = defaultdict(list)
+    for step, asset in sequence_steps_with_assets:
+        sequence_to_assets[step].append(asset)
+
+    # If you need a more structured output, convert it into a list of dicts or similar structure as needed
+    sequence_to_assets_list = [
+        {
+            "step": step.to_dict(),
+            "assets": [asset.to_dict() for asset in assets],
+        }
+        for step, assets in sequence_to_assets.items()
+    ]
+
+    return sequence_to_assets_list
 
 
 def get_sequence_step_count_for_sdr(
@@ -101,11 +148,11 @@ def get_sequence_step_count_for_sdr(
         ProspectStatus.ACTIVE_CONVO_SCHEDULING.value: 0,
         ProspectStatus.ACTIVE_CONVO_REVIVAL.value: 0,
     }
-    for sequence_step in sequence_steps:
-        if sequence_step.get("overall_status") in counts:
-            counts[sequence_step.get("overall_status")] += 1
-        if sequence_step.get("substatus") in counts:
-            counts[sequence_step.get("substatus")] += 1
+    for step_data in sequence_steps:
+        if step_data.get("step").get("overall_status") in counts:
+            counts[step_data.get("step").get("overall_status")] += 1
+        if step_data.get("step").get("substatus") in counts:
+            counts[step_data.get("step").get("substatus")] += 1
 
     return counts
 
@@ -1232,11 +1279,12 @@ def delete_email_sequence_step_asset_mapping(
 
 
 def get_all_email_sequence_step_assets(email_sequence_step_id: int):
-    mappings: list[
-        EmailSequenceStepToAssetMapping
-    ] = EmailSequenceStepToAssetMapping.query.filter(
-        EmailSequenceStepToAssetMapping.email_sequence_step_id == email_sequence_step_id
-    ).all()
+    mappings: list[EmailSequenceStepToAssetMapping] = (
+        EmailSequenceStepToAssetMapping.query.filter(
+            EmailSequenceStepToAssetMapping.email_sequence_step_id
+            == email_sequence_step_id
+        ).all()
+    )
     asset_ids = [mapping.client_assets_id for mapping in mappings]
     assets: ClientAssets = ClientAssets.query.filter(
         ClientAssets.id.in_(asset_ids)
