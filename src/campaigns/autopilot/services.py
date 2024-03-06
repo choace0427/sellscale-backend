@@ -372,7 +372,7 @@ def daily_generate_email_campaign_for_sdr(
                         [SLACK_CHANNEL],
                     )
                     continue
-                if num_to_generate <= num_available_prospects:
+                if num_available_prospects > 0:
                     # Create the campaign
                     oc = create_outbound_campaign(
                         prospect_ids=[],

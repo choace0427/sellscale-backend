@@ -131,10 +131,19 @@ def patch_ai_request():
     details = get_request_parameter(
         "details", request, json=True, required=False, parameter_type=str
     )
+    send_notification = get_request_parameter(
+        "send_notification", request, json=True, required=False, parameter_type=bool
+    )
 
     # Uses the service function to create the AI Request object
     status = AIRequestStatus[status]
-    update_ai_requests(ai_request_id, status, minutes_worked, details)
+    update_ai_requests(
+        ai_request_id,
+        status,
+        minutes_worked,
+        details,
+        send_notification=send_notification,
+    )
 
     if True:
         return (

@@ -106,7 +106,11 @@ def create_ai_requests(client_sdr_id, description, days_till_due=1):
 
 
 def update_ai_requests(
-    request_id: int, status: AIRequestStatus, minutes_worked: int, details: str = ""
+    request_id: int,
+    status: AIRequestStatus,
+    minutes_worked: int,
+    details: str = "",
+    send_notification: bool = False,
 ):
     try:
         # Fetch the AI request object
@@ -121,7 +125,7 @@ def update_ai_requests(
         db.session.commit()
 
         # Send slack notification
-        if status == AIRequestStatus.COMPLETED:
+        if status == AIRequestStatus.COMPLETED and send_notification:
             sdr: ClientSDR = ClientSDR.query.get(ai_request.client_sdr_id)
 
             success = create_and_send_slack_notification_class_message(
