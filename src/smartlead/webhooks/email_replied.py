@@ -169,10 +169,17 @@ def process_email_replied_webhook(payload_id: int):
             new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
             metadata=metadata,
         )
+
+        # Set the prospect_email's last_message and last_reply_time
         prospect_email.last_message = reply_message
         reply_time = payload.get("reply_message").get("time")
         reply_time = convert_string_to_datetime_or_none(content=reply_time)
         prospect_email.last_reply_time = reply_time
+
+        # Clear out any hidden_until and hidden_reason
+        prospect_email.hidden_until = None
+        prospect.hidden_until = None
+        prospect.hidden_reason = None
 
         # Generate an automated reply
         generate_smart_email_response(

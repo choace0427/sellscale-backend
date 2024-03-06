@@ -496,12 +496,10 @@ def update_prospect_status_linkedin(
     def apply_realtime_response_engine_rules(
         prospect_id: int, new_status: ProspectStatus
     ) -> bool:
-
         p: Prospect = Prospect.query.get(prospect_id)
         sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
 
         def has_auto_reply_disabled(sdr: ClientSDR, new_status: ProspectStatus) -> bool:
-
             sdr.meta_data = sdr.meta_data or {}
             response_options = sdr.meta_data.get("response_options", {})
 
@@ -552,7 +550,6 @@ def update_prospect_status_linkedin(
         db.session.commit()
 
         if new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
-
             from src.operator_dashboard.services import (
                 create_operator_dashboard_entry,
                 OperatorDashboardEntryPriority,
@@ -1179,14 +1176,12 @@ def update_prospect_status_email(
     def apply_realtime_response_engine_rules(
         prospect_id: int, new_status: ProspectEmailOutreachStatus
     ) -> bool:
-
         p: Prospect = Prospect.query.get(prospect_id)
         sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
 
         def has_auto_reply_disabled(
             sdr: ClientSDR, new_status: ProspectEmailOutreachStatus
         ) -> bool:
-
             sdr.meta_data = sdr.meta_data or {}
             response_options = sdr.meta_data.get("response_options", {})
 
@@ -1237,7 +1232,6 @@ def update_prospect_status_email(
         db.session.commit()
 
         if new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING:
-
             from src.operator_dashboard.services import (
                 create_operator_dashboard_entry,
                 OperatorDashboardEntryPriority,
@@ -1304,14 +1298,38 @@ def update_prospect_status_email(
         p_email.outreach_status = new_status
 
     # Notifications
-    # Send a slack message if the new status is active convo (responded)
-    if "ACTIVE_CONVO" in new_status.value and "ACTIVE_CONVO" not in old_status.value:
+    if new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING:  # Scheduling
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
             channel_type=ProspectChannels.EMAIL.value,
-            engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
+            engagement_type=EngagementFeedType.SCHEDULING.value,
         )
+        if not quietly:
+            send_status_change_slack_block(
+                outreach_type=ProspectChannels.EMAIL,
+                prospect=p,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING,
+                custom_message=" is scheduling! 🙏🔥",
+                metadata=metadata,
+                custom_webhook_urls=custom_webhook_urls,
+            )
+    # Send a slack message if the new status is active convo (responded)
+    elif "ACTIVE_CONVO" in new_status.value:
+        if "ACTIVE_CONVO" not in old_status.value:  # First time response
+            create_engagement_feed_item(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
+                channel_type=ProspectChannels.EMAIL.value,
+                engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
+            )
+        else:  # Other responses
+            create_engagement_feed_item(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
+                channel_type=ProspectChannels.EMAIL.value,
+                engagement_type=EngagementFeedType.RESPONDED.value,
+            )
         if not quietly:
             email_sent_subject = (
                 metadata.get("email_sent_subject") if metadata else None
@@ -1329,42 +1347,6 @@ def update_prospect_status_email(
                     "email_sent_body": email_sent_body,
                     "email_reply_body": email_reply_body,
                 },
-            )
-
-            # email_replied_notification = EmailProspectRepliedNotification(
-            #     client_sdr_id=p.client_sdr_id,
-            #     prospect_id=p.id,
-            #     email_sent_subject=email_sent_subject,
-            #     email_sent_body=email_sent_body,
-            #     email_reply_body=email_reply_body,
-            # )
-            # success = email_replied_notification.send_notification(preview_mode=False)
-
-            # send_status_change_slack_block(
-            #     outreach_type=ProspectChannels.EMAIL,
-            #     prospect=p,
-            #     new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-            #     custom_message=" responded to your email! 🙌🏽",
-            #     metadata=metadata,
-            #     custom_webhook_urls=custom_webhook_urls,
-            # )
-    elif (
-        new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING
-    ):  # Scheduling
-        create_engagement_feed_item(
-            client_sdr_id=p.client_sdr_id,
-            prospect_id=p.id,
-            channel_type=ProspectChannels.EMAIL.value,
-            engagement_type=EngagementFeedType.SCHEDULING.value,
-        )
-        if not quietly:
-            send_status_change_slack_block(
-                outreach_type=ProspectChannels.EMAIL,
-                prospect=p,
-                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING,
-                custom_message=" is scheduling! 🙏🔥",
-                metadata=metadata,
-                custom_webhook_urls=custom_webhook_urls,
             )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
         # Check if the client has a CRM sync and if the event handler is set to create a lead
@@ -2834,9 +2816,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2894,8 +2876,13 @@ def get_prospect_email_history(prospect_id: int):
     )
     if not prospect_email:
         return None
+    smartlead_campaign_id = None
+    campaign: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    smartlead_campaign_id = campaign.smartlead_campaign_id if campaign else None
 
-    email_history = get_message_history_for_prospect(prospect_id=prospect.id)
+    email_history = get_message_history_for_prospect(
+        prospect_id=prospect.id, smartlead_campaign_id=smartlead_campaign_id
+    )
     email_history_parsed = []
     for email in email_history:
         email_history_parsed.append(
@@ -2907,11 +2894,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[ProspectEmailStatusRecords] = (
-        ProspectEmailStatusRecords.query.filter(
-            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-        ).all()
-    )
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
 
     return {
         "emails": email_history_parsed,
