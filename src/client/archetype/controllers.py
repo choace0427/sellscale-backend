@@ -529,6 +529,9 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
     subject_lines = get_request_parameter(
         "subject_lines", request, json=True, required=False, parameter_type=list
     )
+    override_sequence = get_request_parameter(
+        "override_sequence", request, json=True, required=False, parameter_type=bool
+    )
 
     if channel_type not in ["email", "linkedin"]:
         return jsonify({"status": "error", "message": "Invalid channel type"}), 400
@@ -543,6 +546,7 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
             campaign_id=archetype_id,
             steps=steps,
             subject_lines=subject_lines,
+            override_sequence=override_sequence,
         )
     elif channel_type == "linkedin":
         success = import_linkedin_sequence(
@@ -550,6 +554,7 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
             steps=steps,
             is_template_mode=is_template_mode,
             ctas=ctas,
+            override_sequence=override_sequence,
         )
 
     if not success:

@@ -585,7 +585,11 @@ def wipe_linkedin_sequence_steps(campaign_id: int, steps: list):
 
 
 def import_linkedin_sequence(
-    campaign_id: int, steps: list, is_template_mode: bool = True, ctas: list = []
+    campaign_id: int,
+    steps: list,
+    is_template_mode: bool = True,
+    ctas: list = [],
+    override_sequence: bool = False,
 ):
     """
     Import linkedin sequence steps
@@ -600,7 +604,8 @@ def import_linkedin_sequence(
         is_template_mode (bool, optional): Whether the sequence is in template mode. Defaults to True.
         ctas (list, optional): List of CTAs. Defaults to []. Cta's should have cta_type and cta_value
     """
-    wipe_linkedin_sequence_steps(campaign_id, steps)
+    if override_sequence:
+        wipe_linkedin_sequence_steps(campaign_id, steps)
 
     # IMPORT SEQUENCE
     # setup archetype
@@ -695,9 +700,7 @@ def wipe_email_sequence(campaign_id: int):
 
 
 def import_email_sequence(
-    campaign_id: int,
-    steps: list,
-    subject_lines: list,
+    campaign_id: int, steps: list, subject_lines: list, override_sequence: bool = False
 ):
     """
     Import email sequence steps
@@ -715,7 +718,8 @@ def import_email_sequence(
             ]
     """
     # wipe email sequence
-    wipe_email_sequence(campaign_id)
+    if override_sequence:
+        wipe_email_sequence(campaign_id)
 
     # IMPORT SEQUENCE
     archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
