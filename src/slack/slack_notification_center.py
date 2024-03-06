@@ -197,9 +197,7 @@ def slack_bot_send_message(
                 error=error,
             )
         except Exception as e:
-            send_slack_error_message(
-                type=SlackNotificationType.AI_REPLY_TO_EMAIL.value, error=str(e)
-            )
+            send_slack_error_message(type=notification_type, error=str(e))
 
     # Sending Stage 2: Send using webhook_urls
     webhook_urls: list[WebhookDict] = [
@@ -243,9 +241,7 @@ def slack_bot_send_message(
                 error=error,
             )
         except Exception as e:
-            send_slack_error_message(
-                type=SlackNotificationType.AI_REPLY_TO_EMAIL.value, error=str(e)
-            )
+            send_slack_error_message(type=notification_type, error=str(e))
 
     return True
 
