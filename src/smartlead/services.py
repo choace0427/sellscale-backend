@@ -257,7 +257,9 @@ def get_message_history_for_prospect(
 
 
 @celery.task
-def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
+def smartlead_reply_to_prospect(
+    prospect_id: int, email_body: str, cc: Optional[list]
+) -> bool:
     """Replies to a prospect via Smartlead
 
     Args:
@@ -313,6 +315,7 @@ def smartlead_reply_to_prospect(prospect_id: int, email_body: str) -> bool:
         reply_message_id=reply_message_id,
         reply_email_time=reply_email_time,
         reply_email_body=reply_email_body,
+        cc=cc,
     )
     if not response:
         return False
