@@ -29,6 +29,7 @@ from src.slack.models import (
     SlackNotificationType,
 )
 from src.slack.slack_notification_class import SlackNotificationClass
+from src.subscriptions.models import Subscription
 
 
 NOTIFICATION_TESTING_CHANNEL = (
@@ -382,5 +383,41 @@ def subscribe_sdr_to_all_notifications(client_sdr_id: int) -> bool:
             slack_notification_id=slack_notification.id,
             new_notification=True,
         )
+
+    return True
+
+
+def unsubscribe_all_sdrs_from_notification(
+    notification_type: SlackNotificationType,
+) -> bool:
+    """Unsubscribe all of the SDRs from a Slack notification type
+
+    Args:
+        notification_type (SlackNotificationType): The type of the notification that the SDRs are being unsubscribed from
+
+    Returns:
+        bool: Whether or not the SDRs were successfully unsubscribed from the Slack notification
+    """
+    from src.client.models import ClientSDR
+    from src.slack.models import SlackNotification
+
+    # Get the ID of this notification type
+    slack_notification: SlackNotification = SlackNotification.query.filter_by(
+        notification_type=notification_type
+    ).first()
+    if not slack_notification:
+        raise Exception(
+            f"Slack notification of type: {notification_type.value} not found"
+        )
+
+    # Get all of the subscriptions to this notification type
+    subscriptions: list[Subscription] = Subscription.query.filter_by(
+        slack_notification_id=slack_notification.id
+    ).all()
+    for subscription in subscriptions:
+        subscription.active = False
+        subscription.deactivation_date = datetime.now()
+
+    db.session.commit()
 
     return True

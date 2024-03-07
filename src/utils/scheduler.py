@@ -395,8 +395,18 @@ def run_hourly_backfill_asset_analytics():
         backfill_all_assets_analytics.delay()
 
 
+def run_daily_send_pipeline_report():
+    from src.analytics.services_pipeline import (
+        send_daily_pipeline_activity_notification_for_active_sdrs,
+    )
+
+    if is_scheduling_instance():
+        send_daily_pipeline_activity_notification_for_active_sdrs.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
+daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
 weekly_trigger = CronTrigger(
     day_of_week=0, hour=9, timezone=timezone("America/Los_Angeles")
 )
@@ -489,6 +499,7 @@ scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_send_report_email, trigger=mid_week_trigger)
 scheduler.add_job(run_daily_trigger_runner, trigger=daily_trigger)
 scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
+scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

@@ -154,51 +154,31 @@ class PipelineActivityDailyNotification(SlackNotificationClass):
 
         # Campaigns
         for campaign in data:
-            campaign_blocks = []
-            campaign_blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"{campaign.get('campaign_emoji')} *{campaign['campaign']}:*",
-                        "emoji": True,
-                    },
-                }
-            )
+            string = f"{campaign.get('campaign_emoji')} *{campaign['campaign']}:*\n"
             if campaign.get("linkedin_active"):
                 sent = campaign.get("linkedin_sent_24_hrs")
                 accepted = campaign.get("linkedin_accepted_24_hrs")
                 active_convo = campaign.get("linkedin_active_convo_24_hrs")
                 scheduling = campaign.get("linkedin_scheduling_24_hrs")
                 demo = campaign.get("linkedin_demo_24_hrs")
-                campaign_blocks.append(
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f">*LinkedIn Summary:*\n> ➡️ Sent Today: *{sent}* | ✅ Accepted Invite: *{accepted}* | ↩️ New Replies: *{active_convo}* | ⏱️ Scheduling: *{scheduling}* | 🎉 Demos Set: *{demo}*",
-                            "emoji": True,
-                        },
-                    }
-                )
+                string += f">*LinkedIn Summary:*\n> ➡️ Sent: *{sent}* | ✅ Accepted: *{accepted}* | ↩️ Replies: *{active_convo}* | ⏱️ Scheduling: *{scheduling}* | 🎉 Demos: *{demo}*\n"
             if campaign.get("email_active"):
                 sent = campaign.get("email_sent_24_hrs")
                 opened = campaign.get("email_opened_24_hrs")
                 clicked = campaign.get("email_clicked_24_hrs")
                 replied = campaign.get("email_replied_24_hrs")
                 demo = campaign.get("email_demo_24_hrs")
-                campaign_blocks.append(
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f">*Email Summary:*\n> ➡️ Sent Today: *{sent}* | 📬 Opened: *{opened}* | 🔗 Clicked: *{clicked}* | ↩️ Replied: *{replied}* | 🎉 Demos Set: *{demo}*",
-                            "emoji": True,
-                        },
-                    }
-                )
+                string += f">*Email Summary:*\n> ➡️ Sent: *{sent}* | 📬 Opens: *{opened}* | 🔗 Clicks: *{clicked}* | ↩️ Replies: *{replied}* | 🎉 Demos: *{demo}*"
 
-            blocks.extend(campaign_blocks)
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": string,
+                    },
+                }
+            )
 
         # Disclaimer
         blocks.extend(
