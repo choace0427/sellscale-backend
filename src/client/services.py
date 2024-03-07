@@ -4722,7 +4722,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
 
     # Send slack message
     send_slack_message(
-        message=f"SellScale needs your help responding to a prospect!",
+        message=f"New Task 🚨",
         webhook_urls=[
             URL_MAP["ops-rep-intervention"]
         ],  # [sdr.pipeline_notifications_webhook_url],
@@ -4731,7 +4731,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"SellScale needs your help responding to a prospect!",
+                    "text": f"New Task 🚨",
                     "emoji": True,
                 },
             },
@@ -4739,39 +4739,44 @@ def create_rep_intervention_needed_operator_dashboard_card(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Prospect:* {prospect.full_name} | *Status:* {prospect.overall_status.value}",
+                    "text": f"*User:* `{prospect.full_name}`",  # | *Status:* {prospect.overall_status.value}
                 },
-            },
-            {"type": "divider"},
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Most recent message*:\n {prospect.li_last_message_from_prospect or ''}",
-                    },
-                ],
-            },
-            {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*AI Notes:* {reason}",
-                    },
-                ],
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": " ",
+                    "text": f"*Priority:* `🔴 Blocker`",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Instructions:* {reason}",
+                },
+            },
+            # {"type": "divider"},
+            # {
+            #     "type": "context",
+            #     "elements": [
+            #         {
+            #             "type": "mrkdwn",
+            #             "text": f"*Most recent message*:\n {prospect.li_last_message_from_prospect or ''}",
+            #         },
+            #     ],
+            # },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Complete this task by clicking the button:",
                 },
                 "accessory": {
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": "Review",
+                        "text": f"Talk to {prospect.full_name}",
                         "emoji": True,
                     },
                     "value": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={sdr.auth_token}&redirect=task/{entry.id}",
