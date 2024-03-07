@@ -67,6 +67,22 @@ def update_segment(
     return segment
 
 
+def merge_segment_filters(segment_id: int, segment_filters: dict):
+    # Merge the segment filters to include the most out of both
+    segment: Segment = Segment.query.get(segment_id)
+    if segment:
+        existing_filters = segment.filters or {}
+        for key, value in segment_filters.items():
+            if (
+                key in existing_filters
+                and (not existing_filters[key] or existing_filters[key] == [])
+                and (value or value == [])
+            ):
+                existing_filters[key] = value
+        segment.filters = existing_filters
+        db.session.commit()
+
+
 def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, id=segment_id

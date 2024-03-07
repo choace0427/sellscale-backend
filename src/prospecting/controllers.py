@@ -5,6 +5,7 @@ from typing import Optional
 from src.automation.orchestrator import add_process_for_future
 from src.email_outbound.email_store.services import find_emails_for_archetype
 from src.prospecting.models import ExistingContact
+from src.segment.services import merge_segment_filters
 from src.prospecting.services import (
     bulk_mark_not_qualified,
     get_prospect_email_history,
@@ -1131,7 +1132,14 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
     segment_id = get_request_parameter(
         "segment_id", request, json=True, required=False, parameter_type=int
     )
+    segment_filters = get_request_parameter(
+        "segment_filters", request, json=True, required=False, parameter_type=dict
+    )
     allow_duplicates = True if allow_duplicates is None else allow_duplicates
+
+    # Update segment filters
+    if segment_id and segment_filters:
+        merge_segment_filters(segment_id=segment_id, segment_filters=segment_filters)
 
     return add_prospect_from_csv_payload(
         client_sdr_id=client_sdr_id,
@@ -1770,9 +1778,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 
