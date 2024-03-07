@@ -317,7 +317,6 @@ def find_prospects_by_segment_filters(
             "segment": prospect.segment_title,
             "linkedin_url": prospect.linkedin_url,
             "industry": prospect.industry,
-            "location": prospect.prospect_location,
         }
         for prospect in prospects
     ]
