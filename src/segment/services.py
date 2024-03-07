@@ -287,6 +287,24 @@ def find_prospects_by_segment_filters(
         else:
             base_query = base_query.filter(and_addition[0])
 
+    if included_location_keywords:
+        or_addition = []
+        for keyword in included_location_keywords:
+            or_addition.append(Prospect.prospect_location.ilike(f"%{keyword}%"))
+        if len(or_addition) > 1:
+            base_query = base_query.filter(or_(*or_addition))
+        else:
+            base_query = base_query.filter(or_addition[0])
+
+    if excluded_location_keywords:
+        and_addition = []
+        for keyword in excluded_location_keywords:
+            and_addition.append(~Prospect.prospect_location.ilike(f"%{keyword}%"))
+        if len(and_addition) > 1:
+            base_query = base_query.filter(and_(*and_addition))
+        else:
+            base_query = base_query.filter(and_addition[0])
+
     prospects = base_query.all()
 
     return [
@@ -299,6 +317,7 @@ def find_prospects_by_segment_filters(
             "segment": prospect.segment_title,
             "linkedin_url": prospect.linkedin_url,
             "industry": prospect.industry,
+            "location": prospect.prospect_location,
         }
         for prospect in prospects
     ]
