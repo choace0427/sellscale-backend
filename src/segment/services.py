@@ -73,11 +73,12 @@ def merge_segment_filters(segment_id: int, segment_filters: dict):
     if segment:
         existing_filters = segment.filters or {}
         for key, value in segment_filters.items():
-            if (
-                key in existing_filters
-                and (not existing_filters[key] or existing_filters[key] == [])
-                and (value or value == [])
-            ):
+            if key in existing_filters:
+                if existing_filters[key] is None:
+                    existing_filters[key] = value
+                elif isinstance(existing_filters[key], list):
+                    existing_filters[key] = list(set(existing_filters[key] + value))
+            else:
                 existing_filters[key] = value
         segment.filters = existing_filters
         db.session.commit()
