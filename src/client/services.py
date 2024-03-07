@@ -4722,7 +4722,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
 
     # Send slack message
     send_slack_message(
-        message=f"New Task 🚨",
+        message=f"New Task 🚨 SellScale needs your help responding to {prospect.full_name}!",
         webhook_urls=[
             URL_MAP["ops-rep-intervention"]
         ],  # [sdr.pipeline_notifications_webhook_url],
@@ -4731,7 +4731,7 @@ def create_rep_intervention_needed_operator_dashboard_card(
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"New Task 🚨",
+                    "text": f"New Task 🚨 SellScale needs your help responding to {prospect.full_name}!",
                     "emoji": True,
                 },
             },
