@@ -9,7 +9,7 @@ from src.slack.slack_notification_center import (
 @celery.task
 def send_daily_pipeline_activity_notification_for_active_sdrs():
     # Get all active SDRs
-    sdrs: list[ClientSDR] = ClientSDR.query.filter(active=True)
+    sdrs: list[ClientSDR] = ClientSDR.query.filter_by(active=True)
 
     for sdr in sdrs:
         # Send daily pipeline activity notification

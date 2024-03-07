@@ -74,6 +74,7 @@ def create_and_send_slack_notification_class_message(
             db.session.commit()
             return False
     except Exception as e:
+        db.session.rollback()
         log.status = "ERROR"
         log.error = str(e)
         db.session.commit()
