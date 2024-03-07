@@ -32,6 +32,7 @@ class SlackNotificationType(Enum):
     PROSPECT_ADDED = "PROSPECT_ADDED"
     PROSPECT_SNOOZED = "PROSPECT_SNOOZED"
     ASSET_CREATED = "ASSET_CREATED"
+    PIPELINE_ACTIVITY_DAILY = "PIPELINE_ACTIVITY_DAILY"
 
     def name(self):
         return get_slack_notification_type_metadata()[self].get("name")
@@ -105,6 +106,9 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.asset_created import AssetCreatedNotification
     from src.slack.notifications.email_new_inbox_created import (
         EmailNewInboxCreatedNotification,
+    )
+    from src.slack.notifications.pipeline_activity_daily import (
+        PipelineActivityDailyNotification,
     )
 
     map_slack_notification_type_to_metadata = {
@@ -186,6 +190,12 @@ def get_slack_notification_type_metadata():
             "class": EmailMultichanneledNotification,
             "outbound_channel": "email",
         },
+        SlackNotificationType.EMAIL_NEW_INBOX_CREATED: {
+            "name": "New Inbox Created",
+            "description": "A Slack notification that is sent whenever a new inbox is created.",
+            "class": EmailNewInboxCreatedNotification,
+            "outbound_channel": "email",
+        },
         SlackNotificationType.DEMO_FEEDBACK_COLLECTED: {
             "name": "Demo Feedback Collected",
             "description": "A Slack notification that is sent whenever you give feedback on a Demo",
@@ -228,11 +238,11 @@ def get_slack_notification_type_metadata():
             "class": AssetCreatedNotification,
             "outbound_channel": "all",
         },
-        SlackNotificationType.EMAIL_NEW_INBOX_CREATED: {
-            "name": "New Inbox Created",
-            "description": "A Slack notification that is sent whenever a new inbox is created.",
-            "class": EmailNewInboxCreatedNotification,
-            "outbound_channel": "email",
+        SlackNotificationType.PIPELINE_ACTIVITY_DAILY: {
+            "name": "Daily Pipeline Activity",
+            "description": "A Daily Slack notification that is sent to summarize the activity in your pipeline",
+            "class": PipelineActivityDailyNotification,
+            "outbound_channel": "all",
         },
     }
 
