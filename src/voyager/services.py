@@ -492,6 +492,27 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
         if prospect.status not in [ProspectStatus.ACTIVE_CONVO_SCHEDULING]:
             classify_active_convo(prospect.id, messages)
 
+    # Auto-complete `scheduling_needed_` dash cards
+    entry: OperatorDashboardEntry = OperatorDashboardEntry.query.filter(
+        OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
+        OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
+        OperatorDashboardEntry.tag == f"scheduling_needed_{prospect.id}",
+    ).first()
+    if entry:
+        latest_convo_entry: LinkedinConversationEntry = (
+            LinkedinConversationEntry.query.filter_by(
+                conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
+            )
+            .order_by(LinkedinConversationEntry.date.desc())
+            .first()
+        )
+        if (
+            latest_convo_entry
+            and latest_convo_entry.connection_degree == "You"
+            and latest_convo_entry.date > entry.created_at
+        ):
+            mark_task_complete(prospect.client_sdr_id, entry.id)
+
     return "OK", 200
 
 
