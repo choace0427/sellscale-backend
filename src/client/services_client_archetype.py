@@ -15,6 +15,7 @@ from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStat
 from src.simulation.models import SimulationRecord
 from src.simulation.services import generate_entire_simulated_conversation
 from src.smartlead.smartlead import Smartlead
+from src.bump_framework.services import get_all_bump_framework_assets
 
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -1078,6 +1079,12 @@ def get_client_archetype_stats(client_archetype_id):
             }
             for row in data
         ]
+
+    # Get all assets for the bf in the linkedin sequence
+    for i, entry in enumerate(linkedin_sequence):
+        bf_id = entry.get("bump_framework_id")
+        if bf_id:
+            entry["assets"] = get_all_bump_framework_assets(bf_id)
 
     return {
         "overview": {
