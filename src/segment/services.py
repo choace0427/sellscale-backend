@@ -87,8 +87,6 @@ def merge_segment_filters(segment_id: int, segment_filters: dict):
         db.session.add(segment)
         db.session.commit()
 
-        print(segment.filters)
-
 
 def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     segment = Segment.query.filter_by(
