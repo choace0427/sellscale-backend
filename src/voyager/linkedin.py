@@ -986,13 +986,13 @@ def send_linkedin_disconnected_slack_message(
     )
 
     num_messages_in_queue = num_messages_in_linkedin_queue(client_sdr_id=client_sdr_id)
-    success = create_and_send_slack_notification_class_message(
-        notification_type=SlackNotificationType.LINKEDIN_CONNECTION_DISCONNECTED,
-        arguments={
-            "client_sdr_id": client_sdr_id,
-            "num_messages_in_queue": num_messages_in_queue,
-        },
-    )
+    # success = create_and_send_slack_notification_class_message(
+    #     notification_type=SlackNotificationType.LINKEDIN_CONNECTION_DISCONNECTED,
+    #     arguments={
+    #         "client_sdr_id": client_sdr_id,
+    #         "num_messages_in_queue": num_messages_in_queue,
+    #     },
+    # )
 
     # send_slack_message(
     #     message=f"🚨 *LinkedIn Disconnected from SellScale @{client_sdr_name}* 🚨\n_Please follow the steps below to reconnect your LinkedIn_\n> 1. *<{direct_link}|Click here>* to log into SellScale.\n>2. You'll see a popup that says `Linkedin Disconnected (Reconnect)` on the top right.\n>3. Click on `Reconnect`.\n>4. Download & Open the <{browser_extension_url}|SellScale Chrome Extension> and press `Reconnect LinkedIn\nAfter that, you should see a `connected` screen!",

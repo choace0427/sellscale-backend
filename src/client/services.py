@@ -2,6 +2,7 @@ from enum import Enum
 import random
 
 import sqlalchemy
+from src.ai_requests.services import create_ai_requests
 from src.automation.orchestrator import add_process_for_future
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
@@ -2412,6 +2413,14 @@ def submit_demo_feedback(
         demo_date=demo_date,
         next_demo_date=next_demo_date,
         ai_adjustments=ai_adjustments,
+    )
+
+    # Create an AI Request to review Demo Feedback for 7 days from now
+    create_ai_requests(
+        client_sdr_id=client_sdr_id,
+        description="New demo request submitted. Please submit any changes then fill in the card mentioning the changes so the client sees",
+        title=f"Review Demo Feedback for '{prospect.full_name}'",
+        days_till_due=7,
     )
 
     # If next_demo_date is specified, update the prospect

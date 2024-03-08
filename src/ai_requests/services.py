@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+
+from typing import Optional
 from src.ai_requests.models import AIRequest, AIRequestStatus
 from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -11,10 +13,16 @@ from src.utils.slack import send_slack_message, URL_MAP  # Import the Slack util
 from src.client.models import Client, ClientSDR
 
 
-def create_ai_requests(client_sdr_id, description, days_till_due=1):
+def create_ai_requests(
+    client_sdr_id: int,
+    description: str,
+    title: Optional[str] = None,
+    days_till_due: Optional[int] = 1,
+) -> AIRequest:
     try:
         # Generate title using GPT-3.5
-        title = generate_title_with_gpt(description)
+        if not title:
+            title = generate_title_with_gpt(description)
 
         if not days_till_due:
             days_till_due = 1

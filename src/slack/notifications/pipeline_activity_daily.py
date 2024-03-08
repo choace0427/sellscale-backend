@@ -86,7 +86,9 @@ class PipelineActivityDailyNotification(SlackNotificationClass):
                 1,
                 2,
                 3,
-                4
+                4,
+                5,
+                6
         """
 
         def get_preview_fields() -> dict:
@@ -117,7 +119,7 @@ class PipelineActivityDailyNotification(SlackNotificationClass):
 
         def get_fields() -> dict:
             """Gets the fields to be used in the message."""
-            data = db.session.execute(data_query).fetch_all()
+            data = db.session.execute(data_query).fetchall()
             data = [dict(row) for row in data]
 
             return {"data": data}
