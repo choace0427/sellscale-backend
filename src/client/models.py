@@ -708,6 +708,8 @@ class ClientAssets(db.Model):
     num_opens = db.Column(db.Integer, nullable=True)
     num_replies = db.Column(db.Integer, nullable=True)
 
+    step_number = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
