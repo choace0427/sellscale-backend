@@ -113,8 +113,6 @@ def get_prospect_li_conversation():
         "override_bump_framework_template", request, json=True, required=False
     )
 
-    is_breakup = get_request_parameter("is_breakup", request, json=True, required=False)
-
     # Get the enum value for the bump length
     if bump_length is not None:
         found_key = False
@@ -138,7 +136,6 @@ def get_prospect_li_conversation():
         account_research_copy=account_research_copy,
         override_bump_length=bump_length,
         override_bump_framework_template=override_bump_framework_template,
-        is_breakup=is_breakup,
     )  # type: ignore
     if response:
         return jsonify({"message": response, "prompt": prompt}), 200
