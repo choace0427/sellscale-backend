@@ -4,6 +4,9 @@ from src.company.services import (
     company_backfill,
     company_backfill_prospects,
     find_sdr_from_slack,
+    company_detail,
+    prospect_engagement,
+    get_timeline
 )
 from model_import import Client
 from src.authentication.decorators import require_user
@@ -131,3 +134,43 @@ def post_company_do_not_contact(client_sdr_id: int):
         ),
         200,
     )
+
+
+@COMPANY_BLUEPRINT.route("/details", methods=["POST"])
+@require_user
+def company_details(client_sdr_id: int):
+    company_id = get_request_parameter(
+        "company_id", request, json=False, required=True, parameter_type=str
+    )
+    companyDetails = company_detail(company_id, client_sdr_id)
+
+    return jsonify({
+        "company_detail": companyDetails
+    }), 200
+
+
+@COMPANY_BLUEPRINT.route("/timeline", methods=["POST"])
+@require_user
+def get_timeData(client_sdr_id: int):
+    company_id = get_request_parameter(
+        "company_id", request, json=False, required=True, parameter_type=str
+    )
+
+    timelineData = get_timeline(company_id, client_sdr_id)
+
+    return jsonify({
+        "timeline": timelineData
+    }), 200
+
+
+@COMPANY_BLUEPRINT.route("/engagement", methods=["POST"])
+@require_user
+def prospect_engagements(client_sdr_id: int):
+    company_id = get_request_parameter(
+        "company_id", request, json=False, required=True, parameter_type=str
+    )
+    prospectEngagement = prospect_engagement(company_id, client_sdr_id)
+
+    return jsonify({
+        "prospect_engagement": prospectEngagement
+    }), 200

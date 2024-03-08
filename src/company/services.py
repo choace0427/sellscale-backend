@@ -8,7 +8,7 @@ from sqlalchemy import or_
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, Client
 from app import db, celery
 from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
@@ -226,3 +226,133 @@ def authorize_slack_user(client_sdr_id: int, user_id: str):
         return True
 
     return False
+
+
+def company_detail(company_id: int, client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+        select
+            company.name "name",
+            company.websites "websites",
+            company.description "description",
+            company.industries "industries",
+            company.locations "locations",
+            company.specialities "specialties",
+            company.employees "num_employees",
+            company.founded_year "founded_year"
+        from company
+            join prospect on prospect.company_id = company.id
+        where company.id = {COMPANY_ID}
+            and prospect.client_id = {CLIENT_ID}
+    """.format(
+        COMPANY_ID=company_id, CLIENT_ID=client_id
+    )
+
+    result = db.session.execute(query).fetchone()
+    if result is not None:
+        result = dict(result)
+
+    return result
+
+
+def get_timeline(company_id: int, client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+        with d as (
+            select 
+                prospect.first_name,
+                prospect.full_name,
+                prospect.title,
+                prospect.company,
+                case
+                    when prospect_status_records.to_status is not null
+                        then prospect_status_records.created_at
+                    else
+                        prospect_email_status_records.created_at
+                end created_at,
+                case
+                    when prospect_status_records.to_status is not null
+                        then 'LinkedIn'
+                    else
+                        'Email'
+                end channel,
+                case
+                    when prospect_status_records.to_status is not null
+                        then cast(prospect_status_records.to_status as varchar)
+                    else
+                        cast(prospect_email_status_records.to_status as varchar)
+                end status,
+                client_sdr.name "rep"
+            from prospect
+                join client_sdr on client_sdr.id = prospect.client_sdr_id
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            where 
+                prospect.client_id = {CLIENT_ID} and
+                (
+                    prospect_email_status_records.to_status in ('ACTIVE_CONVO', 'DEMO_SET', 'EMAIL_OPENED')
+                    or prospect_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
+                ) and 
+                prospect.company_id = {COMPANY_ID}
+            group by 1,2,3,4,5,6,7,8
+            order by case
+                when prospect_status_records.to_status is not null
+                    then prospect_status_records.created_at
+                else
+                    prospect_email_status_records.created_at
+            end desc
+        )
+        select 
+            concat(
+                d.first_name, ' moved to `', lower(replace(d.status, '_', ' ')), '` on ', d.channel, ' - ', to_char(d.created_at, 'MM/DD/YYYY')
+            ) title,
+            concat(
+                d.full_name, ' is ', d.rep, ' contact and is currently the ', d.title, ' at ', d.company
+            ) subtitle
+        from d;
+    """.format(
+        COMPANY_ID = company_id,
+        CLIENT_ID= client_id
+    )
+
+    result = db.session.execute(query).fetchall()
+    if result is not None:
+        result = [dict(row) for row in result]
+
+    return result
+
+
+def prospect_engagement(company_id: int, client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+        select 
+            prospect.full_name "contact",
+            prospect.title "title",
+            client_sdr.name "rep_name",
+            case 
+                when prospect.approved_outreach_message_id is not null or prospect.approved_prospect_email_id is not null
+                    then 'engaged'
+                else 'sourced'
+            end status
+        from prospect
+            join client_sdr on client_sdr.id = prospect.client_sdr_id
+        where 
+            prospect.company_id = {COMPANY_ID}
+            and prospect.client_id = {CLIENT_ID}
+    """.format(
+        COMPANY_ID = company_id,
+        CLIENT_ID = client_id
+    )
+
+    result = db.session.execute(query).fetchall()
+    if result is not None:
+        result = [dict(row) for row in result]
+
+    return result
