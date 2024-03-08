@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from pyparsing import Optional
+from typing import Optional
 from src.ai_requests.models import AIRequest, AIRequestStatus
 from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
