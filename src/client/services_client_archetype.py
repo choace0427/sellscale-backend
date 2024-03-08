@@ -1047,11 +1047,13 @@ def get_client_archetype_stats(client_archetype_id):
                 "bump_framework_delay": record.meta_data
                 and record.meta_data.get("bump_framework_delay")
                 or 0,
+                "bump_framework_id": record.meta_data.get("bump_framework_id"),
             }
             linkedin_sequence.append(entry)
     else:
         query = """
             select
+                id,
                 title,
                 description,
                 bumped_count
@@ -1069,9 +1071,10 @@ def get_client_archetype_stats(client_archetype_id):
         data = db.session.execute(query).fetchall()
         linkedin_sequence = [
             {
-                "title": row[0],
-                "description": "Instruction: " + str(row[1]),
-                "bumped_count": row[2],
+                "bump_framework_id": row[0],
+                "title": row[1],
+                "description": "Instruction: " + str(row[2]),
+                "bumped_count": row[3],
             }
             for row in data
         ]
