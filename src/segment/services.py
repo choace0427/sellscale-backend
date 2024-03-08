@@ -11,6 +11,7 @@ from src.prospecting.icp_score.services import update_icp_filters
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.segment.models import Segment
 from sqlalchemy import case
+from sqlalchemy.orm.attributes import flag_modified
 
 
 def create_new_segment(
@@ -81,7 +82,12 @@ def merge_segment_filters(segment_id: int, segment_filters: dict):
             else:
                 existing_filters[key] = value
         segment.filters = existing_filters
+
+        flag_modified(segment, "filters")
+        db.session.add(segment)
         db.session.commit()
+
+        print(segment.filters)
 
 
 def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:

@@ -40,6 +40,8 @@ class OperatorDashboardTaskType(enum.Enum):
 
     REP_INTERVENTION_NEEDED = "REP_INTERVENTION_NEEDED"
 
+    VOICE_BUILDER = "VOICE_BUILDER"
+
 
 class OperatorDashboardEntry(db.Model):
     __tablename__ = "operator_dashboard_entry"
