@@ -226,31 +226,9 @@ def get_bump_frameworks_for_sdr(
     bf_dicts = [bf.to_dict() for bf in bfs]
 
     if include_assets:
-
-        bump_frameworks_with_assets = (
-            db.session.query(BumpFramework, ClientAssets)
-            .outerjoin(
-                BumpFrameworkToAssetMapping,
-                BumpFrameworkToAssetMapping.bump_framework_id == BumpFramework.id,
-            )
-            .outerjoin(
-                ClientAssets,
-                BumpFrameworkToAssetMapping.client_assets_id == ClientAssets.id,
-            )
-            .filter(
-                BumpFramework.client_sdr_id == client_sdr_id,
-                BumpFramework.client_archetype_id.in_(client_archetype_ids),
-                BumpFramework.overall_status.in_(overall_statuses),
-            )
-        )
-
-        # Add assets property to each bump framework dict
-        for bf_dict in bf_dicts:
-            bf_id = bf_dict["id"]
-            bf_assets = bump_frameworks_with_assets.filter(
-                BumpFramework.id == bf_id
-            ).all()
-            bf_dict["assets"] = [asset.to_dict() for _, asset in bf_assets]
+        # For each bf, get the assets and add them to the bf dict
+        for bf in bf_dicts:
+            bf["assets"] = get_all_bump_framework_assets(bf["id"])
 
     return bf_dicts
 
