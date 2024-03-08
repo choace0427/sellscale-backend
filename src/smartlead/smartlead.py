@@ -397,7 +397,7 @@ class Smartlead:
             "reply_message_id": reply_message_id,
             "reply_email_time": reply_email_time,
             "reply_email_body": reply_email_body,
-            "cc": cc,
+            "cc": ",".join(cc) if cc else None,
         }
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
