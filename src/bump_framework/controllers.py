@@ -3,10 +3,17 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import BumpFramework
-from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
+from src.bump_framework.models import (
+    BumpFrameworkTemplates,
+    BumpFrameworkToAssetMapping,
+    BumpLength,
+)
 from src.bump_framework.services import (
     clone_bump_framework,
     create_bump_framework,
+    create_bump_framework_asset_mapping,
+    delete_bump_framework_asset_mapping,
+    get_all_bump_framework_assets,
     get_bump_framework_count_for_sdr,
     modify_bump_framework,
     deactivate_bump_framework,
@@ -109,6 +116,12 @@ def get_bump_frameworks(client_sdr_id: int):
         )
         or None
     )
+    include_assets = (
+        get_request_parameter(
+            "include_assets", request, json=False, required=False, parameter_type=bool
+        )
+        or False
+    )
 
     overall_statuses_enumed = []
     for key, val in ProspectOverallStatus.__members__.items():
@@ -130,6 +143,7 @@ def get_bump_frameworks(client_sdr_id: int):
         unique_only=unique_only,
         bumped_count=bumped_count,
         include_archetype_sequence_id=include_archetype_sequence_id,
+        include_assets=include_assets,
     )
 
     counts = get_bump_framework_count_for_sdr(
@@ -881,3 +895,69 @@ def get_bump_sequence(client_sdr_id: int):
         or None
     )
     return get_db_bump_sequence(archetype_id)
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/create_asset_mapping", methods=["POST"])
+@require_user
+def create_asset_mapping(client_sdr_id: int):
+    """Creates an asset mapping for a given client SDR"""
+    bump_framework_id = get_request_parameter(
+        "bump_framework_id", request, json=True, required=True
+    )
+    asset_id = get_request_parameter("asset_id", request, json=True, required=True)
+
+    bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+    if not bump_framework:
+        return jsonify({"error": "Bump framework not found."}), 404
+    elif bump_framework.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This bump framework does not belong to you."}), 401
+
+    create_bump_framework_asset_mapping(
+        bump_framework_id=bump_framework_id, client_assets_id=asset_id
+    )
+
+    return jsonify({"message": "Asset mapping created."}), 200
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/delete_asset_mapping", methods=["POST"])
+@require_user
+def delete_asset_mapping(client_sdr_id: int):
+    """Deletes an asset mapping for a given client SDR"""
+    bump_framework_to_asset_mapping_id = get_request_parameter(
+        "bump_framework_to_asset_mapping_id", request, json=True, required=True
+    )
+
+    bump_framework_to_asset_mapping: BumpFrameworkToAssetMapping = (
+        BumpFrameworkToAssetMapping.query.get(bump_framework_to_asset_mapping_id)
+    )
+    bump_framework_id: int = bump_framework_to_asset_mapping.bump_framework_id
+    bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+    if not bump_framework:
+        return jsonify({"error": "Bump framework not found."}), 404
+    elif bump_framework.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This bump framework does not belong to you."}), 401
+
+    delete_bump_framework_asset_mapping(
+        bump_framework_to_asset_mapping_id=bump_framework_to_asset_mapping_id
+    )
+
+    return jsonify({"message": "Asset mapping deleted."}), 200
+
+
+@BUMP_FRAMEWORK_BLUEPRINT.route("/get_all_asset_mapping", methods=["GET"])
+@require_user
+def get_all_asset_mapping(client_sdr_id: int):
+    """Gets all asset mapping for a given client SDR"""
+    bump_framework_id = get_request_parameter(
+        "bump_framework_id", request, json=False, required=True
+    )
+
+    bump_framework: BumpFramework = BumpFramework.query.get(bump_framework_id)
+    if not bump_framework:
+        return jsonify({"error": "Bump framework not found."}), 404
+    elif bump_framework.client_sdr_id != client_sdr_id:
+        return jsonify({"error": "This bump framework does not belong to you."}), 401
+
+    mappings = get_all_bump_framework_assets(bump_framework_id=bump_framework_id)
+
+    return jsonify({"mappings": mappings}), 200

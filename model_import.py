@@ -80,7 +80,11 @@ from src.daily_notifications.models import (
     NotificationStatus,
     EngagementFeedItem,
 )
-from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
+from src.bump_framework.models import (
+    BumpFramework,
+    BumpFrameworkTemplates,
+    BumpFrameworkToAssetMapping,
+)
 from src.email_sequencing.models import (
     EmailSequenceStep,
     EmailSubjectLineTemplate,

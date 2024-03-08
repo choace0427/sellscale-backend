@@ -1,7 +1,7 @@
 from model_import import BumpFramework
 from app import db
-from src.bump_framework.models import BumpLength
-from src.client.models import ClientArchetype
+from src.bump_framework.models import BumpFrameworkToAssetMapping, BumpLength
+from src.client.models import ClientArchetype, ClientAssets
 from src.message_generation.services import clear_auto_generated_bumps
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from src.utils.slack import send_slack_message
@@ -106,6 +106,7 @@ def get_bump_frameworks_for_sdr(
     bumped_count: Optional[int] = None,
     default_only: Optional[bool] = False,
     include_archetype_sequence_id: Optional[int] = None,
+    include_assets: Optional[bool] = False,
 ) -> list[dict]:
     """Get all bump frameworks for a given SDR and overall status
 
@@ -222,7 +223,36 @@ def get_bump_frameworks_for_sdr(
             seen.add(seen_tuple)
         bfs = bf_unique
 
-    return [bf.to_dict() for bf in bfs]
+    bf_dicts = [bf.to_dict() for bf in bfs]
+
+    if include_assets:
+
+        bump_frameworks_with_assets = (
+            db.session.query(BumpFramework, ClientAssets)
+            .outerjoin(
+                BumpFrameworkToAssetMapping,
+                BumpFrameworkToAssetMapping.bump_framework_id == BumpFramework.id,
+            )
+            .outerjoin(
+                ClientAssets,
+                BumpFrameworkToAssetMapping.client_assets_id == ClientAssets.id,
+            )
+            .filter(
+                BumpFramework.client_sdr_id == client_sdr_id,
+                BumpFramework.client_archetype_id.in_(client_archetype_ids),
+                BumpFramework.overall_status.in_(overall_statuses),
+            )
+        )
+
+        # Add assets property to each bump framework dict
+        for bf_dict in bf_dicts:
+            bf_id = bf_dict["id"]
+            bf_assets = bump_frameworks_with_assets.filter(
+                BumpFramework.id == bf_id
+            ).all()
+            bf_dict["assets"] = [asset.to_dict() for _, asset in bf_assets]
+
+    return bf_dicts
 
 
 def get_bump_framework_count_for_sdr(
@@ -598,3 +628,49 @@ def get_db_bump_sequence(archetype_id: int):
     ]
 
     return {"data": bump_frameworks, "message": "Success", "status_code": 200}
+
+
+def create_bump_framework_asset_mapping(bump_framework_id: int, client_assets_id: int):
+    mapping: BumpFrameworkToAssetMapping = BumpFrameworkToAssetMapping(
+        bump_framework_id=bump_framework_id,
+        client_assets_id=client_assets_id,
+    )
+    db.session.add(mapping)
+    db.session.commit()
+    return True
+
+
+def delete_bump_framework_asset_mapping(
+    bump_framework_to_asset_mapping_id: int,
+):
+    mapping: BumpFrameworkToAssetMapping = BumpFrameworkToAssetMapping.query.get(
+        bump_framework_to_asset_mapping_id
+    )
+    if not mapping:
+        return True
+
+    db.session.delete(mapping)
+    db.session.commit()
+    return True
+
+
+def get_all_bump_framework_assets(bump_framework_id: int):
+    mappings: list[BumpFrameworkToAssetMapping] = (
+        BumpFrameworkToAssetMapping.query.filter(
+            BumpFrameworkToAssetMapping.bump_framework_id == bump_framework_id
+        ).all()
+    )
+    asset_ids = [mapping.client_assets_id for mapping in mappings]
+    assets: list[ClientAssets] = ClientAssets.query.filter(
+        ClientAssets.id.in_(asset_ids)
+    ).all()
+    asset_dicts = [asset.to_dict() for asset in assets]
+
+    # add 'mapping_id' to each asset
+    for i, asset in enumerate(asset_dicts):
+        correct_mapping = next(
+            mapping for mapping in mappings if mapping.client_assets_id == asset["id"]
+        )
+        asset["mapping_id"] = correct_mapping.id
+
+    return asset_dicts

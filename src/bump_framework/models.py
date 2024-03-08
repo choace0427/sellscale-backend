@@ -105,6 +105,25 @@ class BumpFramework(db.Model):
         }
 
 
+class BumpFrameworkToAssetMapping(db.Model):
+    __tablename__ = "bump_framework_to_asset_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+    bump_framework_id = db.Column(
+        db.Integer, db.ForeignKey("bump_framework.id"), nullable=False
+    )
+    client_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_assets.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "bump_framework_id": self.bump_framework_id,
+            "client_assets_id": self.client_assets_id,
+        }
+
+
 class JunctionBumpFrameworkClientArchetype(db.Model):
     __tablename__ = "junction_bump_framework_client_archetype"
 
