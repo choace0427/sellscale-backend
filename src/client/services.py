@@ -2416,9 +2416,10 @@ def submit_demo_feedback(
     )
 
     # Create an AI Request to review Demo Feedback for 7 days from now
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     create_ai_requests(
         client_sdr_id=client_sdr_id,
-        description="New demo request submitted. Please submit any changes then fill in the card mentioning the changes so the client sees",
+        description=f"{client_sdr.name} has submitted demo feedback on {datetime.now().strftime('%B %d, %Y')}. Review the feedback, make any relevant changes, then mark complete\n\nProspect Name: {prospect.full_name}\nRating: {rating}\nFeedback: {feedback}",
         title=f"Review Demo Feedback for '{prospect.full_name}'",
         days_till_due=7,
     )
