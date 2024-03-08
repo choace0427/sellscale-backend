@@ -3033,6 +3033,9 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
     reason = get_request_parameter(
         "reason", request, json=True, required=False, parameter_type=str
     )
+    step_number = get_request_parameter(
+        "step_number", request, json=True, required=False
+    )
 
     if not reason:
         reason = ""
@@ -3044,7 +3047,7 @@ def post_toggle_archetype_id_in_asset_ids(client_sdr_id: int):
         delete_client_asset_archetype_mapping(client_archetype_id, asset_id)
     else:
         success, message = create_client_archetype_reason_mapping(
-            client_archetype_id, asset_id, reason
+            client_archetype_id, asset_id, reason, step_number=step_number
         )
         if not success:
             return jsonify({"status": "error", "message": message}), 400

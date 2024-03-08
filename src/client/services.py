@@ -4945,6 +4945,7 @@ def create_client_archetype_reason_mapping(
     client_archetype_id: int,
     asset_id: int,
     reason: str,
+    step_number: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Creates a reason for a client archetype
@@ -4968,6 +4969,7 @@ def create_client_archetype_reason_mapping(
         client_archetype_id=client_archetype_id,
         client_asset_id=asset_id,
         reason=reason,
+        step_number=step_number,
     )
     db.session.add(reason)
 
