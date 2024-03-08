@@ -733,12 +733,13 @@ def generate_chat_gpt_response_to_conversation_thread(
     prospect_id: int,
     convo_history: List[LinkedInConvoMessage],
     bump_framework_id: Optional[int] = None,
-    account_research_copy: str = "",
+    account_research_copy: Optional[str] = "",
     override_bump_length: Optional[BumpLength] = None,
-    max_retries: int = 3,
-    use_cache: bool = False,
+    max_retries: Optional[int] = 3,
+    use_cache: Optional[bool] = False,
     bump_framework_template_id: Optional[int] = None,
     override_bump_framework_template: Optional[str] = None,
+    is_breakup: Optional[bool] = False,
 ):
     for _ in range(max_retries):
         # try:
@@ -751,6 +752,7 @@ def generate_chat_gpt_response_to_conversation_thread(
             use_cache=use_cache,
             bump_framework_template_id=bump_framework_template_id,
             override_bump_framework_template=override_bump_framework_template,
+            is_breakup=is_breakup,
         )
         # except Exception as e:
         #     time.sleep(2)
@@ -880,11 +882,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     prospect_id: int,
     convo_history: List[LinkedInConvoMessage],
     bump_framework_id: Optional[int] = None,
-    account_research_copy: str = "",
+    account_research_copy: Optional[str] = "",
     override_bump_length: Optional[BumpLength] = None,
-    use_cache: bool = False,
+    use_cache: Optional[bool] = False,
     bump_framework_template_id: Optional[int] = None,
     override_bump_framework_template: Optional[str] = None,
+    is_breakup: Optional[bool] = False,
 ):
     from model_import import Prospect
     from src.client.services import get_available_times_via_calendly
@@ -921,7 +924,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         bump_framework = None
 
     # If we don't have a bump framework template, use the legacy system
-    if not bump_framework:
+    if not bump_framework and not is_breakup:
         return generate_chat_gpt_response_to_conversation_thread_helper_legacy(
             prospect_id=prospect_id,
             convo_history=convo_history,
@@ -931,6 +934,11 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
             use_cache=use_cache,
             bump_framework_template_id=bump_framework_template_id,
         )
+
+    # Include optional breakup instructions
+    optional_breakup_instructions = ""
+    if is_breakup:
+        optional_breakup_instructions = "- IMPORTANT NOTE: This is a 'breakup' message, which means the prospect has expressed disinterest or let us know they are not qualified. We want to end this conversation in a friendly manner that also keeps the door open for a future conversation."
 
     ###################################
     ##### Use new template system #####
@@ -943,12 +951,12 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         transcript + "\n\n" + sender + " (" + str(datetime.now())[0:10] + "):"
     )
 
-    if bump_framework.use_account_research:
+    if bump_framework and bump_framework.use_account_research:
         # Grab 3 random points from the research points
-        research_points: list[ResearchPoints] = (
-            ResearchPoints.get_research_points_by_prospect_id(
-                prospect_id=prospect_id, bump_framework_id=bump_framework_id
-            )
+        research_points: list[
+            ResearchPoints
+        ] = ResearchPoints.get_research_points_by_prospect_id(
+            prospect_id=prospect_id, bump_framework_id=bump_framework_id
         )
         found_points = [research_point.to_dict() for research_point in research_points]
         random_sample_points = random.sample(found_points, min(len(found_points), 3))
@@ -968,9 +976,11 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
         if prospect.colloquialized_company
         else prospect.company
     )
-    human_feedback = bump_framework.human_feedback
-    template = bump_framework.description
-    additional_instructions = bump_framework.additional_instructions
+    human_feedback = bump_framework.human_feedback if bump_framework else ""
+    template = bump_framework.description if bump_framework else ""
+    additional_instructions = (
+        bump_framework.additional_instructions if bump_framework else ""
+    )
 
     if override_bump_framework_template:
         template = override_bump_framework_template
@@ -1003,9 +1013,10 @@ Additional instructions:
 - Don't make any [[brackets]] longer than 1 sentence when filled in.
 {human_feedback}
 {additional_instructions}
+{optional_breakup_instructions}
 
 IMPORTANT:
-Stick to the template very strictly. Do not deviate from the template:
+Stick to the template very strictly. Do not deviate from the template. Do not include START TEMPLATE or END TEMPLATE in the output. If no template is provided, you do not need to follow the template:
 --- START TEMPLATE ---
 {template}
 --- END TEMPLATE ---
@@ -1025,7 +1036,11 @@ Output:"""
         use_cache=use_cache,
     )
 
-    if bump_framework.inject_calendar_times and client_sdr.scheduling_link:
+    if (
+        bump_framework
+        and bump_framework.inject_calendar_times
+        and client_sdr.scheduling_link
+    ):
 
         def date_suffix(day):
             day = int(day)
@@ -1361,12 +1376,11 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
     data = []
 
     # Get all the conversation entries that are in the past `hours` hours and are not from the user
-    past_entries: list[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.query.filter(
-            LinkedinConversationEntry.created_at
-            > datetime.now() - timedelta(hours=hours),
-            LinkedinConversationEntry.connection_degree != "You",
-        )
+    past_entries: list[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.query.filter(
+        LinkedinConversationEntry.created_at > datetime.now() - timedelta(hours=hours),
+        LinkedinConversationEntry.connection_degree != "You",
     )
 
     # Parse the entries to get meaningful data
@@ -1515,11 +1529,11 @@ def scrape_conversation_queue():
     from src.voyager.services import update_conversation_entries
     from src.client.services import populate_prospect_events
 
-    scrape_queue: List[LinkedinConversationScrapeQueue] = (
-        LinkedinConversationScrapeQueue.query.filter(
-            LinkedinConversationScrapeQueue.scrape_time < datetime.utcnow()
-        ).all()
-    )
+    scrape_queue: List[
+        LinkedinConversationScrapeQueue
+    ] = LinkedinConversationScrapeQueue.query.filter(
+        LinkedinConversationScrapeQueue.scrape_time < datetime.utcnow()
+    ).all()
 
     for scrape in scrape_queue:
         # try:
@@ -1633,10 +1647,10 @@ def send_autogenerated_bumps(override_sdr_id: Optional[int] = None):
 
         # Check to see if the conversation ever includes a message from the SDR that wasn't AI generated
         if sdr.disable_ai_on_message_send:
-            convo: List[LinkedinConversationEntry] = (
-                LinkedinConversationEntry.li_conversation_thread_by_prospect_id(
-                    oldest_auto_message.prospect_id
-                )
+            convo: List[
+                LinkedinConversationEntry
+            ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(
+                oldest_auto_message.prospect_id
             )
             human_sent_msg = next(
                 (
