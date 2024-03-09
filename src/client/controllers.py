@@ -3061,8 +3061,13 @@ def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
     new_reason = get_request_parameter(
         "reason", request, json=True, required=True, parameter_type=str
     )
+    step_number = get_request_parameter(
+        "step_number", request, json=True, required=True
+    )
     modify_client_archetype_reason_mapping(
-        client_asset_archetype_reason_mapping_id=reason_id, new_reason=new_reason
+        client_asset_archetype_reason_mapping_id=reason_id,
+        new_reason=new_reason,
+        step_number=step_number,
     )
 
     return jsonify({"status": "success"}), 200

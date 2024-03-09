@@ -4990,6 +4990,7 @@ def create_client_archetype_reason_mapping(
 def modify_client_archetype_reason_mapping(
     client_asset_archetype_reason_mapping_id: int,
     new_reason: str,
+    step_number: Optional[int] = None,
 ) -> bool:
     """
     Modifies a reason for a client archetype
@@ -5000,6 +5001,7 @@ def modify_client_archetype_reason_mapping(
         )
     )
     reason.reason = new_reason
+    reason.step_number = step_number
     db.session.add(reason)
     db.session.commit()
     return True
