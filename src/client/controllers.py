@@ -3062,7 +3062,7 @@ def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
         "reason", request, json=True, required=True, parameter_type=str
     )
     step_number = get_request_parameter(
-        "step_number", request, json=True, required=True
+        "step_number", request, json=True, required=False
     )
     modify_client_archetype_reason_mapping(
         client_asset_archetype_reason_mapping_id=reason_id,
