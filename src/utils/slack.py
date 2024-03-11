@@ -57,6 +57,7 @@ URL_MAP = {
     "continue-sequence-alerts": "https://hooks.slack.com/services/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",
     "honeypot-email-grader": "https://hooks.slack.com/services/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",
     "ops-rep-intervention": "https://hooks.slack.com/services/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",
+    "ops-territory-scraper": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
