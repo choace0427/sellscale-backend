@@ -11,7 +11,14 @@ from src.bump_framework.models import (
 )
 from src.bump_framework.services import create_bump_framework
 
-from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
+from src.client.models import (
+    Client,
+    ClientArchetype,
+    ClientAssetArchetypeReasonMapping,
+    ClientAssets,
+    ClientSDR,
+    SLASchedule,
+)
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.email_sequencing.services import (
     create_email_sequence_step,
@@ -787,3 +794,26 @@ def import_email_sequence(
         )
 
     return True
+
+
+def get_archetype_assets(archetype_id: int):
+    """Gets all Assets used by an archetype
+
+    Args:
+        archetype_id (int): The id of the archetype
+
+    Returns:
+        list[dict]: A list of assets
+    """
+    assetArchetypeMapping: list[
+        ClientAssetArchetypeReasonMapping
+    ] = ClientAssetArchetypeReasonMapping.query.filter(
+        ClientAssetArchetypeReasonMapping.client_archetype_id == archetype_id
+    ).all()
+    assets: list[ClientAssets] = ClientAssets.query.filter(
+        ClientAssets.id.in_(
+            [mapping.client_asset_id for mapping in assetArchetypeMapping]
+        )
+    ).all()
+
+    return [asset.to_dict() for asset in assets]

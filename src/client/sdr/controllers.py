@@ -5,7 +5,6 @@ from src.authentication.decorators import require_user
 from src.client.sdr.services_client_sdr import (
     compute_sdr_linkedin_health,
     create_sla_schedule,
-    get_client_sdr_assets,
     get_sla_schedules_for_sdr,
     update_custom_conversion_pct,
     update_sdr_default_transformer_blacklist,
@@ -298,17 +297,3 @@ def post_email_tracking_settings(client_sdr_id: int):
         )
 
     return jsonify({"status": "success"}), 200
-
-
-@CLIENT_SDR_BLUEPRINT.route("/assets", methods=["GET"])
-@require_user
-def get_assets(client_sdr_id: int):
-    archetype_id = get_request_parameter(
-        "campaign_id", request, json=False, required=True, parameter_type=int
-    )
-
-    assets = get_client_sdr_assets(
-        client_sdr_id=client_sdr_id, archetype_id=archetype_id
-    )
-
-    return jsonify({"status": "success", "data": assets}), 200

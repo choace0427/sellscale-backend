@@ -14,6 +14,7 @@ from src.client.archetype.services_client_archetype import (
 )
 from src.automation.orchestrator import add_process_for_future
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.client.services import get_client_assets
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
@@ -568,3 +569,15 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
         return jsonify({"status": "error", "message": "Failed to import sequence"}), 400
 
     return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/assets", methods=["GET"])
+@require_user
+def get_assets(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "campaign_id", request, json=False, required=True, parameter_type=int
+    )
+
+    assets = get_client_assets(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+
+    return jsonify({"status": "success", "data": assets}), 200
