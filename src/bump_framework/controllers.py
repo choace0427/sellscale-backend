@@ -419,7 +419,11 @@ def post_create_bump_framework(client_sdr_id: int):
     # If the transformer blocklist is empty, we should extend the SDR's default blocklist
     if not transformer_blocklist or len(transformer_blocklist) == 0:
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        transformer_blocklist = sdr.default_transformer_blocklist
+        transformer_blocklist = (
+            sdr.default_transformer_blocklist
+            if sdr.default_transformer_blocklist
+            else []
+        )
 
     bump_framework_id = create_bump_framework(
         client_sdr_id=client_sdr_id,

@@ -141,7 +141,7 @@ def post_create_sequence_step(client_sdr_id: int):
     # If the transformer blocklist is empty, we should extend the SDR's default blocklist
     if not transformer_blocklist or len(transformer_blocklist) == 0:
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        transformer_blocklist = sdr.default_transformer_blocklist
+        transformer_blocklist = sdr.default_transformer_blocklist or []
 
     sequence_step_id = create_email_sequence_step(
         client_sdr_id=client_sdr_id,

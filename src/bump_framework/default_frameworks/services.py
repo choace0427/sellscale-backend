@@ -34,7 +34,11 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
 
     for template in templates:
         transformer_blocklist = template.transformer_blocklist
-        transformer_blocklist.extend(client_sdr.default_transformer_blocklist)
+        transformer_blocklist.extend(
+            client_sdr.default_transformer_blocklist
+            if client_sdr.default_transformer_blocklist
+            else []
+        )
         create_bump_framework(
             client_sdr_id=client_sdr_id,
             client_archetype_id=client_archetype_id,

@@ -422,7 +422,9 @@ def create_client_archetype(
         return None
 
     transformer_blocklist = ["CURRENT_LOCATION"]
-    transformer_blocklist.extend(sdr.default_transformer_blocklist)
+    transformer_blocklist.extend(
+        sdr.default_transformer_blocklist if sdr.default_transformer_blocklist else []
+    )
     client_archetype = ClientArchetype(
         client_id=client_id,
         client_sdr_id=client_sdr_id,

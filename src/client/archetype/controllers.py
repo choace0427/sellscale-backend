@@ -298,7 +298,7 @@ def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not research_points or len(research_points) == 0:
         research_points = ResearchPointType.get_allowedlist_from_blocklist(
-            blocklist=sdr.default_transformer_blocklist
+            blocklist=sdr.default_transformer_blocklist or []
         )
 
     template = LinkedinInitialMessageTemplate(

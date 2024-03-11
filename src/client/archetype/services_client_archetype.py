@@ -630,7 +630,7 @@ def import_linkedin_sequence(
     if is_template_mode:
         sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
         research_points = ResearchPointType.get_allowedlist_from_blocklist(
-            blocklist=sdr.default_transformer_blocklist
+            blocklist=sdr.default_transformer_blocklist or []
         )
         initial_message_step = steps[0]
         template = LinkedinInitialMessageTemplate(
