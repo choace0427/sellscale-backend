@@ -33,6 +33,8 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
     templates: list[BumpFrameworkTemplates] = BumpFrameworkTemplates.query.all()
 
     for template in templates:
+        transformer_blocklist = template.transformer_blocklist
+        transformer_blocklist.extend(client_sdr.default_transformer_blocklist)
         create_bump_framework(
             client_sdr_id=client_sdr_id,
             client_archetype_id=client_archetype_id,
@@ -56,9 +58,7 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
             bump_framework_template_name=template.name,
             bump_framework_human_readable_prompt=template.human_readable_prompt,
             additional_context=template.tone,
-            transformer_blocklist=template.transformer_blocklist.extend(
-                client_sdr.default_transformer_blocklist
-            ),
+            transformer_blocklist=transformer_blocklist,
         ),
 
     return len(templates)

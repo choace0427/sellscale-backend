@@ -421,6 +421,8 @@ def create_client_archetype(
     if not c or not sdr:
         return None
 
+    transformer_blocklist = ["CURRENT_LOCATION"]
+    transformer_blocklist.extend(sdr.default_transformer_blocklist)
     client_archetype = ClientArchetype(
         client_id=client_id,
         client_sdr_id=client_sdr_id,
@@ -453,12 +455,8 @@ def create_client_archetype(
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
         template_mode=template_mode,
-        transformer_blocklist=["CURRENT_LOCATION"].extend(
-            sdr.default_transformer_blocklist
-        ),
-        transformer_blocklist_initial=["CURRENT_LOCATION"].extend(
-            sdr.default_transformer_blocklist
-        ),
+        transformer_blocklist=transformer_blocklist,
+        transformer_blocklist_initial=transformer_blocklist,
     )
     db.session.add(client_archetype)
     db.session.commit()
