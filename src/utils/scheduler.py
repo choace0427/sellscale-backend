@@ -141,10 +141,10 @@ def auto_mark_uninterested_bumped_prospects_job():
 
 
 def auto_upload_from_apollo_job():
-    from src.prospecting.upload.services import auto_upload_from_apollo
+    from src.prospecting.upload.services import auto_run_apollo_upload_for_sdrs
 
     if is_scheduling_instance():
-        auto_upload_from_apollo.delay()
+        auto_run_apollo_upload_for_sdrs.delay()
 
 
 def auto_run_daily_revival_cleanup_job():

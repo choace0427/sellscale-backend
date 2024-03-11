@@ -771,6 +771,18 @@ def upload_prospects_from_apollo_query(
     return prospect_ids
 
 
+def auto_run_apollo_upload_for_sdrs():
+
+    sdrs: list[ClientSDR] = ClientSDR.query.all()
+    for sdr in sdrs:
+        auto_upload_from_apollo.apply_async(
+            args=[sdr.id],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=5,
+        )
+
+
 @celery.task
 def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 5):
 
