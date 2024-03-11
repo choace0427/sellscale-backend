@@ -797,6 +797,7 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
         sdr.meta_data = {}
     sdr.meta_data["apollo_auto_scrape"] = False
     db.session.add(sdr)
+    db.session.commit()
 
     if page > max_pages:
         return None
