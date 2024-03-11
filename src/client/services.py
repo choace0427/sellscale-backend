@@ -4858,15 +4858,22 @@ def create_archetype_asset(
     return asset.to_dict()
 
 
-def get_client_assets(client_id: int):
+def get_client_assets(client_id: int, archetype_id: Optional[int] = None):
+    """Gets all assets for a client
+
+    Args:
+        client_id (int): The client id
+        archetype_id (int, optional): The archetype id. Defaults to None.
+
+    Returns:
+        list[dict]: A list of assets
     """
-    Gets all assets for a client
-    """
-    assets = (
+    assets: list[ClientAssets] = (
         ClientAssets.query.filter_by(client_id=client_id)
         .order_by(ClientAssets.created_at.desc())
         .all()
     )
+
     return [asset.to_dict() for asset in assets]
 
 

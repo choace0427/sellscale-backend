@@ -4,7 +4,13 @@ from app import db, celery
 from sqlalchemy import or_
 from src.campaigns.models import OutboundCampaign
 
-from src.client.models import Client, ClientSDR, SLASchedule
+from src.client.models import (
+    Client,
+    ClientArchetype,
+    ClientAssets,
+    ClientSDR,
+    SLASchedule,
+)
 from src.message_generation.models import GeneratedMessage
 from src.utils.datetime.dateutils import (
     get_current_monday_friday,
@@ -921,3 +927,27 @@ def get_sdr_send_statistics(client_sdr_id: int) -> dict:
         "last_7_days": last_7_days_count,
         "all_time": all_time_count,
     }
+
+
+def get_client_sdr_assets(client_sdr_id: int, archetype_id: Optional[int] = None):
+    """Gets all assets for a client SDR
+
+    Args:
+        client_sdr_id (int): The client SDR id
+        archetype_id (int, optional): The archetype id. Defaults to None.
+
+    Returns:
+        list[dict]: A list of assets
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    assets = ClientAssets.query.filter_by(client_id=client_sdr.client_id).order_by(
+        ClientAssets.created_at.desc()
+    )
+
+    if archetype_id:
+        assets = assets.filter(
+            ClientAssets.client_archetype_ids.any(ClientArchetype.id == archetype_id)
+        )
+
+    assets: list[ClientArchetype] = assets.all()
+    return [asset.to_dict() for asset in assets]
