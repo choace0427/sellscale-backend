@@ -771,6 +771,7 @@ def upload_prospects_from_apollo_query(
     return prospect_ids
 
 
+@celery.task
 def auto_run_apollo_upload_for_sdrs():
 
     sdrs: list[ClientSDR] = ClientSDR.query.all()
