@@ -7,6 +7,7 @@ from src.client.sdr.services_client_sdr import (
     create_sla_schedule,
     get_sla_schedules_for_sdr,
     update_custom_conversion_pct,
+    update_sdr_default_transformer_blacklist,
     update_sdr_email_tracking_settings,
     update_sdr_sla_targets,
     update_sla_schedule,
@@ -15,6 +16,32 @@ from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.request_helpers import get_request_parameter
 
 CLIENT_SDR_BLUEPRINT = Blueprint("client/sdr", __name__)
+
+
+@CLIENT_SDR_BLUEPRINT.route("/messaging/transformer_blocklist", methods=["POST"])
+@require_user
+def post_transformer_blocklist(client_sdr_id: int):
+    """Modifies the default transformer blocklist for a given SDR."""
+    blocklist = get_request_parameter(
+        "blocklist", request, json=True, required=True, parameter_type=list
+    )
+
+    success = update_sdr_default_transformer_blacklist(
+        client_sdr_id=client_sdr_id, blocklist=blocklist
+    )
+
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Failed to update your transformer blocklist. Please try again or contact support.",
+                }
+            ),
+            400,
+        )
+
+    return jsonify({"status": "success"}), 200
 
 
 @CLIENT_SDR_BLUEPRINT.route("/linkedin/health", methods=["GET"])

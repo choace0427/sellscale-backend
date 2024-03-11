@@ -21,6 +21,30 @@ EMAIL_WARMUP_CONSERVATIVE = [10, 25, 50, 100, 150]
 EMAIL_WARM_THRESHOLD = 150
 
 
+def update_sdr_default_transformer_blacklist(
+    client_sdr_id: int, blocklist: list[str]
+) -> bool:
+    """Updates the default transformer blacklist for a Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+        blocklist (list[str]): The default transformer blacklist
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Get the Client SDR
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr:
+        return False
+
+    # Update the Client SDR
+    sdr.default_transformer_blocklist = blocklist
+    db.session.commit()
+
+    return True
+
+
 def compute_sdr_linkedin_health(
     client_sdr_id: int,
 ) -> tuple[bool, float, dict]:
