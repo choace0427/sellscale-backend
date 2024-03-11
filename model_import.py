@@ -33,6 +33,7 @@ from src.message_generation.models import (
     GeneratedMessage,
     GeneratedMessageStatus,
     GeneratedMessageCTA,
+    GeneratedMessageCTAToAssetMapping,
     GeneratedMessageType,
     GeneratedMessageFeedback,
     GeneratedMessageJob,

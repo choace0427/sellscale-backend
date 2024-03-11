@@ -267,6 +267,25 @@ class GeneratedMessageCTA(db.Model):
         }
 
 
+class GeneratedMessageCTAToAssetMapping(db.Model):
+    __tablename__ = "generated_message_cta_to_asset_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+    generated_message_cta_id = db.Column(
+        db.Integer, db.ForeignKey("generated_message_cta.id"), nullable=False
+    )
+    client_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_assets.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "generated_message_cta_id": self.generated_message_cta_id,
+            "client_assets_id": self.client_assets_id,
+        }
+
+
 class GeneratedMessageFeedback(db.Model):
     __tablename__ = "generated_message_feedback"
 
