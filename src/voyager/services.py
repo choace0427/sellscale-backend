@@ -493,12 +493,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             classify_active_convo(prospect.id, messages)
 
     # Auto-complete `scheduling_needed_` dash cards
-    entry: OperatorDashboardEntry = OperatorDashboardEntry.query.filter(
-        OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
-        OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
-        OperatorDashboardEntry.tag == f"scheduling_needed_{prospect.id}",
-    ).first()
-    if entry:
+    scheduling_needed_entry: OperatorDashboardEntry = (
+        OperatorDashboardEntry.query.filter(
+            OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
+            OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
+            OperatorDashboardEntry.tag == f"scheduling_needed_{prospect.id}",
+        ).first()
+    )
+    if scheduling_needed_entry:
         latest_convo_entry: LinkedinConversationEntry = (
             LinkedinConversationEntry.query.filter_by(
                 conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
@@ -506,6 +508,23 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             .order_by(LinkedinConversationEntry.date.desc())
             .first()
         )
+        if (
+            latest_convo_entry
+            and latest_convo_entry.connection_degree == "You"
+            and latest_convo_entry.date > scheduling_needed_entry.created_at
+        ):
+            mark_task_complete(prospect.client_sdr_id, scheduling_needed_entry.id)
+
+    # Auto-complete any `rep_intervention_needed_` dash cards for this prospect
+    rep_intervention_needed_entries: list[OperatorDashboardEntry] = (
+        OperatorDashboardEntry.query.filter(
+            OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
+            OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
+            OperatorDashboardEntry.tag
+            == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
+        ).all()
+    )
+    for entry in rep_intervention_needed_entries:
         if (
             latest_convo_entry
             and latest_convo_entry.connection_degree == "You"
