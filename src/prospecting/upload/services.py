@@ -1,4 +1,4 @@
-from src.client.models import ClientSDR
+from src.client.models import ClientArchetype, ClientSDR
 from src.automation.li_searcher import search_for_li
 from app import db, celery
 from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
@@ -693,3 +693,125 @@ def calculate_weighted_fit_score(icp_fit_score: int) -> float:
         int: The weighted fit score for a prospect.
     """
     return (icp_fit_score / 4) * 50
+
+
+def get_most_recent_apollo_query(client_sdr_id: int):
+    data = db.session.execute(
+        f"""
+            select data
+            from saved_apollo_query
+            where saved_apollo_query.client_sdr_id = {client_sdr_id}
+              and saved_apollo_query.is_prefilter
+            order by saved_apollo_query.created_at desc
+            limit 1;
+          """
+    ).fetchall()
+    return data[0][0] if data and data[0] else None
+
+
+def upload_prospects_from_apollo_query(
+    client_sdr_id: int, apollo_filters: dict, page: int = 1
+):
+    from src.contacts.services import get_contacts_for_page
+    from src.prospecting.services import create_prospect_from_linkedin_link
+
+    response, data, saved_query_id = get_contacts_for_page(
+        client_sdr_id=client_sdr_id,
+        page=page,
+        person_titles=apollo_filters.get("person_titles"),
+        person_not_titles=apollo_filters.get("person_not_titles"),
+        q_person_title=apollo_filters.get("q_person_title"),
+        q_person_name=apollo_filters.get("q_person_name"),
+        organization_industry_tag_ids=apollo_filters.get(
+            "organization_industry_tag_ids"
+        ),
+        organization_num_employees_ranges=apollo_filters.get(
+            "organization_num_employees_ranges"
+        ),
+        person_locations=apollo_filters.get("person_locations"),
+        organization_ids=apollo_filters.get("organization_ids"),
+        revenue_range=apollo_filters.get("revenue_range"),
+        organization_latest_funding_stage_cd=apollo_filters.get(
+            "organization_latest_funding_stage_cd"
+        ),
+        currently_using_any_of_technology_uids=apollo_filters.get(
+            "currently_using_any_of_technology_uids"
+        ),
+        event_categories=apollo_filters.get("event_categories"),
+        published_at_date_range=apollo_filters.get("published_at_date_range"),
+        person_seniorities=apollo_filters.get("person_seniorities"),
+        q_organization_search_list_id=apollo_filters.get(
+            "q_organization_search_list_id"
+        ),
+        organization_department_or_subdepartment_counts=apollo_filters.get(
+            "organization_department_or_subdepartment_counts"
+        ),
+        is_prefilter=True,
+    )
+
+    people = data.get("people", [])
+
+    client_sdr_unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True,
+    ).first()
+    if not client_sdr_unassigned_archetype:
+        return None
+
+    prospect_ids = []
+    for person in people:
+        success, prospect_id = create_prospect_from_linkedin_link(
+            archetype_id=client_sdr_unassigned_archetype.id,
+            url=person.get("linkedin_url"),
+            set_note="Auto imported",
+        )
+        if success:
+            prospect_ids.append(prospect_id)
+
+    return prospect_ids
+
+
+@celery.task
+def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 5):
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if page == 1 and sdr.meta_data.get("apollo_auto_scrape") is False:
+        return None
+
+    # Turn off auto scrape
+    if not sdr.meta_data:
+        sdr.meta_data = {}
+    sdr.meta_data["apollo_auto_scrape"] = False
+    db.session.add(sdr)
+
+    if page > max_pages:
+        return None
+
+    from src.utils.slack import send_slack_message, URL_MAP
+    from src.automation.orchestrator import add_process_for_future
+
+    apollo_filters = get_most_recent_apollo_query(client_sdr_id)
+    if not apollo_filters:
+        return None
+
+    prospect_ids = upload_prospects_from_apollo_query(
+        client_sdr_id=client_sdr_id, apollo_filters=apollo_filters, page=page
+    )
+
+    send_slack_message(
+        message=f"✅ Auto imported contacts for  `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{page*100} prospects imported.",
+        webhook_urls=[URL_MAP["ops-territory-scraper"]],
+    )
+
+    add_process_for_future(
+        type="auto_upload_from_apollo",
+        args={
+            "client_sdr_id": client_sdr_id,
+            "page": page + 1,
+            "max_pages": max_pages,
+        },
+        minutes=30,
+    )
+
+    return True

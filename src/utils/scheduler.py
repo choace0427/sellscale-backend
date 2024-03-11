@@ -140,6 +140,13 @@ def auto_mark_uninterested_bumped_prospects_job():
         auto_mark_uninterested_bumped_prospects.delay()
 
 
+def auto_upload_from_apollo_job():
+    from src.prospecting.upload.services import auto_upload_from_apollo
+
+    if is_scheduling_instance():
+        auto_upload_from_apollo.delay()
+
+
 def auto_run_daily_revival_cleanup_job():
     from src.li_conversation.conversation_analyzer.daily_revival_cleanup_job import (
         run_daily_prospect_to_revival_status_cleanup_job,
@@ -450,6 +457,7 @@ scheduler.add_job(func=icp_scoring_job, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
+scheduler.add_job(auto_upload_from_apollo_job, trigger="interval", minutes=10)
 
 scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
 

@@ -24,6 +24,7 @@ from src.campaigns.autopilot.services import (
 from src.campaigns.autopilot.services import (
     daily_generate_linkedin_campaign_for_sdr,
 )
+from src.prospecting.upload.services import auto_upload_from_apollo
 
 
 from src.utils.datetime.dateutils import get_future_datetime
@@ -138,6 +139,12 @@ PROCESS_TYPE_MAP = {
     },
     "daily_generate_linkedin_campaign_for_sdr": {
         "function": daily_generate_linkedin_campaign_for_sdr,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "auto_upload_from_apollo": {
+        "function": auto_upload_from_apollo,
         "priority": 10,
         "queue": None,
         "routing_key": None,
