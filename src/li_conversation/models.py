@@ -95,6 +95,27 @@ class LinkedinInitialMessageTemplate(db.Model):
         }
 
 
+class LinkedInInitialMessageToAssetMapping(db.Model):
+    __tablename__ = "linkedin_initial_message_to_asset_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+    linkedin_initial_message_id = db.Column(
+        db.Integer,
+        db.ForeignKey("linkedin_initial_message_template.id"),
+        nullable=False,
+    )
+    client_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_assets.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "linkedin_initial_message_id": self.linkedin_initial_message_id,
+            "client_assets_id": self.client_assets_id,
+        }
+
+
 class LinkedinConversationScrapeQueue(db.Model):
     __tablename__ = "linkedin_conversation_scrape_queue"
 

@@ -9,6 +9,7 @@ from src.li_conversation.models import (
 )
 from src.message_generation.models import (
     GeneratedMessageAutoBump,
+    GeneratedMessageCTAToAssetMapping,
     GeneratedMessageEmailType,
     SendStatus,
 )
@@ -880,6 +881,7 @@ def create_cta(
     active: bool = True,
     cta_type: str = "Manual",
     auto_mark_as_scheduling_on_acceptance: Optional[bool] = False,
+    asset_ids: list[int] = [],
 ):
     # duplicate_cta_exists = GeneratedMessageCTA.query.filter(
     #     GeneratedMessageCTA.archetype_id == archetype_id,
@@ -900,6 +902,13 @@ def create_cta(
     db.session.commit()
 
     cta_id = cta.id
+
+    for asset_id in asset_ids:
+        mapping = GeneratedMessageCTAToAssetMapping(
+            generated_message_cta_id=cta_id, client_assets_id=asset_id
+        )
+        db.session.add(mapping)
+    db.session.commit()
 
     return cta
 

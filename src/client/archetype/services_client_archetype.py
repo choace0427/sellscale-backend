@@ -4,7 +4,11 @@ from app import db
 from sqlalchemy import func
 
 from model_import import GeneratedMessage
-from src.bump_framework.models import BumpFramework, BumpLength
+from src.bump_framework.models import (
+    BumpFramework,
+    BumpFrameworkToAssetMapping,
+    BumpLength,
+)
 from src.bump_framework.services import create_bump_framework
 
 from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
@@ -13,7 +17,10 @@ from src.email_sequencing.services import (
     create_email_sequence_step,
     create_email_subject_line_template,
 )
-from src.li_conversation.models import LinkedinInitialMessageTemplate
+from src.li_conversation.models import (
+    LinkedInInitialMessageToAssetMapping,
+    LinkedinInitialMessageTemplate,
+)
 from src.message_generation.models import GeneratedMessageCTA
 from src.message_generation.services import create_cta, generate_li_convo_init_msg
 from src.ml.services import mark_queued_and_classify
@@ -635,6 +642,14 @@ def import_linkedin_sequence(
         )
         db.session.add(template)
         db.session.commit()
+
+        for asset_id in initial_message_step.get("asset_ids", []):
+            mapping = LinkedInInitialMessageToAssetMapping(
+                linkedin_initial_message_id=template.id,
+                client_assets_id=asset_id,
+            )
+            db.session.add(mapping)
+        db.session.commit()
     else:
         for i, cta in enumerate(ctas):
             create_cta(
@@ -643,19 +658,19 @@ def import_linkedin_sequence(
                 active=True,
                 cta_type=cta["cta_type"],
                 expiration_date=None,
+                asset_ids=cta.get("asset_ids", []),
             )
 
     if len(steps) <= 1:
         return
 
-    # make bump frameworks
     for i, step in enumerate(steps[1:]):
         status = ProspectOverallStatus.ACCEPTED
         bumped_count = 0
         if i >= 1:
             status = ProspectOverallStatus.BUMPED
             bumped_count = i
-        create_bump_framework(
+        bf_id = create_bump_framework(
             client_sdr_id=archetype.client_sdr_id,
             client_archetype_id=archetype.id,
             title=step["title"],
@@ -667,6 +682,14 @@ def import_linkedin_sequence(
             active=True,
             default=True,
         )
+
+        for asset_id in step.get("asset_ids", []):
+            mapping = BumpFrameworkToAssetMapping(
+                bump_framework_id=bf_id,
+                client_assets_id=asset_id,
+            )
+            db.session.add(mapping)
+        db.session.commit()
 
         print(
             "Created bump framework for step {} with title {} with bumped count {}".format(

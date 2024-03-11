@@ -5,7 +5,7 @@ from sqlalchemy import update
 from app import db
 from model_import import ClientArchetype
 from typing import Union, Optional
-from src.client.models import Client, ClientSDR
+from src.client.models import Client, ClientAssets, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
 from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus

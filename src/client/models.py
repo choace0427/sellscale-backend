@@ -736,6 +736,7 @@ class ClientAssetArchetypeReasonMapping(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
     )
     reason = db.Column(db.String, nullable=False)
+    step_number = db.Column(db.Integer, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -743,4 +744,5 @@ class ClientAssetArchetypeReasonMapping(db.Model):
             "client_asset_id": self.client_asset_id,
             "client_archetype_id": self.client_archetype_id,
             "reason": self.reason,
+            "step_number": self.step_number,
         }
