@@ -492,6 +492,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
         if prospect.status not in [ProspectStatus.ACTIVE_CONVO_SCHEDULING]:
             classify_active_convo(prospect.id, messages)
 
+    latest_convo_entry: LinkedinConversationEntry = (
+        LinkedinConversationEntry.query.filter_by(
+            conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
+        )
+        .order_by(LinkedinConversationEntry.date.desc())
+        .first()
+    )
+
     # Auto-complete `scheduling_needed_` dash cards
     scheduling_needed_entry: OperatorDashboardEntry = (
         OperatorDashboardEntry.query.filter(
@@ -501,13 +509,6 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
         ).first()
     )
     if scheduling_needed_entry:
-        latest_convo_entry: LinkedinConversationEntry = (
-            LinkedinConversationEntry.query.filter_by(
-                conversation_url=f"https://www.linkedin.com/messaging/thread/{convo_urn_id}/"
-            )
-            .order_by(LinkedinConversationEntry.date.desc())
-            .first()
-        )
         if (
             latest_convo_entry
             and latest_convo_entry.connection_degree == "You"
@@ -524,6 +525,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
         ).all()
     )
+
     for entry in rep_intervention_needed_entries:
         if (
             latest_convo_entry

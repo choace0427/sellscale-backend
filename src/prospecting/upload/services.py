@@ -789,7 +789,7 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    if page == 1 and sdr.meta_data.get("apollo_auto_scrape") is False:
+    if page == 1 and sdr.meta_data.get("apollo_auto_scrape") is not True:
         return None
 
     # Turn off auto scrape

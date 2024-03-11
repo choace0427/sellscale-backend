@@ -529,7 +529,7 @@ def update_prospect_status_linkedin(
 
             if (
                 not response_options.get("use_circle_back", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_OOO
+                and new_status == ProspectStatus.ACTIVE_CONVO_CIRCLE_BACK
             ):
                 return True
 
@@ -2817,9 +2817,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2895,11 +2895,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,
