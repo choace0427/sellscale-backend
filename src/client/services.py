@@ -2503,7 +2503,8 @@ def send_demo_feedback_reminder():
         #     ],
         # )
 
-        send_demo_feedback_email_reminder(prospect.id, "team@sellscale.com")
+        # NOTE: Not sending the email right now. Operator Card has been created instead
+        # send_demo_feedback_email_reminder(prospect.id, "team@sellscale.com")
 
 
 def send_demo_feedback_email_reminder(prospect_id: int, email: str):
