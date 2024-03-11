@@ -86,7 +86,6 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from model_import import StackRankedMessageGenerationConfiguration
 from typing import List, Optional
-from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import URL_MAP, send_slack_message
 import os
 import requests
@@ -418,7 +417,8 @@ def create_client_archetype(
     template_mode: Optional[bool] = False,
 ):
     c: Client = get_client(client_id=client_id)
-    if not c:
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not c or not sdr:
         return None
 
     client_archetype = ClientArchetype(
@@ -453,8 +453,12 @@ def create_client_archetype(
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
         template_mode=template_mode,
-        transformer_blocklist=["CURRENT_LOCATION"],
-        transformer_blocklist_initial=["CURRENT_LOCATION"],
+        transformer_blocklist=["CURRENT_LOCATION"].extend(
+            sdr.default_transformer_blocklist
+        ),
+        transformer_blocklist_initial=["CURRENT_LOCATION"].extend(
+            sdr.default_transformer_blocklist
+        ),
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -516,28 +520,28 @@ def create_client_archetype(
     #     webhook_urls=[webhook_url] if webhook_url else [],
     # )
 
-    if base_archetype_id:
-        _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
-        base_model: GNLPModel = GNLPModel.query.get(model_id)
-        model = GNLPModel(
-            model_provider=base_model.model_provider,
-            model_type=base_model.model_type,
-            model_description="baseline_model_{}".format(archetype),
-            model_uuid=base_model.model_uuid,
-            archetype_id=archetype_id,
-        )
-        db.session.add(model)
-        db.session.commit()
-    else:
-        model: GNLPModel = GNLPModel(
-            model_provider=ModelProvider.OPENAI_GPT3,
-            model_type=GNLPModelType.OUTREACH,
-            model_description="baseline_model_{}".format(archetype),
-            model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
-            archetype_id=archetype_id,
-        )
-        db.session.add(model)
-        db.session.commit()
+    # if base_archetype_id:
+    #     _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
+    #     base_model: GNLPModel = GNLPModel.query.get(model_id)
+    #     model = GNLPModel(
+    #         model_provider=base_model.model_provider,
+    #         model_type=base_model.model_type,
+    #         model_description="baseline_model_{}".format(archetype),
+    #         model_uuid=base_model.model_uuid,
+    #         archetype_id=archetype_id,
+    #     )
+    #     db.session.add(model)
+    #     db.session.commit()
+    # else:
+    #     model: GNLPModel = GNLPModel(
+    #         model_provider=ModelProvider.OPENAI_GPT3,
+    #         model_type=GNLPModelType.OUTREACH,
+    #         model_description="baseline_model_{}".format(archetype),
+    #         model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
+    #         archetype_id=archetype_id,
+    #     )
+    #     db.session.add(model)
+    #     db.session.commit()
 
     # Create default bump frameworks for this Archetype
     create_default_bump_frameworks(

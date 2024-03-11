@@ -10,11 +10,9 @@ from src.authentication.decorators import require_user
 from app import db
 
 from flask import Blueprint, jsonify, request
-from src.ml.fine_tuned_models import get_latest_custom_model
 from src.ml.models import GNLPModelType
 from model_import import ClientArchetype
 from src.ml.services import (
-    check_statuses_of_fine_tune_jobs,
     get_fine_tune_timeline,
     initiate_fine_tune_job,
     get_aree_fix_basic,
@@ -56,24 +54,26 @@ def index():
     return message, 400
 
 
-@ML_BLUEPRINT.route("/update_fine_tune_job_statuses", methods=["GET"])
-def update_fine_tune_job_statuses():
-    updated_job_ids = check_statuses_of_fine_tune_jobs()
-    return jsonify({"num_jobs": updated_job_ids})
+# DEPRECATED; todo remove
+# @ML_BLUEPRINT.route("/update_fine_tune_job_statuses", methods=["GET"])
+# def update_fine_tune_job_statuses():
+#     updated_job_ids = check_statuses_of_fine_tune_jobs()
+#     return jsonify({"num_jobs": updated_job_ids})
 
 
-@ML_BLUEPRINT.route("/latest_fine_tune", methods=["GET"])
-def get_latest_fine_tune():
-    archetype_id = get_request_parameter(
-        "archetype_id", request, json=False, required=True
-    )
-    model_type = get_request_parameter("model_type", request, json=False, required=True)
+# DEPRECATED; todo remove
+# @ML_BLUEPRINT.route("/latest_fine_tune", methods=["GET"])
+# def get_latest_fine_tune():
+#     archetype_id = get_request_parameter(
+#         "archetype_id", request, json=False, required=True
+#     )
+#     model_type = get_request_parameter("model_type", request, json=False, required=True)
 
-    model_uuid, model_id = get_latest_custom_model(
-        archetype_id=archetype_id, model_type=model_type
-    )
+#     model_uuid, model_id = get_latest_custom_model(
+#         archetype_id=archetype_id, model_type=model_type
+#     )
 
-    return jsonify({"model_uuid": model_uuid, "model_id": model_id})
+#     return jsonify({"model_uuid": model_uuid, "model_id": model_id})
 
 
 @ML_BLUEPRINT.route("/fine_tune_job_timeline", methods=["GET"])
@@ -341,7 +341,7 @@ def fill_prompt_from_brain(client_sdr_id: int):
 Your company's value props are:
 {company_value_props}
 
-This is the persona you're reaching out to: 
+This is the persona you're reaching out to:
 {persona}
 The reason this persona would buy your product is:
 {persona_buy_reason}

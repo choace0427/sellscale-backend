@@ -133,51 +133,52 @@ def initiate_fine_tune_job(
         return False, str(e)
 
 
-@celery.task
-def check_statuses_of_fine_tune_jobs():
-    jobs: list = GNLPModelFineTuneJobs.query.filter(
-        GNLPModelFineTuneJobs.status == GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
-    ).all()
+# Deprecated
+# @celery.task
+# def check_statuses_of_fine_tune_jobs():
+#     jobs: list = GNLPModelFineTuneJobs.query.filter(
+#         GNLPModelFineTuneJobs.status == GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
+#     ).all()
 
-    updated_job_ids = []
-    for j in jobs:
-        job: GNLPModelFineTuneJobs = j
-        archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
-        archetype_id = archetype.id
-        archetype_name = archetype.archetype
+#     updated_job_ids = []
+#     for j in jobs:
+#         job: GNLPModelFineTuneJobs = j
+#         archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
+#         archetype_id = archetype.id
+#         archetype_name = archetype.archetype
 
-        fine_tune_status = get_fine_tune_timeline(fine_tune_id=job.finetune_job_id)
-        model_uuid = fine_tune_status.get("fine_tuned_model")
+#         fine_tune_status = get_fine_tune_timeline(fine_tune_id=job.finetune_job_id)
+#         model_uuid = fine_tune_status.get("fine_tuned_model")
 
-        client: Client = Client.query.get(archetype.client_id)
+#         client: Client = Client.query.get(archetype.client_id)
 
-        if model_uuid:
-            gnlp_model: GNLPModel = GNLPModel(
-                model_provider=ModelProvider.OPENAI_GPT3,
-                model_type=job.model_type,
-                model_description="{client}-{archetype_name}-{date}".format(
-                    client=client.company,
-                    archetype_name=archetype_name,
-                    date=str(datetime.utcnow())[0:10],
-                ),
-                model_uuid=model_uuid,
-                archetype_id=archetype_id,
-            )
-            db.session.add(gnlp_model)
-            db.session.commit()
+#         if model_uuid:
+#             gnlp_model: GNLPModel = GNLPModel(
+#                 model_provider=ModelProvider.OPENAI_GPT3,
+#                 model_type=job.model_type,
+#                 model_description="{client}-{archetype_name}-{date}".format(
+#                     client=client.company,
+#                     archetype_name=archetype_name,
+#                     date=str(datetime.utcnow())[0:10],
+#                 ),
+#                 model_uuid=model_uuid,
+#                 archetype_id=archetype_id,
+#             )
+#             db.session.add(gnlp_model)
+#             db.session.commit()
 
-            gnlp_model_id = gnlp_model.id
+#             gnlp_model_id = gnlp_model.id
 
-            job.gnlp_model_id = gnlp_model_id
-            job.status = GNLPFinetuneJobStatuses.COMPLETED
-            db.session.add(job)
-            db.session.commit()
+#             job.gnlp_model_id = gnlp_model_id
+#             job.status = GNLPFinetuneJobStatuses.COMPLETED
+#             db.session.add(job)
+#             db.session.commit()
 
-            updated_job_ids.append(job.id)
+#             updated_job_ids.append(job.id)
 
-    print("checked fine tuned job statuses.")
+#     print("checked fine tuned job statuses.")
 
-    return updated_job_ids
+#     return updated_job_ids
 
 
 def get_fine_tune_timeline(fine_tune_id: str):

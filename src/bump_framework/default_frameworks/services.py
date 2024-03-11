@@ -2,7 +2,7 @@ from app import db
 
 from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates, BumpLength
 from src.bump_framework.services import create_bump_framework
-from src.client.models import ClientArchetype
+from src.client.models import ClientArchetype, ClientSDR
 from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 
 
@@ -16,6 +16,8 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
     Returns:
         int: The number of BumpFramework entries created
     """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     # Get all bump frameworks that have sellscale_default_generated = True
     bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
         BumpFramework.client_sdr_id == client_sdr_id,
@@ -36,13 +38,17 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
             client_archetype_id=client_archetype_id,
             title=template.name,
             description=template.raw_prompt,
-            overall_status=template.overall_statuses[0]
-            if template.overall_statuses and len(template.overall_statuses) > 0
-            else None,
+            overall_status=(
+                template.overall_statuses[0]
+                if template.overall_statuses and len(template.overall_statuses) > 0
+                else None
+            ),
             length=template.length,
-            bumped_count=template.bumped_counts[0]
-            if template.bumped_counts and len(template.bumped_counts) > 0
-            else None,
+            bumped_count=(
+                template.bumped_counts[0]
+                if template.bumped_counts and len(template.bumped_counts) > 0
+                else None
+            ),
             active=True,
             substatus=None,
             default=True,
@@ -50,8 +56,10 @@ def create_default_bump_frameworks(client_sdr_id: int, client_archetype_id: int)
             bump_framework_template_name=template.name,
             bump_framework_human_readable_prompt=template.human_readable_prompt,
             additional_context=template.tone,
-            transformer_blocklist=template.transformer_blocklist,
-        )
+            transformer_blocklist=template.transformer_blocklist.extend(
+                client_sdr.default_transformer_blocklist
+            ),
+        ),
 
     return len(templates)
 

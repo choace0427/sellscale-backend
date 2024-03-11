@@ -101,53 +101,54 @@ def get_open_ai_completion(model: str, prompt: str, max_tokens: int = 40, n: int
         return [choices[x].get("text", "") for x in range(len(choices))]
 
 
-def create_baseline_model(archetype_id: int, model_type: GNLPModelType):
-    ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    archetype = ca.archetype
+# DEPRECATE
+# def create_baseline_model(archetype_id: int, model_type: GNLPModelType):
+#     ca: ClientArchetype = ClientArchetype.query.get(archetype_id)
+#     archetype = ca.archetype
 
-    model: GNLPModel = GNLPModel(
-        model_provider=ModelProvider.OPENAI_GPT3,
-        model_type=model_type,
-        model_description="baseline_model_{}".format(archetype),
-        model_uuid=BASELINE_GENERATION_MODELS[model_type],
-        archetype_id=archetype_id,
-    )
-    db.session.add(model)
-    db.session.commit()
-    return model
-
-
-def get_latest_custom_model(archetype_id: int, model_type: GNLPModelType):
-    m: GNLPModel = (
-        GNLPModel.query.filter(GNLPModel.archetype_id == archetype_id)
-        .filter(GNLPModel.model_type == model_type)
-        .order_by(GNLPModel.created_at.desc())
-        .first()
-    )
-
-    if not m:
-        m = create_baseline_model(archetype_id, model_type)
-
-    return m.model_uuid, m.id
+#     model: GNLPModel = GNLPModel(
+#         model_provider=ModelProvider.OPENAI_GPT3,
+#         model_type=model_type,
+#         model_description="baseline_model_{}".format(archetype),
+#         model_uuid=BASELINE_GENERATION_MODELS[model_type],
+#         archetype_id=archetype_id,
+#     )
+#     db.session.add(model)
+#     db.session.commit()
+#     return model
 
 
-def get_custom_completion_for_client(
-    archetype_id: int,
-    model_type: GNLPModelType,
-    prompt: str,
-    max_tokens: int = 40,
-    n: int = 1,
-):
-    model_uuid, model_id = get_latest_custom_model(
-        archetype_id=archetype_id, model_type=model_type
-    )
+# def get_latest_custom_model(archetype_id: int, model_type: GNLPModelType):
+#     m: GNLPModel = (
+#         GNLPModel.query.filter(GNLPModel.archetype_id == archetype_id)
+#         .filter(GNLPModel.model_type == model_type)
+#         .order_by(GNLPModel.created_at.desc())
+#         .first()
+#     )
 
-    return (
-        get_open_ai_completion(
-            model=model_uuid, prompt=prompt, max_tokens=max_tokens, n=n
-        ),
-        model_id,
-    )
+#     if not m:
+#         m = create_baseline_model(archetype_id, model_type)
+
+#     return m.model_uuid, m.id
+
+
+# def get_custom_completion_for_client(
+#     archetype_id: int,
+#     model_type: GNLPModelType,
+#     prompt: str,
+#     max_tokens: int = 40,
+#     n: int = 1,
+# ):
+#     model_uuid, model_id = get_latest_custom_model(
+#         archetype_id=archetype_id, model_type=model_type
+#     )
+
+#     return (
+#         get_open_ai_completion(
+#             model=model_uuid, prompt=prompt, max_tokens=max_tokens, n=n
+#         ),
+#         model_id,
+#     )
 
 
 def get_config_completion(
@@ -167,13 +168,6 @@ def get_config_completion(
         model=OPENAI_CHAT_GPT_4_MODEL,
         type="VOICE_MSG",
     )
-    # todo(Aakash) delete this
-    # response = wrapped_create_completion(
-    #     model=OPENAI_COMPLETION_DAVINCI_3_MODEL,
-    #     prompt=few_shot_prompt,
-    #     temperature=0.7,
-    #     max_tokens=256,
-    # )
     return (response, few_shot_prompt)
 
 

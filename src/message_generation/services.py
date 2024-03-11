@@ -61,7 +61,6 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.research.linkedin.services import get_research_and_bullet_points_new
 from model_import import Prospect, ProspectOverallStatus
 from ..ml.fine_tuned_models import (
-    get_custom_completion_for_client,
     get_personalized_first_line_for_client,
     get_config_completion,
     get_few_shot_baseline_prompt,

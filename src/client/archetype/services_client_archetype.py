@@ -30,6 +30,7 @@ from src.notifications.models import (
 )
 from src.notifications.services import create_notification
 from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.research.models import ResearchPointType
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
@@ -627,6 +628,10 @@ def import_linkedin_sequence(
 
     # make initial message templates
     if is_template_mode:
+        sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+        research_points = ResearchPointType.get_allowedlist_from_blocklist(
+            blocklist=sdr.default_transformer_blocklist
+        )
         initial_message_step = steps[0]
         template = LinkedinInitialMessageTemplate(
             title=initial_message_step["title"],
@@ -637,7 +642,7 @@ def import_linkedin_sequence(
             times_used=0,
             times_accepted=0,
             sellscale_generated=True,
-            research_points=[],
+            research_points=research_points,
             additional_instructions="",
         )
         db.session.add(template)

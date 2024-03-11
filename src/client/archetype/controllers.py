@@ -35,6 +35,7 @@ from src.operator_dashboard.models import (
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect
+from src.research.models import ResearchPointType
 from src.smartlead.services import create_smartlead_campaign
 from src.utils.request_helpers import get_request_parameter
 
@@ -191,11 +192,11 @@ def get_archetype_li_template(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    templates: list[LinkedinInitialMessageTemplate] = (
-        LinkedinInitialMessageTemplate.query.filter(
-            LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
-        ).all()
-    )
+    templates: list[
+        LinkedinInitialMessageTemplate
+    ] = LinkedinInitialMessageTemplate.query.filter(
+        LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
+    ).all()
 
     return (
         jsonify(
@@ -292,6 +293,12 @@ def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
         return (
             jsonify({"status": "error", "message": "Bad archetype, not authorized"}),
             403,
+        )
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not research_points or len(research_points) == 0:
+        research_points = ResearchPointType.get_allowedlist_from_blocklist(
+            blocklist=sdr.default_transformer_blocklist
         )
 
     template = LinkedinInitialMessageTemplate(
