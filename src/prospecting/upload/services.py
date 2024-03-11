@@ -20,6 +20,7 @@ from src.research.services import (
     create_custom_research_point_type,
     create_iscraper_payload_cache,
 )
+from sqlalchemy.orm.attributes import flag_modified
 from src.utils.abstract.attr_utils import deep_get
 from typing import Optional
 from sqlalchemy import bindparam, update
@@ -804,6 +805,7 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
     if not sdr.meta_data:
         sdr.meta_data = {}
     sdr.meta_data["apollo_auto_scrape"] = False
+    flag_modified(sdr, "meta_data")
     db.session.add(sdr)
     db.session.commit()
 
@@ -833,7 +835,7 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
             "page": page + 1,
             "max_pages": max_pages,
         },
-        minutes=30,
+        minutes=60,
     )
 
     return True
