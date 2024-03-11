@@ -571,13 +571,9 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
     return jsonify({"status": "success"}), 200
 
 
-@CLIENT_ARCHETYPE_BLUEPRINT.route("/assets", methods=["GET"])
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/assets/<int:archetype_id>", methods=["GET"])
 @require_user
-def get_assets(client_sdr_id: int):
-    archetype_id = get_request_parameter(
-        "campaign_id", request, json=False, required=True, parameter_type=int
-    )
-
+def get_assets(client_sdr_id: int, archetype_id: int):
     assets = get_client_assets(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
 
     return jsonify({"status": "success", "data": assets}), 200
