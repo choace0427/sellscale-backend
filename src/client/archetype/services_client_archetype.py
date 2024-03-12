@@ -795,10 +795,8 @@ def import_email_sequence(
         )
 
     # Now we should run email scraper on any Prospect that does not have an email
-    # and is in the PROSPECTED state
     prospects: list[Prospect] = Prospect.query.filter(
         Prospect.archetype_id == archetype.id,
-        Prospect.status == ProspectStatus.PROSPECTED,
         Prospect.email == None,
     ).all()
     for count, prospect in enumerate(prospects):
