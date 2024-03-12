@@ -19,6 +19,7 @@ from src.client.models import (
     ClientSDR,
     SLASchedule,
 )
+from src.email_outbound.email_store.services import find_email_for_prospect_id
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.email_sequencing.services import (
     create_email_sequence_step,
@@ -36,7 +37,7 @@ from src.notifications.models import (
     OperatorNotificationType,
 )
 from src.notifications.services import create_notification
-from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from src.research.models import ResearchPointType
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
@@ -791,6 +792,19 @@ def import_email_sequence(
             client_archetype_id=archetype.id,
             subject_line=subject_line,
             active=True,
+        )
+
+    # Now we should run email scraper on any Prospect that does not have an email
+    # and is in the PROSPECTED state
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.archetype_id == archetype.id,
+        Prospect.status == ProspectStatus.PROSPECTED,
+        Prospect.email == None,
+    ).all()
+    for count, prospect in enumerate(prospects):
+        # Incorporate a 1 second delay to avoid rate limiting
+        find_email_for_prospect_id.apply_async(
+            kwargs={"prospect_id": prospect.id}, countdown=count
         )
 
     return True
