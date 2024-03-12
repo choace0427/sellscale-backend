@@ -4828,6 +4828,7 @@ def create_archetype_asset(
     asset_type: ClientAssetType,
     asset_tags: list[str],
     asset_raw_value: str,
+    send_notification: bool = True,
 ):
     """
     Creates an asset for a client archetype
@@ -4844,16 +4845,17 @@ def create_archetype_asset(
     db.session.add(asset)
     db.session.commit()
 
-    success = create_and_send_slack_notification_class_message(
-        notification_type=SlackNotificationType.ASSET_CREATED,
-        arguments={
-            "client_sdr_id": client_sdr_id,
-            "client_archetype_ids": client_archetype_ids,
-            "asset_name": asset_key,
-            "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
-            "ai_summary": asset_value,
-        },
-    )
+    if not send_notification:
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.ASSET_CREATED,
+            arguments={
+                "client_sdr_id": client_sdr_id,
+                "client_archetype_ids": client_archetype_ids,
+                "asset_name": asset_key,
+                "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
+                "ai_summary": asset_value,
+            },
+        )
 
     return asset.to_dict()
 

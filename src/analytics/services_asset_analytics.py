@@ -72,7 +72,7 @@ def get_linkedin_generated_message_cta_template_analytics(
     from generated_message_cta
         left join generated_message_cta_to_asset_mapping on generated_message_cta_to_asset_mapping.generated_message_cta_id = generated_message_cta.id
         left join client_assets on client_assets.id = generated_message_cta_to_asset_mapping.client_assets_id
-        left join generated_message on generated_message.message_cta = generated_message_cta_to_asset_mapping.id
+        left join generated_message on generated_message.message_cta = generated_message_cta_to_asset_mapping.generated_message_cta_id
         left join prospect on prospect.approved_outreach_message_id = generated_message.id
         left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
     where
