@@ -25,7 +25,7 @@ from src.campaigns.autopilot.services import (
     daily_generate_linkedin_campaign_for_sdr,
 )
 from src.prospecting.upload.services import auto_upload_from_apollo
-
+from src.analytics.services_asset_analytics import temp_print_time
 
 from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import ProcessQueue, ProcessQueueStatus
@@ -145,6 +145,12 @@ PROCESS_TYPE_MAP = {
     },
     "auto_upload_from_apollo": {
         "function": auto_upload_from_apollo,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
+    "temp_print_time": {
+        "function": temp_print_time,
         "priority": 10,
         "queue": None,
         "routing_key": None,

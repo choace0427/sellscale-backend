@@ -412,6 +412,15 @@ def run_daily_send_pipeline_report():
         send_daily_pipeline_activity_notification_for_active_sdrs.delay()
 
 
+def run_temp_print_time():
+    from src.analytics.services_asset_analytics import (
+        temp_print_time,
+    )
+
+    if is_scheduling_instance():
+        temp_print_time.delay(source="Scheduler")
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -448,6 +457,8 @@ scheduler.add_job(
 )
 
 # Minute triggers
+scheduler.add_job(func=run_temp_print_time, trigger="interval", minutes=3)
+
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(run_auto_resolve_linkedin_tasks, trigger="interval", minutes=1)
