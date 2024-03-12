@@ -149,12 +149,6 @@ PROCESS_TYPE_MAP = {
         "queue": None,
         "routing_key": None,
     },
-    "temp_print_time": {
-        "function": temp_print_time,
-        "priority": 10,
-        "queue": None,
-        "routing_key": None,
-    },
 }
 ###############################
 

@@ -166,24 +166,3 @@ def backfill_all_assets_analytics():
     assets = ClientAssets.query.all()
     for asset in tqdm(assets):
         backfill_asset_analytics(asset.id)
-
-
-@celery.task
-def temp_print_time(source: str):
-    from src.utils.slack import send_slack_message, URL_MAP
-    from datetime import datetime
-    from src.automation.orchestrator import add_process_for_future
-
-    time = datetime.utcnow().isoformat()
-    send_slack_message(
-        message=f"TEST > {time} - {source}",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
-
-    add_process_for_future(
-        type="temp_print_time",
-        args={
-            "source": "Process Queue",
-        },
-        minutes=1,
-    )
