@@ -4164,6 +4164,7 @@ def fetch_company_details(client_sdr_id: int, prospect_id: int):
     result = db.session.execute(
         f"""
         select
+            prospect.company_id,
             prospect.company,
             research_payload.payload->'company'->'details'->>'tagline' "Tagline",
             concat(
@@ -4177,16 +4178,16 @@ def fetch_company_details(client_sdr_id: int, prospect_id: int):
             research_payload.payload->'company'->'details'->'industries'->>0 "industry",
             prospect.company_url "company_url",
             research_payload.payload->'company'->'details'->'urls'->>'li_url' "company_linkedin",
-            count(distinct b.id) filter (where prospect_status_records.to_status in ('ACCEPTED')) num_engaged,
+            count(distinct b.id) filter (where b.approved_outreach_message_id is not null or b.approved_prospect_email_id is not null) num_engaged,
             count(distinct b.id) num_employees
         from prospect
             left join research_payload on research_payload.prospect_id = prospect.id
             left join prospect b on prospect.company_id = b.company_id
-            left join prospect_status_records on prospect_status_records.prospect_id = b.id and prospect_status_records.to_status in ('ACCEPTED')
+            left join prospect_status_records on prospect_status_records.prospect_id = b.id and prospect_status_records.to_status in ('SENT_OUTREACH')
         where prospect.id = {prospect_id}
             and b.client_id = {client_id}
             and prospect.client_id = {client_id}
-        group by 1,2,3,4,5,6,7;
+        group by 1,2,3,4,5,6,7,8;
         """
     ).fetchone()
 
