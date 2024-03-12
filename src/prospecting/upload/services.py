@@ -750,7 +750,8 @@ def upload_prospects_from_apollo_query(
         is_prefilter=True,
     )
 
-    people = data.get("people", [])
+    # response.get("pagination").get("total_pages")
+    people = response.get("people", [])
 
     client_sdr_unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
@@ -759,17 +760,16 @@ def upload_prospects_from_apollo_query(
     if not client_sdr_unassigned_archetype:
         return None
 
-    prospect_ids = []
+    called_person = []
     for person in people:
-        success, prospect_id = create_prospect_from_linkedin_link(
+        create_prospect_from_linkedin_link.delay(
             archetype_id=client_sdr_unassigned_archetype.id,
             url=person.get("linkedin_url"),
             set_note="Auto imported",
         )
-        if success:
-            prospect_ids.append(prospect_id)
+        called_person.append(person.get("linkedin_url"))
 
-    return prospect_ids
+    return called_person
 
 
 @celery.task
@@ -819,7 +819,7 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
     if not apollo_filters:
         return None
 
-    prospect_ids = upload_prospects_from_apollo_query(
+    person_urls = upload_prospects_from_apollo_query(
         client_sdr_id=client_sdr_id, apollo_filters=apollo_filters, page=page
     )
 

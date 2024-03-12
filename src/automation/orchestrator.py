@@ -312,27 +312,22 @@ def remove_process_from_queue(result: list, process_id: int):
 
     # If the type is not a list, then this system wasn't used correctly.
     # For the time being, we will delete the process and raise an exception.
-    if type(result) is not list:
-        job = process.type
 
+    if (
+        (type(result) is list or type(result) is tuple)
+        and len(result) >= 1
+        and type(result[0]) is bool
+    ):
+        success = result[0]
+    elif type(result) is bool:
+        success = result
+    else:
+        # No success value, it's okay. Just delete the process
         db.session.delete(process)
         db.session.commit()
-        raise Exception(
-            f"Process return value was not correct, result was not a list. Function: {job}"
-        )
+        return True
 
-    # Make sure that the first element of the list is a boolean
-    result = result[0]
-    if type(result) is not bool:
-        job = process.type
-
-        db.session.delete(process)
-        db.session.commit()
-        raise Exception(
-            f"Process return value was not correct. Tuple's first value was not a boolean. Function: {job}"
-        )
-
-    if result:
+    if success:
         db.session.delete(process)
         db.session.commit()
     else:
