@@ -7,7 +7,7 @@ import datetime
 def backfill_last_reply_dates_for_conversations_in_last_day():
     conversations_in_last_day = LinkedinConversationEntry.query.filter(
         LinkedinConversationEntry.date
-        > datetime.datetime.now() - datetime.timedelta(days=1)
+        > datetime.datetime.now() - datetime.timedelta(days=10)
     ).all()
 
     conversation_urls = set([c.conversation_url for c in conversations_in_last_day])

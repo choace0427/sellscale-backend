@@ -126,3 +126,4 @@ from src.prospecting.question_enrichment.models import (
 from src.email_replies.models import EmailReplyFramework
 from src.segment.models import Segment
 from src.contacts.models import SavedApolloQuery
+from src.client.models import ClientAssets, ClientAssetArchetypeReasonMapping

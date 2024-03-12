@@ -11,7 +11,14 @@ from src.bump_framework.models import (
 )
 from src.bump_framework.services import create_bump_framework
 
-from src.client.models import Client, ClientArchetype, ClientSDR, SLASchedule
+from src.client.models import (
+    Client,
+    ClientArchetype,
+    ClientAssetArchetypeReasonMapping,
+    ClientAssets,
+    ClientSDR,
+    SLASchedule,
+)
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.email_sequencing.services import (
     create_email_sequence_step,
@@ -30,6 +37,7 @@ from src.notifications.models import (
 )
 from src.notifications.services import create_notification
 from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.research.models import ResearchPointType
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
@@ -627,6 +635,10 @@ def import_linkedin_sequence(
 
     # make initial message templates
     if is_template_mode:
+        sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+        research_points = ResearchPointType.get_allowedlist_from_blocklist(
+            blocklist=sdr.default_transformer_blocklist or []
+        )
         initial_message_step = steps[0]
         template = LinkedinInitialMessageTemplate(
             title=initial_message_step["title"],
@@ -637,7 +649,7 @@ def import_linkedin_sequence(
             times_used=0,
             times_accepted=0,
             sellscale_generated=True,
-            research_points=[],
+            research_points=research_points,
             additional_instructions="",
         )
         db.session.add(template)
@@ -782,3 +794,26 @@ def import_email_sequence(
         )
 
     return True
+
+
+def get_archetype_assets(archetype_id: int):
+    """Gets all Assets used by an archetype
+
+    Args:
+        archetype_id (int): The id of the archetype
+
+    Returns:
+        list[dict]: A list of assets
+    """
+    assetArchetypeMapping: list[
+        ClientAssetArchetypeReasonMapping
+    ] = ClientAssetArchetypeReasonMapping.query.filter(
+        ClientAssetArchetypeReasonMapping.client_archetype_id == archetype_id
+    ).all()
+    assets: list[ClientAssets] = ClientAssets.query.filter(
+        ClientAssets.id.in_(
+            [mapping.client_asset_id for mapping in assetArchetypeMapping]
+        )
+    ).all()
+
+    return [asset.to_dict() for asset in assets]

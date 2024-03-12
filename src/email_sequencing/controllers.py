@@ -3,6 +3,7 @@ from app import db, app
 
 from flask import Blueprint, request, jsonify
 from model_import import EmailSequenceStep
+from src.client.models import ClientSDR
 from src.email_sequencing.models import (
     EmailSequenceStepToAssetMapping,
     EmailSubjectLineTemplate,
@@ -137,15 +138,10 @@ def post_create_sequence_step(client_sdr_id: int):
     if not found_key:
         return jsonify({"error": "Invalid overall status."}), 400
 
-    # If transformer blocklist is not None, convert to enum
-    # if transformer_blocklist:
-    #     transformer_blocklist_enum = []
-    #     for blocklist_item in transformer_blocklist:
-    #         for key, val in ResearchPointType.__members__.items():
-    #             if key == blocklist_item:
-    #                 transformer_blocklist_enum.append(val)
-    #                 break
-    #     transformer_blocklist = transformer_blocklist_enum
+    # If the transformer blocklist is empty, we should extend the SDR's default blocklist
+    if not transformer_blocklist or len(transformer_blocklist) == 0:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        transformer_blocklist = sdr.default_transformer_blocklist or []
 
     sequence_step_id = create_email_sequence_step(
         client_sdr_id=client_sdr_id,

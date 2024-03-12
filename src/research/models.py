@@ -107,6 +107,16 @@ class ResearchPointType(db.Model):
             "category": self.category,
         }
 
+    def get_allowedlist_from_blocklist(blocklist: list[str]) -> list[str]:
+        allowedlist: list[ResearchPointType] = ResearchPointType.query.filter(
+            ResearchPointType.name.notin_(blocklist),
+            ResearchPointType.active.is_(True),
+            ResearchPointType.client_sdr_id.is_(None),
+            ResearchPointType.client_id.is_(None),
+        ).all()
+
+        return [a.name for a in allowedlist]
+
 
 class ResearchPoints(db.Model):
     __tablename__ = "research_point"

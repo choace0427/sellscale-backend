@@ -27,7 +27,6 @@ from src.message_generation.services import (
     generate_batches_of_research_points,
     get_notes_and_points_from_perm,
 )
-from src.ml.fine_tuned_models import get_latest_custom_model
 from sqlalchemy.sql.expression import func
 
 

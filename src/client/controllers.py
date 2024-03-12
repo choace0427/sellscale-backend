@@ -3004,6 +3004,7 @@ def post_create_archetype_asset(client_sdr_id: int):
 def get_assets_edpoint(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     assets = get_client_assets(client_sdr.client_id)
+
     return jsonify({"message": "Success", "data": assets}), 200
 
 

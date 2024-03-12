@@ -42,11 +42,12 @@ def clear_daily_notifications():
         clear_daily_notifications.delay()
 
 
-def refresh_fine_tune_statuses_job():
-    from src.ml.services import check_statuses_of_fine_tune_jobs
+# DEPRECATE (todo: Delete)
+# def refresh_fine_tune_statuses_job():
+#     from src.ml.services import check_statuses_of_fine_tune_jobs
 
-    if is_scheduling_instance():
-        check_statuses_of_fine_tune_jobs.delay()
+#     if is_scheduling_instance():
+#         check_statuses_of_fine_tune_jobs.delay()
 
 
 def update_all_phantom_buster_run_statuses_job():

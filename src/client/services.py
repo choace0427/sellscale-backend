@@ -86,7 +86,6 @@ from src.utils.random_string import generate_random_alphanumeric
 from src.prospecting.models import Prospect, ProspectStatus, ProspectChannels
 from model_import import StackRankedMessageGenerationConfiguration
 from typing import List, Optional
-from src.ml.fine_tuned_models import get_latest_custom_model
 from src.utils.slack import URL_MAP, send_slack_message
 import os
 import requests
@@ -418,9 +417,14 @@ def create_client_archetype(
     template_mode: Optional[bool] = False,
 ):
     c: Client = get_client(client_id=client_id)
-    if not c:
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not c or not sdr:
         return None
 
+    transformer_blocklist = ["CURRENT_LOCATION"]
+    transformer_blocklist.extend(
+        sdr.default_transformer_blocklist if sdr.default_transformer_blocklist else []
+    )
     client_archetype = ClientArchetype(
         client_id=client_id,
         client_sdr_id=client_sdr_id,
@@ -453,8 +457,8 @@ def create_client_archetype(
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
         template_mode=template_mode,
-        transformer_blocklist=["CURRENT_LOCATION"],
-        transformer_blocklist_initial=["CURRENT_LOCATION"],
+        transformer_blocklist=transformer_blocklist,
+        transformer_blocklist_initial=transformer_blocklist,
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -516,28 +520,28 @@ def create_client_archetype(
     #     webhook_urls=[webhook_url] if webhook_url else [],
     # )
 
-    if base_archetype_id:
-        _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
-        base_model: GNLPModel = GNLPModel.query.get(model_id)
-        model = GNLPModel(
-            model_provider=base_model.model_provider,
-            model_type=base_model.model_type,
-            model_description="baseline_model_{}".format(archetype),
-            model_uuid=base_model.model_uuid,
-            archetype_id=archetype_id,
-        )
-        db.session.add(model)
-        db.session.commit()
-    else:
-        model: GNLPModel = GNLPModel(
-            model_provider=ModelProvider.OPENAI_GPT3,
-            model_type=GNLPModelType.OUTREACH,
-            model_description="baseline_model_{}".format(archetype),
-            model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
-            archetype_id=archetype_id,
-        )
-        db.session.add(model)
-        db.session.commit()
+    # if base_archetype_id:
+    #     _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
+    #     base_model: GNLPModel = GNLPModel.query.get(model_id)
+    #     model = GNLPModel(
+    #         model_provider=base_model.model_provider,
+    #         model_type=base_model.model_type,
+    #         model_description="baseline_model_{}".format(archetype),
+    #         model_uuid=base_model.model_uuid,
+    #         archetype_id=archetype_id,
+    #     )
+    #     db.session.add(model)
+    #     db.session.commit()
+    # else:
+    #     model: GNLPModel = GNLPModel(
+    #         model_provider=ModelProvider.OPENAI_GPT3,
+    #         model_type=GNLPModelType.OUTREACH,
+    #         model_description="baseline_model_{}".format(archetype),
+    #         model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
+    #         archetype_id=archetype_id,
+    #     )
+    #     db.session.add(model)
+    #     db.session.commit()
 
     # Create default bump frameworks for this Archetype
     create_default_bump_frameworks(
@@ -2501,7 +2505,8 @@ def send_demo_feedback_reminder():
         #     ],
         # )
 
-        send_demo_feedback_email_reminder(prospect.id, "team@sellscale.com")
+        # NOTE: Not sending the email right now. Operator Card has been created instead
+        # send_demo_feedback_email_reminder(prospect.id, "team@sellscale.com")
 
 
 def send_demo_feedback_email_reminder(prospect_id: int, email: str):
@@ -4823,6 +4828,7 @@ def create_archetype_asset(
     asset_type: ClientAssetType,
     asset_tags: list[str],
     asset_raw_value: str,
+    send_notification: bool = True,
 ):
     """
     Creates an asset for a client archetype
@@ -4839,29 +4845,37 @@ def create_archetype_asset(
     db.session.add(asset)
     db.session.commit()
 
-    success = create_and_send_slack_notification_class_message(
-        notification_type=SlackNotificationType.ASSET_CREATED,
-        arguments={
-            "client_sdr_id": client_sdr_id,
-            "client_archetype_ids": client_archetype_ids,
-            "asset_name": asset_key,
-            "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
-            "ai_summary": asset_value,
-        },
-    )
+    if not send_notification:
+        success = create_and_send_slack_notification_class_message(
+            notification_type=SlackNotificationType.ASSET_CREATED,
+            arguments={
+                "client_sdr_id": client_sdr_id,
+                "client_archetype_ids": client_archetype_ids,
+                "asset_name": asset_key,
+                "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
+                "ai_summary": asset_value,
+            },
+        )
 
     return asset.to_dict()
 
 
-def get_client_assets(client_id: int):
+def get_client_assets(client_id: int, archetype_id: Optional[int] = None):
+    """Gets all assets for a client
+
+    Args:
+        client_id (int): The client id
+        archetype_id (int, optional): The archetype id. Defaults to None.
+
+    Returns:
+        list[dict]: A list of assets
     """
-    Gets all assets for a client
-    """
-    assets = (
+    assets: list[ClientAssets] = (
         ClientAssets.query.filter_by(client_id=client_id)
         .order_by(ClientAssets.created_at.desc())
         .all()
     )
+
     return [asset.to_dict() for asset in assets]
 
 

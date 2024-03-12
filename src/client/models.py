@@ -455,6 +455,7 @@ class ClientSDR(db.Model):
     last_linkedin_disconnection_notification_date = db.Column(
         db.DateTime, nullable=True
     )
+    territory_name = db.Column(db.String, nullable=True)
 
     # Conversion goals
     conversion_sent_pct = db.Column(db.Float, nullable=True)
@@ -466,7 +467,8 @@ class ClientSDR(db.Model):
     auto_send_linkedin_campaign = db.Column(db.Boolean, nullable=True, default=False)
     auto_send_email_campaign = db.Column(db.Boolean, nullable=True, default=False)
 
-    territory_name = db.Column(db.String, nullable=True)
+    # Messaging
+    default_transformer_blocklist = db.Column(db.ARRAY(db.String), nullable=True)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
@@ -580,6 +582,11 @@ class ClientSDR(db.Model):
             ),
             "unassigned_persona_id": (
                 unassigned_persona.id if unassigned_persona else None
+            ),
+            "default_transformer_blocklist": (
+                [t for t in self.default_transformer_blocklist]
+                if self.default_transformer_blocklist
+                else []
             ),
         }
 

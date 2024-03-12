@@ -23,7 +23,7 @@ from src.bump_framework.services import (
     get_db_bump_sequence,
     send_new_framework_created_message,
 )
-from src.client.models import ClientArchetype
+from src.client.models import ClientArchetype, ClientSDR
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.ml.services import (
@@ -415,6 +415,16 @@ def post_create_bump_framework(client_sdr_id: int):
             break
     if not found_key:
         return jsonify({"error": "Invalid bump length."}), 400
+
+    # If the transformer blocklist is empty, we should extend the SDR's default blocklist
+    if not transformer_blocklist or len(transformer_blocklist) == 0:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        transformer_blocklist = (
+            sdr.default_transformer_blocklist
+            if sdr.default_transformer_blocklist
+            else []
+        )
+
     bump_framework_id = create_bump_framework(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,

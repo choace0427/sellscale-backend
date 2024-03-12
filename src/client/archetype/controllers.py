@@ -7,6 +7,7 @@ from src.client.archetype.services_client_archetype import (
     bulk_action_move_prospects_to_archetype,
     bulk_action_withdraw_prospect_invitations,
     generate_notification_for_campaign_active,
+    get_archetype_assets,
     get_archetype_generation_upcoming,
     import_email_sequence,
     import_linkedin_sequence,
@@ -14,6 +15,7 @@ from src.client.archetype.services_client_archetype import (
 )
 from src.automation.orchestrator import add_process_for_future
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.client.services import get_client_assets
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
@@ -35,6 +37,7 @@ from src.operator_dashboard.models import (
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect
+from src.research.models import ResearchPointType
 from src.smartlead.services import create_smartlead_campaign
 from src.utils.request_helpers import get_request_parameter
 
@@ -191,11 +194,11 @@ def get_archetype_li_template(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    templates: list[LinkedinInitialMessageTemplate] = (
-        LinkedinInitialMessageTemplate.query.filter(
-            LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
-        ).all()
-    )
+    templates: list[
+        LinkedinInitialMessageTemplate
+    ] = LinkedinInitialMessageTemplate.query.filter(
+        LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
+    ).all()
 
     return (
         jsonify(
@@ -292,6 +295,12 @@ def post_archetype_li_template(client_sdr_id: int, archetype_id: int):
         return (
             jsonify({"status": "error", "message": "Bad archetype, not authorized"}),
             403,
+        )
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not research_points or len(research_points) == 0:
+        research_points = ResearchPointType.get_allowedlist_from_blocklist(
+            blocklist=sdr.default_transformer_blocklist or []
         )
 
     template = LinkedinInitialMessageTemplate(
@@ -561,3 +570,11 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
         return jsonify({"status": "error", "message": "Failed to import sequence"}), 400
 
     return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/assets/<int:archetype_id>", methods=["GET"])
+@require_user
+def get_assets(client_sdr_id: int, archetype_id: int):
+    assets = get_archetype_assets(archetype_id=archetype_id)
+
+    return jsonify({"status": "success", "data": assets}), 200
