@@ -310,9 +310,7 @@ def remove_process_from_queue(result: list, process_id: int):
     if not process:
         return False
 
-    # If the type is not a list, then this system wasn't used correctly.
-    # For the time being, we will delete the process and raise an exception.
-
+    # Attempt to find a success value to determine if the process was successful
     if (
         (type(result) is list or type(result) is tuple)
         and len(result) >= 1
