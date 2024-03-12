@@ -7,6 +7,7 @@ from src.client.archetype.services_client_archetype import (
     bulk_action_move_prospects_to_archetype,
     bulk_action_withdraw_prospect_invitations,
     generate_notification_for_campaign_active,
+    get_archetype_assets,
     get_archetype_generation_upcoming,
     import_email_sequence,
     import_linkedin_sequence,
@@ -574,6 +575,6 @@ def post_archetype_import_sequence(client_sdr_id: int, archetype_id: int):
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/assets/<int:archetype_id>", methods=["GET"])
 @require_user
 def get_assets(client_sdr_id: int, archetype_id: int):
-    assets = get_client_assets(client_sdr_id=client_sdr_id, archetype_id=archetype_id)
+    assets = get_archetype_assets(archetype_id=archetype_id)
 
     return jsonify({"status": "success", "data": assets}), 200
