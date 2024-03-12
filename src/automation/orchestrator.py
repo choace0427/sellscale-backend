@@ -25,7 +25,6 @@ from src.campaigns.autopilot.services import (
     daily_generate_linkedin_campaign_for_sdr,
 )
 from src.prospecting.upload.services import auto_upload_from_apollo
-from src.analytics.services_asset_analytics import temp_print_time
 
 from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import ProcessQueue, ProcessQueueStatus
