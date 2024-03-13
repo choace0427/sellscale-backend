@@ -1887,9 +1887,9 @@ def create_campaign_ai_request(sdr_id: int, type: str):
 
     title = f"Create {type} Campaign"
 
-    ai_requests = AIRequest.query.filter(
+    ai_requests: list[AIRequest] = AIRequest.query.filter(
         AIRequest.client_sdr_id == sdr_id, AIRequest.title == title
-    )
+    ).all()
     if len(ai_requests) > 0:
         return False
 
