@@ -524,7 +524,7 @@ def get_overall_client_activity(client_sdr_id: int):
                 "message": "Success",
                 "data": {
                     "activities": activities,
-                    "overall_activity": overall_activity.get("merged"),
+                    "overall_activity": [overall_activity.get("merged")],
                     "separated_overall_activity": overall_activity,
                 },
             }
