@@ -141,6 +141,13 @@ def auto_mark_uninterested_bumped_prospects_job():
         auto_mark_uninterested_bumped_prospects.delay()
 
 
+def run_detect_campaign_multi_channel_dash_card():
+    from src.campaigns.services import detect_campaign_multi_channel_dash_card
+
+    if is_scheduling_instance():
+        detect_campaign_multi_channel_dash_card.delay()
+
+
 def auto_upload_from_apollo_job():
     from src.prospecting.upload.services import auto_run_apollo_upload_for_sdrs
 
@@ -465,6 +472,10 @@ scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
 scheduler.add_job(func=run_queued_gm_jobs, trigger="interval", seconds=30)
 scheduler.add_job(
     func=reset_phantom_buster_scrapes_and_launches_job, trigger="interval", minutes=15
+)
+
+scheduler.add_job(
+    auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
 
 # Hourly triggers

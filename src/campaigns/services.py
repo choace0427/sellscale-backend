@@ -1853,3 +1853,51 @@ def payout_campaigns(campaign_ids: list):
         db.session.commit()
 
     return True
+
+
+@celery.task
+def detect_campaign_multi_channel_dash_card():
+
+    sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
+        active=True,
+        client_id=1,  # TEMP
+    ).all()
+
+    for sdr in sdrs:
+        sdr_id = sdr.id
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+            client_sdr_id=sdr_id,
+        ).all()
+        li_archetypes = [ca for ca in archetypes if ca.linkedin_active == True]
+        email_archetypes = [ca for ca in archetypes if ca.email_active == True]
+
+        if len(li_archetypes) == 0 and len(email_archetypes) > 0:
+            # Make card to create li campaign
+            create_campaign_ai_request(sdr_id=sdr_id, type="LinkedIn")
+
+        if len(email_archetypes) == 0 and len(li_archetypes) > 0:
+            # Make card to create email campaign
+            create_campaign_ai_request(sdr_id=sdr_id, type="Email")
+
+
+def create_campaign_ai_request(sdr_id: int, type: str):
+
+    from src.ai_requests.models import AIRequest
+    from src.ai_requests.services import create_ai_requests
+
+    title = f"Create {type} Campaign"
+
+    ai_requests = AIRequest.query.filter(
+        AIRequest.client_sdr_id == sdr_id, AIRequest.title == title
+    )
+    if len(ai_requests) > 0:
+        return False
+
+    create_ai_requests(
+        client_sdr_id=sdr_id,
+        description=f"Please create a campaign for your {type} channel.",
+        title=title,
+        days_till_due=7,
+    )
+
+    return True
