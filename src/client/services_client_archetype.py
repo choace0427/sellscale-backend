@@ -226,38 +226,75 @@ def overall_activity_for_client(client_sdr_id: int):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = sdr.client_id
 
-    query = """
-        select
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') sent_outreach,
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'EMAIL_OPENED') email_opened,
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') active_convo,
-            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') demo_set
-        from prospect
-            join prospect_status_records on prospect.id = prospect_status_records.prospect_id
-            left join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_thread_id
-            left join prospect_email on prospect_email.prospect_id = prospect.id
-            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-        where client_id = {client_id};
-    """.format(
-        client_id=client_id
-    )
+    def li_stats():
+        query = """
+            select
+              count(*) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') sent_outreach,
+              count(*) filter (where prospect_status_records.to_status = 'ACCEPTED') email_opened,
+              count(*) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') active_convo,
+              count(*) filter (where prospect_status_records.to_status = 'DEMO_SET') demo_set
+            from prospect left join prospect_status_records on prospect_status_records.prospect_id = prospect.id where prospect.client_id = {client_id};
+        """.format(
+            client_id=client_id
+        )
 
-    data = db.session.execute(query).fetchall()
+        data = db.session.execute(query).fetchall()
 
-    column_map = {
-        0: "sent_outreach",
-        1: "email_opened",
-        2: "active_convo",
-        3: "demo_set",
+        column_map = {
+            0: "sent_outreach",
+            1: "email_opened",
+            2: "active_convo",
+            3: "demo_set",
+        }
+
+        # Convert and format output
+        results = [
+            {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+            for row in data
+        ]
+        return results
+
+    def email_stats():
+        query = """
+          select
+            count(*) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') sent_outreach,
+            count(*) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') email_opened,
+            count(*) filter (where prospect_email_status_records.to_status = 'ACTIVE_CONVO') active_convo,
+            count(*) filter (where prospect_email_status_records.to_status = 'DEMO_SET') demo_set
+          from prospect_email left join prospect on prospect.id = prospect_email.prospect_id left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id where prospect.client_id = {client_id};
+        """.format(
+            client_id=client_id
+        )
+
+        data = db.session.execute(query).fetchall()
+
+        column_map = {
+            0: "sent_outreach",
+            1: "email_opened",
+            2: "active_convo",
+            3: "demo_set",
+        }
+
+        # Convert and format output
+        results = [
+            {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
+            for row in data
+        ]
+        return results
+
+    li = li_stats()
+    email = email_stats()
+
+    return {
+        "li": li,
+        "email": email,
+        "merged": {
+            "sent_outreach": li[0]["sent_outreach"] + email[0]["sent_outreach"],
+            "email_opened": li[0]["email_opened"] + email[0]["email_opened"],
+            "active_convo": li[0]["active_convo"] + email[0]["active_convo"],
+            "demo_set": li[0]["demo_set"] + email[0]["demo_set"],
+        },
     }
-
-    # Convert and format output
-    results = [
-        {column_map.get(i, "unknown"): value for i, value in enumerate(tuple(row))}
-        for row in data
-    ]
-
-    return results
 
 
 def get_archetype_conversion_rates(client_sdr_id: int, archetype_id: int) -> dict:
