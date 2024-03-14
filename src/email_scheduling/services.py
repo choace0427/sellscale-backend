@@ -331,12 +331,11 @@ def populate_email_messaging_schedule_entries(
         if prospect_email and prospect_email.email_status != ProspectEmailStatus.SENT:
             pq_entry: ProcessQueue = ProcessQueue.query.filter(
                 ProcessQueue.type == "populate_email_messaging_schedule_entries",
-                ProcessQueue.status == ProcessQueueStatus.FAILED,
                 ProcessQueue.meta_data.contains(
                     {"args": {"prospect_email_id": prospect_email_id}}
                 ),
             ).first()
-            if pq_entry and prospect_exists_in_smartlead(prospect.id):
+            if pq_entry and not prospect_exists_in_smartlead(prospect.id):
                 upload_prospect_to_campaign(prospect.id)
                 return [
                     True,
