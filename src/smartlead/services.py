@@ -1447,3 +1447,55 @@ def toggle_email_account_for_archetype(
         )
 
     return result.get("ok", False), result.get("message", "")
+
+
+def prospect_exists_in_smartlead(prospect_id: int) -> bool:
+    """Verifies that a prospect exists in Smartlead
+
+    Args:
+        prospect_id (int): The ID of the prospect
+
+    Returns:
+        bool: True if the prospect exists in Smartlead
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+    if not archetype.smartlead_campaign_id:
+        return False
+
+    # Get the lead information
+    sl = Smartlead()
+    lead = sl.get_lead_by_email_address(prospect.email)
+    if not lead:
+        return False
+
+    # Verify that the campaign is correct (we can sometimes have same leads in diff campaigns, but we want to make sure we're looking at the right one)
+    lead_campaign_data = lead.get("lead_campaign_data")
+    if not lead_campaign_data or len(lead_campaign_data) == 0:
+        return False
+    campaign_id = lead_campaign_data[0].get("campaign_id")
+    if not campaign_id:
+        return False
+
+    # If this lead exists and the campaign matches, return TRUE
+    if campaign_id == archetype.smartlead_campaign_id:
+        return True
+
+    return False
+
+
+def find_prospect_in_smartlead(prospect_id: int) -> dict:
+    """Finds a prospect in Smartlead
+
+    Args:
+        prospect_id (int): The ID of the prospect
+
+    Returns:
+        dict: The prospect in Smartlead
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    sl = Smartlead()
+    lead = sl.get_lead_by_email_address(prospect.email)
+
+    return lead
