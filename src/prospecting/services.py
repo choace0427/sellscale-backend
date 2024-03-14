@@ -4113,7 +4113,7 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
         (
           case
             when prospect_email.hidden_until is not null and prospect_email.hidden_until >= NOW() then 'Snoozed'
-            when prospect_email.outreach_status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
+            when prospect_email.outreach_status in ('DEMO_SET') then 'Demos'
             else 'Inbox'
           end
         )
@@ -4121,7 +4121,7 @@ def inbox_restructure_fetch_prospects(client_sdr_id: int):
         (
           case
             when prospect.hidden_until is not null and prospect.hidden_until > NOW() then 'Snoozed'
-            when prospect.status in ('ACTIVE_CONVO_SCHEDULING', 'DEMO_SET') then 'Demos'
+            when prospect.status in ('DEMO_SET') then 'Demos'
             else 'Inbox'
           end
         )
