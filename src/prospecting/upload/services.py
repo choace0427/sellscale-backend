@@ -784,10 +784,10 @@ def auto_run_apollo_upload_for_sdrs():
     sdrs: list[ClientSDR] = ClientSDR.query.all()
     for sdr in sdrs:
         auto_upload_from_apollo.apply_async(
-            args=[sdr.id],
+            args=[sdr.id, 1, 5],
             queue="prospecting",
             routing_key="prospecting",
-            priority=5,
+            priority=2,
         )
 
 

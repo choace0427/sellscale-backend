@@ -144,9 +144,9 @@ PROCESS_TYPE_MAP = {
     },
     "auto_upload_from_apollo": {
         "function": auto_upload_from_apollo,
-        "priority": 10,
-        "queue": None,
-        "routing_key": None,
+        "priority": 2,
+        "queue": "prospecting",
+        "routing_key": "prospecting",
     },
 }
 ###############################
