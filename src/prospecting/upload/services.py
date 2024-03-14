@@ -844,4 +844,4 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
         minutes=60,
     )
 
-    return True
+    return person_urls
