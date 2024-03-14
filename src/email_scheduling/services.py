@@ -4,6 +4,7 @@ from app import celery, db
 
 from datetime import datetime, timedelta
 from typing import Optional
+from src.automation.models import ProcessQueue, ProcessQueueStatus
 from src.client.models import ClientArchetype, ClientSDR, SLASchedule
 from src.client.sdr.email.models import SDREmailBank, SDREmailSendSchedule
 from src.client.sdr.email.services_email_schedule import (
@@ -38,7 +39,10 @@ from src.operator_dashboard.models import (
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.models import Prospect, ProspectOverallStatus
-from src.smartlead.services import upload_prospect_to_campaign
+from src.smartlead.services import (
+    prospect_exists_in_smartlead,
+    upload_prospect_to_campaign,
+)
 
 
 FOLLOWUP_LIMIT = 10
@@ -320,6 +324,24 @@ def populate_email_messaging_schedule_entries(
         EmailMessagingSchedule.prospect_email_id == prospect_email_id,
     ).all()
     if existing_email_messaging_schedules:
+        # If we have existing email_messaging_schedule entries, let's check for an edge case:
+        # We have a ProspectEmail but the email_status is not yet SENT. We also have a ProcessQueue item for this email that is FAILED.
+        # We also don't see this email in Smartlead. This means that the email was not sent and we should not send it again.
+        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+        if prospect_email and prospect_email.email_status != ProspectEmailStatus.SENT:
+            pq_entry: ProcessQueue = ProcessQueue.query.filter(
+                ProcessQueue.type == "populate_email_messaging_schedule_entries",
+                ProcessQueue.meta_data.contains(
+                    {"args": {"prospect_email_id": prospect_email_id}}
+                ),
+            ).first()
+            if pq_entry and not prospect_exists_in_smartlead(prospect.id):
+                upload_prospect_to_campaign(prospect.id)
+                return [
+                    True,
+                    [email.id for email in existing_email_messaging_schedules],
+                ]
+
         return [False, [email.id for email in existing_email_messaging_schedules]]
 
     # Get the next available send date
@@ -1093,3 +1115,40 @@ def create_calendar_link_needed_operator_dashboard_card(client_sdr_id: int):
     )
 
     return True
+
+
+def backfill():
+    from src.automation.models import ProcessQueue, ProcessQueueStatus
+
+    all_syncs: list[ProcessQueue] = ProcessQueue.query.filter(
+        ProcessQueue.type == "sync_prospect_with_lead",
+        ProcessQueue.status == ProcessQueueStatus.FAILED,
+    ).all()
+
+    failed = 0
+    uploaded = 0
+
+    for sync in all_syncs:
+        email = sync.meta_data.get("args").get("lead").get("lead_email")
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.email == email, Prospect.approved_prospect_email_id != None
+        ).first()
+        if not prospect:
+            print("Prospect not found with an email: ", email)
+            continue
+
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
+        if not prospect_email:
+            print("Prospect exists but not a ProspectEmail for email: ", email)
+            continue
+
+        # Check the status of the prospect_email
+        print(prospect_email.email_status)
+
+        if prospect_email.email_status == ProspectEmailStatus.SENT:
+            db.session.delete(sync)
+            continue
+
+    db.session.commit()

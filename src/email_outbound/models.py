@@ -557,6 +557,8 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.EMAIL_OPENED,
         ProspectEmailOutreachStatus.NOT_QUALIFIED,
         ProspectEmailOutreachStatus.BOUNCED,
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO,  # Sometimes we don't track email opens
     ],
     ProspectEmailOutreachStatus.EMAIL_OPENED: [
         ProspectEmailOutreachStatus.ACCEPTED,
