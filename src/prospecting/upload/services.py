@@ -762,10 +762,16 @@ def upload_prospects_from_apollo_query(
 
     called_person = []
     for person in people:
-        create_prospect_from_linkedin_link.delay(
-            archetype_id=client_sdr_unassigned_archetype.id,
-            url=person.get("linkedin_url"),
-            set_note="Auto imported",
+        # create_prospect_from_linkedin_link.delay(
+        #     archetype_id=client_sdr_unassigned_archetype.id,
+        #     url=person.get("linkedin_url"),
+        #     set_note="Auto imported",
+        # )
+        create_prospect_from_linkedin_link.apply_async(
+            args=[client_sdr_unassigned_archetype.id, person.get("linkedin_url")],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=2,
         )
         called_person.append(person.get("linkedin_url"))
 

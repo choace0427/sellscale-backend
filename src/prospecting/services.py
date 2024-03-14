@@ -1851,6 +1851,7 @@ def create_prospect_from_linkedin_link(
     set_note: str = None,
     is_lookalike_profile: bool = False,
 ) -> tuple[bool, int or str]:
+
     from src.research.linkedin.services import research_personal_profile_details
 
     # Add an activity log
