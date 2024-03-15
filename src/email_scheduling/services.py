@@ -366,6 +366,7 @@ def populate_email_messaging_schedule_entries(
     prospect: Prospect = Prospect.query.get(prospect_email.prospect_id)
 
     # LOGGER (delete me eventually): If generate immediately, then we know it is a Smartlead campaign (for now), and we should try to get the ProspectInSmartlead model and update the log
+    log = None
     if generate_immediately:
         log: ProspectInSmartlead = ProspectInSmartlead.query.filter(
             ProspectInSmartlead.prospect_id == prospect.id
