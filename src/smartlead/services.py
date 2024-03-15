@@ -1507,13 +1507,11 @@ def prospect_exists_in_smartlead(prospect_id: int) -> bool:
     lead_campaign_data = lead.get("lead_campaign_data")
     if not lead_campaign_data or len(lead_campaign_data) == 0:
         return False
-    campaign_id = lead_campaign_data[0].get("campaign_id")
-    if not campaign_id:
-        return False
 
-    # If this lead exists and the campaign matches, return TRUE
-    if campaign_id == archetype.smartlead_campaign_id:
-        return True
+    # If it is in the campaign, return True
+    for entry in lead_campaign_data:
+        if entry.get("campaign_id") == archetype.smartlead_campaign_id:
+            return True
 
     return False
 
