@@ -3,6 +3,7 @@ import pytz
 from app import celery, db
 
 from datetime import datetime, timedelta
+from sqlalchemy.orm.attributes import flag_modified
 from typing import Optional
 from src.automation.models import ProcessQueue, ProcessQueueStatus
 from src.client.models import ClientArchetype, ClientSDR, SLASchedule
@@ -373,6 +374,7 @@ def populate_email_messaging_schedule_entries(
             log.log.append(
                 f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Starting to populate"
             )
+            flag_modified(log, "log")
             db.session.commit()
 
     # Track all the scheduled email ids
@@ -389,6 +391,7 @@ def populate_email_messaging_schedule_entries(
             log.log.append(
                 f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Found existing email messaging schedule entries. Going into the edge case checker."
             )
+            flag_modified(log, "log")
             db.session.commit()
         # If we have existing email_messaging_schedule entries, let's check for an edge case:
         # We have a ProspectEmail but the email_status is not yet SENT. We also have a ProcessQueue item for this email that is FAILED.
@@ -571,6 +574,7 @@ def populate_email_messaging_schedule_entries(
         log.log.append(
             f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Finished populating email schedules"
         )
+        flag_modified(log, "log")
         db.session.commit()
 
     # SMARTLEAD: If we have generated immediately, this implies that we should send the prospect to Smartlead to upload
@@ -580,6 +584,7 @@ def populate_email_messaging_schedule_entries(
             log.log.append(
                 f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Sending to Smartlead"
             )
+            flag_modified(log, "log")
         upload_prospect_to_campaign(prospect.id)
 
     return [True, email_ids]

@@ -3,6 +3,8 @@ import re
 from typing import List, Optional, Tuple
 
 import markdown
+from sqlalchemy.orm.attributes import flag_modified
+
 from bs4 import BeautifulSoup
 import pytz
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
@@ -1140,6 +1142,7 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         log.log.append(
             f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Starting to upload Prospect to Campaign"
         )
+        flag_modified(log, "log")
         db.session.commit()
 
     # Get the prospect, archetype, and smartlead campaign ID
@@ -1213,6 +1216,7 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         log.log.append(
             f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Finished uploading. Will now verify"
         )
+        flag_modified(log, "log")
         db.session.commit()
 
     exists = prospect_exists_in_smartlead(prospect_id=prospect.id)
@@ -1221,11 +1225,13 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         log.log.append(
             f"SUCCESS -- upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Verified that Prospect is in Smartlead."
         )
+        flag_modified(log, "log")
     else:
         log.in_smartlead = False
         log.log.append(
             f"FAILED -- upload_prospect_to_campaing ({datetime.datetime.utcnow()}): Could not verify that Prospect is in Smartlead."
         )
+        flag_modified(log, "log")
     db.session.commit()
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(
