@@ -709,6 +709,8 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload_id: int) -> bo
                     webhook_urls=[URL_MAP["operations-li-sent-messages"]],
                 )
 
+        # Mark the payload as successful
+        pb_payload.status = "SUCCESS"
         db.session.commit()
 
         return True
