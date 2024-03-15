@@ -77,7 +77,9 @@ def merge_segment_filters(segment_id: int, segment_filters: dict):
             if key in existing_filters:
                 if existing_filters[key] is None:
                     existing_filters[key] = value
-                elif isinstance(existing_filters[key], list):
+                elif isinstance(existing_filters[key], list) and isinstance(
+                    value, list
+                ):
                     existing_filters[key] = list(set(existing_filters[key] + value))
             else:
                 existing_filters[key] = value
