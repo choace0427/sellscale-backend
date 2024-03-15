@@ -118,16 +118,18 @@ class PhantomBusterSalesNavigatorLaunch(db.Model):
             "scrape_count": self.scrape_count,
             "status": self.status.value,
             "pb_container_id": self.pb_container_id,
-            "result_available": True
-            if self.result_raw and self.result_processed
-            else False,
+            "result_available": (
+                True if self.result_raw and self.result_processed else False
+            ),
             "launch_date": self.launch_date,
             "name": self.name,
             "client_archetype_id": self.client_archetype_id,
             "account_filters_url": self.account_filters_url,
-            "archetype": ClientArchetype.query.get(self.client_archetype_id).archetype
-            if self.client_archetype_id
-            else None,
+            "archetype": (
+                ClientArchetype.query.get(self.client_archetype_id).archetype
+                if self.client_archetype_id
+                else None
+            ),
             "process_type": self.process_type,
         }
 
@@ -140,6 +142,8 @@ class PhantomBusterPayload(db.Model):
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
     pb_payload = db.Column(db.JSON, nullable=True)
     pb_type = db.Column(db.Enum(PhantomBusterType), nullable=True)
+    status = db.Column(db.String, nullable=True)
+    error_message = db.Column(db.String, nullable=True)
 
 
 class PhantomBusterAgent:
