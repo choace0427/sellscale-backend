@@ -1307,3 +1307,26 @@ class ProspectMessageFeedback(db.Model):
             "rating": self.rating,
             "feedback": self.feedback,
         }
+
+
+class ProspectInSmartlead(db.Model):
+    """Very simple table. Tells us: Is this prospect in Smartlead? If not, let's investigate why not."""
+
+    __tablename__ = "prospect_in_smartlead"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))  # The prospect
+    in_smartlead = db.Column(
+        db.Boolean, nullable=True
+    )  # If the prospect is in Smartlead
+    log = db.Column(
+        db.String, nullable=True
+    )  # What stage of the process to get added to Smartlead are we in
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "in_smartlead": self.in_smartlead,
+            "log": self.log,
+        }

@@ -38,7 +38,7 @@ from src.operator_dashboard.models import (
     OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
-from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectInSmartlead, ProspectOverallStatus
 from src.smartlead.services import (
     prospect_exists_in_smartlead,
     upload_prospect_to_campaign,
@@ -364,6 +364,15 @@ def populate_email_messaging_schedule_entries(
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect: Prospect = Prospect.query.get(prospect_email.prospect_id)
 
+    # LOGGER (delete me eventually): If generate immediately, then we know it is a Smartlead campaign (for now), and we should try to get the ProspectInSmartlead model and update the log
+    if generate_immediately:
+        log: ProspectInSmartlead = ProspectInSmartlead.query.filter(
+            ProspectInSmartlead.prospect_id == prospect.id
+        ).first()
+        if log:
+            log.log = "populate_email_messaging_schedule_entries: Starting to populate"
+            db.session.commit()
+
     # Track all the scheduled email ids
     email_ids = []
 
@@ -374,6 +383,9 @@ def populate_email_messaging_schedule_entries(
         EmailMessagingSchedule.prospect_email_id == prospect_email_id,
     ).all()
     if existing_email_messaging_schedules:
+        if log:  # LOGGER (delete me eventually)
+            log.log = "populate_email_messaging_schedule_entries: Found existing email messaging schedule entries. Going into the edge case checker."
+            db.session.commit()
         # If we have existing email_messaging_schedule entries, let's check for an edge case:
         # We have a ProspectEmail but the email_status is not yet SENT. We also have a ProcessQueue item for this email that is FAILED.
         # We also don't see this email in Smartlead. This means that the email was not sent and we should not send it again.
@@ -550,8 +562,16 @@ def populate_email_messaging_schedule_entries(
             bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
         )
 
+    # LOGGER (delete me eventually)
+    if log:
+        log.log = "populate_email_messaging_schedule_entries: Finished populating email schedules"
+        db.session.commit()
+
     # SMARTLEAD: If we have generated immediately, this implies that we should send the prospect to Smartlead to upload
     if generate_immediately:
+        # LOGGER (delete me eventually)
+        if log:
+            log.log("populate_email_messaging_schedule_entries: Sending to Smartlead")
         upload_prospect_to_campaign(prospect.id)
 
     return [True, email_ids]
