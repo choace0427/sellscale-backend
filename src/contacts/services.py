@@ -141,6 +141,50 @@ ALLOWED_FILTERS = {
 }
 
 
+def get_contacts_from_predicted_query_filters(query: str, retries=3):
+    try:
+        filters = predict_filters_needed(query)
+        contacts = get_contacts(
+            client_sdr_id=1,
+            num_contacts=100,
+            person_titles=filters.get("included_title_keywords", []),
+            person_not_titles=filters.get("excluded_title_keywords", []),
+            organization_num_employees_ranges=filters.get(
+                "included_company_size",
+                [
+                    "1,10",
+                    "11,20",
+                    "21,50",
+                    "51,100",
+                    "101,200",
+                    "201,500",
+                    "501,1000",
+                    "1001,2000",
+                    "2001,5000",
+                    "5001,10000",
+                    "10001",
+                ],
+            ),
+            person_locations=filters.get("included_location_keywords", []),
+            revenue_range=filters.get(
+                "included_revenue",
+                {
+                    "min": filters.get("revenue_min", None),
+                    "max": filters.get("revenue_max", None),
+                },
+            ),
+            organization_latest_funding_stage_cd=filters.get("included_fundraise", []),
+            person_seniorities=filters.get("included_seniority_keywords", []),
+            is_prefilter=False,
+        )
+        return contacts
+    except Exception as e:
+        if retries > 0:
+            return get_contacts_from_predicted_query_filters(query, retries=retries - 1)
+        else:
+            raise e
+
+
 def get_contacts(
     client_sdr_id: int,
     num_contacts: int = 100,
