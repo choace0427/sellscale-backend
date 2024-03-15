@@ -370,7 +370,9 @@ def populate_email_messaging_schedule_entries(
             ProspectInSmartlead.prospect_id == prospect.id
         ).first()
         if log:
-            log.log = "populate_email_messaging_schedule_entries: Starting to populate"
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Starting to populate"
+            )
             db.session.commit()
 
     # Track all the scheduled email ids
@@ -384,7 +386,9 @@ def populate_email_messaging_schedule_entries(
     ).all()
     if existing_email_messaging_schedules:
         if log:  # LOGGER (delete me eventually)
-            log.log = "populate_email_messaging_schedule_entries: Found existing email messaging schedule entries. Going into the edge case checker."
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Found existing email messaging schedule entries. Going into the edge case checker."
+            )
             db.session.commit()
         # If we have existing email_messaging_schedule entries, let's check for an edge case:
         # We have a ProspectEmail but the email_status is not yet SENT. We also have a ProcessQueue item for this email that is FAILED.
@@ -564,14 +568,18 @@ def populate_email_messaging_schedule_entries(
 
     # LOGGER (delete me eventually)
     if log:
-        log.log = "populate_email_messaging_schedule_entries: Finished populating email schedules"
+        log.log.append(
+            f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Finished populating email schedules"
+        )
         db.session.commit()
 
     # SMARTLEAD: If we have generated immediately, this implies that we should send the prospect to Smartlead to upload
     if generate_immediately:
         # LOGGER (delete me eventually)
         if log:
-            log.log("populate_email_messaging_schedule_entries: Sending to Smartlead")
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Sending to Smartlead"
+            )
         upload_prospect_to_campaign(prospect.id)
 
     return [True, email_ids]

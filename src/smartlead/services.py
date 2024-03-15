@@ -1137,7 +1137,9 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         ProspectInSmartlead.prospect_id == prospect_id
     ).first()
     if log:
-        log.log = "upload_prospect_to_campaign: Starting to upload Prospect to Campaign"
+        log.log.append(
+            f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Starting to upload Prospect to Campaign"
+        )
         db.session.commit()
 
     # Get the prospect, archetype, and smartlead campaign ID
@@ -1208,16 +1210,22 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
     )
 
     if log:
-        log.log = "upload_prospect_to_campaign: Finished uploading. Will now verify"
+        log.log.append(
+            f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Finished uploading. Will now verify"
+        )
         db.session.commit()
 
     exists = prospect_exists_in_smartlead(prospect_id=prospect.id)
     if exists:
         log.in_smartlead = True
-        log.log = "SUCCESS -- upload_prospect_to_campaign: Verified that Prospect is in Smartlead."
+        log.log.append(
+            f"SUCCESS -- upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Verified that Prospect is in Smartlead."
+        )
     else:
         log.in_smartlead = False
-        log.log = "FAILED -- upload_prospect_to_campaing: Could not verify that Prospect is in Smartlead."
+        log.log.append(
+            f"FAILED -- upload_prospect_to_campaing ({datetime.datetime.utcnow()}): Could not verify that Prospect is in Smartlead."
+        )
     db.session.commit()
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(

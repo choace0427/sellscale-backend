@@ -1320,7 +1320,7 @@ class ProspectInSmartlead(db.Model):
         db.Boolean, nullable=True
     )  # If the prospect is in Smartlead
     log = db.Column(
-        db.String, nullable=True
+        db.ARRAY(db.String), nullable=True
     )  # What stage of the process to get added to Smartlead are we in
 
     def to_dict(self) -> dict:

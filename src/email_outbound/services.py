@@ -179,7 +179,9 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
 
             log: ProspectInSmartlead = ProspectInSmartlead(
                 prospect_id=prospect.id,
-                log="batch_mark_prospects_in_email_campaign_queued: Sending to the process queue.",
+                log=[
+                    f"batch_mark_prospects_in_email_campaign_queued ({datetime.datetime.utcnow()}): Sending to the process queue."
+                ],
             )
             db.session.add(log)
             db.session.commit()
