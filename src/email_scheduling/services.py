@@ -585,6 +585,7 @@ def populate_email_messaging_schedule_entries(
                 f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Sending to Smartlead"
             )
             flag_modified(log, "log")
+            db.session.commit()
         upload_prospect_to_campaign(prospect.id)
 
     return [True, email_ids]
