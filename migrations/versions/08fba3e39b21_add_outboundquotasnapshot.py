@@ -27,7 +27,7 @@ def upgrade():
         sa.Column("date", sa.Date(), nullable=False),
         sa.Column("total_linkedin_quota", sa.Integer(), nullable=False),
         sa.Column("total_email_quota", sa.Integer(), nullable=False),
-        sa.Column("meta_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("meta_data", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("date"),
     )

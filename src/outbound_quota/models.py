@@ -16,4 +16,4 @@ class OutboundQuotaSnapshot(db.Model):
     total_email_quota = db.Column(db.Integer, nullable=False)
 
     # Metadata used to store additional information about the snapshot
-    meta_data = db.Column(JSONB, nullable=False)
+    meta_data = db.Column(JSONB, nullable=True)

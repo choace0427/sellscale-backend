@@ -21,13 +21,13 @@ def capture_outbound_quota_snapshot() -> OutboundQuotaSnapshot:
             date=date,
             total_linkedin_quota=0,
             total_email_quota=0,
-            metadata={"note": "Weekend, no outbound quota."},
+            meta_data={"note": "Weekend, no outbound quota."},
         )
         db.session.add(weekend_snapshot)
         db.session.commit()
         return weekend_snapshot
 
-    metadata = {}
+    meta_data = {}
 
     # Get active clients
     active_clients: list[Client] = Client.query.filter(Client.active == True).all()
@@ -65,9 +65,9 @@ def capture_outbound_quota_snapshot() -> OutboundQuotaSnapshot:
         linkedin_quota += sla_schedule.linkedin_volume / 5
 
         key = f"{sdr.name} (#{sdr.id})"
-        if key not in metadata:
-            metadata[key] = {}
-        metadata[key]["linkedin_volume"] = sla_schedule.linkedin_volume / 5
+        if key not in meta_data:
+            meta_data[key] = {}
+        meta_data[key]["linkedin_volume"] = sla_schedule.linkedin_volume / 5
 
     # EMAIL QUOTA
     # Get the active Archetypes for Email
@@ -98,20 +98,20 @@ def capture_outbound_quota_snapshot() -> OutboundQuotaSnapshot:
         email_quota += sla_schedule.email_volume / 5
 
         key = f"{sdr.name} (#{sdr.id})"
-        if key not in metadata:
-            metadata[key] = {}
-        metadata[key]["email_volume"] = sla_schedule.email_volume / 5
+        if key not in meta_data:
+            meta_data[key] = {}
+        meta_data[key]["email_volume"] = sla_schedule.email_volume / 5
 
     print(linkedin_quota)
     print(email_quota)
-    print(metadata)
+    print(meta_data)
 
     # Create the snapshot
     snapshot = OutboundQuotaSnapshot(
         date=date,
         total_linkedin_quota=linkedin_quota,
         total_email_quota=email_quota,
-        metadata=metadata,
+        meta_data=meta_data,
     )
     db.session.add(snapshot)
     db.session.commit()
