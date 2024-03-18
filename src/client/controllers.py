@@ -729,6 +729,28 @@ def create_sdr():
     return resp
 
 
+@CLIENT_BLUEPRINT.route("/sdr/activate_seat", methods=["POST"])
+@require_user
+def post_activate_seat(client_sdr_id: int):
+    success = activate_client_sdr(client_sdr_id=client_sdr_id)
+
+    if not success:
+        return "Failed to activate seat", 404
+    return jsonify({"message": "Activated seat"}), 200
+
+
+@CLIENT_BLUEPRINT.route("/sdr/deactivate_seat", methods=["POST"])
+@require_user
+def post_deactivate_seat(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    email = client_sdr.email
+    success = deactivate_client_sdr(client_sdr_id=client_sdr_id, email=email)
+
+    if not success:
+        return "Failed to deactivate seat", 404
+    return jsonify({"message": "Deactivated seat"}), 200
+
+
 @CLIENT_BLUEPRINT.route("/sdr/deactivate", methods=["POST"])
 def deactivate_sdr_endpoint():
     client_sdr_id = get_request_parameter(
