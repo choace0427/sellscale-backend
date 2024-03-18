@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Optional
 from app import db
 import requests
@@ -11,6 +12,10 @@ from datetime import datetime
 
 from src.utils.hasher import generate_uuid
 
+# APOLLO CREDENTIALS (SESSION and XCSRF are reverse engineered tokens, may require manual refreshing periodically)
+APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY")
+APOLLO_SESSION_COOKIE = os.environ.get("APOLLO_SESSION_COOKIE")
+APOLLO_XCSRF_TOKEN = os.environ.get("APOLLO_XCSRF_TOKEN")
 
 ALLOWED_FILTERS = {
     "query_full_name": {
@@ -144,7 +149,7 @@ ALLOWED_FILTERS = {
 def get_contacts_from_predicted_query_filters(query: str, retries=3):
     try:
         filters = predict_filters_needed(query)
-        contacts = get_contacts(
+        contacts = apollo_get_contacts(
             client_sdr_id=1,
             num_contacts=100,
             person_titles=filters.get("included_title_keywords", []),
@@ -185,7 +190,7 @@ def get_contacts_from_predicted_query_filters(query: str, retries=3):
             raise e
 
 
-def get_contacts(
+def apollo_get_contacts(
     client_sdr_id: int,
     num_contacts: int = 100,
     person_titles: list = [],
@@ -221,7 +226,7 @@ def get_contacts(
 
     for page in range(1, num_contacts // 100 + 1):
         try:
-            response, data, saved_query_id = get_contacts_for_page(
+            response, data, saved_query_id = apollo_get_contacts_for_page(
                 client_sdr_id,
                 page,
                 person_titles,
@@ -330,7 +335,7 @@ def add_match_reasons(
     return contacts
 
 
-def get_contacts_for_page(
+def apollo_get_contacts_for_page(
     client_sdr_id: int,
     page: int,
     person_titles: list = [],
@@ -352,7 +357,7 @@ def get_contacts_for_page(
     is_prefilter: bool = False,
 ):
     data = {
-        "api_key": "F51KjDxCgbbC42h0-ovEDQ",
+        "api_key": APOLLO_API_KEY,
         "page": page,
         "per_page": 100,
         "person_titles": person_titles,
@@ -396,6 +401,60 @@ def get_contacts_for_page(
     saved_query_id = saved_query.id
 
     return response.json(), data, saved_query_id
+
+
+def apollo_get_organizations_from_company_names(
+    client_sdr_id: int,
+    company_names: list[str],
+) -> list:
+    """A near-pass-through function which will collect organization objects from Apollo based on the company names provided.
+
+    Args:
+        client_sdr_id (int): SDR to tie this query to
+        company_names (list[str]): List of company names to search for
+
+    Returns:
+        list: List of organization objects
+    """
+    # Set the headers
+    headers = {
+        "x-csrf-token": APOLLO_XCSRF_TOKEN,
+        "cookie": APOLLO_SESSION_COOKIE,
+    }
+
+    objects = []
+    for company_name in company_names:
+        print("Getting company data for", company_name)
+        # Set the data
+        data = {
+            "q_organization_fuzzy_name": company_name,
+            "display_mode": "fuzzy_select_mode",
+        }
+
+        # Make the request
+        response = requests.post(
+            "https://app.apollo.io/api/v1/organizations/search",
+            headers=headers,
+            json=data,
+        )
+
+        # Get the organizations and append the first one to the objects list
+        organizations = response.json().get("organizations")
+        if organizations and len(organizations) > 0:
+            objects.append(organizations[0])
+
+    # Save the query
+    formatted_date = datetime.now().strftime("%b %d %Y %H:%M:%S")
+    hash = generate_uuid(base=f"{formatted_date}")[0:6]
+    saved_query = SavedApolloQuery(
+        name_query=f"Company Fuzzy Search query on {formatted_date} [{hash}]",
+        data={"company_names": company_names},
+        client_sdr_id=client_sdr_id,
+    )
+    db.session.add(saved_query)
+    db.session.commit()
+
+    return objects
 
 
 def predict_filters_types_needed(query: str) -> list:
@@ -479,15 +538,15 @@ def get_territories(client_sdr_id: int):
 
     query = """
         with d as (
-        select 
+        select
             client_sdr.id,
             client_sdr.name,
             client_sdr.title,
             client_sdr.img_url,
-            case when 
+            case when
                 client_sdr.territory_name is null
                     then 'Not defined'
-                else 
+                else
                     client_sdr.territory_name
             end territory_name,
             max(saved_apollo_query.id) "saved_apollo_id"
@@ -499,7 +558,7 @@ def get_territories(client_sdr_id: int):
             client_sdr.active
         group by 1,2,3,4,5
     )
-    select 
+    select
         d.*,
         saved_apollo_query.num_results
     from d
