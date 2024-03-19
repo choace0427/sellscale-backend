@@ -612,10 +612,18 @@ def patch_sdr(client_sdr_id: int):
         required=False,
     )
 
+    email = get_request_parameter(
+        "email",
+        request,
+        json=True,
+        required=False,
+    )
+
     success = update_client_sdr_details(
         client_sdr_id=client_sdr_id,
         name=name,
         title=title,
+        email=email,
         disable_ai_on_prospect_respond=disable_ai_on_prospect_respond,
         disable_ai_on_message_send=disable_ai_on_message_send,
         ai_outreach=ai_outreach,
