@@ -1905,6 +1905,8 @@ def create_campaign_ai_request(sdr_id: int, type: str):
 
 def get_client_campaign_view_data(client_sdr_id: int):
 
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
     data = db.session.execute(
         """
 with d as (
@@ -1944,7 +1946,7 @@ with d as (
 		left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
 		left join prospect_email on prospect_email.prospect_id = prospect.id 
 		left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-	where client_sdr.id = {sdr_id}
+	where client.id = {client_id}
 	group by 1,2,3,4,5,6,7
 	order by 1 asc, 2 asc
 )
@@ -1964,7 +1966,7 @@ select
 from d
 order by 1 asc, 2 asc, 3 asc;
 """.format(
-            sdr_id=client_sdr_id
+            client_id=sdr.client_id
         )
     ).fetchall()
 
