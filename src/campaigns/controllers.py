@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from src.campaigns.services import (
     create_outbound_campaign,
     change_campaign_status,
+    get_client_campaign_view_data,
     mark_campaign_as_ready_to_send,
     mark_campaign_as_initial_review_complete,
 )
@@ -678,3 +679,25 @@ def post_payout_campaigns():
         return "OK", 200
 
     return "Failed to payout campaigns", 400
+
+
+@CAMPAIGN_BLUEPRINT.route("/client_campaign_view_data", methods=["POST"])
+@require_user
+def post_client_campaign_view_data(client_sdr_id: int):
+    """
+    Gets the data for the client campaign view
+    """
+
+    records = get_client_campaign_view_data(client_sdr_id=client_sdr_id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "records": records,
+                },
+            }
+        ),
+        200,
+    )
