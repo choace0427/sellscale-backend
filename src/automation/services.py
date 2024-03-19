@@ -595,97 +595,139 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
     return data
 
 
-def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload: dict) -> bool:
-    """Updates the status of a LinkedIn message sent by the phantom buster agent
+def process_pb_webhook_payload(client_sdr_id: int, pb_payload: dict) -> bool:
+    """Creates a PhantomBusterPayload object and processes the payload from the phantom buster agent
 
     Args:
         client_sdr_id (int): ID of the client SDR
         pb_payload (dict): Payload from the phantom buster agent
 
-    Example resultObject (use JSON Formatter to view):
-        [{"0":"linkedin.com/in/steve-hyndman-8a57b816","fullName":"Steve Hyndman","firstName":"Steve","lastName":"Hyndman","connectionDegree":"1st","url":"https://www.linkedin.com/in/steve-hyndman-8a57b816","Message":"Hi Steve! I read that you have a passion for diversity and inclusion and experience in transformation risk and financial crime - an impressive career you have there! Id love to show you how monday can help your team’s productivity. No harm in benchmarking against your current system - up for a chat?","baseUrl":"linkedin.com/in/steve-hyndman-8a57b816","profileId":"steve-hyndman-8a57b816","profileUrl":"https://www.linkedin.com/in/steve-hyndman-8a57b816/","error":"Already in network","timestamp":"2023-03-28T16:42:40.033Z"},{"0":"linkedin.com/in/supriya-uchil","fullName":"Supriya Uchil","firstName":"Supriya","lastName":"Uchil","connectionDegree":"2nd","url":"https://www.linkedin.com/in/supriya-uchil","Message":"Hi Supriya! I read you've worked for great companies like Depop, Self Employed and BookingGo. Now as Vice Chair at Ounass, I'm sure you're looking for the best tools to help your team with productivity. Heard of monday.com? I'd love to show you how it can help supercharge your team - open to chat?","baseUrl":"linkedin.com/in/supriya-uchil","profileId":"supriya-uchil","profileUrl":"https://www.linkedin.com/in/supriya-uchil/","message":"Hi Supriya! I read you've worked for great companies like Depop, Self Employed and BookingGo. Now as Vice Chair at Ounass, I'm sure you're looking for the best tools to help your team with productivity. Heard of monday.com? I'd love to show you how it can help supercharge your team - open to chat?","error":"Email needed to add this person","timestamp":"2023-03-28T16:43:59.678Z"}]
+    Returns:
+        bool: True if successful, False otherwise
     """
-    from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus
-    from datetime import datetime
-
     # Create the payload
     payload: PhantomBusterPayload = PhantomBusterPayload(
         client_sdr_id=client_sdr_id,
         pb_type=PhantomBusterType.OUTBOUND_ENGINE,
         pb_payload=pb_payload,
+        status="RECEIVED",
     )
     db.session.add(payload)
     db.session.commit()
 
-    # Check if the payload is valid
-    exit_code = pb_payload.get("exitCode")
-    if exit_code != 0:
-        return False
+    return update_pb_linkedin_send_status(client_sdr_id, payload.id)
 
-    # Grab the result object
-    result_object = pb_payload.get("resultObject")
-    if not result_object:
-        return False
-    result_object = json.loads(result_object)
-    if not result_object:
-        return False
 
-    # Loop through the results
-    for result in result_object:
-        if result.get("0") is None:
-            continue
+def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload_id: int) -> bool:
+    """Updates the status of a LinkedIn message sent by the phantom buster agent
 
-        # Grab the prospect
-        prospect: Prospect = Prospect.query.filter(
-            Prospect.linkedin_url == result.get("0"),
-            Prospect.client_sdr_id == client_sdr_id,
-        ).first()
-        if not prospect:
-            continue
-        prospect_id = prospect.id
-        prospect_li = prospect.linkedin_url
+    Args:
+        client_sdr_id (int): ID of the client SDR
+        pb_payload_id (int): ID of the phantom buster payload
 
-        # Grab the message
-        message: GeneratedMessage = GeneratedMessage.query.filter(
-            GeneratedMessage.id == prospect.approved_outreach_message_id
-        ).first()
-        if not message:
-            continue
-        message_id = message.id
+    Example resultObject (use JSON Formatter to view):
+        [{"0":"linkedin.com/in/steve-hyndman-8a57b816","fullName":"Steve Hyndman","firstName":"Steve","lastName":"Hyndman","connectionDegree":"1st","url":"https://www.linkedin.com/in/steve-hyndman-8a57b816","Message":"Hi Steve! I read that you have a passion for diversity and inclusion and experience in transformation risk and financial crime - an impressive career you have there! Id love to show you how monday can help your team’s productivity. No harm in benchmarking against your current system - up for a chat?","baseUrl":"linkedin.com/in/steve-hyndman-8a57b816","profileId":"steve-hyndman-8a57b816","profileUrl":"https://www.linkedin.com/in/steve-hyndman-8a57b816/","error":"Already in network","timestamp":"2023-03-28T16:42:40.033Z"},{"0":"linkedin.com/in/supriya-uchil","fullName":"Supriya Uchil","firstName":"Supriya","lastName":"Uchil","connectionDegree":"2nd","url":"https://www.linkedin.com/in/supriya-uchil","Message":"Hi Supriya! I read you've worked for great companies like Depop, Self Employed and BookingGo. Now as Vice Chair at Ounass, I'm sure you're looking for the best tools to help your team with productivity. Heard of monday.com? I'd love to show you how it can help supercharge your team - open to chat?","baseUrl":"linkedin.com/in/supriya-uchil","profileId":"supriya-uchil","profileUrl":"https://www.linkedin.com/in/supriya-uchil/","message":"Hi Supriya! I read you've worked for great companies like Depop, Self Employed and BookingGo. Now as Vice Chair at Ounass, I'm sure you're looking for the best tools to help your team with productivity. Heard of monday.com? I'd love to show you how it can help supercharge your team - open to chat?","error":"Email needed to add this person","timestamp":"2023-03-28T16:43:59.678Z"}]
+    """
+    try:
+        from model_import import Prospect, GeneratedMessage, GeneratedMessageStatus
+        from datetime import datetime
 
-        # Check for error, otherwise set the message to sent
-        error = result.get("error")
-        if error:
-            message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
-            message.failed_outreach_error = error
-            db.session.add(message)
+        # Get the payload
+        pb_payload: PhantomBusterPayload = PhantomBusterPayload.query.get(pb_payload_id)
+        if not pb_payload:
+            return False
+
+        # Mark the payload as in progress
+        pb_payload.status = "IN_PROGRESS"
+        db.session.commit()
+
+        # Check if the payload is valid - No need to do this anymore
+        # exit_code = pb_payload.get("exitCode")
+        # if exit_code != 0:
+        #     return False
+
+        # Grab the result object
+        payload = pb_payload.pb_payload
+        result_object = payload.get("resultObject")
+        if not result_object:
+            return False
+        result_object = json.loads(result_object)
+        if not result_object:
+            return False
+
+        # Loop through the results
+        for result in result_object:
+            if result.get("0") is None:
+                continue
+
+            # Grab the prospect
+            prospect: Prospect = Prospect.query.filter(
+                Prospect.linkedin_url == result.get("0"),
+                Prospect.client_sdr_id == client_sdr_id,
+            ).first()
+            if not prospect:
+                continue
+            prospect_id = prospect.id
+            prospect_li = prospect.linkedin_url
+
+            # Grab the message
+            message: GeneratedMessage = GeneratedMessage.query.filter(
+                GeneratedMessage.id == prospect.approved_outreach_message_id
+            ).first()
+            if not message:
+                continue
+            message_id = message.id
+
+            # Check for error, otherwise set the message to sent
+            error = result.get("error")
+            if error:
+                message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
+                message.failed_outreach_error = error
+                db.session.add(message)
+                db.session.commit()
+
+                update_prospect_status_linkedin(
+                    prospect_id=prospect_id,
+                    new_status=ProspectStatus.SEND_OUTREACH_FAILED,
+                )
+            else:
+                message.message_status = GeneratedMessageStatus.SENT
+                message.date_sent = datetime.now()
+                message.failed_outreach_error = None
+                sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+                sdr_name = sdr.name
+                message_completion = message.completion
+                db.session.add(message)
+                db.session.commit()
+
+                update_prospect_status_linkedin(
+                    prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
+                )
+
+                send_slack_message(
+                    message=f"LinkedIn Autoconnect: {sdr_name} sent a message to {prospect_li}\nmessage: {message_completion}",
+                    webhook_urls=[URL_MAP["operations-li-sent-messages"]],
+                )
+
+        # Mark the payload as successful
+        pb_payload.status = "SUCCESS"
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        # Mark the payload as failed
+        pb_payload: PhantomBusterPayload = PhantomBusterPayload.query.get(pb_payload_id)
+        if pb_payload:
+            pb_payload.status = "FAILED"
+            pb_payload.error_message = str(e)
             db.session.commit()
 
-            update_prospect_status_linkedin(
-                prospect_id=prospect_id, new_status=ProspectStatus.SEND_OUTREACH_FAILED
-            )
-        else:
-            message.message_status = GeneratedMessageStatus.SENT
-            message.date_sent = datetime.now()
-            message.failed_outreach_error = None
-            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-            sdr_name = sdr.name
-            message_completion = message.completion
-            db.session.add(message)
-            db.session.commit()
+        send_slack_message(
+            message=f"❌❌❌ Error updating phantom buster linkedin send status: {e}",
+            webhook_urls=[URL_MAP["operations-li-sent-messages"]],
+        )
 
-            update_prospect_status_linkedin(
-                prospect_id=prospect_id, new_status=ProspectStatus.SENT_OUTREACH
-            )
-
-            send_slack_message(
-                message=f"LinkedIn Autoconnect: {sdr_name} sent a message to {prospect_li}\nmessage: {message_completion}",
-                webhook_urls=[URL_MAP["operations-li-sent-messages"]],
-            )
-
-    db.session.commit()
-
-    return True
+        return False
 
 
 @celery.task(bind=True, max_retries=3)

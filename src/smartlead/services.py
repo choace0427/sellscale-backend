@@ -3,6 +3,8 @@ import re
 from typing import List, Optional, Tuple
 
 import markdown
+from sqlalchemy.orm.attributes import flag_modified
+
 from bs4 import BeautifulSoup
 import pytz
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
@@ -30,7 +32,7 @@ from src.email_outbound.models import (
     ProspectEmailOutreachStatus,
     ProspectEmailStatus,
 )
-from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectInSmartlead, ProspectOverallStatus
 
 from src.utils.slack import send_slack_message, URL_MAP
 
@@ -1132,6 +1134,17 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
     Returns:
         tuple[bool, int]: A tuple with the first value being True if successful, and the second being the number of prospects uploaded
     """
+    # LOGGER (delete me eventually): We need to log that we are going to upload now
+    log: ProspectInSmartlead = ProspectInSmartlead.query.filter(
+        ProspectInSmartlead.prospect_id == prospect_id
+    ).first()
+    if log:
+        log.log.append(
+            f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Starting to upload Prospect to Campaign"
+        )
+        flag_modified(log, "log")
+        db.session.commit()
+
     # Get the prospect, archetype, and smartlead campaign ID
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect:
@@ -1163,7 +1176,6 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
             return False, "Messaging schedule not fully generated. Email Body missing."
 
     # Create the lead list
-
     custom_fields = {}
     for index, message in enumerate(schedule):
         message: EmailMessagingSchedule = message
@@ -1199,6 +1211,28 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         message=f"Uploaded 1 prospect {prospect.full_name}#{prospect.id} to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
+
+    if log:
+        log.log.append(
+            f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Finished uploading. Will now verify"
+        )
+        flag_modified(log, "log")
+        db.session.commit()
+
+    exists = prospect_exists_in_smartlead(prospect_id=prospect.id)
+    if exists:
+        log.in_smartlead = True
+        log.log.append(
+            f"SUCCESS -- upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Verified that Prospect is in Smartlead."
+        )
+        flag_modified(log, "log")
+    else:
+        log.in_smartlead = False
+        log.log.append(
+            f"FAILED -- upload_prospect_to_campaing ({datetime.datetime.utcnow()}): Could not verify that Prospect is in Smartlead."
+        )
+        flag_modified(log, "log")
+    db.session.commit()
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(
         prospect.approved_prospect_email_id
@@ -1473,13 +1507,11 @@ def prospect_exists_in_smartlead(prospect_id: int) -> bool:
     lead_campaign_data = lead.get("lead_campaign_data")
     if not lead_campaign_data or len(lead_campaign_data) == 0:
         return False
-    campaign_id = lead_campaign_data[0].get("campaign_id")
-    if not campaign_id:
-        return False
 
-    # If this lead exists and the campaign matches, return TRUE
-    if campaign_id == archetype.smartlead_campaign_id:
-        return True
+    # If it is in the campaign, return True
+    for entry in lead_campaign_data:
+        if entry.get("campaign_id") == archetype.smartlead_campaign_id:
+            return True
 
     return False
 

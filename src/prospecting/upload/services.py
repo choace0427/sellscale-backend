@@ -713,10 +713,10 @@ def get_most_recent_apollo_query(client_sdr_id: int):
 def upload_prospects_from_apollo_query(
     client_sdr_id: int, apollo_filters: dict, page: int = 1
 ):
-    from src.contacts.services import get_contacts_for_page
+    from src.contacts.services import apollo_get_contacts_for_page
     from src.prospecting.services import create_prospect_from_linkedin_link
 
-    response, data, saved_query_id = get_contacts_for_page(
+    response, data, saved_query_id = apollo_get_contacts_for_page(
         client_sdr_id=client_sdr_id,
         page=page,
         person_titles=apollo_filters.get("person_titles"),
@@ -780,7 +780,6 @@ def upload_prospects_from_apollo_query(
 
 @celery.task
 def auto_run_apollo_upload_for_sdrs():
-
     sdrs: list[ClientSDR] = ClientSDR.query.all()
     for sdr in sdrs:
         auto_upload_from_apollo.apply_async(
@@ -793,7 +792,6 @@ def auto_run_apollo_upload_for_sdrs():
 
 @celery.task
 def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 5):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     if sdr.meta_data is None:

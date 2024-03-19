@@ -3,6 +3,7 @@ import pytz
 from app import celery, db
 
 from datetime import datetime, timedelta
+from sqlalchemy.orm.attributes import flag_modified
 from typing import Optional
 from src.automation.models import ProcessQueue, ProcessQueueStatus
 from src.client.models import ClientArchetype, ClientSDR, SLASchedule
@@ -38,7 +39,7 @@ from src.operator_dashboard.models import (
     OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
-from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectInSmartlead, ProspectOverallStatus
 from src.smartlead.services import (
     prospect_exists_in_smartlead,
     upload_prospect_to_campaign,
@@ -282,6 +283,56 @@ def create_email_messaging_schedule_entry(
     return email_messaging_schedule.id
 
 
+def backfill(date: str):
+    # Get the prospects that have a generated message for email body and subject line
+    # and where the prospect_email does NOt have schedule entries
+    # and the message was created since 03/05/2024
+
+    query = f"""
+SELECT
+	m.id message_id,
+	m.prompt,
+	m.completion,
+	m.email_type,
+	m.message_status,
+	p.id prospect_id,
+	p.email,
+	pe.email_status,
+	s.id,
+	s.email_type,
+	s.email_body_template_id,
+	s.email_subject_line_template_id
+FROM
+	generated_message m
+	LEFT JOIN prospect p ON m.prospect_id = p.id
+	LEFT JOIN prospect_email pe ON p.approved_prospect_email_id = pe.id
+	LEFT JOIN email_messaging_schedule s ON s.prospect_email_id = pe.id
+WHERE
+	m.message_type = 'EMAIL'
+	AND date(m.created_at) = '{date}'
+ORDER BY
+	email,
+	s.email_type,
+	m.email_type;
+"""
+    result = db.session.execute(query).fetchall()
+    prospects_missing_schedule = set()
+    for row in result:
+        message_id = row[0]
+        email_type = row[3]
+        prospect_id = row[5]
+        schedule_id = row[8]
+        schedule_email_type = row[9]
+        schedule_email_body_template_id = row[10]
+        schedule_email_subject_line_template_id = row[11]
+
+        if not schedule_id:
+            prospects_missing_schedule.add(prospect_id)
+
+    print(prospects_missing_schedule)
+    print(len(prospects_missing_schedule))
+
+
 @celery.task
 def populate_email_messaging_schedule_entries(
     client_sdr_id: int,
@@ -314,6 +365,19 @@ def populate_email_messaging_schedule_entries(
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
     prospect: Prospect = Prospect.query.get(prospect_email.prospect_id)
 
+    # LOGGER (delete me eventually): If generate immediately, then we know it is a Smartlead campaign (for now), and we should try to get the ProspectInSmartlead model and update the log
+    log = None
+    if generate_immediately:
+        log: ProspectInSmartlead = ProspectInSmartlead.query.filter(
+            ProspectInSmartlead.prospect_id == prospect.id
+        ).first()
+        if log:
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Starting to populate"
+            )
+            flag_modified(log, "log")
+            db.session.commit()
+
     # Track all the scheduled email ids
     email_ids = []
 
@@ -324,6 +388,12 @@ def populate_email_messaging_schedule_entries(
         EmailMessagingSchedule.prospect_email_id == prospect_email_id,
     ).all()
     if existing_email_messaging_schedules:
+        if log:  # LOGGER (delete me eventually)
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Found existing email messaging schedule entries. Going into the edge case checker."
+            )
+            flag_modified(log, "log")
+            db.session.commit()
         # If we have existing email_messaging_schedule entries, let's check for an edge case:
         # We have a ProspectEmail but the email_status is not yet SENT. We also have a ProcessQueue item for this email that is FAILED.
         # We also don't see this email in Smartlead. This means that the email was not sent and we should not send it again.
@@ -500,8 +570,23 @@ def populate_email_messaging_schedule_entries(
             bumped_sequence_step.sequence_delay_days or DEFAULT_SENDING_DELAY_INTERVAL
         )
 
+    # LOGGER (delete me eventually)
+    if log:
+        log.log.append(
+            f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Finished populating email schedules"
+        )
+        flag_modified(log, "log")
+        db.session.commit()
+
     # SMARTLEAD: If we have generated immediately, this implies that we should send the prospect to Smartlead to upload
     if generate_immediately:
+        # LOGGER (delete me eventually)
+        if log:
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Sending to Smartlead"
+            )
+            flag_modified(log, "log")
+            db.session.commit()
         upload_prospect_to_campaign(prospect.id)
 
     return [True, email_ids]
@@ -1115,40 +1200,3 @@ def create_calendar_link_needed_operator_dashboard_card(client_sdr_id: int):
     )
 
     return True
-
-
-def backfill():
-    from src.automation.models import ProcessQueue, ProcessQueueStatus
-
-    all_syncs: list[ProcessQueue] = ProcessQueue.query.filter(
-        ProcessQueue.type == "sync_prospect_with_lead",
-        ProcessQueue.status == ProcessQueueStatus.FAILED,
-    ).all()
-
-    failed = 0
-    uploaded = 0
-
-    for sync in all_syncs:
-        email = sync.meta_data.get("args").get("lead").get("lead_email")
-        prospect: Prospect = Prospect.query.filter(
-            Prospect.email == email, Prospect.approved_prospect_email_id != None
-        ).first()
-        if not prospect:
-            print("Prospect not found with an email: ", email)
-            continue
-
-        prospect_email: ProspectEmail = ProspectEmail.query.get(
-            prospect.approved_prospect_email_id
-        )
-        if not prospect_email:
-            print("Prospect exists but not a ProspectEmail for email: ", email)
-            continue
-
-        # Check the status of the prospect_email
-        print(prospect_email.email_status)
-
-        if prospect_email.email_status == ProspectEmailStatus.SENT:
-            db.session.delete(sync)
-            continue
-
-    db.session.commit()

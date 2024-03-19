@@ -419,6 +419,13 @@ def run_daily_send_pipeline_report():
         send_daily_pipeline_activity_notification_for_active_sdrs.delay()
 
 
+def run_capture_outbound_quota_snapshot():
+    from src.outbound_quota.services import capture_outbound_quota_snapshot
+
+    if is_scheduling_instance():
+        capture_outbound_quota_snapshot.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -520,6 +527,7 @@ scheduler.add_job(run_daily_auto_send_report_email, trigger=mid_week_trigger)
 scheduler.add_job(run_daily_trigger_runner, trigger=daily_trigger)
 scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
 scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger)
+scheduler.add_job(run_capture_outbound_quota_snapshot, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

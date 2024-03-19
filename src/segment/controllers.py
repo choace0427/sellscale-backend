@@ -1,6 +1,9 @@
 from flask import Blueprint, jsonify, request
+from src.ai_requests.services import create_ai_requests
 from src.authentication.decorators import require_user
-from src.client.models import ClientArchetype
+from src.client.controllers import create_archetype
+from src.client.models import ClientArchetype, ClientSDR
+from src.client.services import create_client_archetype
 from src.prospecting.models import Prospect
 from src.segment.models import Segment
 from src.segment.services import (
@@ -16,6 +19,7 @@ from src.segment.services import (
     update_segment,
     wipe_and_delete_segment,
     wipe_segment_ids_from_prospects_in_segment,
+    get_unused_segments_for_sdr,
 )
 from src.segment.services_auto_segment import run_auto_segment
 from src.utils.request_helpers import get_request_parameter
@@ -343,3 +347,65 @@ def get_segment_predictions(client_sdr_id: int):
     )
 
     return jsonify(predictions), 200
+
+
+@SEGMENT_BLUEPRINT.route("/get_unused_segments", methods=["GET"])
+@require_user
+def get_unused_segments(client_sdr_id: int):
+    """
+    Get all unused segments for a given client_sdr.
+    Unused segments are segments where all the prospects are not assigned to any campaign.
+
+    Args:
+        client_sdr_id (int): _description_
+
+    Returns:
+        _type_: _description_
+    """
+
+    segments: list[dict] = get_unused_segments_for_sdr(client_sdr_id)
+    return jsonify(segments), 200
+
+
+@SEGMENT_BLUEPRINT.route(
+    "/<int:segment_id>/request_campaign_and_move_prospects", methods=["POST"]
+)
+@require_user
+def request_campaign_and_move_prospects(client_sdr_id: int, segment_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_id = client_sdr.client_id
+
+    segment: Segment = Segment.query.filter_by(
+        client_sdr_id=client_sdr_id, id=segment_id
+    ).first()
+
+    # Create archetype
+    archetype_dict = create_client_archetype(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        archetype=segment.segment_title,
+        filters={},
+    )
+    archetype_id = archetype_dict and archetype_dict["client_archetype_id"]
+
+    if not archetype_id:
+        return "Failed to create archetype", 400
+
+    # Add Unusued Prospects from Segment into Campaign
+    success, msg = add_unused_prospects_in_segment_to_campaign(
+        segment_id=segment_id, campaign_id=archetype_id
+    )
+
+    # Create AI Request
+    create_ai_requests(
+        client_sdr_id=client_sdr_id,
+        title="Requesting Campaign From Segment: " + segment.segment_title,
+        description="Can you please create a campaign for the prospects in this segment: "
+        + segment.segment_title
+        + "?",
+    )
+
+    if success:
+        return msg, 200
+
+    return "Failed", 400

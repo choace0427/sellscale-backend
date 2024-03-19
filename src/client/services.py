@@ -218,6 +218,7 @@ def update_client_sdr_details(
     client_sdr_id: int,
     name: Optional[str] = None,
     title: Optional[str] = None,
+    email: Optional[str] = None,
     disable_ai_on_prospect_respond: Optional[bool] = None,
     disable_ai_on_message_send: Optional[bool] = None,
     ai_outreach: Optional[bool] = None,
@@ -233,6 +234,8 @@ def update_client_sdr_details(
         csdr.name = name
     if title:
         csdr.title = title
+    if email:
+        csdr.email = email
     if disable_ai_on_prospect_respond is not None:
         csdr.disable_ai_on_prospect_respond = disable_ai_on_prospect_respond
     if disable_ai_on_message_send is not None:

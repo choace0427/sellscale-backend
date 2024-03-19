@@ -173,6 +173,19 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         if exists:
             continue
 
+        # LOGGER (delete me eventually): If generate immediately, then we know it is a Smartlead campaign (for now), and we should log this Prospect into the ProspectInSmartlead model
+        if generate_immediately:
+            from src.prospecting.models import ProspectInSmartlead
+
+            log: ProspectInSmartlead = ProspectInSmartlead(
+                prospect_id=prospect.id,
+                log=[
+                    f"batch_mark_prospects_in_email_campaign_queued ({datetime.datetime.utcnow()}): Sending to the process queue."
+                ],
+            )
+            db.session.add(log)
+            db.session.commit()
+
         # Populate the email messaging schedule entries
         add_process_for_future(
             type="populate_email_messaging_schedule_entries",

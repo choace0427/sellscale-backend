@@ -1,7 +1,12 @@
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 
-from src.contacts.services import get_contacts, get_territories, predict_filters_needed
+from src.contacts.services import (
+    apollo_get_contacts,
+    apollo_get_organizations_from_company_names,
+    get_territories,
+    predict_filters_needed,
+)
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
 
@@ -104,7 +109,7 @@ def index(client_sdr_id: int):
         default_value=None,
     )
 
-    data = get_contacts(
+    data = apollo_get_contacts(
         client_sdr_id=client_sdr_id,
         num_contacts=num_contacts,
         person_titles=person_titles,
@@ -148,6 +153,26 @@ def index(client_sdr_id: int):
     data["predicted_segment_name"] = predicted_segment_name
 
     return jsonify(data)
+
+
+@CONTACTS_BLUEPRINT.route("/company_search", methods=["POST"])
+@require_user
+def get_company(client_sdr_id: int):
+    company_names = get_request_parameter(
+        "company_names", request, json=True, required=True
+    )
+
+    data = apollo_get_organizations_from_company_names(
+        client_sdr_id=client_sdr_id,
+        company_names=company_names,
+    )
+
+    return jsonify(
+        {
+            "status": "success",
+            "data": data,
+        }
+    )
 
 
 @CONTACTS_BLUEPRINT.route("/predict_contact_filters", methods=["POST"])

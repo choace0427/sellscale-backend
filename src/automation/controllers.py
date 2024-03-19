@@ -7,6 +7,7 @@ from src.automation.services import (
     create_phantom_buster_config,
     get_all_phantom_busters,
     create_new_auto_connect_phantom,
+    process_pb_webhook_payload,
     update_phantom_buster_li_at,
     create_pb_linkedin_invite_csv,
     update_pb_linkedin_send_status,
@@ -159,7 +160,7 @@ def post_phantombuster_autoconnect_webhook(client_sdr_id: int):
     """Webhook to be called by phantombuster after the auto connect script finishes"""
     pb_payload = request.get_json()
 
-    success = update_pb_linkedin_send_status(client_sdr_id, pb_payload)
+    success = process_pb_webhook_payload(client_sdr_id, pb_payload)
 
     # Since this is a webhook, we need to return a response that PB won't flag
     return "OK", 200
