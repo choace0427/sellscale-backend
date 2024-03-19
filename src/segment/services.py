@@ -617,3 +617,36 @@ def get_segment_predicted_prospects(
     )
 
     return order_data_by_num_prospects
+
+
+def get_unused_segments_for_sdr(client_sdr_id: int):
+    query = """
+        select 
+            segment.segment_title,
+            segment_id,
+            count(distinct prospect.id),
+            array_agg(distinct client_archetype.archetype)
+        from 
+            prospect
+            join segment on segment.id = prospect.segment_id
+            join client_archetype on client_archetype.id = prospect.archetype_id
+        where
+            prospect.client_sdr_id = {client_sdr_id}
+        group by 1, 2
+        having count(distinct prospect.id) filter (where client_archetype.is_unassigned_contact_archetype) = count(distinct prospect.id);
+    """
+
+    result = db.session.execute(query.format(client_sdr_id=client_sdr_id)).fetchall()
+
+    data = []
+    for row in result:
+        data.append(
+            {
+                "segment_title": row[0],
+                "segment_id": row[1],
+                "num_prospects": row[2],
+                "distinct_archetypes": row[3],
+            }
+        )
+
+    return data
