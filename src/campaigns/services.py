@@ -1901,3 +1901,81 @@ def create_campaign_ai_request(sdr_id: int, type: str):
     )
 
     return True
+
+
+def get_client_campaign_view_data(client_sdr_id: int):
+
+    data = db.session.execute(
+        """
+with d as (
+	select 
+		client.company "Company",
+		client_sdr.name "Rep",
+		concat(client_archetype.emoji, ' ', client_archetype.archetype) "Campaign",
+		client_archetype.active "active",
+		client_archetype.linkedin_active,
+		client_archetype.email_active,
+		case when client_archetype.template_mode = true then 'template-mode' else 'cta-mode' end "linkedin_mode",
+		count(distinct operator_dashboard_entry.id) filter (where operator_dashboard_entry.status = 'COMPLETED') "num_complete_tasks",
+		count(distinct operator_dashboard_entry.id) filter (where operator_dashboard_entry.status = 'PENDING') "num_open_tasks",
+		count(distinct prospect.id) "num_prospects",
+		count(distinct prospect.id) filter (where prospect.email is not null) "num_prospects_with_email",
+		count(distinct linkedin_initial_message_template.id) "num_templates_active",
+		count(distinct generated_message_cta.id) "num_templates_active",
+		count(distinct bump_framework.id) "num_templates_active",
+		count(distinct email_sequence_step.id) "num_templates_active",
+		count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "num_linkedin_sent",
+		count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "num_email_sent"
+	from client_sdr
+		join client on client.id = client_sdr.client_id
+		left join client_archetype
+			on client_archetype.client_sdr_id = client_sdr.id and client_archetype.active and not client_archetype.is_unassigned_contact_archetype
+		left join
+			operator_dashboard_entry on cast(operator_dashboard_entry.task_data->>'campaign_id' as integer) = client_archetype.id 
+		left join 
+			prospect on prospect.archetype_id = client_archetype.id
+		left join
+			linkedin_initial_message_template on linkedin_initial_message_template.client_archetype_id = client_archetype.id and linkedin_initial_message_template.active
+		left join
+			generated_message_cta on generated_message_cta.archetype_id = client_archetype.id and generated_message_cta.active 
+		left join
+			bump_framework on bump_framework.client_archetype_id = client_archetype.id and bump_framework.overall_status in ('ACCEPTED', 'BUMPED') and bump_framework.active and bump_framework.default
+		left join email_sequence_step on email_sequence_step.client_archetype_id = client_archetype.id and email_sequence_step.active and email_sequence_step.default
+		left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+		left join prospect_email on prospect_email.prospect_id = prospect.id 
+		left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+	where client_sdr.id = {sdr_id}
+	group by 1,2,3,4,5,6,7
+	order by 1 asc, 2 asc
+)
+select 
+	case 
+		when length(d."Campaign") = 1 then '5. 🔴 No Campaign Found'
+		when d.active and d."num_complete_tasks" = 0 and d."num_open_tasks" = 0 and (d.num_linkedin_sent = 0 and d.num_email_sent = 0) then '4. 🗄 In Setup'
+		when d.active and d."num_open_tasks" > 0 then '3. 🟡 Rep Action Needed'
+		when d.active and d."num_complete_tasks" > 0 and (d.num_linkedin_sent = 0 and d.num_email_sent = 0) then '2. ⏫ Uploading to SellScale'
+		when d.active and (d.num_linkedin_sent > 0 or d.num_email_sent > 0) then '1. 🟢 Campaign Active'
+		when not d.active and (d.num_linkedin_sent > 0 or d.num_email_sent > 0) then '9. ☑️ Campaign Complete'
+		else 'uncategorized'
+	end "Status",
+	d."Company",
+	d."Rep",
+	d."Campaign"
+from d
+order by 1 asc, 2 asc, 3 asc;
+""".format(
+            sdr_id=client_sdr_id
+        )
+    ).fetchall()
+
+    records = []
+    for entry in data:
+        status = entry[0]
+        company = entry[1]
+        rep = entry[2]
+        campaign = entry[3]
+        records.append(
+            {"status": status, "company": company, "rep": rep, "campaign": campaign}
+        )
+
+    return records
