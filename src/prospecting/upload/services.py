@@ -711,10 +711,13 @@ def get_most_recent_apollo_query(client_sdr_id: int):
 
 
 def upload_prospects_from_apollo_query(
-    client_sdr_id: int, apollo_filters: dict, page: int = 1
+    client_sdr_id: int,
+    apollo_filters: dict,
+    page: int = 1,
+    archetype_id: int = None,
+    segment_id: int = None,
 ):
     from src.contacts.services import apollo_get_contacts_for_page
-    from src.prospecting.services import create_prospect_from_linkedin_link
 
     response, data, saved_query_id = apollo_get_contacts_for_page(
         client_sdr_id=client_sdr_id,
@@ -753,29 +756,33 @@ def upload_prospects_from_apollo_query(
     # response.get("pagination").get("total_pages")
     people = response.get("people", [])
 
-    client_sdr_unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
-        ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.is_unassigned_contact_archetype == True,
-    ).first()
-    if not client_sdr_unassigned_archetype:
-        return None
+    if archetype_id is None:
+        client_sdr_unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+            ClientArchetype.client_sdr_id == client_sdr_id,
+            ClientArchetype.is_unassigned_contact_archetype == True,
+        ).first()
+        if not client_sdr_unassigned_archetype:
+            return None
+        archetype_id = client_sdr_unassigned_archetype.id
 
-    called_person = []
-    for person in people:
-        # create_prospect_from_linkedin_link.delay(
-        #     archetype_id=client_sdr_unassigned_archetype.id,
-        #     url=person.get("linkedin_url"),
-        #     set_note="Auto imported",
-        # )
-        create_prospect_from_linkedin_link.apply_async(
-            args=[client_sdr_unassigned_archetype.id, person.get("linkedin_url")],
-            queue="prospecting",
-            routing_key="prospecting",
-            priority=2,
-        )
-        called_person.append(person.get("linkedin_url"))
+    from src.prospecting.controllers import add_prospect_from_csv_payload
 
-    return called_person
+    add_prospect_from_csv_payload(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        csv_payload=[
+            {
+                "linkedin_url": p.get("linkedin_url"),
+                "first_name": p.get("first_name"),
+                "last_name": p.get("last_name"),
+            }
+            for p in people
+        ],
+        allow_duplicates=False,
+        segment_id=segment_id,
+    )
+
+    return [{"linkedin_url": p.get("linkedin_url")} for p in people]
 
 
 @celery.task
@@ -827,8 +834,11 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
         client_sdr_id=client_sdr_id, apollo_filters=apollo_filters, page=page
     )
 
+    from src.utils.datetime.dateutils import get_future_datetime
+    import datetime
+
     send_slack_message(
-        message=f"✅ Auto imported contacts for  `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{page*100} prospects imported.",
+        message=f"✅ Auto imported contacts for  `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
         webhook_urls=[URL_MAP["ops-territory-scraper"]],
     )
 

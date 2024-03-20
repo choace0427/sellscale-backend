@@ -147,9 +147,9 @@ class PhantomBusterPayload(db.Model):
 
 
 class PhantomBusterAgent:
-    FETCH_AGENT_URL = (
-        url
-    ) = "https://api.phantombuster.com/api/v2/agents/fetch?id={phantom_uuid}"
+    FETCH_AGENT_URL = url = (
+        "https://api.phantombuster.com/api/v2/agents/fetch?id={phantom_uuid}"
+    )
     FETCH_AGENT_OUTPUT = (
         "https://api.phantombuster.com/api/v2/agents/fetch-output?id={phantom_uuid}"
     )
@@ -430,4 +430,34 @@ class ProcessQueue(db.Model):
             "created_at": str(self.created_at),
             "status": self.status.value if self.status else None,
             "fail_reason": self.fail_reason,
+        }
+
+
+class ApolloScraperJob(db.Model):
+
+    __tablename__ = "apollo_scraper_job"
+
+    id = db.Column(db.Integer, primary_key=True)
+    archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
+    segment_id = db.Column(db.Integer, db.ForeignKey("segment.id"), nullable=True)
+
+    name = db.Column(db.String, nullable=False)
+    page_num = db.Column(db.Integer, nullable=False)
+    page_size = db.Column(db.Integer, nullable=False)
+
+    filters = db.Column(JSONB, nullable=True)
+    active = db.Column(db.Boolean, default=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "archetype_id": self.archetype_id,
+            "segment_id": self.segment_id,
+            "name": self.name,
+            "page_num": self.page_num,
+            "page_size": self.page_size,
+            "filters": self.filters,
+            "active": self.active,
         }
