@@ -27,7 +27,11 @@ from src.campaigns.autopilot.services import (
 from src.prospecting.upload.services import auto_upload_from_apollo, upload_from_apollo
 
 from src.utils.datetime.dateutils import get_future_datetime
-from src.automation.models import ProcessQueue, ProcessQueueStatus
+from src.automation.models import (
+    ProcessQueue,
+    ProcessQueueStatus,
+    ProcessQueueFailedJob,
+)
 from app import celery, db
 from datetime import datetime, timedelta
 
@@ -290,14 +294,21 @@ def on_process_failure(request: dict, exc: Exception, traceback: str, process_id
     if not process:
         return
 
-    process.status = ProcessQueueStatus.FAILED
-    process.fail_reason = str(exc)
+    # Add to failed job table
+    failed_job = ProcessQueueFailedJob(
+        type=process.type,
+        meta_data=process.meta_data,
+        execution_date=process.execution_date,
+        executed_at=process.executed_at,
+        status=ProcessQueueStatus.FAILED,
+        fail_reason=str(exc),
+    )
+    db.session.add(failed_job)
+    db.session.delete(process)
     db.session.commit()
 
     # So that we can see the error in Sentry
     raise Exception(f"Process failed: {process.type}. Reason: {str(exc)}")
-
-    return
 
 
 @celery.task

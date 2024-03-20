@@ -433,6 +433,33 @@ class ProcessQueue(db.Model):
         }
 
 
+class ProcessQueueFailedJob(db.Model):
+
+    __tablename__ = "process_queue_failed_job"
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String, nullable=False)
+    meta_data = db.Column(JSONB, nullable=True)
+    execution_date = db.Column(db.DateTime, nullable=False)
+    executed_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(
+        db.Enum(ProcessQueueStatus), default=ProcessQueueStatus.QUEUED, nullable=True
+    )
+    fail_reason = db.Column(db.String, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "type": self.type,
+            "meta_data": self.meta_data,
+            "execution_date": str(self.execution_date),
+            "executed_at": str(self.executed_at),
+            "created_at": str(self.created_at),
+            "status": self.status.value if self.status else None,
+            "fail_reason": self.fail_reason,
+        }
+
+
 class ApolloScraperJob(db.Model):
 
     __tablename__ = "apollo_scraper_job"

@@ -908,13 +908,20 @@ def update_apollo_scraper_job(
 @celery.task
 def run_apollo_scraper_job(job_id: int):
 
-    from src.automation.models import ApolloScraperJob
+    from src.automation.models import ApolloScraperJob, ProcessQueue, ProcessQueueStatus
+    from sqlalchemy import Integer
 
-    job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)
+    results: list[ProcessQueue] = (
+        ProcessQueue.query.filter(ProcessQueue.type == "upload_from_apollo")
+        .filter(ProcessQueue.meta_data["args"]["job_id"].astext.cast(Integer) == job_id)
+        .filter(ProcessQueue.status != ProcessQueueStatus.FAILED)
+        .all()
+    )
 
-    if job.active:
+    if len(results) > 0:
         return
 
+    job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)
     job.active = True
     db.session.add(job)
     db.session.commit()
@@ -923,7 +930,7 @@ def run_apollo_scraper_job(job_id: int):
 
 
 @celery.task
-def upload_from_apollo(job_id: int, max_pages: int = 5):
+def upload_from_apollo(job_id: int, max_pages: int = 200):
 
     from src.automation.models import ApolloScraperJob
 
