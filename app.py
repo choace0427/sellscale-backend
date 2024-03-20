@@ -288,6 +288,7 @@ def register_blueprints(app):
 
     from src.slack.events.controllers import SLACK_EVENTS_BLUEPRINT
     from src.link_urls.controllers import LINK_URL_BLUEPRINT
+    from src.outbound_quota.controllers import OUTBOUND_QUOTA_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -363,6 +364,7 @@ def register_blueprints(app):
     app.register_blueprint(MERGE_CRM_BLUEPRINT, url_prefix="/merge_crm")
     app.register_blueprint(SLACK_EVENTS_BLUEPRINT, url_prefix="/slack/events")
     app.register_blueprint(LINK_URL_BLUEPRINT, url_prefix="/link_url")
+    app.register_blueprint(OUTBOUND_QUOTA_BLUEPRINT, url_prefix="/outbound_quota")
 
     from src.hackathon.david.submission import HACKATHON_BLUEPRINT
 
