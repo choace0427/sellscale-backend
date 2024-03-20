@@ -472,7 +472,7 @@ scheduler.add_job(func=icp_scoring_job, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
-scheduler.add_job(auto_upload_from_apollo_job, trigger="interval", hours=24)
+scheduler.add_job(auto_upload_from_apollo_job, trigger="interval", minutes=30)
 
 scheduler.add_job(func=auto_send_bumps, trigger="interval", minutes=15)
 

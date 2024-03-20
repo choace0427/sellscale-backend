@@ -787,15 +787,37 @@ def upload_prospects_from_apollo_query(
 
 @celery.task
 def auto_run_apollo_upload_for_sdrs():
-    pass
-    # sdrs: list[ClientSDR] = ClientSDR.query.all()
-    # for sdr in sdrs:
-    #     auto_upload_from_apollo.apply_async(
-    #         args=[sdr.id, 1, 5],
-    #         queue="prospecting",
-    #         routing_key="prospecting",
-    #         priority=2,
-    #     )
+
+    # Auto scrape jobs
+    sdrs: list[ClientSDR] = ClientSDR.query.all()
+    for sdr in sdrs:
+
+        if sdr.meta_data:
+            if sdr.meta_data.get("apollo_auto_scrape") is True:
+                pass
+            else:
+                continue
+        else:
+            continue
+
+        # Turn off auto scrape
+        if not sdr.meta_data:
+            sdr.meta_data = {}
+        sdr.meta_data["apollo_auto_scrape"] = False
+        flag_modified(sdr, "meta_data")
+        db.session.add(sdr)
+        db.session.commit()
+
+        upsert_and_run_apollo_upload_for_sdr(
+            client_sdr_id=sdr.id, name="Auto Scrape", archetype_id=None, segment_id=None
+        )
+
+    # Run active jobs
+    from src.automation.models import ApolloScraperJob
+
+    jobs: list[ApolloScraperJob] = ApolloScraperJob.query.filter_by(active=True).all()
+    for job in jobs:
+        run_apollo_scraper_job(job_id=job.id)
 
 
 @celery.task
@@ -986,66 +1008,66 @@ def upload_from_apollo(job_id: int, max_pages: int = 200):
     return person_urls
 
 
-@celery.task
-def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 5):
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+# @celery.task
+# def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 5):
+#     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    if sdr.meta_data is None:
-        return None
+#     if sdr.meta_data is None:
+#         return None
 
-    if sdr.meta_data:
-        if sdr.meta_data.get("apollo_auto_scrape") is True or page != 1:
-            pass
-        else:
-            return None
-    else:
-        return None
+#     if sdr.meta_data:
+#         if sdr.meta_data.get("apollo_auto_scrape") is True or page != 1:
+#             pass
+#         else:
+#             return None
+#     else:
+#         return None
 
-    # Turn off auto scrape
-    if not sdr.meta_data:
-        sdr.meta_data = {}
-    sdr.meta_data["apollo_auto_scrape"] = False
-    flag_modified(sdr, "meta_data")
-    db.session.add(sdr)
-    db.session.commit()
+#     # Turn off auto scrape
+#     if not sdr.meta_data:
+#         sdr.meta_data = {}
+#     sdr.meta_data["apollo_auto_scrape"] = False
+#     flag_modified(sdr, "meta_data")
+#     db.session.add(sdr)
+#     db.session.commit()
 
-    if page > max_pages:
-        return None
+#     if page > max_pages:
+#         return None
 
-    from src.utils.slack import send_slack_message, URL_MAP
-    from src.automation.orchestrator import add_process_for_future
+#     from src.utils.slack import send_slack_message, URL_MAP
+#     from src.automation.orchestrator import add_process_for_future
 
-    apollo_filters = get_most_recent_apollo_query(client_sdr_id)
-    if not apollo_filters:
-        return None
+#     apollo_filters = get_most_recent_apollo_query(client_sdr_id)
+#     if not apollo_filters:
+#         return None
 
-    person_urls = upload_prospects_from_apollo_query(
-        client_sdr_id=client_sdr_id, apollo_filters=apollo_filters, page=page
-    )
+#     person_urls = upload_prospects_from_apollo_query(
+#         client_sdr_id=client_sdr_id, apollo_filters=apollo_filters, page=page
+#     )
 
-    from src.utils.datetime.dateutils import get_future_datetime
-    import datetime
+#     from src.utils.datetime.dateutils import get_future_datetime
+#     import datetime
 
-    # String of the first 2 and last 2 person urls
-    person_urls_str = (
-        "\n".join([p.get("linkedin_url") for p in person_urls[:2]])
-        + "\n...\n"
-        + "\n".join([p.get("linkedin_url") for p in person_urls[-2:]])
-    )
+#     # String of the first 2 and last 2 person urls
+#     person_urls_str = (
+#         "\n".join([p.get("linkedin_url") for p in person_urls[:2]])
+#         + "\n...\n"
+#         + "\n".join([p.get("linkedin_url") for p in person_urls[-2:]])
+#     )
 
-    send_slack_message(
-        message=f"✅ Auto imported contacts for `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n Example Profiles: \n {person_urls_str} \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
-        webhook_urls=[URL_MAP["ops-territory-scraper"]],
-    )
+#     send_slack_message(
+#         message=f"✅ Auto imported contacts for `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n Example Profiles: \n {person_urls_str} \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
+#         webhook_urls=[URL_MAP["ops-territory-scraper"]],
+#     )
 
-    add_process_for_future(
-        type="auto_upload_from_apollo",
-        args={
-            "client_sdr_id": client_sdr_id,
-            "page": page + 1,
-            "max_pages": max_pages,
-        },
-        minutes=60,
-    )
+#     add_process_for_future(
+#         type="auto_upload_from_apollo",
+#         args={
+#             "client_sdr_id": client_sdr_id,
+#             "page": page + 1,
+#             "max_pages": max_pages,
+#         },
+#         minutes=60,
+#     )
 
-    return person_urls
+#     return person_urls
