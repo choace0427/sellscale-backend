@@ -24,7 +24,7 @@ from src.campaigns.autopilot.services import (
 from src.campaigns.autopilot.services import (
     daily_generate_linkedin_campaign_for_sdr,
 )
-from src.prospecting.upload.services import auto_upload_from_apollo, upload_from_apollo
+from src.prospecting.upload.services import upload_from_apollo
 
 from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import (
@@ -145,12 +145,6 @@ PROCESS_TYPE_MAP = {
         "priority": 10,
         "queue": None,
         "routing_key": None,
-    },
-    "auto_upload_from_apollo": {
-        "function": auto_upload_from_apollo,
-        "priority": 2,
-        "queue": "prospecting",
-        "routing_key": "prospecting",
     },
     "upload_from_apollo": {
         "function": upload_from_apollo,
