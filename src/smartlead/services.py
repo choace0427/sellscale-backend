@@ -1361,7 +1361,7 @@ def sync_workmail_to_smartlead(
             "signature": "",
             "warmup_enabled": True,
             "total_warmup_per_day": 30,
-            "daily_rampup": 2,
+            "daily_rampup": 5,
             "reply_rate_percentage": 20,
             "client_id": None,  # set value to assign to client id
         }
