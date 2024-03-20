@@ -76,9 +76,12 @@ from src.prospecting.prospect_status_services import (
 )
 from src.prospecting.upload.services import (
     create_raw_csv_entry_from_json_payload,
+    upsert_and_run_apollo_upload_for_sdr,
+    get_apollo_scraper_jobs,
     populate_prospect_uploads_from_json_payload,
     collect_and_run_celery_jobs_for_upload,
     run_and_assign_health_score,
+    update_apollo_scraper_job,
 )
 from src.slack.models import SlackNotificationType
 from src.slack.notifications.email_multichanneled import EmailMultichanneledNotification
@@ -1888,3 +1891,61 @@ def get_company_details(client_sdr_id: int):
     results = fetch_company_details(client_sdr_id, prospect_id)
 
     return results
+
+
+@PROSPECTING_BLUEPRINT.route("/apollo_scrape", methods=["POST"])
+@require_user
+def post_apollo_scrape(client_sdr_id: int):
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=False, parameter_type=int
+    )
+    segment_id = get_request_parameter(
+        "segment_id", request, json=True, required=False, parameter_type=int
+    )
+
+    upsert_and_run_apollo_upload_for_sdr(
+        client_sdr_id=client_sdr_id,
+        name=name,
+        archetype_id=archetype_id,
+        segment_id=segment_id,
+    )
+
+    return jsonify({"message": "Success"}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/apollo_scrape", methods=["GET"])
+@require_user
+def get_apollo_scrapes(client_sdr_id: int):
+
+    results = get_apollo_scraper_jobs(client_sdr_id)
+
+    return jsonify({"message": "Success", "data": results}), 200
+
+
+@PROSPECTING_BLUEPRINT.route("/apollo_scrape", methods=["PATCH"])
+@require_user
+def patch_apollo_scrape(client_sdr_id: int):
+    job_id = get_request_parameter(
+        "job_id", request, json=True, required=True, parameter_type=int
+    )
+    name = get_request_parameter(
+        "name", request, json=True, required=False, parameter_type=str
+    )
+    active = get_request_parameter(
+        "active", request, json=True, required=False, parameter_type=bool
+    )
+    update_filters = get_request_parameter(
+        "update_filters", request, json=True, required=False, parameter_type=bool
+    )
+
+    result = update_apollo_scraper_job(
+        job_id=job_id,
+        name=name,
+        active=active,
+        update_filters=update_filters,
+    )
+
+    return jsonify({"message": "Success", "data": result}), 200

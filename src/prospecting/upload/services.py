@@ -787,14 +787,192 @@ def upload_prospects_from_apollo_query(
 
 @celery.task
 def auto_run_apollo_upload_for_sdrs():
-    sdrs: list[ClientSDR] = ClientSDR.query.all()
-    for sdr in sdrs:
-        auto_upload_from_apollo.apply_async(
-            args=[sdr.id, 1, 5],
-            queue="prospecting",
-            routing_key="prospecting",
-            priority=2,
+    pass
+    # sdrs: list[ClientSDR] = ClientSDR.query.all()
+    # for sdr in sdrs:
+    #     auto_upload_from_apollo.apply_async(
+    #         args=[sdr.id, 1, 5],
+    #         queue="prospecting",
+    #         routing_key="prospecting",
+    #         priority=2,
+    #     )
+
+
+@celery.task
+def upsert_and_run_apollo_upload_for_sdr(
+    client_sdr_id: int, name: str, archetype_id: int = None, segment_id: int = None
+):
+
+    from src.automation.models import ApolloScraperJob
+
+    job: ApolloScraperJob = ApolloScraperJob.query.filter_by(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        segment_id=segment_id,
+    ).first()
+
+    if not job:
+        job_id = create_apollo_scraper_job(
+            client_sdr_id=client_sdr_id,
+            name=name,
+            filters=get_most_recent_apollo_query(client_sdr_id),
+            archetype_id=archetype_id,
+            segment_id=segment_id,
+            page_num=1,
+            page_size=100,
+            active=False,
         )
+    else:
+        job_id = job.id
+
+    # Run the job
+    run_apollo_scraper_job(job_id)
+
+
+def get_apollo_scraper_jobs(client_sdr_id: int):
+    from src.automation.models import ApolloScraperJob
+
+    jobs: list[ApolloScraperJob] = ApolloScraperJob.query.filter_by(
+        client_sdr_id=client_sdr_id
+    ).all()
+
+    return [job.to_dict() for job in jobs]
+
+
+def create_apollo_scraper_job(
+    client_sdr_id: int,
+    name: str,
+    filters: dict,
+    archetype_id: Optional[int] = None,
+    segment_id: Optional[int] = None,
+    page_num: int = 1,
+    page_size: int = 100,
+    active: bool = False,
+):
+    from src.automation.models import ApolloScraperJob
+
+    job: ApolloScraperJob = ApolloScraperJob.query.filter_by(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        segment_id=segment_id,
+    ).first()
+
+    if job:
+        job.name = name
+        job.active = active
+        job.page_num = page_num
+        job.page_size = page_size
+        job.filters = filters
+    else:
+        job = ApolloScraperJob(
+            client_sdr_id=client_sdr_id,
+            name=name,
+            archetype_id=archetype_id,
+            segment_id=segment_id,
+            page_num=page_num,
+            page_size=page_size,
+            active=active,
+            filters=filters,
+        )
+
+    db.session.add(job)
+    db.session.commit()
+
+    return job.id
+
+
+def update_apollo_scraper_job(
+    job_id: int, name: str = None, active: bool = None, update_filters: bool = None
+):
+
+    from src.automation.models import ApolloScraperJob
+
+    job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)
+
+    if not job:
+        return None
+
+    if name:
+        job.name = name
+    if active is not None:
+        job.active = active
+    if update_filters:
+        job.filters = get_most_recent_apollo_query(job.client_sdr_id)
+
+    db.session.add(job)
+    db.session.commit()
+
+    return job.to_dict()
+
+
+@celery.task
+def run_apollo_scraper_job(job_id: int):
+
+    from src.automation.models import ApolloScraperJob
+
+    job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)
+
+    if job.active:
+        return
+
+    job.active = True
+    db.session.add(job)
+    db.session.commit()
+
+    upload_from_apollo(job_id=job_id)
+
+
+@celery.task
+def upload_from_apollo(job_id: int, max_pages: int = 5):
+
+    from src.automation.models import ApolloScraperJob
+
+    job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)
+
+    if not job.active or job.page_num > max_pages:
+        job.active = False
+        db.session.add(job)
+        db.session.commit()
+        return None
+
+    person_urls = upload_prospects_from_apollo_query(
+        client_sdr_id=job.client_sdr_id, apollo_filters=job.filters, page=job.page_num
+    )
+
+    from src.utils.datetime.dateutils import get_future_datetime
+    import datetime
+
+    # String of the first 2 and last 2 person urls
+    person_urls_str = (
+        "\n".join([p.get("linkedin_url") for p in person_urls[:2]])
+        + "\n...\n"
+        + "\n".join([p.get("linkedin_url") for p in person_urls[-2:]])
+    )
+
+    from src.utils.slack import send_slack_message, URL_MAP
+    from src.automation.orchestrator import add_process_for_future
+
+    sdr: ClientSDR = ClientSDR.query.get(job.client_sdr_id)
+
+    send_slack_message(
+        message=f"✅ <{job.name}> Imported contacts for `{sdr.name}`'s territory\nPage #{job.page_num} - {max_pages}\n{len(person_urls)} prospects imported. \n Example Profiles: \n {person_urls_str} \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
+        webhook_urls=[URL_MAP["ops-territory-scraper"]],
+    )
+
+    job.page_num += 1
+    db.session.add(job)
+    db.session.commit()
+
+    add_process_for_future(
+        type="upload_from_apollo",
+        args={
+            "job_id": job_id,
+            "max_pages": max_pages,
+        },
+        days=1,
+    )
+
+    return person_urls
 
 
 @celery.task
@@ -845,7 +1023,7 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
     )
 
     send_slack_message(
-        message=f"✅ Auto imported contacts for  `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n Example Profiles: \n {person_urls_str} \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
+        message=f"✅ Auto imported contacts for `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n Example Profiles: \n {person_urls_str} \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
         webhook_urls=[URL_MAP["ops-territory-scraper"]],
     )
 

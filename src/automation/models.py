@@ -438,6 +438,9 @@ class ApolloScraperJob(db.Model):
     __tablename__ = "apollo_scraper_job"
 
     id = db.Column(db.Integer, primary_key=True)
+    client_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
     archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
