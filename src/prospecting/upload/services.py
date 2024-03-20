@@ -837,8 +837,15 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
     from src.utils.datetime.dateutils import get_future_datetime
     import datetime
 
+    # String of the first 2 and last 2 person urls
+    person_urls_str = (
+        "\n".join([url for url in person_urls[:2]])
+        + "\n...\n"
+        + "\n".join([url for url in person_urls[-2:]])
+    )
+
     send_slack_message(
-        message=f"✅ Auto imported contacts for  `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
+        message=f"✅ Auto imported contacts for  `{sdr.name}`'s territory\nPage #{page} - {max_pages}\n{len(person_urls)} prospects imported. \n Example Profiles: \n {person_urls_str} \n {get_future_datetime(0, 0, 60, datetime.datetime.utcnow()).isoformat()} \n {datetime.datetime.utcnow().isoformat()} \n {get_future_datetime(0, 0, 60, datetime.datetime.now(datetime.timezone.utc)).isoformat()}",
         webhook_urls=[URL_MAP["ops-territory-scraper"]],
     )
 

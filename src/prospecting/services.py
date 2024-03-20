@@ -3647,6 +3647,9 @@ def extract_colloquialized_company_name(self, prospect_id: int):
             db.session.commit()
 
 
+# Process failed: generate_prospect_upload_report. Reason: Process failed: generate_prospect_upload_report. Reason: 'NoneType' object has no attribute 'id'
+
+
 @celery.task
 def generate_prospect_upload_report(archetype_state: dict):
     archetype_id = archetype_state.get("archetype_id")
@@ -3707,8 +3710,11 @@ def generate_prospect_upload_report(archetype_state: dict):
     estimated_savings = round(num_prospects * random.uniform(0.83, 1.17), 2)
 
     sample_prospect = results[0] if results else None
-    prospect: Prospect = Prospect.query.get(sample_prospect.id)
-    segment_id = prospect.segment_id
+    segment_id = None
+    if sample_prospect:
+        prospect: Prospect = Prospect.query.get(sample_prospect.id)
+        if prospect.segment_id:
+            segment_id = prospect.segment_id
 
     persona_or_segment_string = ""
     if not segment_id or not archetype.is_unassigned_contact_archetype:
@@ -3722,7 +3728,7 @@ def generate_prospect_upload_report(archetype_state: dict):
             segment_title=segment_title
         )
 
-    success = create_and_send_slack_notification_class_message(
+    return create_and_send_slack_notification_class_message(
         notification_type=SlackNotificationType.PROSPECT_ADDED,
         arguments={
             "client_sdr_id": client_sdr_id,
@@ -3820,8 +3826,6 @@ def generate_prospect_upload_report(archetype_state: dict):
     #     )
     # except Exception as e:
     #     print("Failed to send slack notification: {}".format(e))
-
-    return True
 
 
 def global_prospected_contacts(client_id: int):
