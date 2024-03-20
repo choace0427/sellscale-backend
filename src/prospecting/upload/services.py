@@ -936,7 +936,11 @@ def upload_from_apollo(job_id: int, max_pages: int = 5):
         return None
 
     person_urls = upload_prospects_from_apollo_query(
-        client_sdr_id=job.client_sdr_id, apollo_filters=job.filters, page=job.page_num
+        client_sdr_id=job.client_sdr_id,
+        apollo_filters=job.filters,
+        page=job.page_num,
+        archetype_id=job.archetype_id,
+        segment_id=job.segment_id,
     )
 
     from src.utils.datetime.dateutils import get_future_datetime
