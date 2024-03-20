@@ -839,9 +839,9 @@ def auto_upload_from_apollo(client_sdr_id: int, page: int = 1, max_pages: int = 
 
     # String of the first 2 and last 2 person urls
     person_urls_str = (
-        "\n".join([url for url in person_urls[:2]])
+        "\n".join([p.get("linkedin_url") for p in person_urls[:2]])
         + "\n...\n"
-        + "\n".join([url for url in person_urls[-2:]])
+        + "\n".join([p.get("linkedin_url") for p in person_urls[-2:]])
     )
 
     send_slack_message(
