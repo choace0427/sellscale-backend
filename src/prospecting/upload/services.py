@@ -948,7 +948,7 @@ def run_apollo_scraper_job(job_id: int):
     db.session.add(job)
     db.session.commit()
 
-    upload_from_apollo(job_id=job_id)
+    upload_from_apollo(job_id=job_id, max_pages=job.max_pages)
 
 
 @celery.task
