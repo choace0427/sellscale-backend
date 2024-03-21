@@ -482,10 +482,21 @@ class ApolloScraperJob(db.Model):
     active = db.Column(db.Boolean, default=True)
 
     def to_dict(self) -> dict:
+
+        from src.segment.models import Segment
+
+        segment: Segment = Segment.query.get(self.segment_id)
+
+        from src.client.models import ClientArchetype
+
+        archetype: ClientArchetype = ClientArchetype.query.get(self.archetype_id)
+
         return {
             "id": self.id,
             "archetype_id": self.archetype_id,
+            "archetype_name": archetype.archetype if archetype else None,
             "segment_id": self.segment_id,
+            "segment_name": segment.segment_title if segment else None,
             "name": self.name,
             "page_num": self.page_num,
             "page_size": self.page_size,
