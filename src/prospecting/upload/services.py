@@ -753,7 +753,7 @@ def upload_prospects_from_apollo_query(
         is_prefilter=True,
     )
 
-    # response.get("pagination").get("total_pages")
+    total_pages = response.get("pagination").get("total_pages")
     people = response.get("people", [])
 
     if archetype_id is None:
@@ -782,7 +782,7 @@ def upload_prospects_from_apollo_query(
         segment_id=segment_id,
     )
 
-    return [{"linkedin_url": p.get("linkedin_url")} for p in people]
+    return [{"linkedin_url": p.get("linkedin_url")} for p in people], total_pages
 
 
 @celery.task
@@ -952,7 +952,7 @@ def run_apollo_scraper_job(job_id: int):
 
 
 @celery.task
-def upload_from_apollo(job_id: int, max_pages: int = 200):
+def upload_from_apollo(job_id: int, max_pages: int = 1):
 
     from src.automation.models import ApolloScraperJob
 
@@ -964,7 +964,7 @@ def upload_from_apollo(job_id: int, max_pages: int = 200):
         db.session.commit()
         return None
 
-    person_urls = upload_prospects_from_apollo_query(
+    person_urls, total_pages = upload_prospects_from_apollo_query(
         client_sdr_id=job.client_sdr_id,
         apollo_filters=job.filters,
         page=job.page_num,
@@ -993,6 +993,7 @@ def upload_from_apollo(job_id: int, max_pages: int = 200):
     )
 
     job.page_num += 1
+    job.max_pages = total_pages
     db.session.add(job)
     db.session.commit()
 
@@ -1000,7 +1001,7 @@ def upload_from_apollo(job_id: int, max_pages: int = 200):
         type="upload_from_apollo",
         args={
             "job_id": job_id,
-            "max_pages": max_pages,
+            "max_pages": total_pages,
         },
         days=1,
     )

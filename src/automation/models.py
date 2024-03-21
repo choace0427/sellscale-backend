@@ -476,6 +476,7 @@ class ApolloScraperJob(db.Model):
     name = db.Column(db.String, nullable=False)
     page_num = db.Column(db.Integer, nullable=False)
     page_size = db.Column(db.Integer, nullable=False)
+    max_pages = db.Column(db.Integer, nullable=True)
 
     filters = db.Column(JSONB, nullable=True)
     active = db.Column(db.Boolean, default=True)
@@ -488,6 +489,7 @@ class ApolloScraperJob(db.Model):
             "name": self.name,
             "page_num": self.page_num,
             "page_size": self.page_size,
+            "max_pages": self.max_pages,
             "filters": self.filters,
             "active": self.active,
         }
