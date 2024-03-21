@@ -948,11 +948,11 @@ def run_apollo_scraper_job(job_id: int):
     db.session.add(job)
     db.session.commit()
 
-    upload_from_apollo(job_id=job_id, max_pages=job.max_pages)
+    upload_from_apollo(job_id=job_id, max_pages=job.max_pages if job.max_pages else 1)
 
 
 @celery.task
-def upload_from_apollo(job_id: int, max_pages: int = 1):
+def upload_from_apollo(job_id: int, max_pages: int):
 
     from src.automation.models import ApolloScraperJob
 
