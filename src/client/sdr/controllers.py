@@ -162,10 +162,10 @@ def patch_sla_schedule_bulk(client_sdr_id: int):
         "schedule_volume_map", request, json=True, required=True, parameter_type=list
     )
     new_max_li_target: int = get_request_parameter(
-        "new_max_li_target", request, json=True, required=True, parameter_type=int
+        "new_max_li_target", request, json=True, required=False, parameter_type=int
     )
     new_max_email_target: int = get_request_parameter(
-        "new_max_email_sla", request, json=True, required=True, parameter_type=int
+        "new_max_email_sla", request, json=True, required=False, parameter_type=int
     )
 
     for schedule_data in schedule_volume_map:
@@ -174,18 +174,20 @@ def patch_sla_schedule_bulk(client_sdr_id: int):
         email_volume = schedule_data.get("email_volume")
         email_special_notes = schedule_data.get("email_special_notes")
         schedule_id = schedule_data.get("schedule_id")
+        updated = schedule_data.get("updated")
 
-        success, message = update_sla_schedule(
-            client_sdr_id=client_sdr_id,
-            sla_schedule_id=schedule_id,
-            linkedin_volume=linkedin_volume,
-            linkedin_special_notes=linkedin_special_notes,
-            email_volume=email_volume,
-            email_special_notes=email_special_notes,
-        )
+        if updated:
+            success, message = update_sla_schedule(
+                client_sdr_id=client_sdr_id,
+                sla_schedule_id=schedule_id,
+                linkedin_volume=linkedin_volume,
+                linkedin_special_notes=linkedin_special_notes,
+                email_volume=email_volume,
+                email_special_notes=email_special_notes,
+            )
 
-        if not success:
-            return jsonify({"status": "error", "message": message}), 400
+            if not success:
+                return jsonify({"status": "error", "message": message}), 400
 
     if new_max_li_target or new_max_email_target:
         success, message = update_sdr_sla_targets(

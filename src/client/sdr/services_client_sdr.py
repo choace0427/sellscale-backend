@@ -246,7 +246,9 @@ def get_sdr_blacklist_words(client_sdr_id: int) -> list[str]:
 
 
 def update_sdr_sla_targets(
-    client_sdr_id: int, weekly_linkedin_target: int, weekly_email_target: int
+    client_sdr_id: int,
+    weekly_linkedin_target: Optional[int] = None,
+    weekly_email_target: Optional[int] = None,
 ) -> tuple[bool, str]:
     """Updates the SLA targets for a Client SDR
 
@@ -258,10 +260,18 @@ def update_sdr_sla_targets(
     Returns:
         tuple[bool, str]: A boolean indicating whether the update was successful and a message
     """
+    if not weekly_linkedin_target and not weekly_email_target:
+        return False, "No targets specified."
+
     # Get the Client SDR
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return False, "Client SDR not found."
+
+    if not weekly_linkedin_target:
+        weekly_linkedin_target = sdr.weekly_li_outbound_target
+    if not weekly_email_target:
+        weekly_email_target = sdr.weekly_email_outbound_target
 
     old_weekly_linkedin_target = sdr.weekly_li_outbound_target
     old_weekly_email_target = sdr.weekly_email_outbound_target
@@ -755,12 +765,10 @@ def update_sla_schedule(
     # Update the SLA schedule
     if linkedin_volume:
         sla_schedule.linkedin_volume = linkedin_volume
-    if linkedin_special_notes:
-        sla_schedule.linkedin_special_notes = linkedin_special_notes
     if email_volume:
         sla_schedule.email_volume = email_volume
-    if email_special_notes:
-        sla_schedule.email_special_notes = email_special_notes
+    sla_schedule.linkedin_special_notes = linkedin_special_notes
+    sla_schedule.email_special_notes = email_special_notes
 
     db.session.commit()
 
