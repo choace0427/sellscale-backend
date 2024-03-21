@@ -158,8 +158,8 @@ def patch_sla_schedule(client_sdr_id: int):
 @CLIENT_SDR_BLUEPRINT.route("/sla/schedule/bulk", methods=["PATCH"])
 @require_user
 def patch_sla_schedule_bulk(client_sdr_id: int):
-    schedule_volume_map: dict = get_request_parameter(
-        "schedule_volume_map", request, json=True, required=True, parameter_type=dict
+    schedule_volume_map: list = get_request_parameter(
+        "schedule_volume_map", request, json=True, required=True, parameter_type=list
     )
     new_max_li_target: int = get_request_parameter(
         "new_max_li_target", request, json=True, required=True, parameter_type=int
