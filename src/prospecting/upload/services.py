@@ -977,9 +977,9 @@ def upload_from_apollo(job_id: int, max_pages: int):
 
     # String of the first 2 and last 2 person urls
     person_urls_str = (
-        "\n".join([p.get("linkedin_url") for p in person_urls[:2]])
+        "\n".join([p.get("linkedin_url") for p in person_urls[:2] if p])
         + "\n...\n"
-        + "\n".join([p.get("linkedin_url") for p in person_urls[-2:]])
+        + "\n".join([p.get("linkedin_url") for p in person_urls[-2:] if p])
     )
 
     from src.utils.slack import send_slack_message, URL_MAP
