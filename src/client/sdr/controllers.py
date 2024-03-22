@@ -158,27 +158,48 @@ def patch_sla_schedule(client_sdr_id: int):
 @CLIENT_SDR_BLUEPRINT.route("/sla/schedule/bulk", methods=["PATCH"])
 @require_user
 def patch_sla_schedule_bulk(client_sdr_id: int):
-    schedule_map = get_request_parameter(
-        "schedule_map", request, json=True, required=True, parameter_type=dict
+    schedule_volume_map: list = get_request_parameter(
+        "schedule_volume_map", request, json=True, required=True, parameter_type=list
+    )
+    new_max_li_target: int = get_request_parameter(
+        "new_max_li_target", request, json=True, required=False, parameter_type=int
+    )
+    new_max_email_target: int = get_request_parameter(
+        "new_max_email_sla", request, json=True, required=False, parameter_type=int
     )
 
-    for schedule_id, schedule in schedule_map.items():
-        linkedin_volume = schedule.get("linkedin_volume")
-        linkedin_special_notes = schedule.get("linkedin_special_notes")
-        email_volume = schedule.get("email_volume")
-        email_special_notes = schedule.get("email_special_notes")
+    for schedule_data in schedule_volume_map:
+        linkedin_volume = schedule_data.get("linkedin_volume")
+        linkedin_special_notes = schedule_data.get("linkedin_special_notes")
+        email_volume = schedule_data.get("email_volume")
+        email_special_notes = schedule_data.get("email_special_notes")
+        schedule_id = schedule_data.get("schedule_id")
+        updated = schedule_data.get("updated")
 
-        success, message = update_sla_schedule(
+        if updated:
+            success, message = update_sla_schedule(
+                client_sdr_id=client_sdr_id,
+                sla_schedule_id=schedule_id,
+                linkedin_volume=linkedin_volume,
+                linkedin_special_notes=linkedin_special_notes,
+                email_volume=email_volume,
+                email_special_notes=email_special_notes,
+            )
+
+            if not success:
+                return jsonify({"status": "error", "message": message}), 400
+
+    if new_max_li_target or new_max_email_target:
+        success, message = update_sdr_sla_targets(
             client_sdr_id=client_sdr_id,
-            sla_schedule_id=schedule_id,
-            linkedin_volume=linkedin_volume,
-            linkedin_special_notes=linkedin_special_notes,
-            email_volume=email_volume,
-            email_special_notes=email_special_notes,
+            weekly_linkedin_target=new_max_li_target,
+            weekly_email_target=new_max_email_target,
         )
 
         if not success:
             return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "success", "data": {}}), 200
 
 
 @CLIENT_SDR_BLUEPRINT.route("/sla/schedule", methods=["POST"])

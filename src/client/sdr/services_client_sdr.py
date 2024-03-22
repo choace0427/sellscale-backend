@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, TypedDict, Literal
 from app import db, celery
 from sqlalchemy import or_
 from src.campaigns.models import OutboundCampaign
@@ -246,7 +246,9 @@ def get_sdr_blacklist_words(client_sdr_id: int) -> list[str]:
 
 
 def update_sdr_sla_targets(
-    client_sdr_id: int, weekly_linkedin_target: int, weekly_email_target: int
+    client_sdr_id: int,
+    weekly_linkedin_target: Optional[int] = None,
+    weekly_email_target: Optional[int] = None,
 ) -> tuple[bool, str]:
     """Updates the SLA targets for a Client SDR
 
@@ -258,10 +260,18 @@ def update_sdr_sla_targets(
     Returns:
         tuple[bool, str]: A boolean indicating whether the update was successful and a message
     """
+    if not weekly_linkedin_target and not weekly_email_target:
+        return False, "No targets specified."
+
     # Get the Client SDR
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
         return False, "Client SDR not found."
+
+    if not weekly_linkedin_target:
+        weekly_linkedin_target = sdr.weekly_li_outbound_target
+    if not weekly_email_target:
+        weekly_email_target = sdr.weekly_email_outbound_target
 
     old_weekly_linkedin_target = sdr.weekly_li_outbound_target
     old_weekly_email_target = sdr.weekly_email_outbound_target
@@ -588,8 +598,6 @@ def adjust_sla_schedules(client_sdr_id: int) -> bool:
     # Get the all time send count
     stats = get_sdr_send_statistics(client_sdr_id=client_sdr_id)
     all_time_send_count = stats.get("all_time_send_count", 0)
-    if all_time_send_count != 0:
-        return False  # No need to adjust the SLA schedules
 
     # Get all future SLA schedules
     monday, _ = get_current_monday_friday(datetime.utcnow())
@@ -607,9 +615,30 @@ def adjust_sla_schedules(client_sdr_id: int) -> bool:
         .first()
     )
 
+    # If the all time send count is 0, then we adjust the SLA schedules
+    if all_time_send_count != 0:
+        # If it is not, let us make sure the "readjust" any ai_adjusted schedules
+        for schedule in sla_schedules:
+            if schedule.linkedin_ai_adjusted:
+                schedule.linkedin_ai_adjusted = False
+                schedule.linkedin_volume = last_week_sla_schedule.linkedin_volume
+            if schedule.email_ai_adjusted:
+                schedule.email_ai_adjusted = False
+                schedule.email_volume = last_week_sla_schedule.email_volume
+        db.session.commit()
+
+        return False  # No need to adjust the SLA schedules
+
     for schedule in sla_schedules:
+        # LINKEDIN AI ADJUSTMENT
+        schedule.linkedin_past_volume = last_week_sla_schedule.linkedin_volume
         schedule.linkedin_volume = last_week_sla_schedule.linkedin_volume
+        schedule.linkedin_ai_adjusted = True
+
+        # EMAIL AI ADJUSTMENT
+        # schedule.email_past_volume = last_week_sla_schedule.email_volume
         # schedule.email_volume = last_week_sla_schedule.email_volume
+        # schedule.email_ai_adjusted = True
 
     db.session.commit()
 
@@ -736,12 +765,10 @@ def update_sla_schedule(
     # Update the SLA schedule
     if linkedin_volume:
         sla_schedule.linkedin_volume = linkedin_volume
-    if linkedin_special_notes:
-        sla_schedule.linkedin_special_notes = linkedin_special_notes
     if email_volume:
         sla_schedule.email_volume = email_volume
-    if email_special_notes:
-        sla_schedule.email_special_notes = email_special_notes
+    sla_schedule.linkedin_special_notes = linkedin_special_notes
+    sla_schedule.email_special_notes = email_special_notes
 
     db.session.commit()
 

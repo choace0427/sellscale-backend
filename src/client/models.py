@@ -604,10 +604,14 @@ class SLASchedule(db.Model):
     # SLA values for LinkedIn
     linkedin_volume = db.Column(db.Integer, nullable=False)
     linkedin_special_notes = db.Column(db.String, nullable=True)
+    linkedin_ai_adjusted = db.Column(db.Boolean, nullable=True, default=False)
+    linkedin_past_volume = db.Column(db.Integer, nullable=True)
 
     # SLA values for email
     email_volume = db.Column(db.Integer, nullable=False)
     email_special_notes = db.Column(db.String, nullable=True)
+    email_ai_adjusted = db.Column(db.Boolean, nullable=True, default=False)
+    email_past_volume = db.Column(db.Integer, nullable=True)
 
     # Which week
     week = db.Column(db.Integer, nullable=True)
@@ -631,8 +635,12 @@ class SLASchedule(db.Model):
             "end_date": self.end_date,
             "linkedin_volume": self.linkedin_volume,
             "linkedin_special_notes": self.linkedin_special_notes,
+            "linkedin_ai_adjusted": self.linkedin_ai_adjusted,
+            "liinkedin_past_volume": self.linkedin_past_volume,
             "email_volume": self.email_volume,
             "email_special_notes": self.email_special_notes,
+            "email_ai_adjusted": self.email_ai_adjusted,
+            "email_past_volume": self.email_past_volume,
             "week": self.week,
         }
 
