@@ -2,10 +2,17 @@ from calendar import c
 
 from src.bump_framework.models import BumpFramework
 from src.client.models import ClientSDR
-from src.message_generation.models import StackRankedMessageGenerationConfiguration
+from src.message_generation.models import (
+    GeneratedMessageCTA,
+    GeneratedMessageCTAToAssetMapping,
+    StackRankedMessageGenerationConfiguration,
+)
 from src.message_generation.services import (
+    create_cta_asset_mapping,
+    delete_cta_asset_mapping,
     delete_prospect_bump,
     generate_prospect_bumps_from_id_list,
+    get_all_cta_assets,
     get_cta_types,
     get_prospect_bump,
     refresh_computed_prompt_for_stack_ranked_configuration,
@@ -1230,3 +1237,61 @@ def post_schedule_cached_messages(client_sdr_id: int):
     schedule_cached_messages(client_sdr_id=client_sdr_id, prospect_ids=prospect_ids)
 
     return "OK", 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta/create_asset_mapping", methods=["POST"])
+@require_user
+def create_asset_mapping(client_sdr_id: int):
+    """Creates an asset mapping for a given client SDR"""
+    generated_message_cta_id = get_request_parameter(
+        "generated_message_cta_id", request, json=True, required=True
+    )
+    asset_id = get_request_parameter("asset_id", request, json=True, required=True)
+
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(generated_message_cta_id)
+    if not cta:
+        return jsonify({"error": "CTA not found."}), 404
+
+    create_cta_asset_mapping(
+        generated_message_cta_id=generated_message_cta_id, client_assets_id=asset_id
+    )
+
+    return jsonify({"message": "Asset mapping created."}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta/delete_asset_mapping", methods=["POST"])
+@require_user
+def delete_asset_mapping(client_sdr_id: int):
+    """Deletes an asset mapping for a given client SDR"""
+    cta_to_asset_mapping_id = get_request_parameter(
+        "cta_to_asset_mapping_id", request, json=True, required=True
+    )
+
+    cta_to_asset_mapping: GeneratedMessageCTAToAssetMapping = (
+        GeneratedMessageCTAToAssetMapping.query.get(cta_to_asset_mapping_id)
+    )
+    generated_message_cta_id: int = cta_to_asset_mapping.generated_message_cta_id
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(generated_message_cta_id)
+    if not cta:
+        return jsonify({"error": "CTA not found."}), 404
+
+    delete_cta_asset_mapping(cta_to_asset_mapping_id=cta_to_asset_mapping_id)
+
+    return jsonify({"message": "Asset mapping deleted."}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route("/cta/get_all_asset_mapping", methods=["GET"])
+@require_user
+def get_all_asset_mapping(client_sdr_id: int):
+    """Gets all asset mapping for a given client SDR"""
+    generated_message_cta_id = get_request_parameter(
+        "generated_message_cta_id", request, json=False, required=True
+    )
+
+    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(generated_message_cta_id)
+    if not cta:
+        return jsonify({"error": "CTA not found."}), 404
+
+    mappings = get_all_cta_assets(generated_message_cta_id=generated_message_cta_id)
+
+    return jsonify({"mappings": mappings}), 200
