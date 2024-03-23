@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 from sqlalchemy import or_, and_
 
 from regex import E
@@ -47,9 +48,13 @@ def get_prospect_ids_for_segment(segment_id: int) -> list[int]:
 
 
 def update_segment(
-    client_sdr_id: int, segment_id: int, segment_title: str, filters: dict
+    client_sdr_id: int,
+    segment_id: int,
+    segment_title: str,
+    filters: dict,
+    client_archetype_id: Optional[int] = None,
 ) -> Segment:
-    segment = Segment.query.filter_by(
+    segment: Segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, id=segment_id
     ).first()
 
@@ -61,6 +66,9 @@ def update_segment(
 
     if filters:
         segment.filters = filters
+
+    if client_archetype_id:
+        segment.client_archetype_id = client_archetype_id
 
     db.session.add(segment)
     db.session.commit()

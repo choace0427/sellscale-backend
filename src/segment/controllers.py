@@ -82,12 +82,16 @@ def get_segments(client_sdr_id: int):
 def update_segment_endpoint(client_sdr_id: int, segment_id: int):
     segment_title = get_request_parameter("segment_title", request, json=True)
     filters = get_request_parameter("filters", request, json=True)
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True
+    )
 
     segment: Segment = update_segment(
         client_sdr_id=client_sdr_id,
         segment_id=segment_id,
         segment_title=segment_title,
         filters=filters,
+        client_archetype_id=client_archetype_id,
     )
 
     if segment:
