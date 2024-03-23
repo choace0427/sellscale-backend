@@ -380,13 +380,13 @@ def collect_and_load_sales_navigator_results(self) -> None:
 
                 from src.automation.orchestrator import add_process_for_future
 
-                add_process_for_future(
-                    type="delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape",
-                    args={
-                        "phantom_buster_sales_navigator_launch_id": launch_id,
-                    },
-                    minutes=60,
-                )
+                # add_process_for_future(
+                #     type="delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape",
+                #     args={
+                #         "phantom_buster_sales_navigator_launch_id": launch_id,
+                #     },
+                #     minutes=60,
+                # )
 
     return
 
