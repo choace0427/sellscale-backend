@@ -1,5 +1,14 @@
 from flask import Blueprint, request, jsonify
-from src.individual.services import backfill_iscraper_cache, backfill_prospects, convert_to_prospects, start_upload_from_urn_ids, get_all_individuals, get_uploads, start_crawler_on_linkedin_public_id, start_upload
+from src.individual.services import (
+    backfill_iscraper_cache,
+    backfill_prospects,
+    convert_to_prospects,
+    start_upload_from_urn_ids,
+    get_all_individuals,
+    get_uploads,
+    start_crawler_on_linkedin_public_id,
+    start_upload,
+)
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -29,13 +38,16 @@ def get_individuals_uploads():
 @INDIVIDUAL_BLUEPRINT.route("/upload", methods=["POST"])
 # No authentication required for now
 def post_individuals_upload():
-    
+
     name = get_request_parameter(
         "name", request, json=True, required=True, parameter_type=str
     )
-    data = get_request_parameter(
-        "data", request, json=True, required=True, parameter_type=list
-    ) or []
+    data = (
+        get_request_parameter(
+            "data", request, json=True, required=True, parameter_type=list
+        )
+        or []
+    )
 
     client_id = get_request_parameter(
         "client_id", request, json=True, required=False, parameter_type=int
@@ -64,9 +76,12 @@ def post_add_from_urn_ids():
     name = get_request_parameter(
         "name", request, json=True, required=True, parameter_type=str
     )
-    urn_ids = get_request_parameter(
-        "urn_ids", request, json=True, required=True, parameter_type=list
-    ) or []
+    urn_ids = (
+        get_request_parameter(
+            "urn_ids", request, json=True, required=True, parameter_type=list
+        )
+        or []
+    )
 
     uploads = start_upload_from_urn_ids(name, urn_ids)
 
@@ -121,16 +136,27 @@ def post_backfill_prospects(client_sdr_id: int):
 @INDIVIDUAL_BLUEPRINT.route("/convert-to-prospects", methods=["POST"])
 @require_user
 def post_convert_to_prospects(client_sdr_id: int):
-    
+
     client_archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True, parameter_type=int
+        "archetype_id", request, json=True, required=False, parameter_type=int
+    )
+    segment_id = get_request_parameter(
+        "segment_id", request, json=True, required=False, parameter_type=int
     )
 
-    individual_ids = get_request_parameter(
-        "individual_ids", request, json=True, required=True, parameter_type=list
-    ) or []
+    individual_ids = (
+        get_request_parameter(
+            "individual_ids", request, json=True, required=True, parameter_type=list
+        )
+        or []
+    )
 
-    prospect_ids = convert_to_prospects(client_sdr_id, client_archetype_id, individual_ids)
+    prospect_ids = convert_to_prospects(
+        client_sdr_id=client_sdr_id,
+        individual_ids=individual_ids,
+        client_archetype_id=client_archetype_id,
+        segment_id=segment_id,
+    )
 
     return (
         jsonify(
@@ -148,7 +174,7 @@ def post_convert_to_prospects(client_sdr_id: int):
 @INDIVIDUAL_BLUEPRINT.route("/backfill-iscraper-cache", methods=["POST"])
 @require_user
 def post_backfill_iscraper_cache(client_sdr_id: int):
-    
+
     start_index = get_request_parameter(
         "start_index", request, json=True, required=True, parameter_type=int
     )
@@ -175,16 +201,22 @@ def post_backfill_iscraper_cache(client_sdr_id: int):
 @INDIVIDUAL_BLUEPRINT.route("/", methods=["GET"])
 @require_user
 def get_all_individuals_request(client_sdr_id: int):
-    
+
     client_archetype_id = get_request_parameter(
         "archetype_id", request, json=False, required=True, parameter_type=int
     )
-    limit = get_request_parameter(
-        "limit", request, json=False, required=False, parameter_type=int
-    ) or 100
-    offset = get_request_parameter(
-        "offset", request, json=False, required=False, parameter_type=int
-    ) or 0
+    limit = (
+        get_request_parameter(
+            "limit", request, json=False, required=False, parameter_type=int
+        )
+        or 100
+    )
+    offset = (
+        get_request_parameter(
+            "offset", request, json=False, required=False, parameter_type=int
+        )
+        or 0
+    )
 
     results, count = get_all_individuals(client_archetype_id, limit, offset)
 
@@ -200,4 +232,3 @@ def get_all_individuals_request(client_sdr_id: int):
         ),
         200,
     )
-

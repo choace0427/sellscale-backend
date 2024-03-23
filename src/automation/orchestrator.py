@@ -25,6 +25,9 @@ from src.campaigns.autopilot.services import (
     daily_generate_linkedin_campaign_for_sdr,
 )
 from src.prospecting.upload.services import upload_from_apollo
+from src.automation.phantom_buster.services import (
+    delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape,
+)
 
 from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import (
@@ -148,6 +151,12 @@ PROCESS_TYPE_MAP = {
     },
     "upload_from_apollo": {
         "function": upload_from_apollo,
+        "priority": 2,
+        "queue": "prospecting",
+        "routing_key": "prospecting",
+    },
+    "delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape": {
+        "function": delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape,
         "priority": 2,
         "queue": "prospecting",
         "routing_key": "prospecting",

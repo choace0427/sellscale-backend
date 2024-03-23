@@ -12,6 +12,7 @@ from src.automation.models import (
     SalesNavigatorLaunchStatus,
 )
 
+from src.individual.models import Individual, IndividualsUpload
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.utils.slack import send_slack_message, URL_MAP
 
@@ -371,15 +372,21 @@ def collect_and_load_sales_navigator_results(self) -> None:
                 webhook_urls=[URL_MAP["csm-individuals"]],
             )
 
-            if launch.process_type == "individual":
-                # Upload individuals to SellScale
-                trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(launch_id)
+            # Upload individuals to SellScale
+            trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(launch_id)
 
-            elif launch.process_type == "prospect" or launch.process_type is None:
-                # Upload prospects to SellScale
-                # TODO - disabled for now due to race condition bug
-                # trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(launch_id)
-                pass
+            if launch.process_type == "prospect" or launch.process_type is None:
+                # Upload prospects to SellScale, delay so all the individuals are uploaded first
+
+                from src.automation.orchestrator import add_process_for_future
+
+                add_process_for_future(
+                    type="delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape",
+                    args={
+                        "phantom_buster_sales_navigator_launch_id": launch_id,
+                    },
+                    minutes=60,
+                )
 
     return
 
@@ -431,8 +438,19 @@ def trigger_upload_individuals_job_from_linkedin_sales_nav_scrape(
     print(response)
 
 
+@celery.task
+def delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(
+    phantom_buster_sales_navigator_launch_id: int,
+):
+    trigger_upload_prospects_job_from_linkedin_sales_nav_scrape.delay(
+        phantom_buster_sales_navigator_launch_id
+    )
+
+
 def trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(
     phantom_buster_sales_navigator_launch_id: int,
+    archetype_id: Optional[int] = None,
+    segment_id: Optional[int] = None,
 ):
     pb_launch: PhantomBusterSalesNavigatorLaunch = (
         PhantomBusterSalesNavigatorLaunch.query.get(
@@ -450,34 +468,24 @@ def trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(
     client_archetype_id = pb_launch.client_archetype_id
     processed_result = pb_launch.result_processed
 
-    client_sdr: ClientSDR = ClientSDR.query.get(pb_launch.client_sdr_id)
-    userToken = client_sdr.auth_token
+    li_public_ids = [
+        result.get("profileUrl").split("/in/")[1].split("/")[0]
+        for result in processed_result
+    ]
+    individuals: list[Individual] = Individual.query.filter(
+        Individual.li_public_id.in_(li_public_ids)
+    ).all()
 
-    payload = []
-    for result in processed_result:
-        payload.append(
-            {
-                "linkedin_url": result.get("profileUrl"),
-            }
-        )
+    from src.individual.services import convert_to_prospects
 
-    api_url = os.environ.get("SELLSCALE_API_URL")
-    url = "{api_url}/prospect/add_prospect_from_csv_payload".format(api_url=api_url)
-    payload = json.dumps(
-        {
-            "archetype_id": client_archetype_id,
-            "csv_payload": payload,
-            "allow_duplicates": False,
-        }
+    convert_to_prospects(
+        client_sdr_id=pb_launch.client_sdr_id,
+        individual_ids=[individual.id for individual in individuals],
+        client_archetype_id=archetype_id or client_archetype_id,
+        segment_id=segment_id,
     )
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": "Bearer {userToken}".format(userToken=userToken),
-    }
-    response = requests.request("POST", url, headers=headers, data=payload)
 
-    print(response)
+    return True, "Success"
 
 
 @celery.task

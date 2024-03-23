@@ -47,14 +47,12 @@ def backfill_prospects(client_sdr_id):
 
 
 def convert_to_prospects(
-    client_sdr_id: int, client_archetype_id: int, individual_ids: list[int]
+    client_sdr_id: int,
+    individual_ids: list[int],
+    client_archetype_id: Optional[int] = None,
+    segment_id: Optional[int] = None,
 ):
     from src.automation.orchestrator import add_process_list
-    from src.client.models import ClientArchetype
-
-    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
-    if not archetype or archetype.client_sdr_id != client_sdr_id:
-        return None
 
     if len(individual_ids) > 10:
         return add_process_list(
@@ -64,6 +62,7 @@ def convert_to_prospects(
                     "client_sdr_id": client_sdr_id,
                     "client_archetype_id": client_archetype_id,
                     "individual_id": individual_id,
+                    "segment_id": segment_id,
                 }
                 for individual_id in individual_ids
             ],
@@ -74,20 +73,30 @@ def convert_to_prospects(
         for individual_id in individual_ids:
             convert_to_prospect(
                 client_sdr_id=client_sdr_id,
-                client_archetype_id=client_archetype_id,
                 individual_id=individual_id,
+                client_archetype_id=client_archetype_id,
+                segment_id=segment_id,
             )
         return []
 
 
 @celery.task
 def convert_to_prospect(
-    client_sdr_id: int, client_archetype_id: int, individual_id: int
+    client_sdr_id: int,
+    individual_id: int,
+    client_archetype_id: Optional[int] = None,
+    segment_id: Optional[int] = None,
 ):
     from src.prospecting.services import add_prospect
     from src.client.models import ClientArchetype
 
-    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if client_archetype_id:
+        archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    else:
+        archetype: ClientArchetype = ClientArchetype.query.filter_by(
+            client_sdr_id=client_sdr_id, is_unassigned_contact_archetype=True
+        ).first()
+
     if not archetype or archetype.client_sdr_id != client_sdr_id:
         return None
 
@@ -115,6 +124,7 @@ def convert_to_prospect(
         allow_duplicates=False,
         score_prospect=True,
         research_payload=True,
+        segment_id=segment_id,
     )
 
     return True, prospect_id
@@ -343,48 +353,58 @@ def add_individual_from_iscraper_cache(li_url: str, upload_id: Optional[int] = N
         recent_education_school=deep_get(cache, "education.0.school.name"),
         recent_education_degree=deep_get(cache, "education.0.degree_name"),
         recent_education_field=deep_get(cache, "education.0.field_of_study"),
-        recent_education_start_date=None
-        if deep_get(cache, "education.0.date.start.month") is None
-        or deep_get(cache, "education.0.date.start.year") is None
-        else datetime.date(
-            year=deep_get(cache, "education.0.date.start.year"),
-            month=deep_get(cache, "education.0.date.start.month"),
-            day=1,
+        recent_education_start_date=(
+            None
+            if deep_get(cache, "education.0.date.start.month") is None
+            or deep_get(cache, "education.0.date.start.year") is None
+            else datetime.date(
+                year=deep_get(cache, "education.0.date.start.year"),
+                month=deep_get(cache, "education.0.date.start.month"),
+                day=1,
+            )
         ),
-        recent_education_end_date=None
-        if deep_get(cache, "education.0.date.end.month") is None
-        or deep_get(cache, "education.0.date.end.year") is None
-        else datetime.date(
-            year=deep_get(cache, "education.0.date.end.year"),
-            month=deep_get(cache, "education.0.date.end.month"),
-            day=1,
+        recent_education_end_date=(
+            None
+            if deep_get(cache, "education.0.date.end.month") is None
+            or deep_get(cache, "education.0.date.end.year") is None
+            else datetime.date(
+                year=deep_get(cache, "education.0.date.end.year"),
+                month=deep_get(cache, "education.0.date.end.month"),
+                day=1,
+            )
         ),
         recent_job_title=deep_get(cache, "position_groups.0.profile_positions.0.title"),
-        recent_job_start_date=None
-        if deep_get(cache, "position_groups.0.profile_positions.0.date.start.month")
-        is None
-        or deep_get(cache, "position_groups.0.profile_positions.0.date.start.year")
-        is None
-        else datetime.date(
-            year=deep_get(
-                cache, "position_groups.0.profile_positions.0.date.start.year"
-            ),
-            month=deep_get(
-                cache, "position_groups.0.profile_positions.0.date.start.month"
-            ),
-            day=1,
+        recent_job_start_date=(
+            None
+            if deep_get(cache, "position_groups.0.profile_positions.0.date.start.month")
+            is None
+            or deep_get(cache, "position_groups.0.profile_positions.0.date.start.year")
+            is None
+            else datetime.date(
+                year=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.start.year"
+                ),
+                month=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.start.month"
+                ),
+                day=1,
+            )
         ),
-        recent_job_end_date=None
-        if deep_get(cache, "position_groups.0.profile_positions.0.date.end.month")
-        is None
-        or deep_get(cache, "position_groups.0.profile_positions.0.date.end.year")
-        is None
-        else datetime.date(
-            year=deep_get(cache, "position_groups.0.profile_positions.0.date.end.year"),
-            month=deep_get(
-                cache, "position_groups.0.profile_positions.0.date.end.month"
-            ),
-            day=1,
+        recent_job_end_date=(
+            None
+            if deep_get(cache, "position_groups.0.profile_positions.0.date.end.month")
+            is None
+            or deep_get(cache, "position_groups.0.profile_positions.0.date.end.year")
+            is None
+            else datetime.date(
+                year=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.end.year"
+                ),
+                month=deep_get(
+                    cache, "position_groups.0.profile_positions.0.date.end.month"
+                ),
+                day=1,
+            )
         ),
         recent_job_description=deep_get(
             cache, "position_groups.0.profile_positions.0.description"
@@ -419,9 +439,11 @@ def add_individual_from_prospect(prospect_id: int) -> bool:
         email=prospect.email,
         phone=None,
         address=None,
-        li_public_id=prospect.linkedin_url.split("/in/")[1].split("/")[0]
-        if prospect.linkedin_url
-        else None,
+        li_public_id=(
+            prospect.linkedin_url.split("/in/")[1].split("/")[0]
+            if prospect.linkedin_url
+            else None
+        ),
         li_urn_id=prospect.li_urn_id,
         img_url=prospect.img_url,
         img_expire=prospect.img_expire,
