@@ -112,12 +112,36 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
 
 def add_prospects_to_segment(prospect_ids: list[int], new_segment_id: int):
     batch_size = 50
-    for i in range(0, len(prospect_ids), batch_size):
-        batch_prospect_ids = prospect_ids[i : i + batch_size]
-        Prospect.query.filter(Prospect.id.in_(batch_prospect_ids)).update(
-            {Prospect.segment_id: new_segment_id}, synchronize_session=False
+
+    segment: Segment = Segment.query.get(new_segment_id)
+
+    if segment.client_archetype_id:
+        archetype: ClientArchetype = ClientArchetype.query.get(
+            segment.client_archetype_id
         )
-        db.session.commit()
+
+        for i in range(0, len(prospect_ids), batch_size):
+            batch_prospect_ids = prospect_ids[i : i + batch_size]
+            Prospect.query.filter(Prospect.id.in_(batch_prospect_ids)).update(
+                {
+                    Prospect.segment_id: new_segment_id,
+                    Prospect.archetype_id: archetype.id,
+                },
+                synchronize_session=False,
+            )
+            db.session.commit()
+
+    else:
+
+        for i in range(0, len(prospect_ids), batch_size):
+            batch_prospect_ids = prospect_ids[i : i + batch_size]
+            Prospect.query.filter(Prospect.id.in_(batch_prospect_ids)).update(
+                {
+                    Prospect.segment_id: new_segment_id,
+                },
+                synchronize_session=False,
+            )
+            db.session.commit()
 
     return True, "Prospects added to segment"
 
