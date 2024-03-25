@@ -138,6 +138,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
             GeneratedMessage.ai_approved.label("ai_approved"),
             GeneratedMessage.completion.label("completion"),
             GeneratedMessage.problems.label("problems"),
+            GeneratedMessage.blocking_problems.label("blocking_problems"),
             GeneratedMessage.highlighted_words.label("highlighted_words"),
         )
         .join(
@@ -173,6 +174,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
                 "ai_approved": p.ai_approved,
                 "completion": p.completion,
                 "problems": p.problems,
+                "blocking_problems": p.blocking_problems,
                 "highlighted_words": p.highlighted_words,
             }
         )
@@ -262,6 +264,16 @@ def get_outbound_campaign_details_for_edit_tool_email(
         -- general prospect email stuff
             prospect_email.id "prospect_email_id"
 
+        -- blocking problems
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.blocking_problems
+                else null
+            end "personalized_subject_line_blocking_problems"
+            case when prospect_email.personalized_body = body.id
+                then body.blocking_problems
+                else null
+            end "personalized_body_blocking_problems",
+
         from outbound_campaign
             join prospect on prospect.id = any(outbound_campaign.prospect_ids)
             join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
@@ -293,6 +305,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
         personalized_body_problems = entry[12] if entry[12] else []
         personalized_body_highlighted_words = entry[13]
         prospect_email_id = entry[14]
+        personalized_subject_line_blocking_problems = entry[15]
+        personalized_body_blocking_problems = entry[16]
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -302,6 +316,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "completion": personalized_subject_line_completion,
                 "problems": personalized_subject_line_problems
                 + personalized_body_problems,
+                "blocking_problems": personalized_subject_line_blocking_problems
+                + personalized_body_blocking_problems,
                 "highlighted_words": personalized_subject_line_highlighted_words,
                 "prompt": personalized_subject_line_prompt,
                 "few_shot_prompt": personalized_subject_line_few_shot_prompt,

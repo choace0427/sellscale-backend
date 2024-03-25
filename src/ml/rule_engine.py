@@ -469,8 +469,6 @@ def rule_address_doctor(
             if len(row) > 1:
                 dr_assistant_positions.add(row[1].strip())
 
-        print(dr_positions, dr_assistant_positions)
-
         title_splitted = title_section.split(" ")
         name_splitted = name_section.split(" ")
         for position, title in enumerate(title_splitted):
