@@ -563,11 +563,11 @@ def generate_linkedin_outreaches_with_configurations(
     ### Use legacy CTA + Voice generation ###
     NUM_GENERATIONS = 1
     for i in range(NUM_GENERATIONS):
-        TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
-            get_top_stack_ranked_config_ordering(
-                generated_message_type=GeneratedMessageType.LINKEDIN.value,
-                prospect_id=prospect_id,
-            )
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=prospect_id,
         )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -634,9 +634,9 @@ def generate_linkedin_outreaches(
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
-    research_points_list: list[ResearchPoints] = (
-        ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    )
+    research_points_list: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
     perms = generate_batches_of_research_points(points=research_points_list, n=4)
 
@@ -799,7 +799,7 @@ def approve_message(message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
 
     # If the message has no problems, mark it as "human approved"
-    if not message.problems or len(message.problems) == 0:
+    if not message.blocking_problems or len(message.blocking_problems) == 0:
         message.ai_approved = True
         db.session.commit()
     else:
@@ -1230,12 +1230,12 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         # 8a. Get the Subject Line
         subjectline_template_id = None
         subjectline_strict = False  # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
-        subjectline_templates: list[EmailSubjectLineTemplate] = (
-            EmailSubjectLineTemplate.query.filter(
-                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
-                EmailSubjectLineTemplate.active == True,
-            ).all()
-        )
+        subjectline_templates: list[
+            EmailSubjectLineTemplate
+        ] = EmailSubjectLineTemplate.query.filter(
+            EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
+            EmailSubjectLineTemplate.active == True,
+        ).all()
         subjectline_template: EmailSubjectLineTemplate = (
             random.choice(subjectline_templates) if subjectline_templates else None
         )
@@ -1265,13 +1265,12 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             subjectline_template_id = None
             # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
             subjectline_strict = False
-            subjectline_templates: list[EmailSubjectLineTemplate] = (
-                EmailSubjectLineTemplate.query.filter(
-                    EmailSubjectLineTemplate.client_archetype_id
-                    == prospect.archetype_id,
-                    EmailSubjectLineTemplate.active == True,
-                ).all()
-            )
+            subjectline_templates: list[
+                EmailSubjectLineTemplate
+            ] = EmailSubjectLineTemplate.query.filter(
+                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
+                EmailSubjectLineTemplate.active == True,
+            ).all()
             subjectline_template: EmailSubjectLineTemplate = random.choice(
                 subjectline_templates
             )
@@ -1942,11 +1941,11 @@ def get_generation_statuses(campaign_id: int) -> dict:
     jobs_list = []
 
     # Get generation jobs
-    generation_jobs: list[GeneratedMessageJobQueue] = (
-        GeneratedMessageJobQueue.query.filter(
-            GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
-        ).all()
-    )
+    generation_jobs: list[
+        GeneratedMessageJobQueue
+    ] = GeneratedMessageJobQueue.query.filter(
+        GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+    ).all()
 
     # Add job to statistics
     for job in tqdm(generation_jobs):
@@ -2519,11 +2518,11 @@ def clear_auto_generated_bumps(bump_framework_id: int) -> bool:
         bool: True if successful
     """
 
-    generated_bumps: List[GeneratedMessageAutoBump] = (
-        GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
-        ).all()
-    )
+    generated_bumps: List[
+        GeneratedMessageAutoBump
+    ] = GeneratedMessageAutoBump.query.filter(
+        GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
+    ).all()
 
     for bump in generated_bumps:
         db.session.delete(bump)
@@ -3151,11 +3150,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
         }
 
     ### Use legacy CTA + Voice generation ###
-    TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
-        get_top_stack_ranked_config_ordering(
-            generated_message_type=GeneratedMessageType.LINKEDIN.value,
-            prospect_id=prospect_id,
-        )
+    TOP_CONFIGURATION: Optional[
+        StackRankedMessageGenerationConfiguration
+    ] = get_top_stack_ranked_config_ordering(
+        generated_message_type=GeneratedMessageType.LINKEDIN.value,
+        prospect_id=prospect_id,
     )
     perms = generate_batch_of_research_points_from_config(
         prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -3164,11 +3163,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
     if not perms or len(perms) == 0:
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-        TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
-            get_top_stack_ranked_config_ordering(
-                generated_message_type=GeneratedMessageType.LINKEDIN.value,
-                prospect_id=prospect_id,
-            )
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=prospect_id,
         )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -3484,9 +3483,9 @@ def get_prospect_research_points(
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-    all_research_points: list[ResearchPoints] = (
-        ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    )
+    all_research_points: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
     found_research_points = [
         research_point
@@ -3608,12 +3607,12 @@ def delete_cta_asset_mapping(
 
 
 def get_all_cta_assets(generated_message_cta_id: int):
-    mappings: list[GeneratedMessageCTAToAssetMapping] = (
-        GeneratedMessageCTAToAssetMapping.query.filter(
-            GeneratedMessageCTAToAssetMapping.generated_message_cta_id
-            == generated_message_cta_id
-        ).all()
-    )
+    mappings: list[
+        GeneratedMessageCTAToAssetMapping
+    ] = GeneratedMessageCTAToAssetMapping.query.filter(
+        GeneratedMessageCTAToAssetMapping.generated_message_cta_id
+        == generated_message_cta_id
+    ).all()
     asset_ids = [mapping.client_assets_id for mapping in mappings]
     assets: list[ClientAssets] = ClientAssets.query.filter(
         ClientAssets.id.in_(asset_ids)

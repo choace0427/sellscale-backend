@@ -175,6 +175,7 @@ def create_voice_builder_sample(
             (
                 completion,
                 problems,
+                blocking_problems,
                 highlighted_words,
             ) = run_message_rule_engine_on_linkedin_completion(
                 completion=completion,
@@ -216,7 +217,12 @@ def edit_voice_builder_sample(
         voice_builder_sample_id
     )
 
-    _, problems, highlighted_words = run_message_rule_engine_on_linkedin_completion(
+    (
+        _,
+        problems,
+        blocking_problems,
+        highlighted_words,
+    ) = run_message_rule_engine_on_linkedin_completion(
         completion=updated_completion,
         prompt=voice_builder_sample.sample_prompt,
         run_arree=False,
@@ -359,11 +365,11 @@ def convert_voice_builder_onboarding_to_stack_ranked_message_config(
     if archetype:
         priority = 5
 
-    baseline_srmc: Optional[StackRankedMessageGenerationConfiguration] = (
-        StackRankedMessageGenerationConfiguration.query.filter_by(
-            client_id=voice_builder_onboarding.client_id, archetype_id=None
-        ).first()
-    )
+    baseline_srmc: Optional[
+        StackRankedMessageGenerationConfiguration
+    ] = StackRankedMessageGenerationConfiguration.query.filter_by(
+        client_id=voice_builder_onboarding.client_id, archetype_id=None
+    ).first()
 
     srmc: StackRankedMessageGenerationConfiguration = (
         StackRankedMessageGenerationConfiguration(
