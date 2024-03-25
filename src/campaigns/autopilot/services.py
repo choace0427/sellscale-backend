@@ -12,6 +12,7 @@ from model_import import (
     OutboundCampaignStatus,
 )
 from tqdm import tqdm
+from src.ai_requests.services import create_ai_requests
 from src.analytics.models import AutoDeleteMessageAnalytics
 from src.client.models import SLASchedule
 from src.email_outbound.models import ProspectEmail
@@ -862,6 +863,16 @@ def auto_send_campaign(campaign_id: int):
             f"🟡 ({campaign_type.value}) Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: {percentage_failed}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
+
+        # Create an AI Request Card
+        campaign_link = f"https://sellscale.retool.com/embedded/public/eb93cfac-cfed-4d65-b45f-459ffc546bce#campaign_uuid={campaign.uuid}"
+        create_ai_requests(
+            client_sdr_id=sdr.id,
+            description=f"`{archetype.archetype}` had {percentage_failed}% of generations with errors. Please review and manually approve or flag any issues with rule engine. Review here: {campaign_link}",
+            title=f"Review Blocked Campaign `{archetype.archetype}`",
+            days_till_due=1,
+        )
+
         return False
 
     # Remove prospects that aren't approved

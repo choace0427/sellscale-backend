@@ -953,54 +953,10 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
         campaign_id (int): Campaign id
         status (OutboundCampaignStatus): New status of the campaign
     """
-    from src.client.services import get_client
-
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     campaign.status = status
     db.session.add(campaign)
     db.session.commit()
-
-    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
-    sdr_name = sdr.name
-    client_id = sdr.client_id
-    client_company = get_client(client_id).company
-
-    campaign_name = campaign.name.split(",")[0]
-    campaign_type = campaign.campaign_type.value
-
-    # if status == OutboundCampaignStatus.COMPLETE.value:
-    #     send_slack_message(
-    #         message="{} - {}'s Campaign #{} is complete! :tada::tada::tada:".format(
-    #             client_company, sdr_name, campaign_id
-    #         ),
-    #         blocks=[
-    #             {
-    #                 "type": "header",
-    #                 "text": {
-    #                     "type": "plain_text",
-    #                     "text": "{} - {}'s Campaign #{} is `{}`! :tada::tada::tada:".format(
-    #                         client_company, sdr_name, campaign_id, status
-    #                     ),
-    #                 },
-    #             },
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": "*Campaign Name:* {}".format(campaign_name),
-    #                 },
-    #             },
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": "*Campaign Type #:* {}".format(campaign_type),
-    #                 },
-    #             },
-    #         ],
-    #         webhook_urls=[URL_MAP["operations-ready-campaigns"]],
-    #     )
 
     return True
 
@@ -1857,7 +1813,6 @@ def payout_campaigns(campaign_ids: list):
 
 @celery.task
 def detect_campaign_multi_channel_dash_card():
-
     sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
         active=True,
         client_id=1,  # TEMP
@@ -1881,7 +1836,6 @@ def detect_campaign_multi_channel_dash_card():
 
 
 def create_campaign_ai_request(sdr_id: int, type: str):
-
     from src.ai_requests.models import AIRequest
     from src.ai_requests.services import create_ai_requests
 
@@ -1904,13 +1858,12 @@ def create_campaign_ai_request(sdr_id: int, type: str):
 
 
 def get_client_campaign_view_data(client_sdr_id: int):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     data = db.session.execute(
         """
 with d as (
-	select 
+	select
 		client.company "Company",
 		client_sdr.name "Rep",
 		concat(client_archetype.emoji, ' ', client_archetype.archetype) "Campaign",
@@ -1933,25 +1886,25 @@ with d as (
 		left join client_archetype
 			on client_archetype.client_sdr_id = client_sdr.id and client_archetype.active and not client_archetype.is_unassigned_contact_archetype
 		left join
-			operator_dashboard_entry on cast(operator_dashboard_entry.task_data->>'campaign_id' as integer) = client_archetype.id 
-		left join 
+			operator_dashboard_entry on cast(operator_dashboard_entry.task_data->>'campaign_id' as integer) = client_archetype.id
+		left join
 			prospect on prospect.archetype_id = client_archetype.id
 		left join
 			linkedin_initial_message_template on linkedin_initial_message_template.client_archetype_id = client_archetype.id and linkedin_initial_message_template.active
 		left join
-			generated_message_cta on generated_message_cta.archetype_id = client_archetype.id and generated_message_cta.active 
+			generated_message_cta on generated_message_cta.archetype_id = client_archetype.id and generated_message_cta.active
 		left join
 			bump_framework on bump_framework.client_archetype_id = client_archetype.id and bump_framework.overall_status in ('ACCEPTED', 'BUMPED') and bump_framework.active and bump_framework.default
 		left join email_sequence_step on email_sequence_step.client_archetype_id = client_archetype.id and email_sequence_step.active and email_sequence_step.default
-		left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
-		left join prospect_email on prospect_email.prospect_id = prospect.id 
+		left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+		left join prospect_email on prospect_email.prospect_id = prospect.id
 		left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
 	where client.id = {client_id}
 	group by 1,2,3,4,5,6,7
 	order by 1 asc, 2 asc
 )
-select 
-	case 
+select
+	case
 		when length(d."Campaign") = 1 then '5. 🔴 No Campaign Found'
 		when d.active and d."num_complete_tasks" = 0 and d."num_open_tasks" = 0 and (d.num_linkedin_sent = 0 and d.num_email_sent = 0) then '4. 🗄 In Setup'
 		when d.active and d."num_open_tasks" > 0 then '3. 🟡 Rep Action Needed'
