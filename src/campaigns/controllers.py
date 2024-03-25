@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 
+from src.campaigns.agi_campaign_services import create_agi_campaign
 from src.campaigns.services import (
     create_outbound_campaign,
     change_campaign_status,
@@ -701,3 +702,16 @@ def post_client_campaign_view_data(client_sdr_id: int):
         ),
         200,
     )
+
+
+@CAMPAIGN_BLUEPRINT.route("/create_agi_campaign", methods=["POST"])
+@require_user
+def post_create_agi_campaign(client_sdr_id: int):
+    """
+    Finds prospects and creates copy from a given request.
+    """
+    query = get_request_parameter("query", request, json=True, required=True)
+
+    data = create_agi_campaign(client_sdr_id=client_sdr_id, query=query)
+
+    return jsonify(data)
