@@ -199,7 +199,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
 
 
 def get_outbound_campaign_details_for_edit_tool_email(
-    client_sdr_id: int, campaign_id: int, approved_filter: Optional[bool] = None
+    campaign_id: int, approved_filter: Optional[bool] = None
 ):
     oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     data = db.session.execute(
@@ -262,17 +262,17 @@ def get_outbound_campaign_details_for_edit_tool_email(
             end "personalized_body_highlighted_words",
 
         -- general prospect email stuff
-            prospect_email.id "prospect_email_id"
+            prospect_email.id "prospect_email_id",
 
         -- blocking problems
             case when prospect_email.personalized_subject_line = subject_line.id
                 then subject_line.blocking_problems
                 else null
-            end "personalized_subject_line_blocking_problems"
+            end "personalized_subject_line_blocking_problems",
             case when prospect_email.personalized_body = body.id
                 then body.blocking_problems
                 else null
-            end "personalized_body_blocking_problems",
+            end "personalized_body_blocking_problems"
 
         from outbound_campaign
             join prospect on prospect.id = any(outbound_campaign.prospect_ids)
@@ -305,8 +305,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
         personalized_body_problems = entry[12] if entry[12] else []
         personalized_body_highlighted_words = entry[13]
         prospect_email_id = entry[14]
-        personalized_subject_line_blocking_problems = entry[15]
-        personalized_body_blocking_problems = entry[16]
+        personalized_subject_line_blocking_problems = entry[15] if entry[15] else []
+        personalized_body_blocking_problems = entry[16] if entry[16] else []
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -373,7 +373,7 @@ def get_outbound_campaign_details_for_edit_tool(
         )
     if oc.campaign_type.value == "EMAIL":
         return get_outbound_campaign_details_for_edit_tool_email(
-            client_sdr_id, campaign_id, approved_filter
+            campaign_id, approved_filter
         )
 
 
