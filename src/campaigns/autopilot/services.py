@@ -12,6 +12,7 @@ from model_import import (
     OutboundCampaignStatus,
 )
 from tqdm import tqdm
+from src.ai_requests.models import AIRequest
 from src.ai_requests.services import create_ai_requests
 from src.analytics.models import AutoDeleteMessageAnalytics
 from src.client.models import SLASchedule
@@ -864,14 +865,20 @@ def auto_send_campaign(campaign_id: int):
             [URL_MAP["ops-auto-send-campaign"]],
         )
 
-        # Create an AI Request Card
-        campaign_link = f"https://sellscale.retool.com/embedded/public/eb93cfac-cfed-4d65-b45f-459ffc546bce#campaign_uuid={campaign.uuid}"
-        create_ai_requests(
-            client_sdr_id=sdr.id,
-            description=f"`{archetype.archetype}` had {percentage_failed}% of generations with errors. Please review and manually approve or flag any issues with rule engine. Review here: {campaign_link}",
-            title=f"Review Blocked Campaign `{archetype.archetype}`",
-            days_till_due=1,
-        )
+        # Create an AI Request Card if there is none
+        title = f"Review Blocked Campaign `{archetype.archetype}`(#{archetype.id})"
+        ai_request_exists: AIRequest = AIRequest.query.filter(
+            AIRequest.client_sdr_id == sdr.id,
+            AIRequest.title == title,
+        ).first()
+        if not ai_request_exists:
+            campaign_link = f"https://sellscale.retool.com/embedded/public/eb93cfac-cfed-4d65-b45f-459ffc546bce#campaign_uuid={campaign.uuid}"
+            create_ai_requests(
+                client_sdr_id=sdr.id,
+                description=f"`{archetype.archetype}` had {percentage_failed}% of generations with errors. Please review and manually approve or flag any issues with rule engine. Review here: {campaign_link}",
+                title=title,
+                days_till_due=1,
+            )
 
         return False
 
