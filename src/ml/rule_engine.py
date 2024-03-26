@@ -12,7 +12,7 @@ from src.li_conversation.autobump_helpers.services_firewall import (
     rule_no_blacklist_words,
 )
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessageEmailType
-from src.ml.services import get_aree_fix_basic
+from src.ml.services import detect_hallucinations, get_aree_fix_basic
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
 )
@@ -172,10 +172,6 @@ def run_message_rule_engine(message_id: int):
     Returns:
         bool: Whether the message passes the ruleset.
     """
-    from src.message_generation.services import (
-        run_check_message_has_bad_entities,
-    )
-
     # Wipe problems before running the ruleset
     wipe_problems(message_id)
 
@@ -200,7 +196,7 @@ def run_message_rule_engine(message_id: int):
         completion = soup.get_text()
 
     prospect: Prospect = Prospect.query.get(message.prospect_id)
-    prospect_name = prospect.first_name + " " + prospect.last_name
+    prospect_name = prospect.full_name
     client_id = prospect.client_id
     client_sdr_id = prospect.client_sdr_id
     client: Client = Client.query.get(client_id)
@@ -212,15 +208,13 @@ def run_message_rule_engine(message_id: int):
     blocking_problems = []
     highlighted_words = []
 
-    # NER AI for Linkedin only
+    # Hallucination check for Linkedin only
     if message.message_type == GeneratedMessageType.LINKEDIN:
-        run_check_message_has_bad_entities(message_id)
-        format_entities(
-            message.unknown_named_entities,
-            problems,
-            highlighted_words,
-            whitelisted_names,
-            cta.text_value if cta else "",
+        rule_no_hallucinations(
+            message_id=message_id,
+            problems=problems,
+            blocking_problems=blocking_problems,
+            highlighted_words=highlighted_words,
         )
 
     # Strict Rules
@@ -364,6 +358,33 @@ def run_autocorrect(message_id: int):
     db.session.commit()
 
     run_message_rule_engine(message_id)
+
+
+def rule_no_hallucinations(
+    message_id: int,
+    problems: list,
+    blocking_problems: list,
+    highlighted_words: list,
+):
+    """Rule (blocking): No Hallucinations
+
+    No hallucinations allowed in the completion.
+    """
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    hallucinations = detect_hallucinations(
+        message_prompt=(
+            message.few_shot_prompt if message.few_shot_prompt else message.prompt
+        ),
+        message=message.completion,
+    )
+    if hallucinations and len(hallucinations) > 0:
+        problems.append("Contains hallucinations: {}".format(", ".join(hallucinations)))
+        blocking_problems.append(
+            "Contains hallucinations: {}".format(", ".join(hallucinations))
+        )
+        highlighted_words.extend(hallucinations)
+
+    return
 
 
 def rule_no_symbols(

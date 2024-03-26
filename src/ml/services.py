@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Union
 
 from bs4 import BeautifulSoup
 from src.email_outbound.models import ProspectEmailOutreachStatus, ProspectEmailStatus
-from src.ml.openai_wrappers import DEFAULT_TEMPERATURE
+from src.ml.openai_wrappers import DEFAULT_TEMPERATURE, OPENAI_CHAT_GPT_4_TURBO_MODEL
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
@@ -360,33 +360,6 @@ def get_icp_classification_prompt_by_archetype_id(archetype_id: int) -> str:
         return None
 
     return archetype.icp_matching_prompt, archetype.icp_matching_option_filters
-
-
-# def post_icp_classification_prompt_change_request(
-#     client_sdr_id: int, archetype_id: int, new_prompt: str
-# ) -> tuple[bool, str]:
-#     """Sends a message to Slack notifying SellScale of a requested ICP Classification Prompt change.
-
-#     Args:
-#         client_sdr_id (int): ID of the client SDR.
-#         archetype_id (int): ID of the archetype.
-#         new_prompt (str): The new prompt.
-
-#     Returns:
-#         bool: True if successful, False otherwise.
-#     """
-#     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-#     if not archetype:
-#         return False, "Archetype not found."
-
-#     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-#     if not sdr:
-#         return False, "Client SDR not found."
-
-#     return send_icp_classification_change_message(
-#         sdr_name=sdr.name,
-#         archetype=archetype.archetype, archetype_id=archetype.id, new_prompt=new_prompt
-#     )
 
 
 def send_icp_classification_change_message(
@@ -831,277 +804,6 @@ Edited Text:""".format(
     return response
 
 
-# def ai_email_prompt(
-#     client_sdr_id: int,
-#     prospect_id: int,
-#     email_bump_framework_id: Optional[int] = None,
-#     overriden_blocks: Optional[list[str]] = None,
-# ) -> str:
-#     """Generate an AI Email Prompt given a prospect. Uses the prospect's archetype and email bump framework (if given) to generate the prompt.
-
-#     If email_bump_framework_id is included, the email bump framework will be used to generate the prompt. Otherwise, the default SellScale blocks will be used.
-
-#     If overriden_blocks are included, the blocks will be used instead of the email bump framework or default SellScale blocks.
-
-#     Args:
-#         client_sdr_id (int): The client SDR ID
-#         prospect_id (int): The prospect ID
-#         email_bump_framework_id (Optional[int], optional): The email bump framework ID. Defaults to None.
-#         overriden_blocks (Optional[list[str]], optional): The blocks to override. Defaults to None.
-
-#     Returns:
-#         str: The AI Email Prompt
-
-#     """
-#     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-#     client: Client = Client.query.get(client_sdr.client_id)
-#     prospect: Prospect = Prospect.query.get(prospect_id)
-#     client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-#     account_research: list[AccountResearchPoints] = AccountResearchPoints.query.filter(
-#         AccountResearchPoints.prospect_id == prospect.id
-#     ).all()
-
-#     client_sdr_name = client_sdr.name
-#     client_sdr_title = client_sdr.title
-#     company_tagline = client.tagline
-#     company_description = client.description
-#     company_value_prop_key_points = client.value_prop_key_points
-#     company_tone_attributes = (
-#         ", ".join(client.tone_attributes) if client.tone_attributes else ""
-#     )
-
-#     persona_name = client_archetype.archetype
-#     persona_buy_reason = client_archetype.persona_fit_reason
-#     prospect_contact_objective = client_archetype.persona_contact_objective
-#     prospect_name = prospect.full_name
-#     prospect_title = prospect.title
-#     prospect_bio = prospect.linkedin_bio
-#     prospect_company_name = prospect.company
-
-#     prospect_research: list[
-#         ResearchPoints
-#     ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-#     research_points = ""
-#     for point in prospect_research:
-#         research_points += f"- {point.value}\n"
-
-#     account_points = ""
-#     for point in account_research:
-#         account_points += f"- {point.title}: {point.reason}\n"
-
-#     default_sellscale_structure = """
-#     1. Personalize the title to their company and or the prospect
-#     2. Include a greeting with Hi, Hello, or Hey with their first name
-#     3. Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.
-#     4. Mention what we do and offer and how it can help them based on their background, company, and key details.
-#     5. Use the objective for a call to action
-#     6. End with Best, (new line) (My Name) (new line) (Title)
-# """
-
-#     block_structure = default_sellscale_structure
-
-#     # Initial Email
-#     if (
-#         client_archetype.email_blocks_configuration is not None
-#         and len(client_archetype.email_blocks_configuration) > 0
-#     ):
-#         block_structure = ""
-#         for index, block in enumerate(client_archetype.email_blocks_configuration):
-#             block_structure += f"{index + 1}. {block}\n"
-
-#     # Followup emails / test emails
-#     if email_bump_framework_id is not None:
-#         bf_email: EmailSequenceStep = EmailSequenceStep.query.get(
-#             email_bump_framework_id
-#         )
-#         block_structure = ""
-#         for index, block in enumerate(bf_email.email_blocks):
-#             block_structure += f"{index + 1}. {block}\n"
-
-#     if overriden_blocks is not None and len(overriden_blocks) > 0:
-#         block_structure = ""
-#         for index, block in enumerate(overriden_blocks):
-#             block_structure += f"{index + 1}. {block}\n"
-
-#     prompt = """You are a sales development representative writing on behalf of the SDR.
-
-# Write a personalized cold email short enough I could read on an iphone easily. Here's the structure
-# {structure}
-
-# Note - you do not need to include all info.
-
-# SDR info:
-# SDR Name: {client_sdr_name}
-# Title: {client_sdr_title}
-
-# Company info:
-# Tagline: {company_tagline}
-# Company description: {company_description}
-
-# Useful data:
-# {value_prop_key_points}
-
-# Tone: {company_tone}
-
-# Persona info:
-# Name: {persona_name}
-
-# Why they buy:
-# {persona_buy_reason}
-
-# Prospect info:
-# Prospect Name: {prospect_name}
-# Prospect Title: {prospect_title}
-# Prospect Bio:
-# "{prospect_bio}"
-# Prospect Company Name: {prospect_company_name}
-
-# More research:
-# {prospect_research}
-# {research_points}
-
-# Final instructions
-# - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
-# - Use markdown as needed to accomplish the instructions.
-
-# Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
-
-# I want to write this email with the following objective: {persona_contact_objective}
-
-# Output:""".format(
-#         structure=block_structure,
-#         client_sdr_name=client_sdr_name,
-#         client_sdr_title=client_sdr_title,
-#         company_tagline=company_tagline,
-#         company_description=company_description,
-#         value_prop_key_points=company_value_prop_key_points,
-#         company_tone=company_tone_attributes,
-#         persona_name=persona_name,
-#         persona_buy_reason=persona_buy_reason,
-#         prospect_name=prospect_name,
-#         prospect_title=prospect_title,
-#         prospect_bio=prospect_bio,
-#         prospect_company_name=prospect_company_name,
-#         prospect_research=account_points,
-#         research_points=research_points,
-#         persona_contact_objective=prospect_contact_objective,
-#     )
-
-#     return prompt
-
-
-# def generate_email(prompt: str) -> dict[str, str]:
-#     """Generate an email for a prospect.
-
-#     Args:
-#         prompt (str): The prompt to generate the email with
-
-#     Returns:
-#         dict[str, str]: The subject and body of the email
-#     """
-#     response = wrapped_chat_gpt_completion(
-#         [
-#             {"role": "system", "content": prompt},
-#         ],
-#         temperature=0.7,
-#         max_tokens=400,
-#         model=OPENAI_CHAT_GPT_4_MODEL,
-#     )
-#     response = response if isinstance(response, str) else ""
-#     lines = response.split("\n")
-#     subject = lines[0].strip()
-#     subject = re.sub(r"^Subject:", "", subject, flags=re.IGNORECASE).strip()
-#     body = "\n".join(lines[1:]).strip()
-#     return {"subject": subject, "body": body}
-
-
-# def generate_followup_email_with_objective_prompt(
-#     client_sdr_id: int, prospect_id: int, thread_id: str, objective: Optional[str] = ""
-# ) -> str:
-#     """Generate an email for a prospect.
-
-#     Args:
-#         client_sdr_id (int): The id of the client sdr
-#         prospect_id (int): The id of the prospect
-#         thread_id (str): The id of the thread
-#         objective (Optional[str]): The objective of the email. Defaults to None.
-
-#     Returns:
-#         string: The prompt for the email
-#     """
-#     from src.prospecting.nylas.services import get_email_messages_with_prospect
-#     from src.research.account_research import get_account_research_points_by_prospect_id
-
-#     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-#     client: Client = Client.query.get(client_sdr.client_id)
-
-#     prospect: Prospect = Prospect.query.get(prospect_id)
-#     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
-
-#     research_points: ResearchPoints = ResearchPoints.get_research_points_by_prospect_id(
-#         prospect_id
-#     )
-#     research_points = [point.value for point in research_points]
-#     account_research = get_account_research_points_by_prospect_id(prospect_id)
-#     account_research = [
-#         point.get("title") + ": " + point.get("reason") for point in account_research
-#     ]
-#     objective = objective or archetype.persona_contact_objective
-
-#     # Convert past messages to text. Append '>' to each line to make it a quote
-#     past_messages = []
-#     past_messages_raw = get_email_messages_with_prospect(
-#         client_sdr_id, prospect_id, thread_id
-#     )
-#     if past_messages_raw:
-#         for thread in past_messages_raw:
-#             body: str = thread.get("body")
-#             bs = BeautifulSoup(body, "html.parser")
-#             body: str = bs.get_text()
-#             body: str = re.sub(r"\n+", "\n", body)
-#             body: str = "> " + body
-#             body: str = body.strip().replace("\n", "\n> ")
-#             past_messages.append(body)
-
-#     prompt = """Instructions: Write a follow up email to the previous email. The followup email is from the original sender. The followup email is trying to get the recipient's attention. The followup email should use information about the recipient in a highly personalized manner.
-
-# Email Tone: Casual and colloquial
-# Email Length: Medium (3-5 sentences)
-
-# Sender company information:
-# Name: {company_name}
-# Tagline: {company_tagline}
-# Description: {company_description}
-
-# Recipient research points:
-# -{research_points}
-
-# Recipient account research points:
-# -{account_research}
-
-# Outreach objective: {objective}
-
-# Past thread:
-# {past_threads}
-
-# Final instructions
-# - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed"
-
-# Generate the subject line, one line break, then the email body. Do not include the word 'Subject:' or 'Email:' in the output.
-
-# Generated reply:""".format(
-#         company_name=client.company,
-#         company_tagline=client.tagline,
-#         company_description=client.description,
-#         research_points="\n-".join(research_points),
-#         account_research="\n-".join(account_research),
-#         objective=objective,
-#         past_threads="\n\n".join(past_messages),
-#     )
-
-#     return prompt
-
-
 def replenish_all_ml_credits_for_all_sdrs() -> bool:
     """Replenishes all ML credits for all SDRs."""
     sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
@@ -1406,17 +1108,6 @@ def determine_best_bump_framework_from_convo(
         return -1
 
 
-@celery.task(bind=True, max_retries=3)
-def test_rate_limiter(self, rate: str):
-    from src.utils.slack import send_slack_message, URL_MAP
-
-    send_slack_message(
-        message=f"Testing rate_limiter at a rate of {rate}. Time:"
-        + str(datetime.utcnow()),
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
-
-
 def get_text_generation(
     messages: list,
     type: str,
@@ -1477,3 +1168,63 @@ def get_text_generation(
 
         else:
             return ""
+
+
+def detect_hallucinations(
+    message_prompt: str, message: str, attempts: Optional[int] = 2
+) -> list[str]:
+    """Detects hallucinations in a generated message.
+
+    Args:
+        message_prompt (str): The message prompt.
+        message (str): The generated message.
+        attempts (int): The number of attempts to try.
+
+    Returns:
+        list[str]: The hallucinations.
+    """
+    attempts -= 1
+
+    system_instructions = "You are an assistant that will help me detect hallucinations. A hallucination is defined as messaging that references entities that were not present in the original prompt."
+    prompt = """Help me determine if there are any hallucinations in the following generated message. A hallucination is defined as messaging that references entities that were not present in the original prompt.
+
+==== START PROMPT ====
+{message_prompt}
+==== END PROMPT ====
+
+==== START MESSAGE ====
+{message}
+==== END MESSAGE ====
+
+Please return a JSON object such as the following:
+{{
+    "hallucinations": ["Apple", "U.S. Air Force"]
+}}
+Just return the JSON string object, no prose. Do not include ```json. We will use json.loads().
+
+If there are no hallucinations, just return an empty list
+
+Output:
+""".format(
+        message_prompt=message_prompt, message=message
+    )
+
+    try:
+        response = wrapped_chat_gpt_completion(
+            [
+                {"role": "system", "content": system_instructions},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=100,
+            model=OPENAI_CHAT_GPT_4_TURBO_MODEL,
+        )
+        response = json.loads(response)
+
+        hallucinations = response.get("hallucinations", [])
+    except Exception as e:
+        if attempts > 0:
+            return detect_hallucinations(message_prompt, message, attempts)
+
+        return []
+
+    return hallucinations
