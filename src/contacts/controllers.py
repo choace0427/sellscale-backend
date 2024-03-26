@@ -93,6 +93,13 @@ def index(client_sdr_id: int):
         required=False,
         default_value=None,
     )
+    q_organization_keyword_tags = get_request_parameter(
+        "q_organization_keyword_tags",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
     organization_department_or_subdepartment_counts = get_request_parameter(
         "organization_department_or_subdepartment_counts",
         request,
@@ -129,6 +136,7 @@ def index(client_sdr_id: int):
         q_organization_search_list_id=q_organization_search_list_id,
         organization_department_or_subdepartment_counts=organization_department_or_subdepartment_counts,
         is_prefilter=is_prefilter,
+        q_organization_keyword_tags=q_organization_keyword_tags,
     )
 
     predicted_segment_name = ""
