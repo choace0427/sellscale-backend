@@ -2,6 +2,7 @@ from tqdm import tqdm
 from src.client.models import ClientAssets, ClientAssetArchetypeReasonMapping
 from model_import import EmailSequenceStep
 from app import db, celery
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 class AnalyticsComponents:
@@ -164,5 +165,10 @@ def backfill_asset_analytics(client_asset_id: int):
 @celery.task
 def backfill_all_assets_analytics():
     assets = ClientAssets.query.all()
+    asset_amt = len(assets)
+    send_slack_message(
+        message=f"📊 Backfilling analytics data for all ({asset_amt}) client assets",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
     for asset in tqdm(assets):
         backfill_asset_analytics(asset.id)

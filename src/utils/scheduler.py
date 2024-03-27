@@ -321,6 +321,20 @@ def run_daily_collect_and_generate_campaigns_for_sdr():
         daily_collect_and_generate_campaigns_for_sdr.delay()
 
 
+def run_daily_backfill_all_assets_analytics():
+    from src.analytics.services_asset_analytics import (
+        backfill_all_assets_analytics,
+    )
+
+    if is_scheduling_instance():
+        backfill_all_assets_analytics.apply_async(
+            args=[],
+            queue="analytics",
+            routing_key="analytics",
+            priority=1,
+        )
+
+
 def run_daily_drywall_notifications():
     from src.analytics.drywall_notification import notify_clients_with_no_updates
 
@@ -521,6 +535,7 @@ scheduler.add_job(run_daily_task_reminders, trigger=weekday_trigger)
 scheduler.add_job(
     run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_2am_trigger
 )
+scheduler.add_job(run_daily_backfill_all_assets_analytics, trigger=daily_2am_trigger)
 scheduler.add_job(run_daily_drywall_notifications, trigger=daily_trigger)
 scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_send_report_email, trigger=mid_week_trigger)
