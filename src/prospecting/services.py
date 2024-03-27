@@ -1851,7 +1851,6 @@ def create_prospect_from_linkedin_link(
     set_note: str = None,
     is_lookalike_profile: bool = False,
 ) -> tuple[bool, int or str]:
-
     from src.research.linkedin.services import research_personal_profile_details
 
     # Add an activity log
@@ -2535,7 +2534,9 @@ def update_last_reviewed_and_times_bumped(
     db.session.commit()
 
 
-def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
+def mark_prospect_as_removed(
+    client_sdr_id: int, prospect_id: int, removal_reason: Optional[str] = None
+) -> bool:
     """
     Removes a prospect from being contacted if their client_sdr assigned
     is the same as the client_sdr calling this.
@@ -2555,6 +2556,7 @@ def mark_prospect_as_removed(client_sdr_id: int, prospect_id: int) -> bool:
     # Remove the prospect
     prospect.overall_status = ProspectOverallStatus.REMOVED
     prospect.status = ProspectStatus.NOT_QUALIFIED
+    prospect.disqualification_reason = removal_reason
 
     # If the prospect has linkedin generated message mark them as blocked
     # Only mark as blocked if the message has not been sent (it's too late otherwise)
@@ -2818,9 +2820,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2896,11 +2898,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[ProspectEmailStatusRecords] = (
-        ProspectEmailStatusRecords.query.filter(
-            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-        ).all()
-    )
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
 
     return {
         "emails": email_history_parsed,

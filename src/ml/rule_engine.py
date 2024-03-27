@@ -12,7 +12,7 @@ from src.li_conversation.autobump_helpers.services_firewall import (
     rule_no_blacklist_words,
 )
 from src.message_generation.models import GeneratedMessageCTA, GeneratedMessageEmailType
-from src.ml.services import get_aree_fix_basic
+from src.ml.services import detect_hallucinations, get_aree_fix_basic
 from src.utils.string.string_utils import (
     has_consecutive_uppercase_string,
 )
@@ -58,6 +58,7 @@ def wipe_problems(message_id: int):
     """
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = []
+    message.blocking_problems = []
     message.unknown_named_entities = []
     db.session.add(message)
     db.session.commit()
@@ -109,22 +110,37 @@ def run_message_rule_engine_on_linkedin_completion(
         run_arree (bool, optional): Whether to run the ARREE autocorrect. Defaults to False.
 
     Returns:
-        tuple[str, list, list]: The corrected completion, problems, and highlighted words.
+        tuple[str, list, list, list]: The completion, problems, blocking_problems, and highlighted_words.
     """
     prompt = ""
     problems = []
+    blocking_problems = []
     highlighted_words = []
 
     case_preserved_completion = completion
     completion = completion.lower()
 
     # Strict Rules
-    rule_no_profanity(completion, problems, highlighted_words)
+    rule_no_profanity(
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
+    )
     rule_no_url(completion, problems, highlighted_words)
     rule_linkedin_length(
-        GeneratedMessageType.LINKEDIN, completion, problems, highlighted_words
+        message_type=GeneratedMessageType.LINKEDIN,
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
     )
-    rule_no_brackets(completion, problems, highlighted_words)
+    rule_no_brackets(
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
+    )
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
@@ -132,19 +148,19 @@ def run_message_rule_engine_on_linkedin_completion(
     rule_no_companies(completion, problems, highlighted_words)
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
-    rule_catch_im_a(completion, prompt, problems, highlighted_words)
+    # rule_catch_im_a(completion, prompt, problems, highlighted_words)
     # rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
     rule_catch_has_6_or_more_consecutive_upper_case(
         case_preserved_completion, prompt, problems, highlighted_words
     )
     # rule_no_ampersand(completion, problems, highlighted_words)
-    rule_no_fancying_a_chat(completion, problems, highlighted_words)
-    rule_no_ingratiation(completion, problems, highlighted_words)
+    # rule_no_fancying_a_chat(completion, problems, highlighted_words)
+    # rule_no_ingratiation(completion, problems, highlighted_words)
 
     if run_arree:
         completion = get_aree_fix_basic(completion=completion, problems=problems)
 
-    return completion, problems, highlighted_words
+    return completion, problems, blocking_problems, highlighted_words
 
 
 def run_message_rule_engine(message_id: int):
@@ -156,10 +172,7 @@ def run_message_rule_engine(message_id: int):
     Returns:
         bool: Whether the message passes the ruleset.
     """
-    from src.message_generation.services import (
-        run_check_message_has_bad_entities,
-    )
-
+    # Wipe problems before running the ruleset
     wipe_problems(message_id)
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
@@ -183,7 +196,7 @@ def run_message_rule_engine(message_id: int):
         completion = soup.get_text()
 
     prospect: Prospect = Prospect.query.get(message.prospect_id)
-    prospect_name = prospect.first_name + " " + prospect.last_name
+    prospect_name = prospect.full_name
     client_id = prospect.client_id
     client_sdr_id = prospect.client_sdr_id
     client: Client = Client.query.get(client_id)
@@ -192,30 +205,45 @@ def run_message_rule_engine(message_id: int):
     whitelisted_names = [client_name, client_sdr.name]
 
     problems = []
+    blocking_problems = []
     highlighted_words = []
 
-    # NER AI for Linkedin only
+    # Hallucination check for Linkedin only
     if message.message_type == GeneratedMessageType.LINKEDIN:
-        run_check_message_has_bad_entities(message_id)
-        format_entities(
-            message.unknown_named_entities,
-            problems,
-            highlighted_words,
-            whitelisted_names,
-            cta.text_value if cta else "",
+        rule_no_hallucinations(
+            message_id=message_id,
+            problems=problems,
+            blocking_problems=blocking_problems,
+            highlighted_words=highlighted_words,
         )
 
     # Strict Rules
-    rule_no_profanity(completion, problems, highlighted_words)
+    rule_no_profanity(
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
+    )
     rule_no_url(completion, problems, highlighted_words)
-    rule_linkedin_length(message.message_type, completion, problems, highlighted_words)
+    rule_linkedin_length(
+        message_type=message.message_type,
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
+    )
     if (
         message.message_type == GeneratedMessageType.LINKEDIN
     ):  # Only apply this rule to LinkedIn messages
         rule_address_doctor(
             prompt, completion, problems, highlighted_words, prospect_name
         )
-    rule_no_brackets(completion, problems, highlighted_words)
+    rule_no_brackets(
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
+    )
 
     # Warnings
     rule_no_cookies(completion, problems, highlighted_words)
@@ -223,7 +251,7 @@ def run_message_rule_engine(message_id: int):
     rule_no_companies(completion, problems, highlighted_words)
     rule_catch_strange_titles(completion, prompt, problems, highlighted_words)
     rule_no_hard_years(completion, prompt, problems, highlighted_words)
-    rule_catch_im_a(completion, prompt, problems, highlighted_words)
+    # rule_catch_im_a(completion, prompt, problems, highlighted_words)
     # rule_catch_no_i_have(completion, prompt, problems, highlighted_words)
 
     if message.message_type != GeneratedMessageType.EMAIL:
@@ -231,19 +259,29 @@ def run_message_rule_engine(message_id: int):
             case_preserved_completion, prompt, problems, highlighted_words
         )
     # rule_no_ampersand(completion, problems, highlighted_words)
-    rule_no_fancying_a_chat(completion, problems, highlighted_words)
+    # rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
-    if message.message_type != GeneratedMessageType.EMAIL:
-        rule_no_ingratiation(completion, problems, highlighted_words)
+    # if message.message_type != GeneratedMessageType.EMAIL:
+    #     rule_no_ingratiation(completion, problems, highlighted_words)
 
-    rule_no_sdr_blacklist_words(completion, problems, highlighted_words, client_sdr_id)
+    rule_no_sdr_blacklist_words(
+        completion=completion,
+        problems=problems,
+        blocking_problems=blocking_problems,
+        highlighted_words=highlighted_words,
+        client_sdr_id=client_sdr_id,
+    )
 
     # Only run for Email Subject Lines
     if (
         message.message_type == GeneratedMessageType.EMAIL
         and message.email_type == GeneratedMessageEmailType.SUBJECT_LINE
     ):
-        rule_subject_line_character_limit(completion, problems)
+        rule_subject_line_character_limit(
+            completion=completion,
+            problems=problems,
+            blocking_problems=blocking_problems,
+        )
 
     # Only run for linkedin:
     if message.message_type == GeneratedMessageType.LINKEDIN:
@@ -269,6 +307,7 @@ def run_message_rule_engine(message_id: int):
 
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
     message.problems = problems
+    message.blocking_problems = blocking_problems
     message.highlighted_words = highlighted_words
     db.session.add(message)
     db.session.commit()
@@ -321,13 +360,40 @@ def run_autocorrect(message_id: int):
     run_message_rule_engine(message_id)
 
 
+def rule_no_hallucinations(
+    message_id: int,
+    problems: list,
+    blocking_problems: list,
+    highlighted_words: list,
+):
+    """Rule (blocking): No Hallucinations
+
+    No hallucinations allowed in the completion.
+    """
+    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+    hallucinations = detect_hallucinations(
+        message_prompt=(
+            message.few_shot_prompt if message.few_shot_prompt else message.prompt
+        ),
+        message=message.completion,
+    )
+    if hallucinations and len(hallucinations) > 0:
+        problems.append("Contains hallucinations: {}".format(", ".join(hallucinations)))
+        blocking_problems.append(
+            "Contains hallucinations: {}".format(", ".join(hallucinations))
+        )
+        highlighted_words.extend(hallucinations)
+
+    return
+
+
 def rule_no_symbols(
     completion: str,
     problems: list,
     highlighted_words: list,
     message_type: Optional[GeneratedMessageType] = None,
 ):
-    """Rule: No Symbols
+    """Rule (non-blocking): No Symbols
 
     No symbols allowed in the completion.
 
@@ -351,10 +417,11 @@ def rule_no_symbols(
 def rule_no_sdr_blacklist_words(
     completion: str,
     problems: list,
+    blocking_problems: list,
     highlighted_words: list,
     client_sdr_id: int,
 ):
-    """Rule: No SDR Blacklist Words
+    """Rule (blocking): No SDR Blacklist Words
 
     No SDR blacklist words allowed in the completion.
     """
@@ -382,6 +449,11 @@ def rule_no_sdr_blacklist_words(
             + ", ".join(detected_blacklist_words)
             + " Please rephrase without these phrases."
         )
+        blocking_problems.append(
+            "Message contains a blacklisted phrase: "
+            + ", ".join(detected_blacklist_words)
+            + " Please rephrase without these phrases."
+        )
         highlighted_words.extend(detected_blacklist_words)
 
     return
@@ -394,7 +466,7 @@ def rule_address_doctor(
     highlighted_words: list,
     prospect_name: str,
 ):
-    """Rule: Address Doctor
+    """Rule (non-blocking): Address Doctor
 
     The completion must address the doctor.
     """
@@ -417,8 +489,6 @@ def rule_address_doctor(
             dr_positions.add(row[0])
             if len(row) > 1:
                 dr_assistant_positions.add(row[1].strip())
-
-        print(dr_positions, dr_assistant_positions)
 
         title_splitted = title_section.split(" ")
         name_splitted = name_section.split(" ")
@@ -466,8 +536,10 @@ def rule_address_doctor(
     return
 
 
-def rule_no_profanity(completion: str, problems: list, highlighted_words: list):
-    """Rule: No Profanity
+def rule_no_profanity(
+    completion: str, problems: list, blocking_problems: list, highlighted_words: list
+):
+    """Rule (blocking): No Profanity
 
     No profanity allowed in the completion.
     """
@@ -490,6 +562,7 @@ def rule_no_profanity(completion: str, problems: list, highlighted_words: list):
     if len(detected_profanities) > 0:
         problem_string = ", ".join(detected_profanities)
         problems.append("Contains profanity: {}".format(problem_string))
+        blocking_problems.append("Contains profanity: {}".format(problem_string))
 
         words = problem_string.split(", ")
         for word in words:
@@ -499,7 +572,7 @@ def rule_no_profanity(completion: str, problems: list, highlighted_words: list):
 
 
 def rule_no_cookies(completion: str, problems: list, highlighted_words: list):
-    """Rule: No Cookies!
+    """Rule (non-blocking): No Cookies!
 
     No cookies, or any other web related things, allowed in the completion.
     """
@@ -534,7 +607,7 @@ def rule_no_cookies(completion: str, problems: list, highlighted_words: list):
 
 
 def rule_no_url(completion: str, problems: list, highlighted_words: list):
-    """Rule: No URL
+    """Rule (non-blocking): No URL
 
     No URL's allowed in the completion.
     """
@@ -549,20 +622,24 @@ def rule_linkedin_length(
     message_type: GeneratedMessageType,
     completion: str,
     problems: list,
+    blocking_problems: list,
     highlighted_words: list,
 ):
-    """Rule: Linkedin Length
+    """Rule (blocking): Linkedin Length
 
     Linkedin messages must be less than 300 characters.
     """
     if message_type == GeneratedMessageType.LINKEDIN and len(completion) > 300:
         problems.append("The message is too long. Make the message about half as long.")
+        blocking_problems.append(
+            "The message is too long. Make the message about half as long."
+        )
 
     return
 
 
 def rule_no_companies(completion: str, problems: list, highlighted_words: list):
-    """Rule: No companies
+    """Rule (non-blocking): No companies
 
     No company abbreviations allowed in the completion. ie 'LLC', 'Inc.'
     """
@@ -595,7 +672,7 @@ def rule_no_companies(completion: str, problems: list, highlighted_words: list):
 def rule_catch_strange_titles(
     completion: str, prompt: str, problems: list, highlighted_words: list
 ):
-    """Rule: Catch Strange Titles
+    """Rule (non-blocking): Catch Strange Titles
 
     Catch titles that are too long.
     """
@@ -676,7 +753,7 @@ def rule_catch_strange_titles(
 def rule_no_hard_years(
     completion: str, prompt: str, problems: list, highlighted_words: list
 ):
-    """Rule: No Hard Years
+    """Rule (non-blocking): No Hard Years
 
     If 'decade' is in the prompt, then 'years' should not be in the completion.
 
@@ -684,20 +761,21 @@ def rule_no_hard_years(
 
     This heuristic is imperfect.
     """
-    if "decade" in prompt:
-        if "decade" not in completion and "years" in completion:
-            problems.append(
-                "A hard number year may appear non-colloquial. Reference the number without using a digit. Use references to decades if possible."
-            )
+    # Sometimes "decade" will not directly influence the completion, in which case we don't want using "years" to be a problem.
+    # if "decade" in prompt:
+    #     if "decade" not in completion and "years" in completion:
+    #         problems.append(
+    #             "A hard number year may appear non-colloquial. Reference the number without using a digit. Use references to decades if possible."
+    #         )
 
-            # Highlight the word 'years' and the word before it. Imperfect heurstic, may need change.
-            splitted = completion.split()
-            for i in range(len(splitted)):
-                word = splitted[i]
-                if word == "years":
-                    highlighted_words.append(splitted[i - 1] + " " + word)
-                    break
-        return
+    #         # Highlight the word 'years' and the word before it. Imperfect heurstic, may need change.
+    #         splitted = completion.split()
+    #         for i in range(len(splitted)):
+    #             word = splitted[i]
+    #             if word == "years":
+    #                 highlighted_words.append(splitted[i - 1] + " " + word)
+    #                 break
+    #     return
 
     # Catch colloquial years that should be rounded.
     if "nine years" in completion:
@@ -734,68 +812,71 @@ def rule_no_hard_years(
     return
 
 
-def rule_catch_im_a(
-    completion: str, prompt: str, problems: list, highlighted_words: list
-):
-    """Rule: Catch 'I'm a'
+# DEPRECATED [2024-03-25]: LLMs have become much better at sounding genuine. This rule is no longer necessary.
+# def rule_catch_im_a(
+#     completion: str, prompt: str, problems: list, highlighted_words: list
+# ):
+#     """NO BLOCK Rule: Catch 'I'm a'
 
-    Catch 'I'm a' in the completion.
-    """
-    if "i'm a" in prompt.lower():
-        return
+#     Catch 'I'm a' in the completion.
+#     """
+#     if "i'm a" in prompt.lower():
+#         return
 
-    if re.search(r"i'm a ", completion.lower()):
-        if (
-            "big" not in completion.lower()
-            and "massive" not in completion.lower()
-            and "huge" not in completion.lower()
-            and "fan" not in completion.lower()
-        ):
-            problems.append(
-                'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
-            )
-            highlighted_words.append("I'm a")
+#     if re.search(r"i'm a ", completion.lower()):
+#         if (
+#             "big" not in completion.lower()
+#             and "massive" not in completion.lower()
+#             and "huge" not in completion.lower()
+#             and "fan" not in completion.lower()
+#         ):
+#             problems.append(
+#                 'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
+#             )
+#             highlighted_words.append("I'm a")
 
-    return
-
-
-def rule_catch_no_i_have(
-    completion: str, prompt: str, problems: list, highlighted_words: list
-):
-    """Rule: Catch 'I have'
-
-    Catch 'I have' in the completion.
-    """
-    if "i have " in completion and (
-        completion.find("i have") == 0
-        or completion[completion.find("i have") - 1] == " "
-    ):
-        problems.append("Uses first person 'I have'.")
-        highlighted_words.append("i have")
+#     return
 
 
-def rule_no_ingratiation(completion: str, problems: list, highlighted_words: list):
-    """Rule: No Ingratiation
+# DEPRECATED [2024-03-25]: LLMs have become much better at sounding genuine. This rule is no longer necessary.
+# def rule_catch_no_i_have(
+#     completion: str, prompt: str, problems: list, highlighted_words: list
+# ):
+#     """Rule: Catch 'I have'
 
-    No ingratiation allowed in the completion.
-    """
-    ingratiating_words = [
-        "impressive",
-        "truly",
-    ]
+#     Catch 'I have' in the completion.
+#     """
+#     if "i have " in completion and (
+#         completion.find("i have") == 0
+#         or completion[completion.find("i have") - 1] == " "
+#     ):
+#         problems.append("Uses first person 'I have'.")
+#         highlighted_words.append("i have")
 
-    for word in ingratiating_words:
-        if word in completion:
-            problems.append(
-                f"Contains ingratiating phrase: '{word}'. Avoid using this phrase."
-            )
-            highlighted_words.append(word)
+
+# DEPRECATED [2024-03-25]: LLMs have become much better at sounding genuine. This rule is no longer necessary.
+# def rule_no_ingratiation(completion: str, problems: list, highlighted_words: list):
+#     """Rule: No Ingratiation
+
+#     No ingratiation allowed in the completion.
+#     """
+#     ingratiating_words = [
+#         "impressive",
+#         "truly",
+#     ]
+
+#     for word in ingratiating_words:
+#         if word in completion:
+#             problems.append(
+#                 f"Contains ingratiating phrase: '{word}'. Avoid using this phrase."
+#             )
+#             highlighted_words.append(word)
 
 
 def rule_catch_has_6_or_more_consecutive_upper_case(
     completion: str, prompt: str, problems: list, highlighted_words: list
 ):
-    """Rule: Catch 6 or more consecutive upper case letters
+    """Rule (non-blocking): Catch 6 or more consecutive upper case letters
 
     Catch 6 or more consecutive upper case letters in the completion.
     """
@@ -808,7 +889,7 @@ def rule_catch_has_6_or_more_consecutive_upper_case(
 
 
 def rule_no_ampersand(completion: str, problems: list, highlighted_words: list):
-    """Rule: No Ampersand
+    """Rule (non-blocking): No Ampersand
 
     As a general rule of thumb, an Ampersand (&) is most likely not used by a human writer.
 
@@ -821,14 +902,17 @@ def rule_no_ampersand(completion: str, problems: list, highlighted_words: list):
         highlighted_words.append("&")
 
 
-def rule_no_brackets(completion: str, problems: list, highlighted_words: list):
-    """Rule: No Brackets
+def rule_no_brackets(
+    completion: str, problems: list, blocking_problems: list, highlighted_words: list
+):
+    """Rule (blocking): No Brackets
 
     No brackets allowed in the completion.
     """
     if "[" in completion or "]" in completion or "{" in completion or "}" in completion:
         # problems.append("Contains brackets. Please remove all brackets or replace value in brackets with appropriate value.")
         problems.append("Contains brackets.")
+        blocking_problems.append("Contains brackets.")
         highlighted_words.append("[")
         highlighted_words.append("]")
         highlighted_words.append("{")
@@ -837,26 +921,30 @@ def rule_no_brackets(completion: str, problems: list, highlighted_words: list):
     return
 
 
-def rule_no_fancying_a_chat(completion: str, problems: list, highlighted_words: list):
-    """Rule: No Fancying a Chat
+# DEPRECATED [2024-03-25]: LLMs have become much better at sounding genuine. This rule is no longer necessary.
+# def rule_no_fancying_a_chat(completion: str, problems: list, highlighted_words: list):
+#     """Rule: No Fancying a Chat
 
-    No 'fancy a chat' allowed in the completion.
-    """
-    if "fancy a chat" in completion:
-        problems.append(
-            "Contains 'fancy a chat'. Do not use this phrase in the completions. Do not use the word 'fancy' in the completion."
-        )
-        highlighted_words.append("fancy a")
+#     No 'fancy a chat' allowed in the completion.
+#     """
+#     if "fancy a chat" in completion:
+#         problems.append(
+#             "Contains 'fancy a chat'. Do not use this phrase in the completions. Do not use the word 'fancy' in the completion."
+#         )
+#         highlighted_words.append("fancy a")
 
-    return
+#     return
 
 
-def rule_subject_line_character_limit(completion: str, problems: list):
-    """Rule: Subject Line Character Limit
+def rule_subject_line_character_limit(
+    completion: str, problems: list, blocking_problems: list
+):
+    """Rule (blocking): Subject Line Character Limit
 
     Subject line must be less than a character limit.
     """
     if len(completion) > SUBJECT_LINE_CHARACTER_LIMIT:
         problems.append("Subject line is too long. Please shorten it.")
+        blocking_problems.append("Subject line is too long. Please shorten it.")
 
     return

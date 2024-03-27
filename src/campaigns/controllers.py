@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 
+from src.campaigns.agi_campaign_services import create_agi_campaign
 from src.campaigns.services import (
     create_outbound_campaign,
     change_campaign_status,
@@ -701,3 +702,50 @@ def post_client_campaign_view_data(client_sdr_id: int):
         ),
         200,
     )
+
+
+@CAMPAIGN_BLUEPRINT.route("/create_agi_campaign", methods=["POST"])
+@require_user
+def post_create_agi_campaign(client_sdr_id: int):
+    """
+    Finds prospects and creates copy from a given request.
+    """
+    query = get_request_parameter("query", request, json=True, required=True)
+    campaign_instruction = get_request_parameter(
+        "campaign_instruction", request, json=True, required=True
+    )
+    run_prospecting = get_request_parameter(
+        "run_prospecting",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+        default_value=True,
+    )
+    run_linkedin = get_request_parameter(
+        "run_linkedin",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+        default_value=True,
+    )
+    run_email = get_request_parameter(
+        "run_email",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+        default_value=True,
+    )
+
+    data = create_agi_campaign(
+        client_sdr_id=client_sdr_id,
+        query=query,
+        campaign_instruction=campaign_instruction,
+        run_prospecting=run_prospecting,
+        run_linkedin=run_linkedin,
+        run_email=run_email,
+    )
+
+    return jsonify(data)

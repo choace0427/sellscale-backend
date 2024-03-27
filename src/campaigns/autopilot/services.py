@@ -12,6 +12,8 @@ from model_import import (
     OutboundCampaignStatus,
 )
 from tqdm import tqdm
+from src.ai_requests.models import AIRequest
+from src.ai_requests.services import create_ai_requests
 from src.analytics.models import AutoDeleteMessageAnalytics
 from src.client.models import SLASchedule
 from src.email_outbound.models import ProspectEmail
@@ -862,13 +864,30 @@ def auto_send_campaign(campaign_id: int):
             f"🟡 ({campaign_type.value}) Campaign #{campaign.id} warning for {sdr.name} for the `{archetype.archetype}` persona.\nReason: {percentage_failed}% of generations had errors.\n\nSolution: Manually review & send the messages. Relay relevant details to engineers for fix.",
             [URL_MAP["ops-auto-send-campaign"]],
         )
+
+        # Create an AI Request Card if there is none
+        title = f"Review Blocked Campaign `{archetype.archetype}`(#{archetype.id})"
+        ai_request_exists: AIRequest = AIRequest.query.filter(
+            AIRequest.client_sdr_id == sdr.id,
+            AIRequest.title == title,
+        ).first()
+        if not ai_request_exists:
+            campaign_link = f"https://sellscale.retool.com/embedded/public/eb93cfac-cfed-4d65-b45f-459ffc546bce#campaign_uuid={campaign.uuid}"
+            create_ai_requests(
+                client_sdr_id=sdr.id,
+                description=f"`{archetype.archetype}` had {percentage_failed}% of generations with errors. Please review and manually approve or flag any issues with rule engine. Review here: {campaign_link}",
+                title=title,
+                days_till_due=1,
+            )
+
         return False
 
     # Remove prospects that aren't approved
     approved_prospect_ids = [
         message.prospect_id
         for message in messages
-        if message.ai_approved or (not message.problems and len(message.problems) == 0)
+        if message.ai_approved
+        or (not message.blocking_problems and len(message.blocking_problems) == 0)
     ]
     # Turn into a set list to remove duplicates
     approved_prospect_ids = list(set(approved_prospect_ids))
@@ -879,12 +898,14 @@ def auto_send_campaign(campaign_id: int):
     invalid_prospect_ids: list[int] = [
         message.prospect_id
         for message in messages
-        if not message.ai_approved and (message.problems and len(message.problems) == 0)
+        if not message.ai_approved
+        and (message.blocking_problems and len(message.blocking_problems) == 0)
     ]
     invalid_message_ids: list[int] = [
         message.id
         for message in messages
-        if not message.ai_approved and (message.problems and len(message.problems) == 0)
+        if not message.ai_approved
+        and (message.blocking_problems and len(message.blocking_problems) == 0)
     ]
     # Turn into a set list to remove duplicates
     invalid_prospect_ids = list(set(invalid_prospect_ids))

@@ -563,11 +563,11 @@ def generate_linkedin_outreaches_with_configurations(
     ### Use legacy CTA + Voice generation ###
     NUM_GENERATIONS = 1
     for i in range(NUM_GENERATIONS):
-        TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
-            get_top_stack_ranked_config_ordering(
-                generated_message_type=GeneratedMessageType.LINKEDIN.value,
-                prospect_id=prospect_id,
-            )
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=prospect_id,
         )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -634,9 +634,9 @@ def generate_linkedin_outreaches(
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
-    research_points_list: list[ResearchPoints] = (
-        ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    )
+    research_points_list: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
     perms = generate_batches_of_research_points(points=research_points_list, n=4)
 
@@ -799,7 +799,7 @@ def approve_message(message_id: int):
     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
 
     # If the message has no problems, mark it as "human approved"
-    if not message.problems or len(message.problems) == 0:
+    if not message.blocking_problems or len(message.blocking_problems) == 0:
         message.ai_approved = True
         db.session.commit()
     else:
@@ -1230,12 +1230,12 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         # 8a. Get the Subject Line
         subjectline_template_id = None
         subjectline_strict = False  # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
-        subjectline_templates: list[EmailSubjectLineTemplate] = (
-            EmailSubjectLineTemplate.query.filter(
-                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
-                EmailSubjectLineTemplate.active == True,
-            ).all()
-        )
+        subjectline_templates: list[
+            EmailSubjectLineTemplate
+        ] = EmailSubjectLineTemplate.query.filter(
+            EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
+            EmailSubjectLineTemplate.active == True,
+        ).all()
         subjectline_template: EmailSubjectLineTemplate = (
             random.choice(subjectline_templates) if subjectline_templates else None
         )
@@ -1265,13 +1265,12 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             subjectline_template_id = None
             # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
             subjectline_strict = False
-            subjectline_templates: list[EmailSubjectLineTemplate] = (
-                EmailSubjectLineTemplate.query.filter(
-                    EmailSubjectLineTemplate.client_archetype_id
-                    == prospect.archetype_id,
-                    EmailSubjectLineTemplate.active == True,
-                ).all()
-            )
+            subjectline_templates: list[
+                EmailSubjectLineTemplate
+            ] = EmailSubjectLineTemplate.query.filter(
+                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
+                EmailSubjectLineTemplate.active == True,
+            ).all()
             subjectline_template: EmailSubjectLineTemplate = random.choice(
                 subjectline_templates
             )
@@ -1768,128 +1767,130 @@ Output:
     return ctas
 
 
-def get_named_entities(string: str):
-    """Get named entities from a string (completion message)
+# DEPRECATED [2024-03-26]: This NER function is deprecated and replaced by detect_hallucinations
+# def get_named_entities(string: str):
+#     """Get named entities from a string (completion message)
 
-    We use the OpenAI davinci-03 completion model to generate the named entities.
-    """
-    if string == "":
-        return []
+#     We use the OpenAI davinci-03 completion model to generate the named entities.
+#     """
+#     if string == "":
+#         return []
 
-    # Unlikely to have more than 50 tokens (words)
-    max_tokens_length = 50
-    message = string.strip()
-    instruction = "instruction: Return a list of all named entities, including persons's names, separated by ' // '. If no entities are detected, return 'NONE'."
+#     # Unlikely to have more than 50 tokens (words)
+#     max_tokens_length = 50
+#     message = string.strip()
+#     instruction = "instruction: Return a list of all named entities, including persons's names, separated by ' // '. If no entities are detected, return 'NONE'."
 
-    fewshot_1_message = "message: Hey David, I really like your background in computer security. I also really enjoyed reading the recommendation Aakash left for you. Impressive since you've been in the industry for 9+ years! You must have had a collection of amazing work experiences, given that you've been with Gusto, Naropa University, and Stratosphere in the past."
-    fewshot_1_entities = (
-        "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
-    )
-    fewshot_1 = fewshot_1_message + "\n\n" + instruction + "\n\n" + fewshot_1_entities
+#     fewshot_1_message = "message: Hey David, I really like your background in computer security. I also really enjoyed reading the recommendation Aakash left for you. Impressive since you've been in the industry for 9+ years! You must have had a collection of amazing work experiences, given that you've been with Gusto, Naropa University, and Stratosphere in the past."
+#     fewshot_1_entities = (
+#         "entities: David // Aakash // Gusto // Naropa University // Stratosphere"
+#     )
+#     fewshot_1 = fewshot_1_message + "\n\n" + instruction + "\n\n" + fewshot_1_entities
 
-    fewshot_2_message = "message: I'd like to commend you for being in the industry for 16+ years. That is no small feat!"
-    fewshot_2_entities = "entities: NONE"
-    fewshot_2 = fewshot_2_message + "\n\n" + instruction + "\n\n" + fewshot_2_entities
+#     fewshot_2_message = "message: I'd like to commend you for being in the industry for 16+ years. That is no small feat!"
+#     fewshot_2_entities = "entities: NONE"
+#     fewshot_2 = fewshot_2_message + "\n\n" + instruction + "\n\n" + fewshot_2_entities
 
-    target = "message: " + message + "\n\n" + instruction + "\n\n" + "entities:"
+#     target = "message: " + message + "\n\n" + instruction + "\n\n" + "entities:"
 
-    prompt = fewshot_1 + "\n\n--\n\n" + fewshot_2 + "\n\n--\n\n" + target
+#     prompt = fewshot_1 + "\n\n--\n\n" + fewshot_2 + "\n\n--\n\n" + target
 
-    max_attempts = 3
-    count = 0
-    response = {}
-    entities_clean = ["NONE"]
-    while count < max_attempts:
-        try:
-            text = wrapped_chat_gpt_completion(
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0,
-                max_tokens=max_tokens_length,
-            )
+#     max_attempts = 3
+#     count = 0
+#     response = {}
+#     entities_clean = ["NONE"]
+#     while count < max_attempts:
+#         try:
+#             text = wrapped_chat_gpt_completion(
+#                 messages=[
+#                     {"role": "user", "content": prompt},
+#                 ],
+#                 temperature=0,
+#                 max_tokens=max_tokens_length,
+#             )
 
-            entities_clean = text.strip().replace("\n", "").split(" // ")
-            break
-        except:
-            count += 1
+#             entities_clean = text.strip().replace("\n", "").split(" // ")
+#             break
+#         except:
+#             count += 1
 
-    # OpenAI returns "NONE" if there are no entities
-    if len(entities_clean) == 1 and entities_clean[0] == "NONE":
-        return []
+#     # OpenAI returns "NONE" if there are no entities
+#     if len(entities_clean) == 1 and entities_clean[0] == "NONE":
+#         return []
 
-    return entities_clean
-
-
-def get_named_entities_for_generated_message(message_id: int):
-    """Get named entities for a generated message"""
-    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    entities = get_named_entities(message.completion)
-
-    return entities
+#     return entities_clean
 
 
-def run_check_message_has_bad_entities(message_id: int):
-    """Check if the message has any entities that are not in the prompt
+# DEPRECATED [2024-03-26]: This NER function is deprecated and replaced by detect_hallucinations
+# def get_named_entities_for_generated_message(message_id: int):
+# """Get named entities for a generated message"""
+# message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+# entities = get_named_entities(message.completion)
 
-    If there are any entities that are not in the prompt, we flag the message and include the unknown entities.
-    """
+# return entities
 
-    message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    cta_id = message.message_cta
-    cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
+# DEPRECATED [2024-03-26]: This NER function is deprecated and replaced by detect_hallucinations
+# def run_check_message_has_bad_entities(message_id: int):
+#     """Check if the message has any entities that are not in the prompt
 
-    entities = get_named_entities_for_generated_message(message_id=message_id)
+#     If there are any entities that are not in the prompt, we flag the message and include the unknown entities.
+#     """
 
-    prompt = message.prompt
-    sanitized_prompt = re.sub(
-        "[^0-9a-zA-Z]+",
-        " ",
-        prompt.lower(),
-    ).strip()
+#     message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+#     cta_id = message.message_cta
+#     cta: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta_id)
 
-    if cta is not None:
-        cta_text = cta.text_value
-    else:
-        cta_text = prompt
-    sanitized_cta_text = re.sub(
-        "[^0-9a-zA-Z]+",
-        " ",
-        cta_text.lower(),
-    ).strip()
+#     # entities = get_named_entities_for_generated_message(message_id=message_id)
 
-    flagged_entities = []
-    for entity in entities:
-        for exception in ner_exceptions:
-            if exception in entity:
-                entity = entity.replace(exception, "").strip()
+#     prompt = message.prompt
+#     sanitized_prompt = re.sub(
+#         "[^0-9a-zA-Z]+",
+#         " ",
+#         prompt.lower(),
+#     ).strip()
 
-        if entity.lower() in title_abbreviations:  # Abbreviated titles are OK
-            full_title = title_abbreviations[entity.lower()]
-            if full_title in prompt.lower():
-                continue
+#     if cta is not None:
+#         cta_text = cta.text_value
+#     else:
+#         cta_text = prompt
+#     sanitized_cta_text = re.sub(
+#         "[^0-9a-zA-Z]+",
+#         " ",
+#         cta_text.lower(),
+#     ).strip()
 
-        sanitized_entity = re.sub(
-            "[^0-9a-zA-Z]+",
-            " ",
-            entity.lower(),
-        ).strip()
+#     flagged_entities = []
+#     for entity in entities:
+#         for exception in ner_exceptions:
+#             if exception in entity:
+#                 entity = entity.replace(exception, "").strip()
 
-        if (
-            sanitized_entity not in sanitized_prompt
-            and sanitized_entity not in sanitized_cta_text
-        ):
-            # HOTFIX: Dr.
-            if "dr." in sanitized_entity:
-                continue
-            flagged_entities.append(entity)
+#         if entity.lower() in title_abbreviations:  # Abbreviated titles are OK
+#             full_title = title_abbreviations[entity.lower()]
+#             if full_title in prompt.lower():
+#                 continue
 
-    generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
-    generated_message.unknown_named_entities = flagged_entities
-    db.session.add(generated_message)
-    db.session.commit()
+#         sanitized_entity = re.sub(
+#             "[^0-9a-zA-Z]+",
+#             " ",
+#             entity.lower(),
+#         ).strip()
 
-    return len(flagged_entities) > 0, flagged_entities
+#         if (
+#             sanitized_entity not in sanitized_prompt
+#             and sanitized_entity not in sanitized_cta_text
+#         ):
+#             # HOTFIX: Dr.
+#             if "dr." in sanitized_entity:
+#                 continue
+#             flagged_entities.append(entity)
+
+#     generated_message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+#     generated_message.unknown_named_entities = flagged_entities
+#     db.session.add(generated_message)
+#     db.session.commit()
+
+#     return len(flagged_entities) > 0, flagged_entities
 
 
 def clear_all_generated_message_jobs():
@@ -1942,11 +1943,11 @@ def get_generation_statuses(campaign_id: int) -> dict:
     jobs_list = []
 
     # Get generation jobs
-    generation_jobs: list[GeneratedMessageJobQueue] = (
-        GeneratedMessageJobQueue.query.filter(
-            GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
-        ).all()
-    )
+    generation_jobs: list[
+        GeneratedMessageJobQueue
+    ] = GeneratedMessageJobQueue.query.filter(
+        GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+    ).all()
 
     # Add job to statistics
     for job in tqdm(generation_jobs):
@@ -2519,11 +2520,11 @@ def clear_auto_generated_bumps(bump_framework_id: int) -> bool:
         bool: True if successful
     """
 
-    generated_bumps: List[GeneratedMessageAutoBump] = (
-        GeneratedMessageAutoBump.query.filter(
-            GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
-        ).all()
-    )
+    generated_bumps: List[
+        GeneratedMessageAutoBump
+    ] = GeneratedMessageAutoBump.query.filter(
+        GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
+    ).all()
 
     for bump in generated_bumps:
         db.session.delete(bump)
@@ -3151,11 +3152,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
         }
 
     ### Use legacy CTA + Voice generation ###
-    TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
-        get_top_stack_ranked_config_ordering(
-            generated_message_type=GeneratedMessageType.LINKEDIN.value,
-            prospect_id=prospect_id,
-        )
+    TOP_CONFIGURATION: Optional[
+        StackRankedMessageGenerationConfiguration
+    ] = get_top_stack_ranked_config_ordering(
+        generated_message_type=GeneratedMessageType.LINKEDIN.value,
+        prospect_id=prospect_id,
     )
     perms = generate_batch_of_research_points_from_config(
         prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -3164,11 +3165,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
     if not perms or len(perms) == 0:
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-        TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
-            get_top_stack_ranked_config_ordering(
-                generated_message_type=GeneratedMessageType.LINKEDIN.value,
-                prospect_id=prospect_id,
-            )
+        TOP_CONFIGURATION: Optional[
+            StackRankedMessageGenerationConfiguration
+        ] = get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=prospect_id,
         )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -3484,9 +3485,9 @@ def get_prospect_research_points(
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-    all_research_points: list[ResearchPoints] = (
-        ResearchPoints.get_research_points_by_prospect_id(prospect_id)
-    )
+    all_research_points: list[
+        ResearchPoints
+    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
 
     found_research_points = [
         research_point
@@ -3608,12 +3609,12 @@ def delete_cta_asset_mapping(
 
 
 def get_all_cta_assets(generated_message_cta_id: int):
-    mappings: list[GeneratedMessageCTAToAssetMapping] = (
-        GeneratedMessageCTAToAssetMapping.query.filter(
-            GeneratedMessageCTAToAssetMapping.generated_message_cta_id
-            == generated_message_cta_id
-        ).all()
-    )
+    mappings: list[
+        GeneratedMessageCTAToAssetMapping
+    ] = GeneratedMessageCTAToAssetMapping.query.filter(
+        GeneratedMessageCTAToAssetMapping.generated_message_cta_id
+        == generated_message_cta_id
+    ).all()
     asset_ids = [mapping.client_assets_id for mapping in mappings]
     assets: list[ClientAssets] = ClientAssets.query.filter(
         ClientAssets.id.in_(asset_ids)

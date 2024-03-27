@@ -68,6 +68,7 @@ class GeneratedMessage(db.Model):
 
     unknown_named_entities = db.Column(db.ARRAY(db.String), nullable=True)
     problems = db.Column(db.ARRAY(db.String), nullable=True)
+    blocking_problems = db.Column(db.ARRAY(db.String), nullable=True)
     highlighted_words = db.Column(db.ARRAY(db.String), nullable=True)
 
     good_message = db.Column(db.Boolean, nullable=True)
@@ -119,9 +120,9 @@ class GeneratedMessage(db.Model):
             "research_points": self.research_points,
             "prompt": self.prompt,
             "completion": self.completion,
-            "message_status": self.message_status.value
-            if self.message_status
-            else None,
+            "message_status": (
+                self.message_status.value if self.message_status else None
+            ),
             "message_type": self.message_type.value if self.message_type else None,
             "date_sent": self.date_sent,
             "batch_id": self.batch_id,
@@ -133,6 +134,7 @@ class GeneratedMessage(db.Model):
             "message_cta": self.message_cta,
             "unknown_named_entities": self.unknown_named_entities,
             "problems": self.problems,
+            "blocking_problems": self.blocking_problems,
             "highlighted_words": self.highlighted_words,
             "good_message": self.good_message,
             "few_shot_prompt": self.few_shot_prompt,
@@ -210,9 +212,11 @@ class GeneratedMessageAutoBump(db.Model):
                 "id": self.bump_framework_id,
                 "title": self.bump_framework_title,
                 "description": self.bump_framework_description,
-                "length": self.bump_framework_length.value
-                if self.bump_framework_length
-                else None,
+                "length": (
+                    self.bump_framework_length.value
+                    if self.bump_framework_length
+                    else None
+                ),
             },
             "account_research_points": self.account_research_points,
         }

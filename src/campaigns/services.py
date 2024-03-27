@@ -138,6 +138,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
             GeneratedMessage.ai_approved.label("ai_approved"),
             GeneratedMessage.completion.label("completion"),
             GeneratedMessage.problems.label("problems"),
+            GeneratedMessage.blocking_problems.label("blocking_problems"),
             GeneratedMessage.highlighted_words.label("highlighted_words"),
         )
         .join(
@@ -173,6 +174,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
                 "ai_approved": p.ai_approved,
                 "completion": p.completion,
                 "problems": p.problems,
+                "blocking_problems": p.blocking_problems,
                 "highlighted_words": p.highlighted_words,
             }
         )
@@ -197,7 +199,7 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
 
 
 def get_outbound_campaign_details_for_edit_tool_email(
-    client_sdr_id: int, campaign_id: int, approved_filter: Optional[bool] = None
+    campaign_id: int, approved_filter: Optional[bool] = None
 ):
     oc: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     data = db.session.execute(
@@ -260,7 +262,17 @@ def get_outbound_campaign_details_for_edit_tool_email(
             end "personalized_body_highlighted_words",
 
         -- general prospect email stuff
-            prospect_email.id "prospect_email_id"
+            prospect_email.id "prospect_email_id",
+
+        -- blocking problems
+            case when prospect_email.personalized_subject_line = subject_line.id
+                then subject_line.blocking_problems
+                else null
+            end "personalized_subject_line_blocking_problems",
+            case when prospect_email.personalized_body = body.id
+                then body.blocking_problems
+                else null
+            end "personalized_body_blocking_problems"
 
         from outbound_campaign
             join prospect on prospect.id = any(outbound_campaign.prospect_ids)
@@ -293,6 +305,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
         personalized_body_problems = entry[12] if entry[12] else []
         personalized_body_highlighted_words = entry[13]
         prospect_email_id = entry[14]
+        personalized_subject_line_blocking_problems = entry[15] if entry[15] else []
+        personalized_body_blocking_problems = entry[16] if entry[16] else []
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -302,6 +316,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "completion": personalized_subject_line_completion,
                 "problems": personalized_subject_line_problems
                 + personalized_body_problems,
+                "blocking_problems": personalized_subject_line_blocking_problems
+                + personalized_body_blocking_problems,
                 "highlighted_words": personalized_subject_line_highlighted_words,
                 "prompt": personalized_subject_line_prompt,
                 "few_shot_prompt": personalized_subject_line_few_shot_prompt,
@@ -357,7 +373,7 @@ def get_outbound_campaign_details_for_edit_tool(
         )
     if oc.campaign_type.value == "EMAIL":
         return get_outbound_campaign_details_for_edit_tool_email(
-            client_sdr_id, campaign_id, approved_filter
+            campaign_id, approved_filter
         )
 
 
@@ -953,54 +969,10 @@ def change_campaign_status(campaign_id: int, status: OutboundCampaignStatus):
         campaign_id (int): Campaign id
         status (OutboundCampaignStatus): New status of the campaign
     """
-    from src.client.services import get_client
-
     campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
     campaign.status = status
     db.session.add(campaign)
     db.session.commit()
-
-    campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
-    sdr: ClientSDR = ClientSDR.query.get(campaign.client_sdr_id)
-    sdr_name = sdr.name
-    client_id = sdr.client_id
-    client_company = get_client(client_id).company
-
-    campaign_name = campaign.name.split(",")[0]
-    campaign_type = campaign.campaign_type.value
-
-    # if status == OutboundCampaignStatus.COMPLETE.value:
-    #     send_slack_message(
-    #         message="{} - {}'s Campaign #{} is complete! :tada::tada::tada:".format(
-    #             client_company, sdr_name, campaign_id
-    #         ),
-    #         blocks=[
-    #             {
-    #                 "type": "header",
-    #                 "text": {
-    #                     "type": "plain_text",
-    #                     "text": "{} - {}'s Campaign #{} is `{}`! :tada::tada::tada:".format(
-    #                         client_company, sdr_name, campaign_id, status
-    #                     ),
-    #                 },
-    #             },
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": "*Campaign Name:* {}".format(campaign_name),
-    #                 },
-    #             },
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": "*Campaign Type #:* {}".format(campaign_type),
-    #                 },
-    #             },
-    #         ],
-    #         webhook_urls=[URL_MAP["operations-ready-campaigns"]],
-    #     )
 
     return True
 
@@ -1857,7 +1829,6 @@ def payout_campaigns(campaign_ids: list):
 
 @celery.task
 def detect_campaign_multi_channel_dash_card():
-
     sdrs: list[ClientSDR] = ClientSDR.query.filter_by(
         active=True,
         client_id=1,  # TEMP
@@ -1881,7 +1852,6 @@ def detect_campaign_multi_channel_dash_card():
 
 
 def create_campaign_ai_request(sdr_id: int, type: str):
-
     from src.ai_requests.models import AIRequest
     from src.ai_requests.services import create_ai_requests
 
@@ -1904,13 +1874,12 @@ def create_campaign_ai_request(sdr_id: int, type: str):
 
 
 def get_client_campaign_view_data(client_sdr_id: int):
-
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     data = db.session.execute(
         """
 with d as (
-	select 
+	select
 		client.company "Company",
 		client_sdr.name "Rep",
 		concat(client_archetype.emoji, ' ', client_archetype.archetype) "Campaign",
@@ -1933,25 +1902,25 @@ with d as (
 		left join client_archetype
 			on client_archetype.client_sdr_id = client_sdr.id and client_archetype.active and not client_archetype.is_unassigned_contact_archetype
 		left join
-			operator_dashboard_entry on cast(operator_dashboard_entry.task_data->>'campaign_id' as integer) = client_archetype.id 
-		left join 
+			operator_dashboard_entry on cast(operator_dashboard_entry.task_data->>'campaign_id' as integer) = client_archetype.id
+		left join
 			prospect on prospect.archetype_id = client_archetype.id
 		left join
 			linkedin_initial_message_template on linkedin_initial_message_template.client_archetype_id = client_archetype.id and linkedin_initial_message_template.active
 		left join
-			generated_message_cta on generated_message_cta.archetype_id = client_archetype.id and generated_message_cta.active 
+			generated_message_cta on generated_message_cta.archetype_id = client_archetype.id and generated_message_cta.active
 		left join
 			bump_framework on bump_framework.client_archetype_id = client_archetype.id and bump_framework.overall_status in ('ACCEPTED', 'BUMPED') and bump_framework.active and bump_framework.default
 		left join email_sequence_step on email_sequence_step.client_archetype_id = client_archetype.id and email_sequence_step.active and email_sequence_step.default
-		left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
-		left join prospect_email on prospect_email.prospect_id = prospect.id 
+		left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+		left join prospect_email on prospect_email.prospect_id = prospect.id
 		left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
 	where client.id = {client_id}
 	group by 1,2,3,4,5,6,7
 	order by 1 asc, 2 asc
 )
-select 
-	case 
+select
+	case
 		when length(d."Campaign") = 1 then '5. 🔴 No Campaign Found'
 		when d.active and d."num_complete_tasks" = 0 and d."num_open_tasks" = 0 and (d.num_linkedin_sent = 0 and d.num_email_sent = 0) then '4. 🗄 In Setup'
 		when d.active and d."num_open_tasks" > 0 then '3. 🟡 Rep Action Needed'
