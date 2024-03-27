@@ -6,7 +6,10 @@ from src.authentication.decorators import require_user
 from src.client.archetype.services_client_archetype import (
     bulk_action_move_prospects_to_archetype,
     bulk_action_withdraw_prospect_invitations,
+    create_li_init_template_asset_mapping,
+    delete_li_init_template_asset_mapping,
     generate_notification_for_campaign_active,
+    get_all_li_init_template_assets,
     get_archetype_assets,
     get_archetype_generation_upcoming,
     import_email_sequence,
@@ -20,7 +23,10 @@ from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
 from src.email_outbound.email_store.services import find_emails_for_archetype
-from src.li_conversation.models import LinkedinInitialMessageTemplate
+from src.li_conversation.models import (
+    LinkedInInitialMessageToAssetMapping,
+    LinkedinInitialMessageTemplate,
+)
 from src.message_generation.email.services import (
     ai_initial_email_prompt,
     generate_email,
@@ -194,11 +200,11 @@ def get_archetype_li_template(client_sdr_id: int, archetype_id: int):
             403,
         )
 
-    templates: list[
-        LinkedinInitialMessageTemplate
-    ] = LinkedinInitialMessageTemplate.query.filter(
-        LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
-    ).all()
+    templates: list[LinkedinInitialMessageTemplate] = (
+        LinkedinInitialMessageTemplate.query.filter(
+            LinkedinInitialMessageTemplate.client_archetype_id == archetype_id,
+        ).all()
+    )
 
     return (
         jsonify(
@@ -578,3 +584,100 @@ def get_assets(client_sdr_id: int, archetype_id: int):
     assets = get_archetype_assets(archetype_id=archetype_id)
 
     return jsonify({"status": "success", "data": assets}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route(
+    "li_init_template/create_asset_mapping", methods=["POST"]
+)
+@require_user
+def post_create_li_init_template_asset_mapping(client_sdr_id: int):
+    """Creates an asset mapping for a given client SDR"""
+    linkedin_initial_message_id = get_request_parameter(
+        "linkedin_initial_message_id", request, json=True, required=True
+    )
+    asset_id = get_request_parameter("asset_id", request, json=True, required=True)
+
+    linkedin_initial_message: LinkedinInitialMessageTemplate = (
+        LinkedinInitialMessageTemplate.query.get(linkedin_initial_message_id)
+    )
+    if not linkedin_initial_message:
+        return jsonify({"error": "Linkedin initial message not found."}), 404
+    elif linkedin_initial_message.client_sdr_id != client_sdr_id:
+        return (
+            jsonify({"error": "This Linkedin initial message does not belong to you."}),
+            401,
+        )
+
+    create_li_init_template_asset_mapping(
+        linkedin_initial_message_id=linkedin_initial_message_id,
+        client_assets_id=asset_id,
+    )
+
+    return jsonify({"message": "Asset mapping created."}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route(
+    "li_init_template/delete_asset_mapping", methods=["POST"]
+)
+@require_user
+def post_delete_li_init_template_asset_mapping(client_sdr_id: int):
+    """Deletes an asset mapping for a given client SDR"""
+    linkedin_initial_message_to_asset_mapping_id = get_request_parameter(
+        "linkedin_initial_message_to_asset_mapping_id",
+        request,
+        json=True,
+        required=True,
+    )
+
+    linkedin_initial_message_to_asset_mapping: LinkedInInitialMessageToAssetMapping = (
+        LinkedInInitialMessageToAssetMapping.query.get(
+            linkedin_initial_message_to_asset_mapping_id
+        )
+    )
+    linkedin_initial_message_id: int = (
+        linkedin_initial_message_to_asset_mapping.linkedin_initial_message_id
+    )
+    linkedin_initial_message: LinkedinInitialMessageTemplate = (
+        LinkedinInitialMessageTemplate.query.get(linkedin_initial_message_id)
+    )
+    if not linkedin_initial_message:
+        return jsonify({"error": "Linkedin initial message not found."}), 404
+    elif linkedin_initial_message.client_sdr_id != client_sdr_id:
+        return (
+            jsonify({"error": "This Linkedin initial message does not belong to you."}),
+            401,
+        )
+
+    delete_li_init_template_asset_mapping(
+        linkedin_initial_message_to_asset_mapping_id=linkedin_initial_message_to_asset_mapping_id
+    )
+
+    return jsonify({"message": "Asset mapping deleted."}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route(
+    "li_init_template/get_all_asset_mapping", methods=["GET"]
+)
+@require_user
+def get_li_init_template_all_asset_mapping(client_sdr_id: int):
+    """Gets all asset mapping for a given client SDR"""
+    linkedin_initial_message_id = get_request_parameter(
+        "linkedin_initial_message_id", request, json=False, required=True
+    )
+
+    linkedin_initial_message: LinkedinInitialMessageTemplate = (
+        LinkedinInitialMessageTemplate.query.get(linkedin_initial_message_id)
+    )
+    if not linkedin_initial_message:
+        return jsonify({"error": "Linkedin initial message not found."}), 404
+    elif linkedin_initial_message.client_sdr_id != client_sdr_id:
+        return (
+            jsonify({"error": "This Linkedin initial message does not belong to you."}),
+            401,
+        )
+
+    mappings = get_all_li_init_template_assets(
+        linkedin_initial_message_id=linkedin_initial_message_id
+    )
+
+    return jsonify({"mappings": mappings}), 200

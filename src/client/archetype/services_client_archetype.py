@@ -571,11 +571,11 @@ def wipe_linkedin_sequence_steps(campaign_id: int, steps: list):
     archetype.li_bump_amount = len(steps) - 1
 
     # wipe archetype sequence
-    initial_message_templates: list[
-        LinkedinInitialMessageTemplate
-    ] = LinkedinInitialMessageTemplate.query.filter(
-        LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
-    ).all()
+    initial_message_templates: list[LinkedinInitialMessageTemplate] = (
+        LinkedinInitialMessageTemplate.query.filter(
+            LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
+        ).all()
+    )
     ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == campaign_id
     ).all()
@@ -723,11 +723,11 @@ def wipe_email_sequence(campaign_id: int):
         step.default = False
         db.session.add(step)
 
-    email_subject_lines: list[
-        EmailSubjectLineTemplate
-    ] = EmailSubjectLineTemplate.query.filter(
-        EmailSubjectLineTemplate.client_archetype_id == campaign_id
-    ).all()
+    email_subject_lines: list[EmailSubjectLineTemplate] = (
+        EmailSubjectLineTemplate.query.filter(
+            EmailSubjectLineTemplate.client_archetype_id == campaign_id
+        ).all()
+    )
     for subject_line in email_subject_lines:
         subject_line.active = False
         db.session.add(subject_line)
@@ -817,11 +817,11 @@ def get_archetype_assets(archetype_id: int):
     Returns:
         list[dict]: A list of assets
     """
-    assetArchetypeMapping: list[
-        ClientAssetArchetypeReasonMapping
-    ] = ClientAssetArchetypeReasonMapping.query.filter(
-        ClientAssetArchetypeReasonMapping.client_archetype_id == archetype_id
-    ).all()
+    assetArchetypeMapping: list[ClientAssetArchetypeReasonMapping] = (
+        ClientAssetArchetypeReasonMapping.query.filter(
+            ClientAssetArchetypeReasonMapping.client_archetype_id == archetype_id
+        ).all()
+    )
     assets: list[ClientAssets] = ClientAssets.query.filter(
         ClientAssets.id.in_(
             [mapping.client_asset_id for mapping in assetArchetypeMapping]
@@ -829,3 +829,56 @@ def get_archetype_assets(archetype_id: int):
     ).all()
 
     return [asset.to_dict() for asset in assets]
+
+
+def create_li_init_template_asset_mapping(
+    linkedin_initial_message_id: int, client_assets_id: int
+):
+    mapping: LinkedInInitialMessageToAssetMapping = (
+        LinkedInInitialMessageToAssetMapping(
+            linkedin_initial_message_id=linkedin_initial_message_id,
+            client_assets_id=client_assets_id,
+        )
+    )
+    db.session.add(mapping)
+    db.session.commit()
+    return True
+
+
+def delete_li_init_template_asset_mapping(
+    linkedin_initial_message_to_asset_mapping_id: int,
+):
+    mapping: LinkedInInitialMessageToAssetMapping = (
+        LinkedInInitialMessageToAssetMapping.query.get(
+            linkedin_initial_message_to_asset_mapping_id
+        )
+    )
+    if not mapping:
+        return True
+
+    db.session.delete(mapping)
+    db.session.commit()
+    return True
+
+
+def get_all_li_init_template_assets(linkedin_initial_message_id: int):
+    mappings: list[LinkedInInitialMessageToAssetMapping] = (
+        LinkedInInitialMessageToAssetMapping.query.filter(
+            LinkedInInitialMessageToAssetMapping.linkedin_initial_message_id
+            == linkedin_initial_message_id
+        ).all()
+    )
+    asset_ids = [mapping.client_assets_id for mapping in mappings]
+    assets: list[ClientAssets] = ClientAssets.query.filter(
+        ClientAssets.id.in_(asset_ids)
+    ).all()
+    asset_dicts = [asset.to_dict() for asset in assets]
+
+    # add 'mapping_id' to each asset
+    for i, asset in enumerate(asset_dicts):
+        correct_mapping = next(
+            mapping for mapping in mappings if mapping.client_assets_id == asset["id"]
+        )
+        asset["mapping_id"] = correct_mapping.id
+
+    return asset_dicts
