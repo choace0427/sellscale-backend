@@ -13,7 +13,10 @@ from src.automation.models import PhantomBusterAgent
 from tqdm import tqdm
 from src.campaigns.models import OutboundCampaign
 from src.client.models import ClientArchetype
-from src.prospecting.services import update_prospect_status_linkedin
+from src.prospecting.services import (
+    mark_prospect_as_removed,
+    update_prospect_status_linkedin,
+)
 from src.utils.slack import send_slack_message, URL_MAP
 import json
 import requests
@@ -681,15 +684,25 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload_id: int) -> bo
             # Check for error, otherwise set the message to sent
             error = result.get("error")
             if error:
+                if error == "Already in network":
+                    # This is an edge case where we might try to connect to someone that we have already connected to
+                    # Therefore, this sanity check makes sure that this Prospect is someone who is queued for outreach
+                    if prospect.status == ProspectStatus.QUEUED_FOR_OUTREACH:
+                        mark_prospect_as_removed(
+                            client_sdr_id=client_sdr_id,
+                            prospect_id=prospect_id,
+                            removal_reason="Prospect is already in the SDR's LinkedIn Network",
+                        )
+                else:
+                    update_prospect_status_linkedin(
+                        prospect_id=prospect_id,
+                        new_status=ProspectStatus.SEND_OUTREACH_FAILED,
+                    )
+
                 message.message_status = GeneratedMessageStatus.FAILED_TO_SEND
                 message.failed_outreach_error = error
                 db.session.add(message)
                 db.session.commit()
-
-                update_prospect_status_linkedin(
-                    prospect_id=prospect_id,
-                    new_status=ProspectStatus.SEND_OUTREACH_FAILED,
-                )
             else:
                 message.message_status = GeneratedMessageStatus.SENT
                 message.date_sent = datetime.now()
