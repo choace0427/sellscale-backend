@@ -911,17 +911,28 @@ def auto_send_campaign(campaign_id: int):
     invalid_prospect_ids = list(set(invalid_prospect_ids))
     invalid_message_ids = list(set(invalid_message_ids))
 
-    send_slack_message_for_invalid_messages(
-        message_ids=invalid_message_ids,
-        campaign_type=campaign_type,
-    )
+    # Log the bad messages before we wipe them
+    for message_id in invalid_message_ids:
+        message: GeneratedMessage = GeneratedMessage.query.get(message_id)
+        auto_delete_message_log = AutoDeleteMessageAnalytics(
+            message_to_dict=message.to_dict(),
+            problem=message.problems,
+            sdr_name=sdr.name,
+            message=message.completion,
+            send_date=datetime.utcnow(),
+            channel=message.message_type.value,
+        )
+        db.session.add(auto_delete_message_log)
+    db.session.commit()
 
     from src.research.linkedin.services import (
         reset_batch_of_prospect_research_and_messages,
     )
 
     if campaign_type == GeneratedMessageType.LINKEDIN:
-        reset_batch_of_prospect_research_and_messages(invalid_prospect_ids)
+        reset_batch_of_prospect_research_and_messages(
+            prospect_ids=invalid_prospect_ids, use_celery=False
+        )
     elif campaign_type == GeneratedMessageType.EMAIL:
         # Get the generated messages and set them all to BLOCKED
         for prospect_id in invalid_prospect_ids:

@@ -1,5 +1,6 @@
 from email.policy import default
 from app import db
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class SDRHealthStats(db.Model):
@@ -25,6 +26,7 @@ class AutoDeleteMessageAnalytics(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    message_to_dict = db.Column(JSONB, nullable=True)
     problem = db.Column(db.String)
     prospect = db.Column(db.String)
     sdr_name = db.Column(db.String)
@@ -57,7 +59,6 @@ class ActivityLog(db.Model):
     description = db.Column(db.String)
 
     def to_dict(self):
-
         from model_import import ClientSDR
 
         sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)

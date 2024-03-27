@@ -1,3 +1,4 @@
+from typing import Optional
 from src.company.services import add_company_cache_to_db
 from app import celery, db
 
@@ -300,6 +301,11 @@ def reset_prospect_research_and_messages(prospect_id: int):
     # delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
 
 
-def reset_batch_of_prospect_research_and_messages(prospect_ids: list):
+def reset_batch_of_prospect_research_and_messages(
+    prospect_ids: list, use_celery: Optional[bool] = True
+):
     for p_id in prospect_ids:
-        reset_prospect_research_and_messages.delay(prospect_id=p_id)
+        if use_celery:
+            reset_prospect_research_and_messages.delay(prospect_id=p_id)
+        else:
+            reset_prospect_research_and_messages(prospect_id=p_id)
