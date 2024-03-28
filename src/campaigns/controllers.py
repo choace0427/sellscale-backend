@@ -7,6 +7,7 @@ from src.campaigns.services import (
     get_client_campaign_view_data,
     mark_campaign_as_ready_to_send,
     mark_campaign_as_initial_review_complete,
+    get_outbound_data
 )
 from src.campaigns.autopilot.services import (
     auto_send_campaigns_and_send_approved_messages_job,
@@ -749,3 +750,11 @@ def post_create_agi_campaign(client_sdr_id: int):
     )
 
     return jsonify(data)
+
+
+@CAMPAIGN_BLUEPRINT.route("/utilization", methods=["GET"])
+@require_user
+def get_outboundData(client_sdr_id: int):
+    data = get_outbound_data(client_sdr_id)
+
+    return data

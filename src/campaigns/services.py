@@ -1,3 +1,4 @@
+from http import client
 from app import db, celery
 from sqlalchemy import and_, or_, nullslast
 from typing import Optional
@@ -1950,3 +1951,41 @@ order by 1 asc, 2 asc, 3 asc;
         )
 
     return records
+
+
+def get_outbound_data(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id: int = client_sdr.client_id
+    seat_data = db.session.execute(
+        f"""
+        select 
+            count(distinct client_sdr.id) "active_seats",
+            count(distinct client_archetype.client_sdr_id) filter (where client_archetype.active and (client_archetype.linkedin_active or client_archetype.email_active)) "num_used_seats"
+        from client_sdr
+            left join client_archetype on client_archetype.client_sdr_id = client_sdr.id
+        where 
+            client_sdr.client_id = {client_id}
+            and client_sdr.active;
+        """
+    ).fetchone()
+
+    message_data = db.session.execute(
+        f"""
+        select 
+            sum(client_sdr.weekly_li_outbound_target) + sum(client_sdr.weekly_email_outbound_target) "num_messages",
+            sum(client_sdr.weekly_li_outbound_target) filter (where client_archetype.active and (client_archetype.linkedin_active)) + sum(client_sdr.weekly_email_outbound_target) filter (where client_archetype.active and (client_archetype.email_active)) "num_messages_used"
+        from client_sdr
+            left join client_archetype on client_archetype.client_sdr_id = client_sdr.id
+        where 
+            client_sdr.client_id = {client_id}
+            and client_sdr.active;
+        """
+    ).fetchone()
+
+    data = {
+        "seat_total": seat_data[0],
+        "seat_active": seat_data[1],
+        "message_total": message_data[0],
+        "message_active": message_data[1],
+    }
+    return data
