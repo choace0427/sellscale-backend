@@ -210,6 +210,7 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
             model="gpt-4",
             max_tokens=4000,
             type="CLIENT_ASSETS",
+            use_cache=True,
         )
         or ""
     )
