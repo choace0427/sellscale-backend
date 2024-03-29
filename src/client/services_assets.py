@@ -220,7 +220,7 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
                     "content": prompt,
                 }
             ],
-            model="gpt-4",
+            model="gpt-3.5-turbo-16k" if len(prompt) > 8000 else "gpt-4",
             max_tokens=4000,
             type="CLIENT_ASSETS",
             use_cache=True,
@@ -246,12 +246,25 @@ def parse_data_to_assets(data: str):
             tag = lines[2].replace("Tag: ", "").strip()
             # Append the extracted data as a dict to the assets list
             assets.append(
-                {"title": title, "value": value, "tag": convert_tag_to_asset_tag(tag)}
+                {
+                    "title": title,
+                    "value": clean_value(value),
+                    "tag": convert_tag_to_asset_tag(tag),
+                }
             )
         except:
             pass
 
     return assets
+
+
+def clean_value(value: str):
+    # Remove leading header
+    parts = value.split(": ")
+    if len(parts) > 1 and len(parts[0]) < 15:
+        return parts[1].strip()
+    else:
+        return value.strip()
 
 
 def convert_tag_to_asset_tag(tag: str):
