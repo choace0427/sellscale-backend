@@ -30,7 +30,9 @@ def capture_outbound_quota_snapshot() -> OutboundQuotaSnapshot:
     meta_data = {}
 
     # Get active clients
-    active_clients: list[Client] = Client.query.filter(Client.active == True).all()
+    active_clients: list[Client] = Client.query.filter(
+        Client.active == True, Client.id != 1
+    ).all()
     active_sdrs: list[ClientSDR] = ClientSDR.query.filter(
         ClientSDR.active == True,
         ClientSDR.client_id.in_([client.id for client in active_clients]),
