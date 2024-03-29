@@ -1644,7 +1644,8 @@ def add_prospect(
             id=prospect_exists.archetype_id
         ).first()
         if (
-            prospect_exists.archetype_id != archetype_id
+            archetype_id
+            and prospect_exists.archetype_id != archetype_id
             and prospect_persona.is_unassigned_contact_archetype
         ):
             prospect_exists.archetype_id = archetype_id
@@ -1706,6 +1707,14 @@ def add_prospect(
     can_create_prospect = not prospect_exists or allow_duplicates
     if can_create_prospect:
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+
+        if segment_id and archetype.is_unassigned_contact_archetype:
+            # Use the segment's attached archetype if the prospect archetype is unassigned
+            segment: Segment = Segment.query.get(segment_id)
+            if segment.client_archetype_id:
+                archetype_id = segment.client_archetype_id
+                archetype = ClientArchetype.query.get(archetype_id)
+
         prospect: Prospect = Prospect(
             client_id=client_id,
             archetype_id=archetype_id,
@@ -2820,9 +2829,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2898,11 +2907,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,

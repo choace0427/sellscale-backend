@@ -73,6 +73,12 @@ def update_segment(
     db.session.add(segment)
     db.session.commit()
 
+    if client_archetype_id:
+        # If we attached segement to campaign, add existing contacts to campaign
+        success, msg = add_unused_prospects_in_segment_to_campaign(
+            segment_id=segment_id, campaign_id=client_archetype_id
+        )
+
     return segment
 
 
