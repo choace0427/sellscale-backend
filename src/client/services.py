@@ -3266,9 +3266,9 @@ def get_personas_page_details(client_sdr_id: int):
             .filter(Prospect.overall_status == "PROSPECTED")
             .label("avg_icp_fit_score"),
             func.count(distinct(Prospect.id))
-            .filter(Prospect.approved_outreach_message_id.is_(None))
+            .filter(Prospect.approved_outreach_message_id == None)
             .filter(
-                Prospect.overall_status.in_(
+                Prospect.overall_status.notin_(
                     [
                         ProspectOverallStatus.PROSPECTED,
                         ProspectOverallStatus.SENT_OUTREACH,
@@ -3277,7 +3277,7 @@ def get_personas_page_details(client_sdr_id: int):
             )
             .label("num_unused_li_prospects"),
             func.count(distinct(Prospect.id))
-            .filter(Prospect.approved_prospect_email_id.is_(None))
+            .filter(Prospect.approved_prospect_email_id == None)
             .filter(
                 Prospect.overall_status.notin_(
                     [
@@ -3336,17 +3336,21 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH') "EMAIL-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED') "EMAIL-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO') "EMAIL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOSS')) "EMAIL-DEMO",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SENT_OUTREACH') "LI-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACCEPTED') "LI-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'ACTIVE_CONVO') "LI-REPLY",
-            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON')) "LI-DEMO",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOSS')) "LI-DEMO",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status = 'SEND_OUTREACH_FAILED') "LI-FAILED",
             client_archetype.emoji,
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH' OR prospect_status_records.to_status = 'SENT_OUTREACH') "TOTAL-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED' OR prospect_status_records.to_status = 'ACCEPTED') "TOTAL-OPENED",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status in ('ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_SCHEDULING')) "TOTAL-POS-REPLY",
-            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'DEMO_SET' OR prospect_status_records.to_status = 'DEMO_SET') "TOTAL-DEMO",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOST') OR prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOSS')) "TOTAL-DEMO",
             count(DISTINCT prospect.id) "TOTAL-PROSPECTS",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect.approved_outreach_message_id != NULL and prospect.overall_status not in ('PROSPECTED', 'SENT_OUTREACH')) "TOTAL-PROSPECTS-LEFT-LINKEDIN",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect.approved_prospect_email_id != NULL and prospect.overall_status not in ('PROSPECTED', 'SENT_OUTREACH')) "TOTAL-PROSPECTS-LEFT-EMAIL",
             client_archetype.smartlead_campaign_id,
             client_archetype.meta_data,
             client_archetype.first_message_delay_days
@@ -3380,20 +3384,24 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         9: "email_sent",
         10: "email_opened",
         11: "email_replied",
-        12: "li_sent",
-        13: "li_opened",
-        14: "li_replied",
-        15: "li_demo",
-        16: "emoji",
-        17: "total_sent",
-        18: "total_opened",
-        19: "total_replied",
-        20: "total_pos_replied",
-        21: "total_demo",
-        22: "total_prospects",
-        23: "smartlead_campaign_id",
-        24: "meta_data",
-        25: "first_message_delay_days",
+        12: "email_demo",
+        13: "li_sent",
+        14: "li_opened",
+        15: "li_replied",
+        16: "li_demo",
+        17: "li_failed",
+        18: "emoji",
+        19: "total_sent",
+        20: "total_opened",
+        21: "total_replied",
+        22: "total_pos_replied",
+        23: "total_demo",
+        24: "total_prospects",
+        25: "total_prospects_left_linkedin",
+        26: "total_prospects_left_email",
+        27: "smartlead_campaign_id",
+        28: "meta_data",
+        29: "first_message_delay_days",
     }
 
     # Convert and format output
