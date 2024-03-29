@@ -4823,7 +4823,7 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
-    client_sdr_id: int,
+    client_sdr_id: Optional[int],
     client_id: int,
     client_archetype_ids: list[int],
     asset_key: str,
@@ -4848,7 +4848,7 @@ def create_archetype_asset(
     db.session.add(asset)
     db.session.commit()
 
-    if send_notification:
+    if send_notification and client_sdr_id:
         success = create_and_send_slack_notification_class_message(
             notification_type=SlackNotificationType.ASSET_CREATED,
             arguments={

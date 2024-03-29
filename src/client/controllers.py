@@ -3031,6 +3031,44 @@ def post_create_archetype_asset(client_sdr_id: int):
     return jsonify({"message": "Success", "data": asset_dict}), 200
 
 
+@CLIENT_BLUEPRINT.route("/unrestricted_create_archetype_asset", methods=["POST"])
+def post_unrestricted_create_archetype_asset():
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
+    )
+    asset_key = get_request_parameter(
+        "asset_key", request, json=True, required=True, parameter_type=str
+    )
+    asset_value = get_request_parameter(
+        "asset_value", request, json=True, required=True, parameter_type=str
+    )
+    asset_type = get_request_parameter(
+        "asset_type", request, json=True, required=False, parameter_type=str
+    )
+    asset_tags = get_request_parameter(
+        "asset_tags", request, json=True, required=False, parameter_type=list
+    )
+    asset_raw_value = get_request_parameter(
+        "asset_raw_value", request, json=True, required=False, parameter_type=str
+    )
+
+    asset_dict = create_archetype_asset(
+        client_sdr_id=None,
+        client_id=client_id,
+        client_archetype_ids=[],
+        asset_key=asset_key,
+        asset_value=asset_value,
+        asset_type=asset_type or ClientAssetType.TEXT,
+        asset_tags=asset_tags or [],
+        asset_raw_value=asset_raw_value or asset_value,
+    )
+
+    if not asset_dict:
+        return "Failed to create client asset", 400
+
+    return jsonify({"message": "Success", "data": asset_dict}), 200
+
+
 @CLIENT_BLUEPRINT.route("/get_assets", methods=["GET"])
 @require_user
 def get_assets_edpoint(client_sdr_id: int):
