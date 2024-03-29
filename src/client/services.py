@@ -4848,7 +4848,7 @@ def create_archetype_asset(
     db.session.add(asset)
     db.session.commit()
 
-    if not send_notification:
+    if send_notification:
         success = create_and_send_slack_notification_class_message(
             notification_type=SlackNotificationType.ASSET_CREATED,
             arguments={

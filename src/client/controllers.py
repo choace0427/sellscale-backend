@@ -57,6 +57,7 @@ from src.slack.notifications.demo_feedback_updated import (
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
 )
+from src.client.services_assets import generate_client_assets
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
@@ -3175,5 +3176,31 @@ def post_query_gpt_v_endpoint():
 def get_archetype_assets(client_sdr_id: int, archetype_id: int):
     """Gets all assets for a client sdr"""
     assets = fetch_archetype_assets(client_archetype_id=archetype_id)
+
+    return jsonify({"message": "Success", "data": assets}), 200
+
+
+@CLIENT_BLUEPRINT.route("/generate_assets", methods=["POST"])
+def post_generate_assets():
+
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
+    )
+    text_dump = get_request_parameter(
+        "text_dump", request, json=True, required=True, parameter_type=str
+    )
+    website_url = get_request_parameter(
+        "website_url", request, json=True, required=False, parameter_type=str
+    )
+    additional_prompting = get_request_parameter(
+        "additional_prompting", request, json=True, required=False, parameter_type=str
+    )
+
+    assets = generate_client_assets(
+        client_id=client_id,
+        text_dump=text_dump,
+        website_url=website_url,
+        additional_prompting=additional_prompting,
+    )
 
     return jsonify({"message": "Success", "data": assets}), 200

@@ -1118,7 +1118,8 @@ def get_text_generation(
     temperature: Optional[float] = DEFAULT_TEMPERATURE,
     use_cache: bool = False,
 ) -> Optional[str]:
-    # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY" | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA"
+    # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY"
+    # | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA" | "CLIENT_ASSETS"
 
     def normalize_string(string: str) -> str:
         string = re.sub(r"\\n", " ", string)
