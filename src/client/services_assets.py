@@ -156,7 +156,6 @@ case study and link has been the best so far. no case study lower open rate.
 1. Start with overview just gives a background
     1. more sophistacted, the more they think they need data.
 2. then Go to case study (highest open rate)
-3.
 
 --------------------------------------------------------------------------
 
@@ -171,7 +170,7 @@ Value: Our solution not only reduces the cost and time of data collection but al
 Tag: Value Prop
 
 Title: Precision in Manufacturing Through AI
-Value: By leveraging generative AI, Advex enhances the quality of datasets, leading to higher model accuracy for defect detection and quality control in manufacturing processes.
+Value: By leveraging generative AI, Advex can create synthetic data sets that lead to higher model accuracy for defect detection and quality control in manufacturing processes.
 Tag: Value Prop
 
 Title: High costs with collecting images
