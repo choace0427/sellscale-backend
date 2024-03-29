@@ -87,7 +87,7 @@ Pain points
 - once deploying model, if things changes, you have to redo the data collection process and re-train the process. variability post-deployment or machine-downtime post deployment
 
 - Successful saying:
-    "We helped facilitate the OpenAI deal find their office space in Mission Bay, could help you find your office space too."
+    "We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too."
 
 What they have in place
 
@@ -111,6 +111,8 @@ Case study
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/9142e2cc-8ebc-44b1-b954-ad6fcf62bc1d/Untitled.png)
     
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/0a407177-e1cd-49de-87b4-f5bf978694da/Untitled.png)
+    
+They were experiencing 55% defect rates. With us they saw a 52% reduction in defects after 3 months.
     
 - **Robotics pick-n-place:**
     
@@ -172,8 +174,20 @@ Title: Precision in Manufacturing Through AI
 Value: By leveraging generative AI, Advex enhances the quality of datasets, leading to higher model accuracy for defect detection and quality control in manufacturing processes.
 Tag: Value Prop
 
-Title: OpenAI case study
-Value: We helped facilitate the OpenAI deal find their office space in Mission Bay, could help you find your office space too.
+Title: High costs with collecting images
+Value: Today, there is extensive time and high costs associated with collecting images for training computer vision models.
+Tag: Pain Point
+
+Title: Adaptability of mnfg lines
+Value: Changes in the manufacturing line process means you have to rephrase a training process.
+Tag: Pain Point
+
+Title: Adaptability of mnfg lines
+Value: Auto-manufacturer was previously experiencing 55% defect rates. After implementing, they saw a 52% reduction from using Advex's AI technology after 3 months.
+Tag: Case Study
+
+Title: OpenAI Used Us
+Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
 Tag: Phrase
 
 ... TODO, continue generating assets ...
