@@ -220,7 +220,7 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
                     "content": prompt,
                 }
             ],
-            model="gpt-3.5-turbo-16k" if len(prompt) > 8000 else "gpt-4",
+            model="gpt-4-turbo-preview",
             max_tokens=4000,
             type="CLIENT_ASSETS",
             use_cache=True,

@@ -9,6 +9,7 @@ from src.personas.services import (
     get_unassignable_prospects_using_icp_heuristic,
     unassign_prospects,
 )
+from src.personas.services_generation import generate_sequence
 from src.utils.request_helpers import get_request_parameter
 
 PERSONAS_BLUEPRINT = Blueprint("personas", __name__)
@@ -69,11 +70,18 @@ def get_persona_unassign_prospects(client_sdr_id: int):
     )
 
     _, prospect_dicts, count = get_unassignable_prospects_using_icp_heuristic(
-        client_sdr_id=client_sdr_id,
-        client_archetype_id=client_archetype_id
+        client_sdr_id=client_sdr_id, client_archetype_id=client_archetype_id
     )
 
-    return jsonify({"status": "success", "data": {"prospects": prospect_dicts, "total_count": count}}), 200
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {"prospects": prospect_dicts, "total_count": count},
+            }
+        ),
+        200,
+    )
 
 
 @PERSONAS_BLUEPRINT.route("/prospects/unassign", methods=["POST"])
@@ -84,10 +92,20 @@ def post_persona_unassign_prospects(client_sdr_id: int):
         "client_archetype_id", request, json=True, required=True
     )
     manual_unassign_list = get_request_parameter(
-        "manual_unassign_list", request, json=True, required=False, parameter_type=list, default_value=[]
+        "manual_unassign_list",
+        request,
+        json=True,
+        required=False,
+        parameter_type=list,
+        default_value=[],
     )
     use_icp_heuristic = get_request_parameter(
-        "use_icp_heuristic", request, json=True, required=False, parameter_type=bool, default_value=False
+        "use_icp_heuristic",
+        request,
+        json=True,
+        required=False,
+        parameter_type=bool,
+        default_value=False,
     )
 
     success = unassign_prospects.delay(
@@ -97,7 +115,10 @@ def post_persona_unassign_prospects(client_sdr_id: int):
         manual_unassign_list,
     )
     if not success:
-        return jsonify({"status": "error", "message": "Unable to unassign prospects"}), 400
+        return (
+            jsonify({"status": "error", "message": "Unable to unassign prospects"}),
+            400,
+        )
 
     return jsonify({"status": "success", "data": {}}), 200
 
@@ -111,9 +132,42 @@ def get_prospect_from_li_url(client_sdr_id: int):
     )
 
     from src.prospecting.services import find_prospect_id_from_li_or_email
-    
+
     prospect_id = find_prospect_id_from_li_or_email(client_sdr_id, li_url, None)
 
-    return jsonify({"status": "success", "data": {
-        "prospect_id": prospect_id
-    }}), 200
+    return jsonify({"status": "success", "data": {"prospect_id": prospect_id}}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/generate_sequence", methods=["POST"])
+@require_user
+def post_generate_sequence(client_sdr_id: int):
+    """Generates a sequence for an archetype"""
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    sequence_type = get_request_parameter(
+        "sequence_type", request, json=True, required=True, parameter_type=str
+    )
+    num_steps = get_request_parameter(
+        "num_steps", request, json=True, required=True, parameter_type=int
+    )
+    additional_prompting = get_request_parameter(
+        "additional_prompting",
+        request,
+        json=True,
+        required=True,
+        parameter_type=str,
+    )
+
+    result = generate_sequence(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        sequence_type=sequence_type,
+        num_steps=num_steps,
+        additional_prompting=additional_prompting,
+    )
+
+    return jsonify({"status": "success", "data": result}), 200
