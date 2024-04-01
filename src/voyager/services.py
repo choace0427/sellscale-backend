@@ -164,7 +164,7 @@ def update_sdr_li_url(client_sdr_id: int):
     if not client_sdr:
         return "No client sdr found with this id", 400
 
-    if client_sdr.linkedin_url:
+    if client_sdr.individual_id and client_sdr.linkedin_url:
         return "Li URL already added", 200
 
     api = LinkedIn(client_sdr_id=client_sdr_id)
@@ -182,9 +182,22 @@ def update_sdr_li_url(client_sdr_id: int):
     db.session.commit()
 
     # Create an individual for the SDR
-    success, new_id, created = add_individual_from_linkedin_url(client_sdr.linkedin_url)
-    if success and new_id:
-        client_sdr.individual_id = new_id
+    try:
+        success, indiv_id, created = add_individual_from_linkedin_url(
+            client_sdr.linkedin_url
+        )
+    except:
+        from model_import import Individual
+
+        individual = Individual.query.filter(
+            Individual.li_public_id == public_id
+        ).first()
+        if individual:
+            indiv_id = individual.id
+            created = False
+
+    if indiv_id:
+        client_sdr.individual_id = indiv_id
         db.session.add(client_sdr)
         db.session.commit()
 

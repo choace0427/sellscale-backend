@@ -6,9 +6,11 @@ from src.client.models import (
     Client,
     DemoFeedback,
 )
+from model_import import Individual
 from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
 from src.utils.datetime.dateutils import get_current_time_casual
+from src.individual.services import parse_work_history
 
 
 def generate_sequence(
@@ -22,23 +24,85 @@ def generate_sequence(
     client: Client = Client.query.get(client_id)
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+    individual: Individual = Individual.query.get(sdr.individual_id)
 
-    client_name = f"""Name: {client.company}""" if client.company else ""
-    client_tagline = f"""Tagline: {client.tagline}""" if client.tagline else ""
+    sdr_name = f"""Your Name: {individual.full_name}"""
+    sdr_email = (
+        f"""Your Email: {individual.email}""" if individual and individual.email else ""
+    )
+    sdr_phone = (
+        f"""Your Phone #: {individual.phone}"""
+        if individual and individual.phone
+        else ""
+    )
+    sdr_title = (
+        f"""Your Title: {individual.title}""" if individual and individual.title else ""
+    )
+    sdr_bio = f"""Your Bio: {individual.bio}""" if individual and individual.bio else ""
+    sdr_job_description = (
+        f"""Your Job Description: {individual.recent_job_description}"""
+        if individual and individual.recent_job_description
+        else ""
+    )
+    sdr_industry = (
+        f"""Your Industry: {individual.industry}"""
+        if individual and individual.industry
+        else ""
+    )
+    sdr_location = (
+        f"""Your Location: {individual.location.get("default")}"""
+        if individual and individual.location and individual.location.get("default")
+        else ""
+    )
+    sdr_school = (
+        f"""Your School: {individual.recent_education_school}"""
+        if individual and individual.recent_education_school
+        else ""
+    )
+    sdr_degree = (
+        f"""Your Degree: {individual.recent_education_degree}"""
+        if individual and individual.recent_education_degree
+        else ""
+    )
+    sdr_education_field = (
+        f"""Your Education Field: {individual.recent_education_field}"""
+        if individual and individual.recent_education_field
+        else ""
+    )
+    sdr_education_start_date = (
+        f"""Your Education Start Date: {individual.recent_education_start_date}"""
+        if individual and individual.recent_education_start_date
+        else ""
+    )
+    sdr_education_end_date = (
+        f"""Your Education End Date: {individual.recent_education_end_date}"""
+        if individual and individual.recent_education_end_date
+        else ""
+    )
+    client_name = f"""Your Company Name: {client.company}""" if client.company else ""
+    client_tagline = (
+        f"""You Company Tagline: {client.tagline}""" if client.tagline else ""
+    )
     client_description = (
-        f"""Description: {client.description}""" if client.description else ""
+        f"""Your Company Description: {client.description}"""
+        if client.description
+        else ""
     )
     client_key_value_props = (
-        f"""Key Value Props: {client.value_prop_key_points}"""
+        f"""Your Company Key Value Props: {client.value_prop_key_points}"""
         if client.value_prop_key_points
         else ""
     )
-    client_mission = f"""Mission: {client.mission}""" if client.mission else ""
+    client_mission = (
+        f"""Your Company Mission: {client.mission}""" if client.mission else ""
+    )
     client_impressive_facts = (
-        f"""Impressive Facts: {client.impressive_facts}"""
+        f"""Your Company Impressive Facts: {client.impressive_facts}"""
         if client.impressive_facts
         else ""
     )
+
+    print(parse_work_history(individual.work_history))
 
     day, day_of_month, month, year = get_current_time_casual(sdr.timezone)
 

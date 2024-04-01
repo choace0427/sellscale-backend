@@ -1102,3 +1102,28 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
     return [
         individual.to_dict() for individual in filtered_individuals
     ], count_individuals
+
+
+def parse_work_history(work_history: list):
+    import json
+
+    # Parse each JSON string and extract useful info
+    useful_info = []
+
+    for raw_str in work_history:
+        try:
+            # Parsing the JSON string
+            data = json.loads(raw_str)
+            company_name = data.get("company", {}).get("name")
+            for position in data.get("profile_positions", []):
+                position_info = {
+                    "Company Name": company_name,
+                    "Title": position.get("title"),
+                    "Start Date": position.get("date", {}).get("start"),
+                    "End Date": position.get("date", {}).get("end"),
+                }
+                useful_info.append(position_info)
+        except json.JSONDecodeError:
+            continue  # If there's an error in decoding, we skip that entry
+
+    return useful_info
