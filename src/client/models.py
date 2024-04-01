@@ -107,6 +107,7 @@ class Client(db.Model):
             slack_bot_connecting_user_name = connecting_sdr.name
 
         return {
+            "id": self.id,
             "company": self.company,
             "contact_name": self.contact_name,
             "contact_email": self.contact_email,
@@ -201,9 +202,9 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[
-            GeneratedMessageCTA
-        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        ctas: list[GeneratedMessageCTA] = (
+            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        )
 
         return {
             "id": self.id,
