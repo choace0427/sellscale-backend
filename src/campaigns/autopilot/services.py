@@ -884,10 +884,7 @@ def auto_send_campaign(campaign_id: int):
 
     # Remove prospects that aren't approved
     approved_prospect_ids = [
-        message.prospect_id
-        for message in messages
-        if message.ai_approved
-        or (not message.blocking_problems and len(message.blocking_problems) == 0)
+        message.prospect_id for message in messages if message.ai_approved
     ]
     # Turn into a set list to remove duplicates
     approved_prospect_ids = list(set(approved_prospect_ids))
@@ -899,13 +896,13 @@ def auto_send_campaign(campaign_id: int):
         message.prospect_id
         for message in messages
         if not message.ai_approved
-        and (message.blocking_problems and len(message.blocking_problems) == 0)
+        and (message.blocking_problems and len(message.blocking_problems) > 0)
     ]
     invalid_message_ids: list[int] = [
         message.id
         for message in messages
         if not message.ai_approved
-        and (message.blocking_problems and len(message.blocking_problems) == 0)
+        and (message.blocking_problems and len(message.blocking_problems) > 0)
     ]
     # Turn into a set list to remove duplicates
     invalid_prospect_ids = list(set(invalid_prospect_ids))
