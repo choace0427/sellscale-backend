@@ -62,6 +62,7 @@ from src.voyager.linkedin import LinkedIn
 from sqlalchemy import or_
 from fuzzywuzzy import fuzz
 from datetime import datetime, timedelta
+from src.individual.services import add_individual_from_linkedin_url
 
 
 def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
@@ -156,6 +157,40 @@ def update_sdr_timezone_from_li(client_sdr_id: int):
     return timezone
 
 
+def update_sdr_li_url(client_sdr_id: int):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if not client_sdr:
+        return "No client sdr found with this id", 400
+
+    if client_sdr.linkedin_url:
+        return "Li URL already added", 200
+
+    api = LinkedIn(client_sdr_id=client_sdr_id)
+    profile = api.get_user_profile()
+    if not profile:
+        return "No profile found", 400
+
+    public_id = deep_get(profile, "miniProfile.publicIdentifier", None)
+
+    if not public_id:
+        return "No public id found", 400
+
+    client_sdr.linkedin_url = f"https://www.linkedin.com/in/{public_id}/"
+    db.session.add(client_sdr)
+    db.session.commit()
+
+    # Create an individual for the SDR
+    success, new_id, created = add_individual_from_linkedin_url(client_sdr.linkedin_url)
+    if success and new_id:
+        client_sdr.individual_id = new_id
+        db.session.add(client_sdr)
+        db.session.commit()
+
+    return client_sdr.linkedin_url, created
+
+
 def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
     """Updates LinkedIn cookies for Voyager
 
@@ -217,6 +252,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
         )
 
     update_sdr_timezone_from_li(client_sdr_id)
+    update_sdr_li_url(client_sdr_id)
 
     # Update the pb agent
     if is_production():

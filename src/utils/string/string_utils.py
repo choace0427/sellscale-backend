@@ -25,3 +25,14 @@ def has_consecutive_uppercase_string(st, num_consecutive):
     if longest_consecutive_uppercase_count >= num_consecutive:
         return True, longest_consecutive_string
     return False, None
+
+
+def rank_number(rank: int):
+    if rank == 1:
+        return "1st"
+    elif rank == 2:
+        return "2nd"
+    elif rank == 3:
+        return "3rd"
+    else:
+        return f"{rank}th"

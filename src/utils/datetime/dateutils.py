@@ -91,9 +91,7 @@ def get_current_monday_friday(
     return start_date.date(), end_date.date()
 
 
-def get_future_datetime(
-    months=0, days=0, minutes=0, relative_time=datetime.utcnow()
-):
+def get_future_datetime(months=0, days=0, minutes=0, relative_time=datetime.utcnow()):
     # Calculate the future time by adding the specified months, days, and minutes
     future_time = relative_time + timedelta(
         days=days,
@@ -113,3 +111,19 @@ def get_future_datetime(
             future_time += timedelta(days=days_in_current_month)
 
     return future_time
+
+
+def get_current_time_casual(timezone_str: str):
+    """
+    Get the current time in the specified timezone in a casual format.
+    For example, "Monday:::24:::December:::2021"
+    """
+    from datetime import datetime
+    import pytz
+    from src.utils.string.string_utils import rank_number
+
+    timezone = pytz.timezone(timezone_str)
+    formatted_date = datetime.now(timezone).strftime("%A:::%d:::%B:::%Y")
+
+    parts = formatted_date.split(":::")
+    return parts[0], rank_number(int(parts[1])), parts[2], int(parts[3])

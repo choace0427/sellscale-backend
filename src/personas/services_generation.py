@@ -8,6 +8,7 @@ from src.client.models import (
 )
 from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
+from src.utils.datetime.dateutils import get_current_time_casual
 
 
 def generate_sequence(
@@ -19,32 +20,39 @@ def generate_sequence(
 ):
 
     client: Client = Client.query.get(client_id)
-    # client_name = f"""Name: {client.company}""" if client.company else ""
-    # client_tagline = f"""Tagline: {client.tagline}""" if client.tagline else ""
-    # client_description = (
-    #     f"""Description: {client.description}""" if client.description else ""
-    # )
-    # client_key_value_props = (
-    #     f"""Key Value Props: {client.value_prop_key_points}"""
-    #     if client.value_prop_key_points
-    #     else ""
-    # )
-    # client_mission = f"""Mission: {client.mission}""" if client.mission else ""
-    # client_impressive_facts = (
-    #     f"""Impressive Facts: {client.impressive_facts}"""
-    #     if client.impressive_facts
-    #     else ""
-    # )
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
 
-    # company_info = f"""
-    # ## Client Information:
-    # {client_name}
-    # {client_tagline}
-    # {client_description}
-    # {client_key_value_props}
-    # {client_mission}
-    # {client_impressive_facts}
-    # """
+    client_name = f"""Name: {client.company}""" if client.company else ""
+    client_tagline = f"""Tagline: {client.tagline}""" if client.tagline else ""
+    client_description = (
+        f"""Description: {client.description}""" if client.description else ""
+    )
+    client_key_value_props = (
+        f"""Key Value Props: {client.value_prop_key_points}"""
+        if client.value_prop_key_points
+        else ""
+    )
+    client_mission = f"""Mission: {client.mission}""" if client.mission else ""
+    client_impressive_facts = (
+        f"""Impressive Facts: {client.impressive_facts}"""
+        if client.impressive_facts
+        else ""
+    )
+
+    day, day_of_month, month, year = get_current_time_casual(sdr.timezone)
+
+    print(day, day_of_month, month, year)
+
+    context_info = f"""
+    ## Context:
+    {client_name}
+    {client_tagline}
+    {client_description}
+    {client_key_value_props}
+    {client_mission}
+    {client_impressive_facts}
+    """
 
     raw_assets = get_archetype_assets(archetype_id)
     assets = [

@@ -439,6 +439,7 @@ class ClientSDR(db.Model):
     warmup_linkedin_complete = db.Column(db.Boolean, nullable=True, default=False)
 
     # LinkedIn Profile Information
+    individual_id = db.Column(db.Integer, db.ForeignKey("individual.id"), nullable=True)
     linkedin_url = db.Column(db.String, nullable=True)
     title = db.Column(db.String)
     li_health = db.Column(db.Float, nullable=True)
@@ -540,6 +541,7 @@ class ClientSDR(db.Model):
             "ml_credits": self.ml_credits,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
+            "individual_id": self.individual_id,
             "timezone": self.timezone,
             "onboarded": self.onboarded,
             "calendly_connected": self.calendly_access_token is not None,
