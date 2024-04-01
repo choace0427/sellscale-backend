@@ -3353,8 +3353,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status in ('ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_SCHEDULING')) "TOTAL-POS-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOST') OR prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOSS')) "TOTAL-DEMO",
             count(DISTINCT prospect.id) "TOTAL-PROSPECTS",
-            count(DISTINCT prospect.id) FILTER (WHERE prospect.approved_outreach_message_id IS NULL and prospect.overall_status in ('PROSPECTED', 'SENT_OUTREACH')) "TOTAL-PROSPECTS-LEFT-LINKEDIN",
-            count(DISTINCT prospect.id) FILTER (WHERE prospect.approved_prospect_email_id IS NULL and prospect.overall_status in ('PROSPECTED', 'SENT_OUTREACH')) "TOTAL-PROSPECTS-LEFT-EMAIL",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect.approved_outreach_message_id IS NULL and prospect.overall_status in ('PROSPECTED', 'SENT_OUTREACH') and prospect.linkedin_url IS NOT NULL) "TOTAL-PROSPECTS-LEFT-LINKEDIN",
+            count(DISTINCT prospect.id) FILTER (WHERE prospect.approved_prospect_email_id IS NULL and prospect.overall_status in ('PROSPECTED', 'SENT_OUTREACH') and prospect.email IS NOT NULL) "TOTAL-PROSPECTS-LEFT-EMAIL",
             client_archetype.smartlead_campaign_id,
             client_archetype.meta_data,
             client_archetype.first_message_delay_days
