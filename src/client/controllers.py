@@ -174,6 +174,18 @@ CLIENT_BLUEPRINT = Blueprint("client", __name__)
 @require_user
 def get_clients(client_sdr_id: int):
 
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr or sdr.client_id != 1:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Unauthorized access.",
+                }
+            ),
+            401,
+        )
+
     clients: list[Client] = Client.query.all()
 
     return (
@@ -191,6 +203,18 @@ def get_clients(client_sdr_id: int):
 @require_user
 def get_client_all_archetypes(client_sdr_id: int):
 
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr or sdr.client_id != 1:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Unauthorized access.",
+                }
+            ),
+            401,
+        )
+
     client_id = get_request_parameter(
         "client_id", request, json=False, required=True, parameter_type=int
     )
@@ -204,6 +228,39 @@ def get_client_all_archetypes(client_sdr_id: int):
             {
                 "message": "Success",
                 "data": [archetype.to_dict() for archetype in archetypes],
+            }
+        ),
+        200,
+    )
+
+
+@CLIENT_BLUEPRINT.route("/sdr_access", methods=["GET"])
+@require_user
+def get_client_sdr_access(client_sdr_id: int):
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not sdr or sdr.client_id != 1:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Unauthorized access.",
+                }
+            ),
+            401,
+        )
+
+    client_id = get_request_parameter(
+        "client_id", request, json=False, required=True, parameter_type=int
+    )
+
+    other_sdr: ClientSDR = ClientSDR.query.filter_by(client_id=client_id).first()
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": {"token": other_sdr.auth_token},
             }
         ),
         200,
