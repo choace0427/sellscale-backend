@@ -170,6 +170,46 @@ import os
 CLIENT_BLUEPRINT = Blueprint("client", __name__)
 
 
+@CLIENT_BLUEPRINT.route("/all", methods=["GET"])
+@require_user
+def get_clients(client_sdr_id: int):
+
+    clients: list[Client] = Client.query.all()
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": [client.to_dict() for client in clients],
+            }
+        ),
+        200,
+    )
+
+
+@CLIENT_BLUEPRINT.route("/all_archetypes", methods=["GET"])
+@require_user
+def get_client_all_archetypes(client_sdr_id: int):
+
+    client_id = get_request_parameter(
+        "client_id", request, json=False, required=True, parameter_type=int
+    )
+
+    archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+        client_id=client_id
+    ).all()
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "data": [archetype.to_dict() for archetype in archetypes],
+            }
+        ),
+        200,
+    )
+
+
 @CLIENT_BLUEPRINT.route("/linkedin/auto_generate", methods=["PATCH"])
 @require_user
 def patch_linkedin_auto_generate(client_sdr_id: int):
