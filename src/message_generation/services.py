@@ -508,9 +508,6 @@ def generate_linkedin_outreaches_with_configurations(
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
-    if has_any_linkedin_messages(prospect_id=prospect_id):
-        return None
-
     ### Use new template-based generation ###
     prospect: Prospect = Prospect.query.get(prospect_id)
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
