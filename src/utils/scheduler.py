@@ -443,8 +443,8 @@ def run_capture_outbound_quota_snapshot():
 def run_auto_turn_off_finished_archetypes():
     from src.client.services_client_archetype import auto_turn_off_finished_archetypes
 
-    # if is_scheduling_instance():
-    #     auto_turn_off_finished_archetypes.delay()
+    if is_scheduling_instance():
+        auto_turn_off_finished_archetypes.delay()
 
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
@@ -550,6 +550,7 @@ scheduler.add_job(run_daily_trigger_runner, trigger=daily_trigger)
 scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
 scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger)
 scheduler.add_job(run_capture_outbound_quota_snapshot, trigger=daily_trigger)
+scheduler.add_job(run_auto_turn_off_finished_archetypes, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

@@ -46,7 +46,7 @@ class CampaignCompletedNotification(SlackNotificationClass):
 
             return {
                 "sequence_name": "CEOs at AI Companies",
-                "number_of_prospects": 10,
+                "channel_prospect_breakdown": "*LinkedIn*: `5` prospects have been reached out to.\n*Email*: `12` prospects have been reached out to.",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -62,9 +62,21 @@ class CampaignCompletedNotification(SlackNotificationClass):
                 Prospect.archetype_id == self.campaign_id
             ).all()
 
+            channel_prospect_breakdown: str = ""
+            if client_archetype.linkedin_active:
+                linkedin_prospects: list[Prospect] = [
+                    prospect for prospect in prospects if prospect.linkedin_url
+                ]
+                channel_prospect_breakdown += f"*LinkedIn*: `{len(linkedin_prospects)}` prospects have been reached out to.\n"
+            if client_archetype.email_active:
+                email_prospects: list[Prospect] = [
+                    prospect for prospect in prospects if prospect.email
+                ]
+                channel_prospect_breakdown += f"*Email*: `{len(email_prospects)}` prospects have been reached out to."
+
             return {
                 "sequence_name": client_archetype.archetype,
-                "number_of_prospects": len(prospects),
+                "channel_prospect_breakdown": channel_prospect_breakdown,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=setup/email?campaign_id={campaign_id}".format(
                     auth_token=client_sdr.auth_token, campaign_id=client_archetype.id
                 ),
@@ -78,9 +90,9 @@ class CampaignCompletedNotification(SlackNotificationClass):
 
         # Get the fields
         sequence_name = fields.get("sequence_name")
-        number_of_prospects = fields.get("number_of_prospects")
+        channel_prospect_breakdown = fields.get("channel_prospect_breakdown")
         direct_link = fields.get("direct_link")
-        if not sequence_name or not direct_link or not number_of_prospects:
+        if not sequence_name or not direct_link or not channel_prospect_breakdown:
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
@@ -90,13 +102,13 @@ class CampaignCompletedNotification(SlackNotificationClass):
         slack_bot_send_message(
             notification_type=SlackNotificationType.CAMPAIGN_ACTIVATED,
             client_id=client.id,
-            base_message="🏁 One of your campaigns has finished initial outbounding.",
+            base_message="🏁 One of your campaigns is complete.",
             blocks=[
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f'🏁 "{sequence_name}" has finished initial outbounding.',
+                        "text": f"🏁 Campaign complete: {sequence_name}",
                         "emoji": True,
                     },
                 },
@@ -107,15 +119,25 @@ class CampaignCompletedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Your campaign with {number_of_prospects} prospects has finished initial outbounding.",
+                        "text": channel_prospect_breakdown,
                     },
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "SellScale AI will be on standby to engage with any Prospects in this campaign. You can turn off this setting in the campaign settings.",
+                        "text": f"*Rep:* {client_sdr.name}",
                     },
+                },
+                {  # Add footer note
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "Followups may still be in progress.",
+                            "emoji": True,
+                        }
+                    ],
                 },
                 {
                     "type": "section",

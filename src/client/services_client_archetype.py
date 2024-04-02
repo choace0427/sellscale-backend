@@ -757,6 +757,8 @@ def deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) ->
         return False
 
     archetype.active = False
+    archetype.linkedin_active = False
+    archetype.email_active = False
     db.session.commit()
 
     # If this campaign is tied to Smartlead, then we need to PAUSE the campaign
@@ -1217,7 +1219,7 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
 
         email_eligible_prospects: list[Prospect] = Prospect.query.filter(
             Prospect.archetype_id == client_archetype.id,
-            Prospect.approved_prospect_email_id.isnot(None),
+            Prospect.approved_prospect_email_id == None,
         ).all()
         if not email_eligible_prospects:
             return True
@@ -1243,8 +1245,8 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
     )
 
     # Check that the campaign is finished
-    linkedin_finished = False
-    email_finished = False
+    linkedin_finished = linkedin_has_been_active
+    email_finished = email_has_been_active
     if linkedin_has_been_active:
         linkedin_finished = check_linkedin_finished(archetype)
     if email_has_been_active:
@@ -1261,18 +1263,16 @@ def auto_turn_off_finished_archetypes() -> int:
     Returns:
         int: Number of campaigns turned off
     """
-    # Get all active archetypes SELLSCALE ONLY RIGHT NOW
+    # Get all active archetypes
     active_archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
         active=True,
-        client_id=1,
     ).all()
 
     for archetype in active_archetypes:
+        print(f"Checking {archetype.archetype} #{archetype.id}")
         # Check if the archetype is finished
         if check_archetype_finished(archetype.id):
-            # Turn off the archetype
-            deactivate_client_archetype(archetype.client_sdr_id, archetype.id)
-
+            print(f"Turning off {archetype.archetype} #{archetype.id}")
             # Send a Slack Notification
             sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
             success = create_and_send_slack_notification_class_message(
@@ -1282,3 +1282,6 @@ def auto_turn_off_finished_archetypes() -> int:
                     "campaign_id": archetype.id,
                 },
             )
+
+            # Turn off the archetype
+            deactivate_client_archetype(archetype.client_sdr_id, archetype.id)
