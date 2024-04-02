@@ -7,6 +7,7 @@ def get_active_campaign_data(client_id: int):
         with d as (
             select 
                 'active' "status",
+                client_archetype.id "persona_id",
                 concat(client_archetype.emoji, ' ', client_archetype.archetype) "campaign",
                 client_sdr.img_url "rep_profile_picture",
                 client_sdr.name "rep",
