@@ -1289,4 +1289,3 @@ def auto_turn_off_finished_archetypes() -> int:
 
             # Turn off the archetype
             deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True)
-            return
