@@ -41,6 +41,7 @@ class OperatorDashboardTaskType(enum.Enum):
     REP_INTERVENTION_NEEDED = "REP_INTERVENTION_NEEDED"
 
     VOICE_BUILDER = "VOICE_BUILDER"
+    REVIEW_AI_BRAIN = "REVIEW_AI_BRAIN"
 
 
 class OperatorDashboardEntry(db.Model):
