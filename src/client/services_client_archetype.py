@@ -1238,12 +1238,12 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
 
     # Only check active if LinkedIn or Email have been active in the past
     linkedin_has_been_active = (
-        archetype.meta_data.get("linkedin_has_been_active", False)
+        archetype.meta_data.get("linkedin_has_been_active", True)
         if archetype.meta_data
         else False
     )
     email_has_been_active = (
-        archetype.meta_data.get("email_has_been_active", False)
+        archetype.meta_data.get("email_has_been_active", True)
         if archetype.meta_data
         else False
     )
@@ -1289,3 +1289,4 @@ def auto_turn_off_finished_archetypes() -> int:
 
             # Turn off the archetype
             deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True)
+            return
