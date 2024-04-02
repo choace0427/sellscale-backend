@@ -58,8 +58,8 @@ class CampaignCompletedNotification(SlackNotificationClass):
             client_archetype: ClientArchetype = ClientArchetype.query.get(
                 self.campaign_id
             )
-            prospects: list[Prospect] = Prospect.query.filter_by(
-                client_archetype_id=self.campaign_id
+            prospects: list[Prospect] = Prospect.query.filter(
+                Prospect.archetype_id == self.campaign_id
             ).all()
 
             return {
