@@ -440,6 +440,13 @@ def run_capture_outbound_quota_snapshot():
         capture_outbound_quota_snapshot.delay()
 
 
+def run_auto_turn_off_finished_archetypes():
+    from src.client.services_client_archetype import auto_turn_off_finished_archetypes
+
+    # if is_scheduling_instance():
+    #     auto_turn_off_finished_archetypes.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))

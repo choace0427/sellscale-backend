@@ -14,6 +14,10 @@ from src.prospecting.icp_score.services import move_selected_prospects_to_unassi
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from src.simulation.models import SimulationRecord
 from src.simulation.services import generate_entire_simulated_conversation
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.smartlead.smartlead import Smartlead
 from src.bump_framework.services import get_all_bump_framework_assets
 
@@ -1181,3 +1185,100 @@ def fetch_archetype_assets(client_archetype_id: int):
         {"title": row[0], "value": row[1], "reason": row[2], "id": row[3]}
         for row in assets_data
     ]
+
+
+def check_archetype_finished(client_archetype_id: int) -> bool:
+    """Checks whether an archetype is finished or not. Archetypes are finished when there are no more eligible prospects available for all activated channels.
+
+    Args:
+        client_archetype_id (int): ID of the client archetype
+
+    Returns:
+        bool: True if finished, False if not
+    """
+
+    def check_linkedin_finished(client_archetype: ClientArchetype) -> bool:
+        """Helper function to check if LinkedIn is finished for a given archetype"""
+        if not client_archetype.linkedin_active:
+            return True
+
+        linkedin_eligible_prospects: list[Prospect] = Prospect.query.filter(
+            Prospect.archetype_id == client_archetype.id,
+            Prospect.status == ProspectStatus.PROSPECTED,
+        ).all()
+        if not linkedin_eligible_prospects:
+            return True
+        return False
+
+    def check_email_finished(client_archetype: ClientArchetype) -> bool:
+        """Helper function to check if Email is finished for a given archetype"""
+        if not client_archetype.email_active:
+            return True
+
+        email_eligible_prospects: list[Prospect] = Prospect.query.filter(
+            Prospect.archetype_id == client_archetype.id,
+            Prospect.approved_prospect_email_id.isnot(None),
+        ).all()
+        if not email_eligible_prospects:
+            return True
+        return False
+
+    # Ensure that the archetype exists and is active
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not archetype:
+        return False
+    if not archetype.active:
+        return True
+
+    # Only check active if LinkedIn or Email have been active in the past
+    linkedin_has_been_active = (
+        archetype.meta_data.get("linkedin_has_been_active", False)
+        if archetype.meta_data
+        else False
+    )
+    email_has_been_active = (
+        archetype.meta_data.get("email_has_been_active", False)
+        if archetype.meta_data
+        else False
+    )
+
+    # Check that the campaign is finished
+    linkedin_finished = False
+    email_finished = False
+    if linkedin_has_been_active:
+        linkedin_finished = check_linkedin_finished(archetype)
+    if email_has_been_active:
+        email_finished = check_email_finished(archetype)
+
+    # Check that the campaign is finished
+    finished = linkedin_finished and email_finished
+    return finished
+
+
+def auto_turn_off_finished_archetypes() -> int:
+    """Automatically turns off any finished campaigns and sends a Slack Notifications. Will return the number of campaigns that were turned off. Ran by a cron job.
+
+    Returns:
+        int: Number of campaigns turned off
+    """
+    # Get all active archetypes SELLSCALE ONLY RIGHT NOW
+    active_archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+        active=True,
+        client_id=1,
+    ).all()
+
+    for archetype in active_archetypes:
+        # Check if the archetype is finished
+        if check_archetype_finished(archetype.id):
+            # Turn off the archetype
+            deactivate_client_archetype(archetype.client_sdr_id, archetype.id)
+
+            # Send a Slack Notification
+            sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.CAMPAIGN_COMPLETED,
+                arguments={
+                    "client_sdr_id": sdr.id,
+                    "campaign_id": archetype.id,
+                },
+            )

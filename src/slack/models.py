@@ -29,6 +29,7 @@ class SlackNotificationType(Enum):
     DEMO_FEEDBACK_UPDATED = "DEMO_FEEDBACK_UPDATED"
     AI_TASK_COMPLETED = "AI_TASK_COMPLETED"
     CAMPAIGN_ACTIVATED = "CAMPAIGN_ACTIVATED"
+    CAMPAIGN_COMPLETED = "CAMPAIGN_COMPLETED"
     PROSPECT_ADDED = "PROSPECT_ADDED"
     PROSPECT_SNOOZED = "PROSPECT_SNOOZED"
     ASSET_CREATED = "ASSET_CREATED"
@@ -87,6 +88,9 @@ def get_slack_notification_type_metadata():
     )
     from src.slack.notifications.campaign_activated import (
         CampaignActivatedNotification,
+    )
+    from src.slack.notifications.campaign_completed import (
+        CampaignCompletedNotification,
     )
     from src.slack.notifications.linkedin_ai_reply import (
         LinkedInAIReplyNotification,
@@ -218,6 +222,12 @@ def get_slack_notification_type_metadata():
             "name": "Campaign Activated",
             "description": "A Slack notification that is sent whenever a campaign is activated",
             "class": CampaignActivatedNotification,
+            "outbound_channel": "all",
+        },
+        SlackNotificationType.CAMPAIGN_COMPLETED: {
+            "name": "Campaign Completed",
+            "description": "A Slack notification that is sent whenever a campaign is completed",
+            "class": CampaignCompletedNotification,
             "outbound_channel": "all",
         },
         SlackNotificationType.PROSPECT_ADDED: {
