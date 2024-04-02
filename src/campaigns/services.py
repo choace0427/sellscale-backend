@@ -1971,14 +1971,22 @@ def get_outbound_data(client_sdr_id: int):
 
     message_data = db.session.execute(
         f"""
+        with d as (
+            select 
+                sum(client_sdr.weekly_li_outbound_target) + sum(client_sdr.weekly_email_outbound_target) "num_messages",
+                sum(client_sdr.weekly_li_outbound_target) filter (where client_archetype.active and (client_archetype.linkedin_active)) "num_linkedin",
+                sum(client_sdr.weekly_email_outbound_target) filter (where client_archetype.active and (client_archetype.email_active)) "num_email"
+            from client_sdr
+                left join client_archetype on client_archetype.client_sdr_id = client_sdr.id
+            where 
+                client_sdr.client_id = {client_id}
+                and client_sdr.active
+        )
         select 
-            sum(client_sdr.weekly_li_outbound_target) + sum(client_sdr.weekly_email_outbound_target) "num_messages",
-            sum(client_sdr.weekly_li_outbound_target) filter (where client_archetype.active and (client_archetype.linkedin_active)) + sum(client_sdr.weekly_email_outbound_target) filter (where client_archetype.active and (client_archetype.email_active)) "num_messages_used"
-        from client_sdr
-            left join client_archetype on client_archetype.client_sdr_id = client_sdr.id
-        where 
-            client_sdr.client_id = {client_id}
-            and client_sdr.active;
+            num_messages,
+            case when num_linkedin is not null then num_linkedin else 0 end +
+                case when num_email is not null then num_email else 0 end "num_messages_used"
+        from d;
         """
     ).fetchone()
 
