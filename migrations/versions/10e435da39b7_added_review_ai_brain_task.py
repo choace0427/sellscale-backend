@@ -17,9 +17,8 @@ depends_on = None
 
 
 def upgrade():
-    pass
-    # with op.get_context().autocommit_block():
-    #     op.execute("ALTER TYPE operatordashboardtasktype ADD VALUE 'REVIEW_AI_BRAIN'")
+    with op.get_context().autocommit_block():
+        op.execute("ALTER TYPE operatordashboardtasktype ADD VALUE 'REVIEW_AI_BRAIN'")
 
 def downgrade():
     pass
