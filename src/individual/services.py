@@ -1110,17 +1110,31 @@ def parse_work_history(work_history: list):
     # Parse each JSON string and extract useful info
     useful_info = []
 
-    for raw_str in work_history:
+    for data in work_history:
         try:
             # Parsing the JSON string
-            data = json.loads(raw_str)
             company_name = data.get("company", {}).get("name")
             for position in data.get("profile_positions", []):
+
+                start_data = position.get("date", {}).get("start")
+                start_str = (
+                    f"{start_data.get('month', '?')}/{start_data.get('year', '?')}"
+                    if start_data
+                    else None
+                )
+
+                end_data = position.get("date", {}).get("end")
+                end_str = (
+                    f"{end_data.get('month', '?')}/{end_data.get('year', '?')}"
+                    if end_data
+                    else None
+                )
+
                 position_info = {
-                    "Company Name": company_name,
-                    "Title": position.get("title"),
-                    "Start Date": position.get("date", {}).get("start"),
-                    "End Date": position.get("date", {}).get("end"),
+                    "company_name": company_name,
+                    "title": position.get("title"),
+                    "start_date": start_str,
+                    "end_date": end_str,
                 }
                 useful_info.append(position_info)
         except json.JSONDecodeError:

@@ -13,20 +13,13 @@ from src.utils.datetime.dateutils import get_current_time_casual
 from src.individual.services import parse_work_history
 
 
-def generate_sequence(
-    client_id: int,
-    archetype_id: int,
-    sequence_type: str,
-    num_steps: int,
-    additional_prompting: str,
-):
+def get_sdr_prompting_context_info(client_sdr_id: int):
 
-    client: Client = Client.query.get(client_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(sdr.client_id)
     individual: Individual = Individual.query.get(sdr.individual_id)
 
-    sdr_name = f"""Your Name: {individual.full_name}"""
+    sdr_name = f"""Your Name: {sdr.name}"""
     sdr_email = (
         f"""Your Email: {individual.email}""" if individual and individual.email else ""
     )
@@ -79,6 +72,7 @@ def generate_sequence(
         if individual and individual.recent_education_end_date
         else ""
     )
+
     client_name = f"""Your Company Name: {client.company}""" if client.company else ""
     client_tagline = (
         f"""You Company Tagline: {client.tagline}""" if client.tagline else ""
@@ -101,29 +95,67 @@ def generate_sequence(
         if client.impressive_facts
         else ""
     )
-
-    print(parse_work_history(individual.work_history))
+    sdr_work_history = (
+        "Your Work History: \n"
+        + "\n".join(
+            [
+                f"History - Company Name: {work.get('company_name')}, Title: {work.get('title')}, Start Date: {work.get('start_Date', '?')}, End Date: {work.get('start_Date', '?')}"
+                for work in parse_work_history(individual.work_history)
+            ]
+        )
+        if individual.work_history
+        else ""
+    )
 
     day, day_of_month, month, year = get_current_time_casual(sdr.timezone)
 
-    print(day, day_of_month, month, year)
-
     context_info = f"""
-    ## Context:
+Here's some contextual info about you. Feel free to reference this when appropriate.
+    
+## Context:
+    Current Time: {day}, {day_of_month}, {month}, {year}
+    {sdr_name}
+    {sdr_email}
+    {sdr_phone}
+    {sdr_title}
+    {sdr_bio}
+    {sdr_job_description}
+    {sdr_industry}
+    {sdr_location}
+    {sdr_school}
+    {sdr_degree}
+    {sdr_education_field}
+    {sdr_education_start_date}
+    {sdr_education_end_date}
     {client_name}
     {client_tagline}
     {client_description}
     {client_key_value_props}
     {client_mission}
     {client_impressive_facts}
-    """
+    {sdr_work_history}
+    """.strip()
+
+    return context_info
+
+
+def generate_sequence(
+    client_id: int,
+    archetype_id: int,
+    sequence_type: str,
+    num_steps: int,
+    additional_prompting: str,
+):
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    context_info = get_sdr_prompting_context_info(archetype.client_sdr_id)
 
     raw_assets = get_archetype_assets(archetype_id)
     assets = [
         {
             "id": asset.get("id"),
             "title": asset.get("asset_key"),
-            "value": asset.get("asset_key"),
+            "value": asset.get("asset_value"),
             "tag": (
                 asset.get("asset_tags", [])[0]
                 if len(asset.get("asset_tags", [])) > 0
@@ -132,14 +164,21 @@ def generate_sequence(
         }
         for asset in raw_assets
     ]
-    print(assets)
+
+    assets_str = "## Assets: \n" + "\n\n".join(
+        [
+            f"Title: {asset.get('title')}\nValue: {asset.get('value')}\nTag: {asset.get('tag')}"
+            for asset in assets
+        ]
+    )
 
     if sequence_type == "EMAIL":
         return generate_email_steps(
             client_id=client_id,
             archetype_id=archetype_id,
             num_steps=num_steps,
-            assets=assets,
+            context_info=context_info,
+            assets_str=assets_str,
             additional_prompting=additional_prompting,
         )
 
@@ -150,23 +189,106 @@ def generate_email_steps(
     client_id: int,
     archetype_id: int,
     num_steps: int,
-    assets: list[dict[str, str]],
+    context_info: str,
+    assets_str: str,
     additional_prompting: str,
 ):
 
     prompt = f"""
     
-You are working with a company to generate concise  to create a series of marketing assets for them. These assets are unique value props, pain points, case studies, unique facts, etc that can be used in marketing outreach.
-You will be provided with some general information to give context about the client and then you will be provided a text dump.
-Please use the text dump to create at least 3 value prop-based marketing assets, 3 pain point-based marketing assets, 2 case study-based marketing assets, 2 unique fact-based marketing assets, and as many as possible phrase or template marketing assets.
-If you're unable to meet that criteria, it's okay. Just do your best and prioritize concise quality assets over quantity.
+You are working to create a sequence of emails for generative outreach to prospects. The first email will be a cold email, and the following emails will be follow-ups to the cold email if the prospect does not respond.
+Each email should use different assets that have a unique value prop, pain point, case study, unique facts, etc that can be used in to make that email stand out. Each should also have a different angle or approach to the outreach.
+When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
 
 {additional_prompting if additional_prompting else ""}
 
 Here's a previous example of what you're expected to generate.
 # Previous Example #
+-------------------------------------------------------------
+
+Please generate a 3 email sequence for generative outreach to prospects. The first email will be a cold email, and the following emails will be follow-ups to the cold email if the prospect does not respond.
+
+Here's some contextual info about you. Feel free to reference this when appropriate.
+    
+## Context:
+    Current Time: Monday, 1st, April, 2024
+    Your Name: Jonathan Herzog
+    Your Website: jonathanherzogcoach.com
+    
+    Your Title: Executive Coach
+    Your Bio: Hey! I'm a full-stack software engineer with a focus on web development, AI, and systems engineering.
+    
+    Your Industry: Computer Software
+    Your Location: San Francisco, California, United States
+    Your School: Southern Oregon University
+    Your Degree: Bachelor of Science - BS
+    Your Education Field: Computer Science
+    Your Education Start Date: 2019-09-01
+    Your Education End Date: 2021-06-01
+    Your Company Name: Board of Innovation
+    You Company Tagline: Board of Innovation is a global innovation consultancy for large brands.
+    Your Company Description: Board of Innovation is a global innovation firm, imagining tomorrow’s products, services and businesses – and creating them today. Their three areas of consulting are "making bigger moves", "designing new experiences", and "launching new businesses".
+ 
+
+    Your Company Key Value Props: - Board of Innovation has worked with top clients like Roche, Pandora, Canon, and Nestle to launch and innovate on their business lines
+- Board of Innovation recently launched Creative AI - leveraging GPT in modern enterprises for innovation
+- Board of Innovation is one of the top global innovation firms for leading, innovative companies
+    Your Company Mission: We are a global innovation firm. Imagining tomorrow's products, services and businesses - and creating them today.
+    
+    Your Work History: 
+History - Company Name: SellScale, Title: Founding Software Engineer, Start Date: ?, End Date: ?
+History - Company Name: Wanderer's Guide, Title: Founder, Start Date: ?, End Date: ?
+History - Company Name: Sun West Mortgage Company, Inc., Title: Software Engineer, Start Date: ?, End Date: ?
+History - Company Name: TalesTerrain, Title: Founder, Start Date: ?, End Date: ?
+History - Company Name: FlexSweep Industries, Title: Software Engineer, Start Date: ?, End Date: ?
+History - Company Name: Springs, Title: Software Developer, Start Date: ?, End Date: ?
+History - Company Name: WalkAshland, Title: Java/Kotlin Software Developer, Start Date: ?, End Date: ?
+History - Company Name: The Gamer's Den, Title: Web Developer, Start Date: ?, End Date: ?
+History - Company Name: Southern Oregon University, Title: Computer Science Tutor, Start Date: ?, End Date: ?
+
+
+## Assets: 
+Title: 24-hour promotion; expires Jan 4
+Value: <p>We have a 24 hour promotion where any new user will get 1,000+ free email credits, today!</p><p>It's limited time, they should sign up soon.</p><p>Expires Jan 4th, 2024.</p>
+Tag: Offer
+
+Title: First Sales tool using GPT-v
+Value: <p>SellScale uses GPT-V for several use cases like scheduling + research.</p><p>This is the first of it's kind in the sales space.</p>
+Tag: Research
+
+Title: Sign up today!
+Value: <p>Sign up at sellscale.com</p>
+Tag: Offer
+
+Title: Hedge Fund Market Research
+Value: NewtonX offers custom expert surveys to hedge funds, providing industry intelligence at scale. By utilizing AI and automation-driven research technology, investors can reach a larger sample within a shorter time frame. The surveys help answer key business questions and allow for quicker and more confident investment decisions.
+Tag: Research
+
+
+## Output:
+
+
+
+-------------------------------------------------------------
+
+# Your Turn #
+Okay now it's your turn to generate an email sequence. Good luck!
+
+
+
+Please generate a {num_steps} email sequence for generative outreach to prospects. The first email will be a cold email, and the following emails will be follow-ups to the cold email if the prospect does not respond.
+
+{context_info}
+
+
+{assets_str}
+
+
+## Output:
 
     """.strip()
+
+    print(prompt)
 
     completion = (
         get_text_generation(
@@ -184,4 +306,4 @@ Here's a previous example of what you're expected to generate.
         or ""
     )
 
-    return
+    return completion
