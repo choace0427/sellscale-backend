@@ -736,12 +736,15 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
     return True
 
 
-def deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> bool:
+def deactivate_client_archetype(
+    client_sdr_id: int, client_archetype_id: int, autodetected: Optional[bool] = False
+) -> bool:
     """Deactivate a client archetype.
 
     Args:
         client_sdr_id (int): Client SDR ID
         client_archetype_id (int): Client archetype ID
+        autodetected (bool, optional): If True, means that this was autodetected. Defaults to False.
 
     Returns:
         bool: success
@@ -762,11 +765,12 @@ def deactivate_client_archetype(client_sdr_id: int, client_archetype_id: int) ->
     db.session.commit()
 
     # If this campaign is tied to Smartlead, then we need to PAUSE the campaign
-    if archetype.smartlead_campaign_id:
-        sl = Smartlead()
-        sl.post_campaign_status(
-            campaign_id=archetype.smartlead_campaign_id, status="PAUSED"
-        )
+    if autodetected:
+        if archetype.smartlead_campaign_id:
+            sl = Smartlead()
+            sl.post_campaign_status(
+                campaign_id=archetype.smartlead_campaign_id, status="PAUSED"
+            )
 
     return True
 
@@ -1284,4 +1288,4 @@ def auto_turn_off_finished_archetypes() -> int:
             )
 
             # Turn off the archetype
-            deactivate_client_archetype(archetype.client_sdr_id, archetype.id)
+            deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True)
