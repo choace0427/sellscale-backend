@@ -1045,6 +1045,10 @@ class ProspectUploads(db.Model):
         db.Integer, db.ForeignKey("prospect_uploads_raw_csv.id")
     )
 
+    prospect_upload_history_id = db.Column(
+        db.Integer, db.ForeignKey("prospect_upload_history.id")
+    )
+
     upload_source = db.Column(db.Enum(ProspectUploadSource), nullable=True)
     data = db.Column(JSONB, nullable=False)
     data_hash = db.Column(db.String, nullable=False)
