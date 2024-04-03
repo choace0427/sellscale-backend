@@ -178,7 +178,7 @@ def generate_sequence(
     )
 
     if sequence_type == "EMAIL":
-        return generate_email_initial(
+        output_raw = generate_email_initial(
             client_id=client_id,
             archetype_id=archetype_id,
             context_info=context_info,
@@ -186,7 +186,10 @@ def generate_sequence(
             additional_prompting=additional_prompting,
         )
 
-    return None
+    else:
+        output_raw = ""
+
+    return clean_output(output_raw)
 
 
 def generate_email_initial(
@@ -460,8 +463,6 @@ Please generate a cold email outline for generative outreach to prospects.
 
     """.strip()
 
-    print(prompt)
-
     completion = (
         get_text_generation(
             [
@@ -613,3 +614,8 @@ Please generate a {num_steps} email sequence for generative outreach to prospect
     )
 
     return completion
+
+
+def clean_output(output: str):
+    parts = output.split("\n\n### Angle:\n\n")
+    return {"email": parts[0].strip(), "angle": parts[1].strip()}
