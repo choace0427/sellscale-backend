@@ -12,6 +12,7 @@ from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
 from src.utils.datetime.dateutils import get_current_time_casual
 from src.individual.services import parse_work_history
+import re
 
 
 def get_sdr_prompting_context_info(client_sdr_id: int):
@@ -621,4 +622,10 @@ def clean_output(output: str):
     email_raw = parts[0].strip()
     email = email_raw.split("### Email:")[1].strip()
     angle = parts[1].strip()
+
+    # Remove potential subject line
+    email = re.sub(
+        r"^\W*Subject:.+?\n", "", email, 1, flags=re.MULTILINE | re.IGNORECASE
+    )
+
     return {"email": email, "angle": angle}
