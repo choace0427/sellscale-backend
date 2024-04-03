@@ -932,6 +932,62 @@ class ProspectUploadsErrorType(enum.Enum):
     ISCRAPER_FAILED = "ISCRAPER_FAILED"
 
 
+class ProspectUploadSource(enum.Enum):
+    """Enumeration of the source of a ProspectUpload."""
+
+    CSV = "CSV"
+    CONTACT_DATABASE = "CONTACT_DATABASE"
+    SALES_NAVIGATOR = "SALES_NAVIGATOR"
+    LINKEDIN_LINK = "LINKEDIN_LINK"
+
+
+class ProspectUploadHistory(db.Model):
+    """Stores the high level data for and the type of an upload.
+
+    Designed to be used with the ProspectUploads model and inspired by the design of ProspectUploadsRawCSV.
+    """
+
+    class ProspectUploadHistoryStatus(enum.Enum):
+        """Enumeration of the statuses of a ProspectUploadHistory.
+
+        Attributes:
+            UPLOAD_COMPLETE: The upload has completed successfully.
+            UPLOAD_QUEUED: The upload is queued for processing.
+            UPLOAD_FAILED: The upload has failed completely. Rarely used.
+            UPLOAD_IN_PROGRESS: The upload is in progress (worker is attempting to create Prospect records).
+            UPLOAD_NOT_STARTED: The upload has not started (this row has not been picked up by a worker).
+        """
+
+        UPLOAD_COMPLETE = "UPLOAD_COMPLETE"
+        UPLOAD_QUEUED = "UPLOAD_QUEUED"
+        UPLOAD_IN_PROGRESS = "UPLOAD_IN_PROGRESS"
+        UPLOAD_FAILED = "UPLOAD_FAILED"
+        UPLOAD_NOT_STARTED = "UPLOAD_NOT_STARTED"
+
+    __tablename__ = "prospect_upload_history"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    # Data related to the upload itself
+    upload_name = db.Column(db.String, nullable=False)
+    upload_size = db.Column(db.Integer, nullable=False)
+    uploads_completed = db.Column(db.Integer, nullable=False)
+    upload_source = db.Column(db.Enum(ProspectUploadSource), nullable=False)
+    status = db.Column(db.Enum(ProspectUploadHistoryStatus), nullable=False)
+
+    # Data related to the originator
+    client_archetype_id = db.Column(
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
+    )
+    client_segment_id = db.Column(
+        db.Integer, db.ForeignKey("segment.id"), nullable=False
+    )
+    raw_data = db.Column(JSONB, nullable=False)
+    raw_data_hash = db.Column(db.String, nullable=False)
+
+
 class ProspectUploadsRawCSV(db.Model):
     """Stores the raw CSV data for a prospect upload.
 
@@ -989,6 +1045,7 @@ class ProspectUploads(db.Model):
         db.Integer, db.ForeignKey("prospect_uploads_raw_csv.id")
     )
 
+    upload_source = db.Column(db.Enum(ProspectUploadSource), nullable=True)
     csv_row_data = db.Column(JSONB, nullable=False)
     csv_row_hash = db.Column(db.String, nullable=False)
     upload_attempts = db.Column(db.Integer, nullable=False)
@@ -1003,6 +1060,7 @@ class ProspectUploads(db.Model):
             "client_archetype_id": self.client_archetype_id,
             "client_sdr_id": self.client_sdr_id,
             "prospect_uploads_raw_csv_id": self.prospect_uploads_raw_csv_id,
+            "upload_source": self.upload_source.value,
             "csv_row_data": self.csv_row_data,
             "csv_row_hash": self.csv_row_hash,
             "upload_attempts": self.upload_attempts,
