@@ -11,7 +11,6 @@ from src.prospecting.models import (
     Prospect,
     ProspectStatus,
     ProspectStatusRecords,
-    ProspectUploadBatch,
     ProspectUploadsRawCSV,
     ProspectUploads,
     ProspectUploadsStatus,

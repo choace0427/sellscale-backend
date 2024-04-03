@@ -867,15 +867,6 @@ class ProspectEvent(db.Model):
         }
 
 
-class ProspectUploadBatch(db.Model):
-    __tablename__ = "prospect_upload_batch"
-
-    id = db.Column(db.Integer, primary_key=True)
-    archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"))
-    batch_id = db.Column(db.String, nullable=False)
-    num_prospects = db.Column(db.Integer, nullable=False)
-
-
 class ProspectStatusRecords(db.Model):
     __tablename__ = "prospect_status_records"
 

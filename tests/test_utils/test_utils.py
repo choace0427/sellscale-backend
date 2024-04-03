@@ -24,7 +24,6 @@ from model_import import (
     GNLPModelFineTuneJobs,
     ProspectStatusRecords,
     PhantomBusterConfig,
-    ProspectUploadBatch,
     DemoFeedback,
     ProspectNote,
     OutboundCampaign,
@@ -124,7 +123,6 @@ def test_app():
         clear_all_entities(EmailSequenceStep)
         clear_all_entities(EmailSubjectLineTemplate)
         clear_all_entities(GeneratedMessageEditRecord)
-        clear_all_entities(ProspectUploadBatch)
         clear_all_entities(GeneratedMessageJob)
         clear_all_entities(GeneratedMessageJobQueue)
         clear_all_entities(ResponseConfiguration)
@@ -765,9 +763,9 @@ def basic_generated_message_autobump(
         message=message,
         account_research_points=account_research_points,
         bump_framework_title=bump_framework.title if bump_framework else None,
-        bump_framework_description=bump_framework.description
-        if bump_framework
-        else None,
+        bump_framework_description=(
+            bump_framework.description if bump_framework else None
+        ),
         bump_framework_length=bump_framework.bump_length if bump_framework else None,
     )
     db.session.add(autobump)

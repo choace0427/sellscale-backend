@@ -53,7 +53,6 @@ from src.prospecting.models import (
     ProspectChannels,
     ProspectStatus,
     ProspectStatusRecords,
-    ProspectUploadBatch,
     ProspectNote,
     ProspectOverallStatus,
     ProspectHiddenReason,
@@ -2132,13 +2131,6 @@ def add_prospects_from_json_payload(client_id: int, archetype_id: int, payload: 
             duplicate_count += 1
 
     num_prospects = len(no_duplicates_payload)
-    prospect_upload_batch: ProspectUploadBatch = ProspectUploadBatch(
-        archetype_id=archetype_id,
-        batch_id=batch_id,
-        num_prospects=num_prospects,
-    )
-    db.session.add(prospect_upload_batch)
-    db.session.commit()
 
     for prospect in no_duplicates_payload:
         # These have been validated by the time we get here.
@@ -2829,9 +2821,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2907,11 +2899,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[ProspectEmailStatusRecords] = (
-        ProspectEmailStatusRecords.query.filter(
-            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-        ).all()
-    )
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
 
     return {
         "emails": email_history_parsed,
