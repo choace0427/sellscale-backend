@@ -617,5 +617,8 @@ Please generate a {num_steps} email sequence for generative outreach to prospect
 
 
 def clean_output(output: str):
-    parts = output.split("\n\n### Angle:\n\n")
-    return {"email": parts[0].strip(), "angle": parts[1].strip()}
+    parts = output.split("\n### Angle:")
+    email_raw = parts[0].strip()
+    email = email_raw.split("### Email:")[1].strip()
+    angle = parts[1].strip()
+    return {"email": email, "angle": angle}
