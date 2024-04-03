@@ -145,7 +145,7 @@ def generate_sequence(
     client_id: int,
     archetype_id: int,
     sequence_type: str,
-    num_steps: int,
+    step_num: int,
     additional_prompting: str,
 ):
 
@@ -584,7 +584,7 @@ Okay now it's your turn to generate an email sequence. Good luck!
 
 
 
-Please generate a {num_steps} email sequence for generative outreach to prospects. The first email will be a cold email, and the following emails will be follow-ups to the cold email if the prospect does not respond.
+Please generate a {step_num} email sequence for generative outreach to prospects. The first email will be a cold email, and the following emails will be follow-ups to the cold email if the prospect does not respond.
 
 {context_info}
 
