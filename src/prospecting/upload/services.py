@@ -127,12 +127,12 @@ def populate_prospect_uploads_from_json_payload(
         ProspectUploads.client_id == client_id,
         ProspectUploads.client_archetype_id == client_archetype_id,
         ProspectUploads.client_sdr_id == client_sdr_id,
-        ProspectUploads.csv_row_hash.in_(prospect_hashes),
+        ProspectUploads.data_hash.in_(prospect_hashes),
     ).all()
     existing_prospect_hash = set()
     if allow_duplicates:
         for existing_prospect_upload in existing_prospect_uploads:
-            existing_prospect_hash.add(existing_prospect_upload.csv_row_hash)
+            existing_prospect_hash.add(existing_prospect_upload.data_hash)
 
     # Create ProspectUploads
     prospect_uploads = []
@@ -150,12 +150,12 @@ def populate_prospect_uploads_from_json_payload(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             prospect_uploads_raw_csv_id=prospect_uploads_raw_csv_id,
-            csv_row_data=prospect_dic["prospect_data"],
-            csv_row_hash=prospect_dic["prospect_hash"],
+            data=prospect_dic["prospect_data"],
+            data_hash=prospect_dic["prospect_hash"],
             upload_attempts=0,
             status=status,
             error_type=error_type,
-            iscraper_error_message=None,
+            error_message=None,
         )
         prospect_uploads.append(prospect_upload)
 
@@ -308,16 +308,16 @@ def create_prospect_from_linkedin_link(
         db.session.add(prospect_upload)
         db.session.commit()
 
-        email = prospect_upload.csv_row_data.get("email", None)
-        linkedin_url = prospect_upload.csv_row_data.get("linkedin_url", None)
+        email = prospect_upload.data.get("email", None)
+        linkedin_url = prospect_upload.data.get("linkedin_url", None)
 
         # If don't have a li_url but we have an email (and name, company?), search for the li_url
         if not linkedin_url and email:
-            company = prospect_upload.csv_row_data.get("company", "")
+            company = prospect_upload.data.get("company", "")
 
-            full_name = prospect_upload.csv_row_data.get("full_name", "")
-            first_name = prospect_upload.csv_row_data.get("first_name", "")
-            last_name = prospect_upload.csv_row_data.get("last_name", "")
+            full_name = prospect_upload.data.get("full_name", "")
+            first_name = prospect_upload.data.get("first_name", "")
+            last_name = prospect_upload.data.get("last_name", "")
 
             valid = full_name or (first_name and last_name)
             if not valid:
@@ -354,7 +354,7 @@ def create_prospect_from_linkedin_link(
                 else ProspectUploadsStatus.UPLOAD_FAILED
             )
             prospect_upload.error_type = ProspectUploadsErrorType.ISCRAPER_FAILED
-            prospect_upload.iscraper_error_message = error
+            prospect_upload.error_message = error
             db.session.add(prospect_upload)
             db.session.commit()
             return False
@@ -453,8 +453,8 @@ def create_prospect_from_linkedin_link(
                 priority=5,
             )
 
-            custom_data = prospect_upload.csv_row_data.get("custom_data", {})
-            # TODO: Change this to pull label from the csv_row_data
+            custom_data = prospect_upload.data.get("custom_data", {})
+            # TODO: Change this to pull label from the data
             research_point_type_id = create_custom_research_point_type(
                 prospect_id=new_prospect_id, label="CUSTOM", data=custom_data
             )
@@ -787,11 +787,9 @@ def upload_prospects_from_apollo_query(
 
 @celery.task
 def auto_run_apollo_upload_for_sdrs():
-
     # Auto scrape jobs
     sdrs: list[ClientSDR] = ClientSDR.query.all()
     for sdr in sdrs:
-
         if sdr.meta_data:
             if sdr.meta_data.get("apollo_auto_scrape") is True:
                 pass
@@ -824,7 +822,6 @@ def auto_run_apollo_upload_for_sdrs():
 def upsert_and_run_apollo_upload_for_sdr(
     client_sdr_id: int, name: str, archetype_id: int = None, segment_id: int = None
 ):
-
     from src.automation.models import ApolloScraperJob
 
     job: ApolloScraperJob = ApolloScraperJob.query.filter_by(
@@ -906,7 +903,6 @@ def create_apollo_scraper_job(
 def update_apollo_scraper_job(
     job_id: int, name: str = None, active: bool = None, update_filters: bool = None
 ):
-
     from src.automation.models import ApolloScraperJob
 
     job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)
@@ -929,7 +925,6 @@ def update_apollo_scraper_job(
 
 @celery.task
 def run_apollo_scraper_job(job_id: int):
-
     from src.automation.models import ApolloScraperJob, ProcessQueue, ProcessQueueStatus
     from sqlalchemy import Integer
 
@@ -953,7 +948,6 @@ def run_apollo_scraper_job(job_id: int):
 
 @celery.task
 def upload_from_apollo(job_id: int, max_pages: int):
-
     from src.automation.models import ApolloScraperJob
 
     job: ApolloScraperJob = ApolloScraperJob.query.get(job_id)

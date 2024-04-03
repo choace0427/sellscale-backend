@@ -469,8 +469,8 @@ def basic_prospect_uploads(
         client_archetype_id=client_archetype.id,
         client_sdr_id=client_sdr.id,
         prospect_uploads_raw_csv_id=prospect_uploads_raw_csv.id,
-        csv_row_data={"linkedin_url": "https://www.linkedin.com/in/davidmwei"},
-        csv_row_hash="1234567890",
+        data={"linkedin_url": "https://www.linkedin.com/in/davidmwei"},
+        data_hash="1234567890",
         upload_attempts=0,
         status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
     )

@@ -925,7 +925,7 @@ class ProspectUploadsErrorType(enum.Enum):
 
     Attributes:
         DUPLICATE: The upload has been disqualified because it is a duplicate.
-        ISCRAPER_FAILED: The upload has failed because iScraper failed. (Note this will populate the iscraper_error_message field)
+        ISCRAPER_FAILED: The upload has failed because iScraper failed. (Note this will populate the error_message field)
     """
 
     DUPLICATE = "DUPLICATE"
@@ -1027,12 +1027,12 @@ class ProspectUploads(db.Model):
         client_sdr_id: The id of the client sdr. (used for matching)
         prospect_uploads_raw_csv_id: The id of the raw CSV data for this prospect upload.
 
-        csv_row_data: The row data from the CSV, stored as a JSONB (slower to write, faster to read).
-        csv_row_data_hash: The hash of the csv_row_data. (used for matching)
+        data: The row data from the CSV, stored as a JSONB (slower to write, faster to read).
+        data_hash: The hash of the data. (used for matching)
         upload_attempts: The number of times this prospect upload has been attempted.
         status: The status of the prospect upload.
         error_type: The error type of the prospect upload.
-        iscraper_error_message: The error message from iScraper (because iScraper API is trash).
+        error_message: The error message from the prospect upload.
     """
 
     __tablename__ = "prospect_uploads"
@@ -1046,12 +1046,12 @@ class ProspectUploads(db.Model):
     )
 
     upload_source = db.Column(db.Enum(ProspectUploadSource), nullable=True)
-    csv_row_data = db.Column(JSONB, nullable=False)
-    csv_row_hash = db.Column(db.String, nullable=False)
+    data = db.Column(JSONB, nullable=False)
+    data_hash = db.Column(db.String, nullable=False)
     upload_attempts = db.Column(db.Integer, nullable=False)
     status = db.Column(db.Enum(ProspectUploadsStatus), nullable=False)
     error_type = db.Column(db.Enum(ProspectUploadsErrorType), nullable=True)
-    iscraper_error_message = db.Column(db.String, nullable=True)
+    error_message = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -1061,12 +1061,12 @@ class ProspectUploads(db.Model):
             "client_sdr_id": self.client_sdr_id,
             "prospect_uploads_raw_csv_id": self.prospect_uploads_raw_csv_id,
             "upload_source": self.upload_source.value,
-            "csv_row_data": self.csv_row_data,
-            "csv_row_hash": self.csv_row_hash,
+            "data": self.data,
+            "data_hash": self.data_hash,
             "upload_attempts": self.upload_attempts,
             "status": self.status.value,
             "error_type": self.error_type.value if self.error_type else None,
-            "iscraper_error_message": self.iscraper_error_message,
+            "error_message": self.error_message,
         }
 
 

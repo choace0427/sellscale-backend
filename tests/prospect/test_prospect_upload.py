@@ -111,8 +111,8 @@ def test_populate_prospect_uploads_from_json_payload():
     prospect_uploads: list[ProspectUploads] = ProspectUploads.query.filter_by(
         prospect_uploads_raw_csv_id=raw_csv_entry.id
     ).all()
-    assert prospect_uploads[0].csv_row_data == payload[0]
-    assert prospect_uploads[1].csv_row_data == payload[1]
+    assert prospect_uploads[0].data == payload[0]
+    assert prospect_uploads[1].data == payload[1]
 
     # Check that duplicate entries are automatically disqualified
     populated = populate_prospect_uploads_from_json_payload(
@@ -123,8 +123,8 @@ def test_populate_prospect_uploads_from_json_payload():
     prospect_uploads: list[ProspectUploads] = ProspectUploads.query.filter_by(
         prospect_uploads_raw_csv_id=raw_csv_entry.id
     ).all()
-    assert prospect_uploads[2].csv_row_data == payload[0]
-    assert prospect_uploads[3].csv_row_data == payload[1]
+    assert prospect_uploads[2].data == payload[0]
+    assert prospect_uploads[3].data == payload[1]
     assert prospect_uploads[2].status == ProspectUploadsStatus.DISQUALIFIED
     assert prospect_uploads[3].status == ProspectUploadsStatus.DISQUALIFIED
     assert prospect_uploads[2].error_type == ProspectUploadsErrorType.DUPLICATE
@@ -214,7 +214,7 @@ def test_create_prospect_from_linkedin_link_iscraper_error(
     assert not success
     assert pu.status == ProspectUploadsStatus.UPLOAD_FAILED
     assert pu.error_type == ProspectUploadsErrorType.ISCRAPER_FAILED
-    assert pu.iscraper_error_message == "Some iScraper message"
+    assert pu.error_message == "Some iScraper message"
 
     with mock.patch(
         "src.research.linkedin.services.research_personal_profile_details",
@@ -226,7 +226,7 @@ def test_create_prospect_from_linkedin_link_iscraper_error(
         assert not success
         assert pu.status == ProspectUploadsStatus.DISQUALIFIED
         assert pu.error_type == ProspectUploadsErrorType.ISCRAPER_FAILED
-        assert pu.iscraper_error_message == "Profile data cannot be retrieved."
+        assert pu.error_message == "Profile data cannot be retrieved."
 
 
 @use_app_context
