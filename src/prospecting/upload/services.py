@@ -399,12 +399,23 @@ def create_prospect_from_linkedin_link(
         if not prospect_upload:
             return False
 
-        upload_history: ProspectUploadHistory = ProspectUploadHistory.query.get(
-            prospect_upload.prospect_upload_history_id
+        # Get the segment_id
+        upload_history: ProspectUploadHistory = (
+            ProspectUploadHistory.query.get(prospect_upload.prospect_upload_history_id)
+            if prospect_upload.prospect_upload_history_id
+            else None
         )
-        segment_id = upload_history.client_segment_id or get_base_segment_for_archetype(
-            archetype_id=upload_history.client_archetype_id
-        )
+        if not upload_history:
+            segment_id = (
+                upload_history.client_segment_id
+                or get_base_segment_for_archetype(
+                    archetype_id=upload_history.client_archetype_id
+                )
+            )
+        else:
+            segment_id = get_base_segment_for_archetype(
+                prospect_upload.client_archetype_id
+            )
         client_sdr: ClientSDR = ClientSDR.query.get(prospect_upload.client_sdr_id)
 
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
