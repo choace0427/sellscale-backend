@@ -638,7 +638,8 @@ As a thank you, I'd love to send over a $50 Amazon gift card for your time.
 Best,
 
 Hristina
-### Angle: Security-Focused with Incentive
+### Angle: Advantage-based
+### Angle Description: Bullet point format, plain and simple
         
         """.strip()
 
@@ -761,7 +762,30 @@ Ishan
         """.strip()
 
         if step_num == 3:
-            return ""
+            return f"""
+          
+## Assets: 
+Title: SDR Dashboard
+Value: <p>Attached is a daily SDR dashboard from my old job. It includes information on how you should track your new hire's performance. Some strategies include putting it up on a flat screen TV across the floor, connecting it live with Salesforce, and using it to drive competition/accountability.</p>
+Tag: Offer
+
+
+## Output:
+### Email:
+Hey [[ prospect first name ]],
+
+How's the new hire for SDRs going?
+
+PS if helpful, I attached my old job's daily SDR dashbaord. It includes information on how you should track your new hire's performance. Some strategies:
+- Put up on a flat screen TV across the floor
+- Connected live with Salesforce
+- Helps drive competition/accountability
+
+Best,
+Ishan
+### Angle: Security-Focused with Incentive
+
+        """.strip()
 
     # Shivang Patel
     if example_num == 3:
