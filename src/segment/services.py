@@ -42,6 +42,22 @@ def get_segments_for_sdr(sdr_id: int) -> list[dict]:
     return [segment.to_dict() for segment in all_segments]
 
 
+def get_base_segment_for_archetype(archetype_id: int) -> Segment:
+    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not client_archetype:
+        return None
+    if not client_archetype.base_segment_id:
+        segment: Segment = create_new_segment(
+            client_sdr_id=client_archetype.client_sdr_id,
+            segment_title=client_archetype.archetype,
+            filters={},
+        )
+        client_archetype.base_segment_id = segment.id
+        db.session.commit()
+
+    return client_archetype.base_segment_id
+
+
 def get_prospect_ids_for_segment(segment_id: int) -> list[int]:
     prospects: list[Prospect] = Prospect.query.filter_by(segment_id=segment_id).all()
     return [prospect.id for prospect in prospects]
@@ -146,7 +162,6 @@ def add_prospects_to_segment(prospect_ids: list[int], new_segment_id: int):
             db.session.commit()
 
     else:
-
         for i in range(0, len(prospect_ids), batch_size):
             batch_prospect_ids = prospect_ids[i : i + batch_size]
             Prospect.query.filter(Prospect.id.in_(batch_prospect_ids)).update(
@@ -508,7 +523,6 @@ def move_segment_prospects(
 
 
 def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
-
     segment: Segment = Segment.query.filter_by(id=segment_id).first()
 
     # If segment is child, move to parent else move to segment 0
@@ -659,12 +673,12 @@ def get_segment_predicted_prospects(
 
 def get_unused_segments_for_sdr(client_sdr_id: int):
     query = """
-        select 
+        select
             segment.segment_title,
             segment_id,
             count(distinct prospect.id),
             array_agg(distinct client_archetype.archetype)
-        from 
+        from
             prospect
             join segment on segment.id = prospect.segment_id
             join client_archetype on client_archetype.id = prospect.archetype_id

@@ -937,8 +937,9 @@ class ProspectUploadSource(enum.Enum):
 
     CSV = "CSV"
     CONTACT_DATABASE = "CONTACT_DATABASE"
-    SALES_NAVIGATOR = "SALES_NAVIGATOR"
     LINKEDIN_LINK = "LINKEDIN_LINK"
+    TRIGGERS = "TRIGGERS"
+    UNKNOWN = "UNKNOWN"
 
 
 class ProspectUploadHistory(db.Model):

@@ -1851,13 +1851,11 @@ def create_prospect_from_linkedin_link(
     self,
     archetype_id: int,
     url: str,
-    batch: str = None,
     email: str = None,
     synchronous_research: bool = False,
     allow_duplicates: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
-    is_lookalike_profile: bool = False,
 ) -> tuple[bool, int or str]:
     from src.research.linkedin.services import research_personal_profile_details
 
@@ -1936,7 +1934,6 @@ def create_prospect_from_linkedin_link(
             allow_duplicates=allow_duplicates,
             set_status=set_status,
             set_note=set_note,
-            is_lookalike_profile=is_lookalike_profile,
             education_1=education_1,
             education_2=education_2,
             prospect_location=prospect_location,

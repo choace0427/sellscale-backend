@@ -4,8 +4,11 @@ from typing import Optional
 
 from src.automation.orchestrator import add_process_for_future
 from src.email_outbound.email_store.services import find_emails_for_archetype
-from src.prospecting.models import ExistingContact
-from src.segment.services import merge_segment_filters
+from src.prospecting.models import ExistingContact, ProspectUploadSource
+from src.segment.services import (
+    get_base_segment_for_archetype,
+    merge_segment_filters,
+)
 from src.prospecting.services import (
     bulk_mark_not_qualified,
     get_prospect_email_history,
@@ -75,12 +78,12 @@ from src.prospecting.prospect_status_services import (
     prospect_email_unsubscribe,
 )
 from src.prospecting.upload.services import (
+    create_prospect_upload_history,
     create_raw_csv_entry_from_json_payload,
     upsert_and_run_apollo_upload_for_sdr,
     get_apollo_scraper_jobs,
     populate_prospect_uploads_from_json_payload,
     collect_and_run_celery_jobs_for_upload,
-    run_and_assign_health_score,
     update_apollo_scraper_job,
 )
 from src.slack.models import SlackNotificationType
@@ -647,45 +650,6 @@ def post_send_email(client_sdr_id: int, prospect_id: int):
         # )
         # multichannel_notification.send_notification(preview_mode=False)
 
-        # send_slack_message(
-        #     webhook_urls=webhook_urls,
-        #     message=f"SellScale just multi-channeled",
-        #     blocks=[
-        #         {
-        #             "type": "header",
-        #             "text": {
-        #                 "type": "plain_text",
-        #                 "text": "📧 SellScale just multi-channeled",
-        #                 "emoji": True,
-        #             },
-        #         },
-        #         {
-        #             "type": "context",
-        #             "elements": [
-        #                 {
-        #                     "type": "mrkdwn",
-        #                     "text": "A prospect requested to be contacted via email. SellScale sent them an email on your behalf.",
-        #                 },
-        #                 {
-        #                     "type": "mrkdwn",
-        #                     "text": f"*SDR*: {client_sdr.name} ({from_email})",
-        #                 },
-        #                 {
-        #                     "type": "mrkdwn",
-        #                     "text": f"*Prospect*: {prospect.full_name}",
-        #                 },
-        #             ],
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": f"*Message from {prospect.full_name}*:\n>{prospect.li_last_message_from_prospect}\n\n*Subject*:\n>{subject}\n\n*Body*:\n>{prettier_body}",
-        #             },
-        #         },
-        #     ],
-        # )
-
     return jsonify({"message": "Success", "data": result}), 200
 
 
@@ -952,71 +916,68 @@ def get_prospects_for_icp(client_sdr_id: int):
     return jsonify({"message": "Success", "data": {"prospects": prospects}}), 200
 
 
-@PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
-@require_user
-def prospect_from_link(client_sdr_id: int):
-    archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True
-    )
-    url = get_request_parameter("url", request, json=True, required=True)
-    live = get_request_parameter("live", request, json=True, required=False) or False
-    is_lookalike_profile = (
-        get_request_parameter(
-            "is_lookalike_profile", request, json=True, required=False
-        )
-        or False
-    )
+# @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
+# @require_user
+# def prospect_from_link(client_sdr_id: int):
+#     archetype_id = get_request_parameter(
+#         "archetype_id", request, json=True, required=True
+#     )
+#     url = get_request_parameter("url", request, json=True, required=True)
+#     live = get_request_parameter("live", request, json=True, required=False) or False
+#     is_lookalike_profile = (
+#         get_request_parameter(
+#             "is_lookalike_profile", request, json=True, required=False
+#         )
+#         or False
+#     )
 
-    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    if not archetype:
-        return jsonify({"status": "error", "message": "Invalid archetype id"}), 400
-    elif archetype.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "Not authorized"}), 401
+#     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+#     if not archetype:
+#         return jsonify({"status": "error", "message": "Invalid archetype id"}), 400
+#     elif archetype.client_sdr_id != client_sdr_id:
+#         return jsonify({"status": "error", "message": "Not authorized"}), 401
 
-    batch = generate_random_alphanumeric(32)
-    prospect_id = None
-    if not live and not is_lookalike_profile:
-        create_prospect_from_linkedin_link.apply_async(
-            args=[archetype_id, url, batch],
-            queue="prospecting",
-            routing_key="prospecting",
-            priority=1,
-            link=run_and_assign_health_score.signature(
-                args=[archetype_id],
-                queue="prospecting",
-                routing_key="prospecting",
-                priority=3,
-                immutable=True,
-            ),
-        )
-    elif not live and is_lookalike_profile:
-        create_prospect_from_linkedin_link.delay(
-            archetype_id=archetype_id,
-            url=url,
-            batch=batch,
-            is_lookalike_profile=is_lookalike_profile,
-        )
-    else:
-        success, prospect_id = create_prospect_from_linkedin_link(
-            archetype_id=archetype_id,
-            url=url,
-            batch=batch,
-            is_lookalike_profile=is_lookalike_profile,
-        )
-        if not success:
-            # This is bad, but if success was false then prospect_id is a string. :/
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": prospect_id,
-                    }
-                ),
-                400,
-            )
-        run_and_assign_health_score(archetype_id=archetype_id, live=True)
+#     prospect_id = None
+#     if not live and not is_lookalike_profile:
+#         create_prospect_from_linkedin_link.apply_async(
+#             args=[archetype_id, url],
+#             queue="prospecting",
+#             routing_key="prospecting",
+#             priority=1,
+#             link=run_and_assign_health_score.signature(
+#                 args=[archetype_id],
+#                 queue="prospecting",
+#                 routing_key="prospecting",
+#                 priority=3,
+#                 immutable=True,
+#             ),
+#         )
+#     elif not live and is_lookalike_profile:
+#         create_prospect_from_linkedin_link.delay(
+#             archetype_id=archetype_id,
+#             url=url,
+#             is_lookalike_profile=is_lookalike_profile,
+#         )
+#     else:
+#         success, prospect_id = create_prospect_from_linkedin_link(
+#             archetype_id=archetype_id,
+#             url=url,
+#             is_lookalike_profile=is_lookalike_profile,
+#         )
+#         if not success:
+#             # This is bad, but if success was false then prospect_id is a string. :/
+#             return (
+#                 jsonify(
+#                     {
+#                         "status": "error",
+#                         "message": prospect_id,
+#                     }
+#                 ),
+#                 400,
+#             )
+#         run_and_assign_health_score(archetype_id=archetype_id, live=True)
 
-    return jsonify({"status": "success", "data": {"prospect_id": prospect_id}}), 200
+#     return jsonify({"status": "success", "data": {"prospect_id": prospect_id}}), 200
 
 
 @PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])
@@ -1033,19 +994,6 @@ def prospect_from_link_chain():
     if success:
         return "OK", 200
     return "Failed to create prospect", 404
-
-
-# @PROSPECTING_BLUEPRINT.route("/batch_mark_sent", methods=["POST"])
-# def batch_mark_sent():
-#     updates = batch_mark_prospects_as_sent_outreach(
-#         prospect_ids=get_request_parameter(
-#             "prospect_ids", request, json=True, required=True
-#         ),
-#         client_sdr_id=get_request_parameter(
-#             "client_sdr_id", request, json=True, required=True
-#         ),
-#     )
-#     return jsonify({"updates": updates})
 
 
 @PROSPECTING_BLUEPRINT.route("/batch_mark_queued", methods=["POST"])
@@ -1117,7 +1065,7 @@ def send_slack_reminder():
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 @require_user
 def post_add_prospect_from_csv_payload(client_sdr_id: int):
-    """Adds prospect from CSV payload (given as JSON) from Retool
+    """Adds prospect from CSV payload (given as JSON)
 
     First stores the entire csv in `prospect_uploads_raw_csv` table
     Then populates the `prospect_uploads` table
@@ -1149,6 +1097,7 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
         archetype_id=archetype_id,
         csv_payload=csv_payload,
         allow_duplicates=allow_duplicates,
+        source=ProspectUploadSource.CSV,
         segment_id=segment_id,
     )
 
@@ -1158,6 +1107,7 @@ def add_prospect_from_csv_payload(
     archetype_id: int,
     csv_payload: list,
     allow_duplicates: bool,
+    source: ProspectUploadSource,
     segment_id: Optional[int] = None,
 ):
     if len(csv_payload) >= 5000:
@@ -1192,6 +1142,13 @@ def add_prospect_from_csv_payload(
         payload=csv_payload,
         allow_duplicates=allow_duplicates,
     )
+    prospect_upload_history_id = create_prospect_upload_history(
+        client_id=archetype.client_id,
+        client_sdr_id=client_sdr_id,
+        upload_source=source,
+        client_archetype_id=archetype_id,
+        client_segment_id=segment_id,
+    )
     if raw_csv_entry_id == -1:
         return (
             "Duplicate CSVs are not allowed! Check that you're uploading a new CSV.",
@@ -1204,7 +1161,9 @@ def add_prospect_from_csv_payload(
         client_archetype_id=archetype_id,
         client_sdr_id=client_sdr_id,
         prospect_uploads_raw_csv_id=raw_csv_entry_id,
+        prospect_upload_history_id=prospect_upload_history_id,
         payload=csv_payload,
+        source=source,
         allow_duplicates=allow_duplicates,
     )
     if not success:
@@ -1217,7 +1176,6 @@ def add_prospect_from_csv_payload(
             archetype_id,
             client_sdr_id,
             allow_duplicates,
-            segment_id,
         ],
         queue="prospecting",
         routing_key="prospecting",
@@ -1265,7 +1223,9 @@ def retrigger_upload_prospect_job(client_sdr_id: int):
         "archetype_id", request, json=True, required=True
     )
 
-    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
 
     collect_and_run_celery_jobs_for_upload.apply_async(
         args=[client_sdr.client_id, archetype_id, client_sdr_id],
@@ -1781,9 +1741,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 
@@ -1919,7 +1879,6 @@ def post_apollo_scrape(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/apollo_scrape", methods=["GET"])
 @require_user
 def get_apollo_scrapes(client_sdr_id: int):
-
     results = get_apollo_scraper_jobs(client_sdr_id)
 
     return jsonify({"message": "Success", "data": results}), 200

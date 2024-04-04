@@ -3,6 +3,7 @@ import json
 import os
 import time
 import requests
+from src.prospecting.models import ProspectUploadSource
 from src.sockets.services import send_socket_message
 from model_import import (
     ClientSDR,
@@ -424,7 +425,11 @@ def action_upload_prospects(
     from src.prospecting.controllers import add_prospect_from_csv_payload
 
     response = add_prospect_from_csv_payload(
-        client_sdr_id, client_archetype_id, payload, False
+        client_sdr_id=client_sdr_id,
+        archetype_id=client_archetype_id,
+        csv_payload=payload,
+        allow_duplicates=False,
+        source=ProspectUploadSource.TRIGGERS,
     )
     print(response)
 

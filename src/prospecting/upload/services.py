@@ -3,6 +3,8 @@ from src.automation.li_searcher import search_for_li
 from app import db, celery
 from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
 from src.prospecting.models import (
+    ProspectUploadHistory,
+    ProspectUploadSource,
     ProspectUploadsRawCSV,
     ProspectUploads,
     ProspectUploadsStatus,
@@ -21,11 +23,76 @@ from src.research.services import (
     create_iscraper_payload_cache,
 )
 from sqlalchemy.orm.attributes import flag_modified
+from src.segment.models import Segment
+from src.segment.services import get_base_segment_for_archetype
 from src.utils.abstract.attr_utils import deep_get
-from typing import Optional
+from typing import Optional, Union
 from sqlalchemy import bindparam, update
 import json, hashlib
 import math
+
+
+def create_prospect_upload_history(
+    client_id: int,
+    client_sdr_id: int,
+    upload_source: ProspectUploadSource,
+    raw_data: dict,
+    client_segment_id: int,
+    client_archetype_id: Optional[int] = None,
+) -> int:
+    """Create a ProspectUploadHistory entry.
+
+    Args:
+        client_id (int): The client ID.
+        client_sdr_id (int): The client SDR ID.
+        upload_source (ProspectUploadSource): The source of the upload.
+        raw_data (dict): The raw data to upload.
+        client_segment_id (int): The client segment ID.
+        client_archetype_id (int): The client archetype ID. Defaults to None.
+
+    Returns:
+        int: The ID of the ProspectUploadHistory entry.
+    """
+    # Determine the upload size and hash the raw data.
+    upload_size = 1
+    raw_data_hash = None
+    upload_size = len(raw_data)
+    raw_data_hash = hashlib.sha256(json.dumps(raw_data).encode()).hexdigest()
+
+    # Check if we've already uploaded this data before.
+    exists = ProspectUploadHistory.query.filter_by(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        upload_source=upload_source,
+        raw_data_hash=raw_data_hash,
+    ).first()
+    if exists:
+        return -1
+
+    # Get the upload name by referencing the Segment and # of uploads under this segment
+    segment: Segment = Segment.query.get(client_segment_id)
+    past_uploads: int = ProspectUploadHistory.query.filter_by(
+        client_segment_id=client_segment_id,
+    ).count()
+    upload_name = f"{segment.segment_title} #{past_uploads + 1}"
+
+    prospect_upload_history: ProspectUploadHistory = ProspectUploadHistory(
+        client_id=client_id,
+        client_sdr_id=client_sdr_id,
+        upload_name=upload_name,
+        upload_size=upload_size,
+        uploads_completed=0,
+        upload_source=upload_source,
+        status=ProspectUploadHistory.ProspectUploadHistoryStatus.UPLOAD_NOT_STARTED,
+        client_archetype_id=client_archetype_id,
+        client_segment_id=client_segment_id,
+        raw_data=raw_data,
+        raw_data_hash=raw_data_hash,
+    )
+    db.session.add(prospect_upload_history)
+    db.session.commit()
+
+    return prospect_upload_history.id
 
 
 def create_raw_csv_entry_from_json_payload(
@@ -78,12 +145,47 @@ def create_raw_csv_entry_from_json_payload(
     return raw_csv_entry.id
 
 
+def populate_prospect_uploads_from_linkedin_link(
+    upload_history_id: int,
+) -> int:
+    """Populate a single ProspectUploads entry from a LinkedIn URL.
+
+    Args:
+        upload_history_id (int): The ID of the ProspectUploadHistory entry.
+
+    Returns:
+        bool: True if the ProspectUploads entry was populated successfully. Errors otherwise.
+    """
+    upload_history: ProspectUploadHistory = ProspectUploadHistory.query.get(
+        upload_history_id
+    )
+    data = upload_history.raw_data[0]
+    data_hash = hashlib.sha256(json.dumps(data).encode()).hexdigest()
+    prospect_upload: ProspectUploads = ProspectUploads(
+        client_id=upload_history.client_id,
+        client_archetype_id=upload_history.client_archetype_id,
+        client_sdr_id=upload_history.client_sdr_id,
+        prospect_upload_history_id=upload_history_id,
+        upload_source=ProspectUploadSource.LINKEDIN_LINK,
+        data=data,
+        data_hash=data_hash,
+        upload_attempts=0,
+        status=ProspectUploadsStatus.UPLOAD_NOT_STARTED,
+    )
+    db.session.add(prospect_upload)
+    db.session.commit()
+
+    return prospect_upload.id
+
+
 def populate_prospect_uploads_from_json_payload(
     client_id: int,
     client_archetype_id: int,
     client_sdr_id: int,
     prospect_uploads_raw_csv_id: int,
+    prospect_upload_history_id: int,
     payload: dict,
+    source: ProspectUploadSource,
     allow_duplicates: bool = True,
 ) -> bool:
     """Populate the ProspectUploads table from the JSON payload sent by the SDR.
@@ -150,8 +252,10 @@ def populate_prospect_uploads_from_json_payload(
             client_archetype_id=client_archetype_id,
             client_sdr_id=client_sdr_id,
             prospect_uploads_raw_csv_id=prospect_uploads_raw_csv_id,
+            prospect_upload_history_id=prospect_upload_history_id,
             data=prospect_dic["prospect_data"],
             data_hash=prospect_dic["prospect_hash"],
+            source=source,
             upload_attempts=0,
             status=status,
             error_type=error_type,
@@ -172,7 +276,6 @@ def collect_and_run_celery_jobs_for_upload(
     client_archetype_id: int,
     client_sdr_id: int,
     allow_duplicates: bool = True,
-    segment_id: Optional[int] = None,
 ) -> bool:
     """Collects the rows eligible for upload and runs the celery jobs for them.
 
@@ -215,7 +318,7 @@ def collect_and_run_celery_jobs_for_upload(
                 db.session.add(prospect_upload)
                 db.session.commit()
                 create_prospect_from_prospect_upload_row.apply_async(
-                    args=[prospect_upload.id, allow_duplicates, segment_id],
+                    args=[prospect_upload.id, allow_duplicates],
                     queue="prospecting",
                     routing_key="prospecting",
                     priority=2,
@@ -232,7 +335,6 @@ def create_prospect_from_prospect_upload_row(
     self,
     prospect_upload_id: int,
     allow_duplicates: bool = True,
-    segment_id: Optional[int] = None,
 ) -> None:
     """Celery task for creating a prospect from a ProspectUploads row.
 
@@ -256,7 +358,7 @@ def create_prospect_from_prospect_upload_row(
 
         # Create the prospect using the LinkedIn URL.
         create_prospect_from_linkedin_link.apply_async(
-            args=[prospect_upload.id, allow_duplicates, segment_id],
+            args=[prospect_upload.id, allow_duplicates],
             queue="prospecting",
             routing_key="prospecting",
             priority=2,
@@ -275,7 +377,6 @@ def create_prospect_from_linkedin_link(
     self,
     prospect_upload_id: int,
     allow_duplicates: bool = True,
-    segment_id: Optional[int] = None,
 ) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
@@ -300,6 +401,12 @@ def create_prospect_from_linkedin_link(
         if not prospect_upload:
             return False
 
+        upload_history: ProspectUploadHistory = ProspectUploadHistory.query.get(
+            prospect_upload.prospect_upload_history_id
+        )
+        segment_id = upload_history.client_segment_id or get_base_segment_for_archetype(
+            archetype_id=upload_history.client_archetype_id
+        )
         client_sdr: ClientSDR = ClientSDR.query.get(prospect_upload.client_sdr_id)
 
         # Mark the prospect upload row as UPLOAD_IN_PROGRESS.
@@ -310,6 +417,7 @@ def create_prospect_from_linkedin_link(
 
         email = prospect_upload.data.get("email", None)
         linkedin_url = prospect_upload.data.get("linkedin_url", None)
+        is_lookalike_profile = prospect_upload.data.get("is_lookalike_profile", False)
 
         # If don't have a li_url but we have an email (and name, company?), search for the li_url
         if not linkedin_url and email:
@@ -430,6 +538,7 @@ def create_prospect_from_linkedin_link(
             education_2=education_2,
             prospect_location=prospect_location,
             company_location=company_location,
+            is_lookalike_profile=is_lookalike_profile,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
@@ -459,18 +568,18 @@ def create_prospect_from_linkedin_link(
                 prospect_id=new_prospect_id, label="CUSTOM", data=custom_data
             )
 
-            return True
+            return True, new_prospect_id
         else:
             prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
             prospect_upload.error_type = ProspectUploadsErrorType.DUPLICATE
             db.session.add(prospect_upload)
             db.session.commit()
-            return False
+            return False, -1
     except Exception as e:
         db.session.rollback()
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
-            return False
+            return False, -1
 
         # Mark as Failed
         prospect_upload.status = ProspectUploadsStatus.UPLOAD_FAILED
@@ -779,6 +888,7 @@ def upload_prospects_from_apollo_query(
             for p in people
         ],
         allow_duplicates=False,
+        source=ProspectUploadSource.CONTACT_DATABASE,
         segment_id=segment_id,
     )
 

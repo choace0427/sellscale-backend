@@ -199,12 +199,14 @@ class ClientArchetype(db.Model):
 
     meta_data = db.Column(db.JSON, nullable=True)
 
+    base_segment_id = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[GeneratedMessageCTA] = (
-            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
-        )
+        ctas: list[
+            GeneratedMessageCTA
+        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
 
         return {
             "id": self.id,
@@ -253,6 +255,7 @@ class ClientArchetype(db.Model):
             "email_open_tracking_enabled": self.email_open_tracking_enabled,
             "email_link_tracking_enabled": self.email_link_tracking_enabled,
             "meta_data": self.meta_data,
+            "base_segment_id": self.base_segment_id,
         }
 
 
