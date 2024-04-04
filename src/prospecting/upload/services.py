@@ -54,8 +54,6 @@ def create_prospect_upload_history(
         int: The ID of the ProspectUploadHistory entry.
     """
     # Determine the upload size and hash the raw data.
-    upload_size = 1
-    raw_data_hash = None
     upload_size = len(raw_data)
     raw_data_hash = hashlib.sha256(json.dumps(raw_data).encode()).hexdigest()
 

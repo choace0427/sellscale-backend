@@ -1134,6 +1134,9 @@ def add_prospect_from_csv_payload(
     if archetype.client_id != 1:
         allow_duplicates = True
 
+    # Get the segment_id
+    segment_id = segment_id or get_base_segment_for_archetype(archetype_id=archetype_id)
+
     # Create prospect_uploads_csv_raw with a single entry
     raw_csv_entry_id = create_raw_csv_entry_from_json_payload(
         client_id=archetype.client_id,
@@ -1146,6 +1149,7 @@ def add_prospect_from_csv_payload(
         client_id=archetype.client_id,
         client_sdr_id=client_sdr_id,
         upload_source=source,
+        raw_data=csv_payload,
         client_archetype_id=archetype_id,
         client_segment_id=segment_id,
     )
