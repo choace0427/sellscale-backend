@@ -988,7 +988,7 @@ class ProspectUploadHistory(db.Model):
     raw_data = db.Column(JSONB, nullable=False)
     raw_data_hash = db.Column(db.String, nullable=False)
 
-    def to_dict(self):
+    def to_dict(self, include_raw_data=False) -> dict:
         from src.client.models import ClientArchetype
         from src.segment.models import Segment
 
@@ -1010,7 +1010,7 @@ class ProspectUploadHistory(db.Model):
             "client_archetype_name": archetype.archetype if archetype else None,
             "client_segment_id": self.client_segment_id,
             "client_segment_name": segment.segment_title if segment else None,
-            "raw_data": self.raw_data,
+            "raw_data": self.raw_data if include_raw_data else None,
             "raw_data_hash": self.raw_data_hash,
             "created_at": str(self.created_at),
         }

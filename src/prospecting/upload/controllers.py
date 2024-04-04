@@ -2,7 +2,10 @@ from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 from src.client.models import ClientSDR
 from src.prospecting.models import ProspectUploadSource
-from src.prospecting.upload.services import create_prospect_from_linkedin_link
+from src.prospecting.upload.services import (
+    create_prospect_from_linkedin_link,
+    get_prospect_upload_history,
+)
 from src.prospecting.upload.services import (
     create_prospect_from_prospect_upload_row,
     create_prospect_upload_history,
@@ -17,10 +20,10 @@ PROSPECTING_UPLOAD_BLUEPRINT = Blueprint("prospect/upload", __name__)
 
 @PROSPECTING_UPLOAD_BLUEPRINT.route("/history", methods=["GET"])
 @require_user
-def get_prospect_upload_history(client_sdr_id: int):
+def get_prospect_upload_history_endpoint(client_sdr_id: int):
     """Gets the Prospect Upload History for a Client SDR."""
-    offset = get_request_parameter("offset", request, required=False, default=0)
-    limit = get_request_parameter("limit", request, required=False, default=10)
+    offset = get_request_parameter("offset", request, required=False, default_value=0)
+    limit = get_request_parameter("limit", request, required=False, default_value=10)
 
     history = get_prospect_upload_history(
         client_sdr_id=client_sdr_id, offset=offset, limit=limit
