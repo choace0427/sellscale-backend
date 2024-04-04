@@ -151,8 +151,8 @@ def post_generate_sequence(client_sdr_id: int):
     sequence_type = get_request_parameter(
         "sequence_type", request, json=True, required=True, parameter_type=str
     )
-    step_num = get_request_parameter(
-        "step_num", request, json=True, required=True, parameter_type=int
+    num_steps = get_request_parameter(
+        "num_steps", request, json=True, required=True, parameter_type=int
     )
     additional_prompting = get_request_parameter(
         "additional_prompting",
@@ -166,7 +166,7 @@ def post_generate_sequence(client_sdr_id: int):
         client_id=client_id,
         archetype_id=archetype_id,
         sequence_type=sequence_type,
-        step_num=step_num,
+        num_steps=num_steps,
         additional_prompting=additional_prompting,
     )
 
