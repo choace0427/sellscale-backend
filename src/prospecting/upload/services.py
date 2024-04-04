@@ -32,6 +32,22 @@ import json, hashlib
 import math
 
 
+def get_prospect_upload_history(
+    client_sdr_id: int,
+) -> list[dict]:
+    """Get the ProspectUploadHistory for a client SDR.
+
+    Args:
+        client_sdr_id (int): The client SDR ID.
+
+    Returns:
+        list[dict]: A list of ProspectUploadHistory entries.
+    """
+    upload_histories: list[
+        ProspectUploadHistory
+    ] = ProspectUploadHistory.query.filter_by(client_sdr_id=client_sdr_id).all()
+
+
 def create_prospect_upload_history(
     client_id: int,
     client_sdr_id: int,
@@ -253,7 +269,7 @@ def populate_prospect_uploads_from_json_payload(
             prospect_upload_history_id=prospect_upload_history_id,
             data=prospect_dic["prospect_data"],
             data_hash=prospect_dic["prospect_hash"],
-            source=source,
+            upload_source=source,
             upload_attempts=0,
             status=status,
             error_type=error_type,

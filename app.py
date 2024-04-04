@@ -291,6 +291,7 @@ def register_blueprints(app):
     from src.outbound_quota.controllers import OUTBOUND_QUOTA_BLUEPRINT
 
     from src.utilization.controllers import UTILIZATION_BLUEPRINT
+    from src.prospecting.upload.controllers import PROSPECTING_UPLOAD_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -369,6 +370,7 @@ def register_blueprints(app):
     app.register_blueprint(OUTBOUND_QUOTA_BLUEPRINT, url_prefix="/outbound_quota")
 
     app.register_blueprint(UTILIZATION_BLUEPRINT, url_prefix="/utilizationv2")
+    app.register_blueprint(PROSPECTING_UPLOAD_BLUEPRINT, url_prefix="/prospect/upload")
 
     from src.hackathon.david.submission import HACKATHON_BLUEPRINT
 

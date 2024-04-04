@@ -47,7 +47,6 @@ from src.prospecting.services import (
     search_prospects,
     get_prospects,
     mark_prospects_as_queued_for_outreach,
-    create_prospect_from_linkedin_link,
     create_prospects_from_linkedin_link_list,
     batch_mark_as_lead,
     update_prospect_status_linkedin,
@@ -916,70 +915,6 @@ def get_prospects_for_icp(client_sdr_id: int):
     return jsonify({"message": "Success", "data": {"prospects": prospects}}), 200
 
 
-# @PROSPECTING_BLUEPRINT.route("/from_link", methods=["POST"])
-# @require_user
-# def prospect_from_link(client_sdr_id: int):
-#     archetype_id = get_request_parameter(
-#         "archetype_id", request, json=True, required=True
-#     )
-#     url = get_request_parameter("url", request, json=True, required=True)
-#     live = get_request_parameter("live", request, json=True, required=False) or False
-#     is_lookalike_profile = (
-#         get_request_parameter(
-#             "is_lookalike_profile", request, json=True, required=False
-#         )
-#         or False
-#     )
-
-#     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-#     if not archetype:
-#         return jsonify({"status": "error", "message": "Invalid archetype id"}), 400
-#     elif archetype.client_sdr_id != client_sdr_id:
-#         return jsonify({"status": "error", "message": "Not authorized"}), 401
-
-#     prospect_id = None
-#     if not live and not is_lookalike_profile:
-#         create_prospect_from_linkedin_link.apply_async(
-#             args=[archetype_id, url],
-#             queue="prospecting",
-#             routing_key="prospecting",
-#             priority=1,
-#             link=run_and_assign_health_score.signature(
-#                 args=[archetype_id],
-#                 queue="prospecting",
-#                 routing_key="prospecting",
-#                 priority=3,
-#                 immutable=True,
-#             ),
-#         )
-#     elif not live and is_lookalike_profile:
-#         create_prospect_from_linkedin_link.delay(
-#             archetype_id=archetype_id,
-#             url=url,
-#             is_lookalike_profile=is_lookalike_profile,
-#         )
-#     else:
-#         success, prospect_id = create_prospect_from_linkedin_link(
-#             archetype_id=archetype_id,
-#             url=url,
-#             is_lookalike_profile=is_lookalike_profile,
-#         )
-#         if not success:
-#             # This is bad, but if success was false then prospect_id is a string. :/
-#             return (
-#                 jsonify(
-#                     {
-#                         "status": "error",
-#                         "message": prospect_id,
-#                     }
-#                 ),
-#                 400,
-#             )
-#         run_and_assign_health_score(archetype_id=archetype_id, live=True)
-
-#     return jsonify({"status": "success", "data": {"prospect_id": prospect_id}}), 200
-
-
 @PROSPECTING_BLUEPRINT.route("/from_link_chain", methods=["POST"])
 def prospect_from_link_chain():
     archetype_id = get_request_parameter(
@@ -1086,18 +1021,28 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
     segment_filters = get_request_parameter(
         "segment_filters", request, json=True, required=False, parameter_type=dict
     )
+    source = get_request_parameter(
+        "source", request, json=True, required=False, parameter_type=str
+    )
     allow_duplicates = True if allow_duplicates is None else allow_duplicates
 
     # Update segment filters
     if segment_id and segment_filters:
         merge_segment_filters(segment_id=segment_id, segment_filters=segment_filters)
 
+    if source == "CSV":
+        source = ProspectUploadSource.CSV
+    elif source == "CONTACT_DATABASE":
+        source = ProspectUploadSource.CONTACT_DATABASE
+    else:
+        source = ProspectUploadSource.CSV
+
     return add_prospect_from_csv_payload(
         client_sdr_id=client_sdr_id,
         archetype_id=archetype_id,
         csv_payload=csv_payload,
         allow_duplicates=allow_duplicates,
-        source=ProspectUploadSource.CSV,
+        source=source,
         segment_id=segment_id,
     )
 
