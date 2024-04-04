@@ -34,18 +34,28 @@ import math
 
 def get_prospect_upload_history(
     client_sdr_id: int,
+    offset: int = 0,
+    limit: int = 10,
 ) -> list[dict]:
-    """Get the ProspectUploadHistory for a client SDR.
+    """Get the ProspectUploadHistory for a Client SDR. Paginated.
 
     Args:
         client_sdr_id (int): The client SDR ID.
+        offset (int): The offset for the query. Defaults to 0.
+        limit (int): The limit for the query. Defaults to 10.
 
     Returns:
         list[dict]: A list of ProspectUploadHistory entries.
     """
-    upload_histories: list[
-        ProspectUploadHistory
-    ] = ProspectUploadHistory.query.filter_by(client_sdr_id=client_sdr_id).all()
+    upload_histories: list[ProspectUploadHistory] = (
+        ProspectUploadHistory.query.filter_by(client_sdr_id=client_sdr_id)
+        .order_by(ProspectUploadHistory.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return [upload_history.to_dict() for upload_history in upload_histories]
 
 
 def create_prospect_upload_history(

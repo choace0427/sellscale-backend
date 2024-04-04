@@ -988,6 +988,69 @@ class ProspectUploadHistory(db.Model):
     raw_data = db.Column(JSONB, nullable=False)
     raw_data_hash = db.Column(db.String, nullable=False)
 
+    def to_dict(self):
+        from src.client.models import ClientArchetype
+        from src.segment.models import Segment
+
+        # Get the most up-to-date analytics for this history
+        self.update_status()
+
+        archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
+        segment: Segment = Segment.query.get(self.client_segment_id)
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_sdr_id": self.client_sdr_id,
+            "upload_name": self.upload_name,
+            "upload_size": self.upload_size,
+            "uploads_completed": self.uploads_completed,
+            "upload_source": self.upload_source.value,
+            "status": self.status.value,
+            "client_archetype_id": self.client_archetype_id,
+            "client_archetype_name": archetype.archetype if archetype else None,
+            "client_segment_id": self.client_segment_id,
+            "client_segment_name": segment.segment_title if segment else None,
+            "raw_data": self.raw_data,
+            "raw_data_hash": self.raw_data_hash,
+            "created_at": str(self.created_at),
+        }
+
+    def update_status(self):
+        """Updates own status and uploads_completed by querying ProspectUploads table."""
+        if self.status == self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
+            return
+
+        # Get the number of uploads created by this history
+        uploads: list[ProspectUploads] = ProspectUploads.query.filter(
+            ProspectUploads.prospect_upload_history_id == self.id
+        ).all()
+        if not uploads:
+            return
+
+        # Check if there are any uploads still queued or in progress or not started
+        not_complete = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
+            or upload.status == ProspectUploadsStatus.UPLOAD_IN_PROGRESS
+            or upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+        ]
+        if not_complete:
+            self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
+        else:
+            self.status = self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE
+
+        # Get the number completed
+        complete = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_COMPLETE
+        ]
+        self.uploads_completed = len(complete)
+
+        db.session.commit()
+        return
+
 
 class ProspectUploadsRawCSV(db.Model):
     """Stores the raw CSV data for a prospect upload.

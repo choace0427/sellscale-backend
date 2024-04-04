@@ -15,6 +15,20 @@ from src.utils.request_helpers import get_request_parameter
 PROSPECTING_UPLOAD_BLUEPRINT = Blueprint("prospect/upload", __name__)
 
 
+@PROSPECTING_UPLOAD_BLUEPRINT.route("/history", methods=["GET"])
+@require_user
+def get_prospect_upload_history(client_sdr_id: int):
+    """Gets the Prospect Upload History for a Client SDR."""
+    offset = get_request_parameter("offset", request, required=False, default=0)
+    limit = get_request_parameter("limit", request, required=False, default=10)
+
+    history = get_prospect_upload_history(
+        client_sdr_id=client_sdr_id, offset=offset, limit=limit
+    )
+
+    return jsonify({"status": "success", "data": {"history": history}}), 200
+
+
 @PROSPECTING_UPLOAD_BLUEPRINT.route("/linkedin_link", methods=["POST"])
 @require_user
 def post_upload_prospect_from_linkedin_link(client_sdr_id: int):
