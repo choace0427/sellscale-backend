@@ -1572,7 +1572,7 @@ def mark_prospect_email_sent(prospect_email_id: int):
         db.session.commit()
 
     prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
-    prospect_email.date_sent = datetime.datetime.now()
+    prospect_email.date_sent = datetime.now()
     db.session.add(prospect_email)
     db.session.commit()
 
@@ -2186,7 +2186,7 @@ def process_generated_msg_queue(
                 auth_token=sdr.auth_token,
                 prospect_id=prospect_id if prospect_id else "",
             )
-            date_scraped = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            date_scraped = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             send_slack_message(
                 message="🧑 New response from Human!",
                 webhook_urls=[URL_MAP["csm-human-response"]],
@@ -2455,7 +2455,7 @@ def generate_message_bumps():
             ),
             or_(
                 Prospect.hidden_until == None,
-                Prospect.hidden_until <= datetime.datetime.utcnow(),
+                Prospect.hidden_until <= datetime.utcnow(),
             ),
             Prospect.active == True,
         ).all()
@@ -2489,7 +2489,7 @@ def generate_message_bumps():
                     if status_record:
                         # If the first status record is less than the delay, then we don't generate a bump
                         if (
-                            datetime.datetime.utcnow() - status_record.created_at
+                            datetime.utcnow() - status_record.created_at
                         ).days < archetype.first_message_delay_days:
                             continue
 
