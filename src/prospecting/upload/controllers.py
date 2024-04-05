@@ -5,6 +5,7 @@ from src.prospecting.models import ProspectUploadSource
 from src.prospecting.upload.services import (
     create_prospect_from_linkedin_link,
     get_prospect_upload_history,
+    get_prospect_upload_history_details,
 )
 from src.prospecting.upload.services import (
     create_prospect_from_prospect_upload_row,
@@ -38,7 +39,7 @@ def get_prospect_upload_history_endpoint(client_sdr_id: int):
 @require_user
 def get_prospect_upload_history_details_endpoint(client_sdr_id: int, history_id: int):
     """Gets the Prospect Upload History Details for a Client SDR."""
-    details = get_prospect_upload_history(upload_id=history_id)
+    details = get_prospect_upload_history_details(upload_id=history_id)
 
     return jsonify({"status": "success", "data": {"details": details}}), 200
 
