@@ -2,7 +2,7 @@ from datetime import datetime
 from src.analytics.services import get_all_campaign_analytics_for_client
 from src.company.models import Company
 from sqlalchemy import update
-from app import db
+from app import db, celery
 from model_import import ClientArchetype
 from typing import Union, Optional
 from src.client.models import Client, ClientAssets, ClientSDR
@@ -1260,7 +1260,7 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
     finished = linkedin_finished and email_finished
     return finished
 
-
+@celery.task
 def auto_turn_off_finished_archetypes() -> int:
     """Automatically turns off any finished campaigns and sends a Slack Notifications. Will return the number of campaigns that were turned off. Ran by a cron job.
 
