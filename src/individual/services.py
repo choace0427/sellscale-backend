@@ -15,7 +15,6 @@ from sqlalchemy import or_, and_, not_, text
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache, IScraperPayloadType
 from app import db, celery
-from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
 
 

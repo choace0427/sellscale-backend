@@ -1117,6 +1117,7 @@ def get_text_generation(
     client_sdr_id: Optional[int] = None,
     temperature: Optional[float] = DEFAULT_TEMPERATURE,
     use_cache: bool = False,
+    tools: Optional[list] = None,
 ) -> Optional[str]:
     # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY"
     # | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA" | "CLIENT_ASSETS"
@@ -1146,6 +1147,7 @@ def get_text_generation(
             max_tokens=max_tokens,
             model=model,
             temperature=temperature,
+            tools=tools,
         )
         if not json_msgs:
             return response

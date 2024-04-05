@@ -6,6 +6,7 @@ Eventual migration to these wrappers will aid in uniform testing and debugging.
 import random
 import time
 import openai
+import anthropic
 import os
 from typing import Optional, Union
 
@@ -38,6 +39,8 @@ CHAT_GPT_MODELS = [
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     OPENAI_CHAT_GPT_4_TURBO_MODEL,
 ]
+
+CLAUDE_3_OPUS_MODEL = "claude-3-opus-20240229"
 
 DEFAULT_SUFFIX = None
 DEFAULT_MAX_TOKENS = 16
@@ -142,9 +145,10 @@ def wrapped_chat_gpt_completion(
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
     model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     max_attempts: int = 3,
+    tools: Optional[list] = None,
 ) -> str:
     """
-    Generates a completion using the GPT-3.5-turbo model.
+    Generates a completion using a GPT model.
 
     messages needs to be in the format:
     [
@@ -159,6 +163,22 @@ def wrapped_chat_gpt_completion(
         ...
     ]
     """
+
+    # Anthropic
+    if model.startswith("claude-"):
+        message = wrapped_claude_completion(
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            tools=tools,
+            model=model,
+            max_attempts=max_attempts,
+        )
+        print(message.content[0].text)
+        return message.content[0].text.strip()
+
+    # OpenAI
     response = attempt_chat_completion(
         messages=messages,
         max_tokens=max_tokens,
@@ -177,6 +197,38 @@ def wrapped_chat_gpt_completion(
     top_choice = choices[0]
     preview = top_choice["message"]["content"].strip()
     return preview
+
+
+def wrapped_claude_completion(
+    messages: list,
+    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    temperature: Optional[float] = DEFAULT_TEMPERATURE,
+    top_p: Optional[float] = DEFAULT_TOP_P,
+    model: str = CLAUDE_3_OPUS_MODEL,
+    tools: Optional[list] = None,
+    max_attempts: int = 3,
+):
+    attempts = 0
+    exception = None
+    while attempts < max_attempts:
+        try:
+            response = anthropic.Anthropic(
+                api_key=os.environ.get("ANTHROPIC_API_KEY")
+            ).messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=messages,
+                temperature=temperature,
+                top_p=top_p,
+                # tools=tools,
+            )
+            return response
+        except Exception as e:
+            attempts += 1
+            # Add a random delay before the next attempt
+            exception = e
+            time.sleep(random.uniform(0.5, 1.5))
+    raise Exception(exception)
 
 
 def wrapped_chat_gpt_completion_with_history(

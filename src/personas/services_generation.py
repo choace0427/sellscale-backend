@@ -15,7 +15,8 @@ from src.individual.services import parse_work_history
 import re
 from src.utils.string.string_utils import rank_number
 
-ASSET_AMOUNT = 1
+GEN_AMOUNT = 5
+ASSET_AMOUNT = 10
 
 
 def get_sdr_prompting_context_info(client_sdr_id: int):
@@ -80,7 +81,7 @@ def get_sdr_prompting_context_info(client_sdr_id: int):
 
     client_name = f"""Your Company Name: {client.company}""" if client.company else ""
     client_tagline = (
-        f"""You Company Tagline: {client.tagline}""" if client.tagline else ""
+        f"""Your Company Tagline: {client.tagline}""" if client.tagline else ""
     )
     client_description = (
         f"""Your Company Description: {client.description}"""
@@ -100,25 +101,24 @@ def get_sdr_prompting_context_info(client_sdr_id: int):
         if client.impressive_facts
         else ""
     )
-    sdr_work_history = (
-        "Your Work History (most recent first): \n"
-        + "\n".join(
-            [
-                f"History - Company Name: {work.get('company_name')}, Title: {work.get('title')}, Start Date: {work.get('start_Date', '?')}, End Date: {work.get('start_Date', '?')}"
-                for work in parse_work_history(individual.work_history)
-            ]
-        )
-        if individual and individual.work_history
-        else ""
-    )
+    # sdr_work_history = (
+    #     "Your Work History (most recent first): \n"
+    #     + "\n".join(
+    #         [
+    #             f"History - Company Name: {work.get('company_name')}, Title: {work.get('title')}, Start Date: {work.get('start_Date', '?')}, End Date: {work.get('start_Date', '?')}"
+    #             for work in parse_work_history(individual.work_history)
+    #         ]
+    #     )
+    #     if individual and individual.work_history
+    #     else ""
+    # )
 
-    day, day_of_month, month, year = get_current_time_casual(sdr.timezone)
+    # day, day_of_month, month, year = get_current_time_casual(sdr.timezone)
 
     context_info = f"""
 Here's some contextual info about you. Feel free to reference this when appropriate.
     
 ## Context:
-    Current Time: {day}, {day_of_month}, {month}, {year}
     {sdr_name}
     {sdr_email}
     {sdr_phone}
@@ -138,7 +138,6 @@ Here's some contextual info about you. Feel free to reference this when appropri
     {client_key_value_props}
     {client_mission}
     {client_impressive_facts}
-    {sdr_work_history}
     """.strip()
 
     return context_info
@@ -173,7 +172,7 @@ def generate_sequence(
     output = []
     if sequence_type == "EMAIL":
 
-        for i in range(1, num_steps):
+        for i in range(1, num_steps + 1):
 
             assets = random.sample(
                 all_assets,
@@ -189,7 +188,7 @@ def generate_sequence(
             if i == 1:
                 output.append(
                     {
-                        "result": clean_output(
+                        "result": clean_output_with_ai(
                             generate_email_initial(
                                 client_id=client_id,
                                 archetype_id=archetype_id,
@@ -203,19 +202,19 @@ def generate_sequence(
                     }
                 )
             else:
-                print(output)
 
                 output.append(
                     {
-                        "result": clean_output(
-                            generate_email_follow_up(
-                                client_id=client_id,
-                                archetype_id=archetype_id,
-                                step_num=i,
-                                context_info=context_info,
-                                assets_str=assets_str,
-                                additional_prompting=additional_prompting,
-                                previous_emails_str="",
+                        "result": clean_output_with_ai(
+                            clean_output(
+                                generate_email_follow_up_quick_and_dirty(
+                                    client_id=client_id,
+                                    archetype_id=archetype_id,
+                                    step_num=i,
+                                    context_info=context_info,
+                                    assets_str=assets_str,
+                                    additional_prompting=additional_prompting,
+                                )
                             )
                         ),
                         "assets": assets,
@@ -236,12 +235,31 @@ def generate_email_initial(
     assets_str: str,
     additional_prompting: str,
 ):
+    """
+
+    You are working to create a cold email in a sequence for generative outreach to prospects.
+    The email should use different assets that have a unique value prop, pain point, case study, unique facts, etc that can be used in to make that email stand out. It should also have a particular angle or approach to the outreach.
+    When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+
+
+    """
 
     prompt = f"""
     
-You are working to create a cold email in a sequence for generative outreach to prospects.
-The email should use different assets that have a unique value prop, pain point, case study, unique facts, etc that can be used in to make that email stand out. It should also have a particular angle or approach to the outreach.
+You are an angle creator for outbound emails. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
 When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+
+I will give you 3 few shot examples. Each example contains
+
+- ## Assets
+- ## Output: Email
+- ## Angle: Angle-based
+- ## Angle Description: Description of the angle
+
+I’m going to give you outreach information (which includes an asset), and you are to return {GEN_AMOUNT} angles and their associated email copy.
+
+The more diverse the outputs are, and creative, the better. You should follow general email practices like keeping it short, concise, and free of fillers such as (”I hope this finds you well”).
+Pick 1-3 assets to utilize in your email. Be creative and use them in different ways.
 
 {additional_prompting if additional_prompting else ""}
 
@@ -287,12 +305,21 @@ Please generate a cold email outline for generative outreach to prospects.
 {assets_str}
 
 
+## General guidelines
+
+- Final note - each email should follow a different structure. Here are some things you can vary on:
+    - length: extremely short to medium
+    - tone - informal, creative, informational (try different types but avoid being salesy)
+    - structure - mix up email approach
+- Keep the angles one word, then -based. Such as `Persona-based`
+
 ## Output:
 
     """.strip()
 
-    print(prompt)
+    #    print(prompt)
 
+    print("GENERATING EMAIL INITIAL")
     completion = (
         get_text_generation(
             [
@@ -301,7 +328,7 @@ Please generate a cold email outline for generative outreach to prospects.
                     "content": prompt,
                 }
             ],
-            model="gpt-4",  # -turbo-preview
+            model="gpt-4",  # claude-3-opus-20240229
             max_tokens=4000,
             type="EMAIL",
             temperature=0.85,
@@ -313,72 +340,53 @@ Please generate a cold email outline for generative outreach to prospects.
     return completion
 
 
-def generate_email_follow_up(
+def generate_email_follow_up_quick_and_dirty(
     client_id: int,
     archetype_id: int,
     step_num: int,
     context_info: str,
     assets_str: str,
     additional_prompting: str,
-    previous_emails_str: str,
 ):
 
     prompt = f"""
     
-You are working to create a follow up email in a sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
-The email should use different assets that have a unique value prop, pain point, case study, unique facts, etc that can be used in to make that email stand out. Each should also have a different angle or approach to the outreach.
-When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+    You're an angle creator for outbound emails. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
+    When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+    
+    You need to come up with a follow-up email for a generative outreach sequence. The prospect didn't respond to the initial cold email, so you need to come up with a follow-up email that will get their attention.
+    
+    
+    I’m going to give you outreach information (which includes an asset), and you are to return {GEN_AMOUNT} angles and their associated email copy.
 
-{additional_prompting if additional_prompting else ""}
-
-Here's some previous examples of what you're expected to generate.
-# Previous Example 1 #
--------------------------------------------------------------
-
-Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
-
-{get_email_example(1, step_num)}
-
--------------------------------------------------------------
-
-# Previous Example 2 #
--------------------------------------------------------------
-
-Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
-
-{get_email_example(2, step_num)}
-
--------------------------------------------------------------
-
-# Previous Example 3 #
--------------------------------------------------------------
-
-Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
-
-{get_email_example(3, step_num)}
-
--------------------------------------------------------------
-
-# Your Turn #
-Okay now it's your turn to generate an email. Good luck! Remember to keep your email short and concise and stay off the spam folder!
+    The more diverse the outputs are, and creative, the better. You should follow general email practices like keeping it short, concise, and free of fillers such as (”I hope this finds you well”).
 
 
+    {additional_prompting if additional_prompting else ""}
+    
+    
+    Here's some assets, use them to create a follow-up email. Pick 1-3 assets to utilize in your email. But, again, be creative and use them in different ways.
+    
+    {assets_str}
+    
+    
+    {context_info}
+    
+    
+    ## General guidelines
 
-Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
+    - Final note - each email should follow a different structure. Here are some things you can vary on:
+        - length: extremely short to medium
+        - tone - informal, creative, informational (try different types but avoid being salesy)
+        - structure - mix up email approach
+    - Keep the angles one word, then -based. Such as `Persona-based`
+    - Make sure emails (both words and tone) are short and concise
 
-{context_info}
-
-{previous_emails_str}
-
-{assets_str}
-
-
-## Output:
-
+    ## Output:
+    
     """.strip()
 
-    print(prompt)
-
+    print(f"GENERATING EMAIL FOLLOW UP {step_num}")
     completion = (
         get_text_generation(
             [
@@ -387,7 +395,7 @@ Please generate the {rank_number(step_num)} email in the sequence for generative
                     "content": prompt,
                 }
             ],
-            model="gpt-4-turbo-preview",  # -turbo-preview
+            model="gpt-4",  # claude-3-opus-20240229
             max_tokens=4000,
             type="EMAIL",
             temperature=0.85,
@@ -397,6 +405,139 @@ Please generate the {rank_number(step_num)} email in the sequence for generative
     )
 
     return completion
+
+
+# def generate_email_follow_up(
+#     client_id: int,
+#     archetype_id: int,
+#     step_num: int,
+#     context_info: str,
+#     assets_str: str,
+#     additional_prompting: str,
+#     previous_emails_str: str,
+# ):
+
+#     prompt = f"""
+
+
+# You are working to create a follow up email in a sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
+# The email should use different assets that have a unique value prop, pain point, case study, unique facts, etc that can be used in to make that email stand out. Each should also have a different angle or approach to the outreach.
+# When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+
+# {additional_prompting if additional_prompting else ""}
+
+# Here's some previous examples of what you're expected to generate.
+# # Previous Example 1 #
+# -------------------------------------------------------------
+
+# Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
+
+# {get_email_example(1, step_num)}
+
+# -------------------------------------------------------------
+
+# # Previous Example 2 #
+# -------------------------------------------------------------
+
+# Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
+
+# {get_email_example(2, step_num)}
+
+# -------------------------------------------------------------
+
+# # Previous Example 3 #
+# -------------------------------------------------------------
+
+# Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
+
+# {get_email_example(3, step_num)}
+
+# -------------------------------------------------------------
+
+# # Your Turn #
+# Okay now it's your turn to generate an email. Good luck! Remember to keep your email short and concise and stay off the spam folder!
+
+
+# Please generate the {rank_number(step_num)} email in the sequence for generative outreach to prospects. The first email is a cold email, and the following emails are follow-ups to the cold email since the prospect didn't respond.
+
+# {context_info}
+
+# {previous_emails_str}
+
+# {assets_str}
+
+
+# ## Output:
+
+#     """.strip()
+
+#     print(prompt)
+
+#     completion = (
+#         get_text_generation(
+#             [
+#                 {
+#                     "role": "user",
+#                     "content": prompt,
+#                 }
+#             ],
+#             model="gpt-4-turbo-preview",  # -turbo-preview
+#             max_tokens=4000,
+#             type="EMAIL",
+#             temperature=0.85,
+#             use_cache=False,
+#         )
+#         or ""
+#     )
+
+#     return completion
+
+
+def clean_output_with_ai(output: str):
+
+    prompt = f"""
+    
+    I'm going to give you some data and I want you to format it in a JSON array format with EXACTLY this structure:
+    
+    (
+    "angle": <SOMETHING>-based,
+    "angle_description": <ANGLE_DESCRIPTION>,
+    "subject": <EMAIL_SUBJECT>,
+    "message": <EMAIL_BODY>,
+    )
+    
+    If you don't have something, just put an empty string. Maintain the newline formatting in the JSON message. ONLY respond with the JSON array format.
+    
+    # Data #
+    {output}
+    
+    """.strip()
+
+    print("CLEANING OUTPUT")
+    completion = (
+        get_text_generation(
+            [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="gpt-3.5-turbo-0125",
+            max_tokens=4000,
+            type="MISC_CLASSIFY",
+            temperature=0.85,
+            use_cache=False,
+        )
+        or ""
+    )
+
+    import json
+
+    try:
+        return json.loads(completion.replace("```json", "").replace("```", "").strip())
+    except:
+        print("ERROR", completion)
+        return []
 
 
 def clean_output(output: str):
@@ -457,149 +598,102 @@ def get_email_example(example_num: int, step_num: int):
 
 def get_example_context_info(example_num: int):
 
-    # Hristina Bell
+    # Sarthak Mishra
     if example_num == 1:
         return """
       
 Here's some contextual info about you. Feel free to reference this when appropriate.
     
 ## Context:
-    Current Time: Wednesday, 3rd, April, 2024
-    Your Name: Hristina Bell
+    Your Name: Sarthak Mishra
     
     
-    Your Title: GTM at Doppler | At Doppler, we are building the first SecretOps platform to make it easier for developers to manage secrets at scale and empower teams to be more productive and secure.
-    Your Bio: Over my career, I have had the great fortune to help grow Fortune 50 companies as well as 🚀 startups, alongside highly talented professionals and customers of all sizes spanning my years at MUFG, IBM, Salesforce, Scale AI, and Doppler. I am passionate about delivering customer value, building lasting relationships, creating new categories, and going above and beyond to deliver results.
+    Your Title: We're Hiring! | Founder @ Drool | UI/UX Design, Webflow Development
+    Your Bio: Design Strategist, Entrepreneurial Storyteller, Problem Solver. Currently building Drool to simplify design operations for early-stage startups.
 
-In my personal time, I enjoy spending time with family and friends, reading, mentoring, podcasts, exercising, music and nature.
 
-📨 hbencheva@gmail.com
-📱 925.348.5239
-    Your Job Description: Building the account management and success motions at Doppler.
-    Your Industry: Information Technology & Services
-    Your Location: San Francisco, California, United States
-    Your School: San Francisco State University
-    Your Degree: Master of Business Administration - MBA
-    Your Education Field: Marketing
+It started with a T-shirt business at 19, an early venture that sparked my entrepreneurial spirit. But real learning came later – the kind that textbooks don't teach. My time at NID wasn't just about design; it was a lesson in life's unpredictability and the value of resilience.
+
+Fast-forward to today: My journey has seen me in various roles – starting as an intern at diverse startups, experiencing the ups and downs of being a founder, and now leading as the CEO of Drool. Along the way, I've learned to always anticipate the unexpected and draw lessons from each challenge.
+
+Turning Points:
+
+⭐Internships: Worked with various startups, learning about resilience and the guts needed in entrepreneurship.
+⭐Learning from Failures: Each failed venture taught me something new, especially about expecting the unexpected.
+
+What I Bring to Drool:
+
+📌 I've got hands-on experience in growing startups, not just in design but also in marketing and strategy.
+📌 I believe in looking beyond the obvious, finding new solutions to old problems.
+📌 As a CEO, I focus on solving problems and bringing together people who can think out of the box.
+
+Drool's Vision: At Drool, our mission is clear. We're here to simplify and streamline design operations for early-stage SaaS startups. Our goal is to make effective design accessible to businesses of all sizes, extending our services to scale-ups and beyond.
+
+Engaging with the World: Networking isn't just a business strategy for us; it's the essence of Drool. I thrive on founder-led sales, using each interaction as a learning opportunity, understanding clients not just as businesses but as people with stories.
+    Your Job Description: Crafting high-impact Webflow sites and building my dream design agency, brick by brick! → http://trydrool.com
+    Your Industry: Design
+    Your Location: Ahmedabad, Gujarat, India
+    Your School: National Institute of Design
+    Your Degree: Foundation degree
+    Your Education Field: Graphic Design
     
     
-    Your Company Name: Doppler
-    You Company Tagline: Doppler is the uncomplicated way to sync, manage, orchestrate, and rotate secrets across any environment or app config with easy to use tools.
-    Your Company Description: Doppler enables developers and security teams to keep their secrets and app configuration in sync and secure across devices, environments, and team members.
-    Your Company Key Value Props: Collaborate Together:
-Your team's encrypted source of truth. Organize your secrets across projects and environments. The scary days of sharing secrets over Slack, email, git and zip files are over. After adding a secret, your team and their apps have it instantly.
-
-Automate Everything:
-The best developers automate the pain away. Create references to frequently used secrets in Doppler. When they need to change, you only need to update them once.
-
-Works Everywhere:
-Use your secrets in Docker, Serverless, or anywhere else. We work where you work.
-Go live in minutes, not months. As your stack evolves, Doppler remains simple.
-
-Boost Your Productivity:
-Like git, the Doppler CLI smartly knows which secrets to fetch based on the project directory you are in. Gone are the futile days of trying to keep ENV files in sync!
-
-Version Everything:
-Add confidence to a brittle part of your stack with immutable history with optional Slack and Microsoft Teams alerts when things change.
-Roll back broken changes with a single click or through our robust API and CLI.
-    Your Company Mission: Secure the world's secrets.
-    Your Company Impressive Facts: 31,500+ Startups and Enterprises
-10.5B+ Secrets Read per Month
-99.99% Historical Annual Uptime
-    Your Work History (most recent first): 
-History - Company Name: Doppler, Title: GTM Leader - Sales & Success, Start Date: ?, End Date: ?
-History - Company Name: Doppler, Title: Sales Lead - GTM - Sr Account Executive, Start Date: ?, End Date: ?
-History - Company Name: Scale AI, Title: Strategic Account Executive, Start Date: ?, End Date: ?
-History - Company Name: Salesforce, Title: Account Executive - General Business, Start Date: ?, End Date: ?
-History - Company Name: IBM, Title: Enterprise Client Executive, Start Date: ?, End Date: ?
-History - Company Name: IBM, Title: Client Executive - Integrated accounts, Start Date: ?, End Date: ?
-History - Company Name: MUFG, Title: Customer Success and Operations Lead, Start Date: ?, End Date: ?
-History - Company Name: MUFG, Title: Customer Success / Relationship Manager, Start Date: ?, End Date: ?
-History - Company Name: MUFG, Title: Securities Lending, Start Date: ?, End Date: ?
-History - Company Name: East West Bank, Title: Treasury Analyst, Start Date: ?, End Date: ?
+    Your Company Name: Drool
+    Your Company Tagline: A single subscription for all your design needs.
+    Your Company Description: None
+  
   
       """.strip()
 
-    # Ishan Sharma
+    # Ayush Sharma
     if example_num == 2:
         return """
       
 Here's some contextual info about you. Feel free to reference this when appropriate.
     
 ## Context:
-    Current Time: Monday, 1st, April, 2024
-    Your Name: Ishan Sharma
-    Your Email: ishan@sellscale.com
+    Your Name: Ayush Sharma
     
-    Your Title: Co-founder & CEO @ SellScale
-    Your Bio: I'm a Cal alum interested in tech, government, and entrepreneurship. On the side, you can catch me hacking together side projects, longboarding down the Berkeley hills, drumming to classic rock, and watching hours of TED Talks.
- sharmaishan.com
-    Your Job Description: Growing companies with sales AGI
+    
+    Your Title: Founder and CEO of Warp (YC W23) | Making payroll and compliance easy for founders
+    Your Bio: Warp is a modern payroll & compliance platform made for founders and remote teams. Checkout Warp at joinwarp.com
+    Your Job Description: Building Warp (YC W23) – modern payroll and compliance for startups.
     Your Industry: Computer Software
-    Your Location: San Francisco Bay Area
-    Your School: University of California, Berkeley
-    Your Degree: Bachelor's of Science
-    Your Education Field: Economics/Business Admin
+    Your Location: Brooklyn, New York, United States
+    Your School: Massachusetts Institute of Technology
+    Your Degree: Master's degree
+    Your Education Field: Systems and Machine Learning
     
     
-    Your Company Name: DailyDropout.fyi
-    You Company Tagline: Premium startup newsletter with 130k+ subscribers
-    Your Company Description: DailyDropout.fyi is a startup firm with a newsletter of 130k+ subscribers. Readers include investors from top firms like Sequoia, Sequoia, Lightspeed, and more. We've featured 100s of startups, many of which went on to raise millions in venture capital. Work to feature interesting companies for investors and future employees.
-    
-    
-    
-    Your Work History (most recent first): 
-History - Company Name: SellScale, Title: Co-Founder & CEO, Start Date: ?, End Date: ?
-History - Company Name: Athelas, Title: Business Operations, Start Date: ?, End Date: ?
-History - Company Name: McKinsey & Company, Title: Business Analyst, Start Date: ?, End Date: ?
-History - Company Name: Slack, Title: Product Marketing Manager, Start Date: ?, End Date: ?
-History - Company Name: Lightspeed Venture Partners, Title: Fellow, Start Date: ?, End Date: ?
-History - Company Name: HS Mixers, Title: Small Business Owner, Start Date: ?, End Date: ?
-History - Company Name: U.S. House of Representatives, Title: Congressional Intern, Start Date: ?, End Date: ?
-History - Company Name: Cupertino High School, Title: The M&M Project, Start Date: ?, End Date: ?
+    Your Company Name: Warp
+    Your Company Tagline: Payroll and Compliance for Startups.
+    Your Company Description: Payroll built for startups. Put state tax registrations on autopilot. Never waste time on payroll operations again.
 
       """.strip()
 
-    # Shivang Patel
+    # Will Han
     if example_num == 3:
         return """
 
 Here's some contextual info about you. Feel free to reference this when appropriate.
     
 ## Context:
-    Current Time: Thursday, 14th, March, 2024
-    Your Name: Shivang Patel
+    Your Name: Will Han
     
-    
-    Your Title: Where today’s most important questions find the world’s most knowledgeable minds.
-    Your Bio: Experienced Account Executive with a demonstrated history of working in the information technology and healthcare industries. Skilled in Strategy, Sales, Management, Healthcare, and IT.
-    
-    Your Industry: Information Technology & Services
-    Your Location: Houston, Texas, United States
-    Your School: University of Houston-Clear Lake
-    Your Degree: MHA/MBA
+    Your Title: Co-Founder @ BitSync
+    Your Bio: Making something great with AI
+    Your Industry: Computer Software
+    Your Location: Los Angeles, California, United States
+    Your School: Harvard University
+    Your Degree: Master's degree
+    Your Education Field: System engineering and Machine Learning
     
     
     
-    Your Company Name: NewtonX
-    You Company Tagline: The leading B2B market research company connecting decision makers with verified expert insights they can trust.
-    Your Company Description: NewtonX is the only B2B market research company that connects decision makers with verified expert insights they can trust. We are doing quantitative and qualitative research leveraging our AI-powered recruitment technology that has the highest scale, quality, and accuracy in the market. Many leading clients like Salesforce or Microsoft have done large scale A/B tests between our data and competitor data which showed that their fraud rates are >30% while ours are <1% across the board. We empower business decision makers to make product, brand, go-to-market, M&A and investment decisions in confide. 
-    Your Company Key Value Props: 1. The best research: qualitative & quantitative market research with custom recruited and fully verified professionals 
-2. Designed to help you: research design (e.g., questionnaire, interview guides) based on clients business objectives 
-3. Easy takeaways: analysis & insights presentation with takeways and recommendations presented in a board room ready fashion
-4. Quality: won many quality awards for best research vendor (e.g., Hedgeweek, Greenbooks)
-5. Serving largest players: serving Big Tech (4/5 biggest players), market research, consulting (4 biggest players), F500 companies, PEs and Hedge Funds
-    Your Company Mission: We’re on a mission to uncover world-class knowledge.
-    
-    Your Work History: 
-History - Company Name: NewtonX, Title: Strategic Account Director, Start Date: ?, End Date: ?
-History - Company Name: Oak Street Health, Title: Sales Director, Start Date: ?, End Date: ?
-History - Company Name: Gartner, Title: Large Enterprise Account Executive, Start Date: ?, End Date: ?
-History - Company Name: Revel Technology, Title: Account Executive, Start Date: ?, End Date: ?
-History - Company Name: Kindred Healthcare, Title: Clinical Liaison, Start Date: ?, End Date: ?
-History - Company Name: Good Shepherd Hospice, Title: Hospice Consultant, Start Date: ?, End Date: ?
-History - Company Name: Healix, LLC, Title: Managed Care Specialist, Start Date: ?, End Date: ?
-History - Company Name: Walgreens, Title: Pharmacy Technician, Start Date: ?, End Date: ?
+    Your Company Name: BitSync
+    Your Company Tagline: Train and deploy your AI models within minutes!
+    Your Company Description: BitSync provides unparalleled access to GPUs for deep learning at massive scale, with high-speed and adaptable infrastructure
+  
       
       """.strip()
 
@@ -608,248 +702,120 @@ History - Company Name: Walgreens, Title: Pharmacy Technician, Start Date: ?, En
 
 def get_email_step_example(example_num: int, step_num: int):
 
-    # Hristina Bell
+    # Sarthak Mishra
     if example_num == 1:
         if step_num == 1:
             return f"""
         
 ## Assets: 
-Title: Doppler Securing Insurance
-Value: <p>Doppler offers advanced secrets management to secure financial and insurance platforms, enhancing transaction security and automating secret rotation. The platform provides comprehensive audit trails to track secret usage and streamline regulatory compliance in the insurance sectors. Features include role-based access control, encryption-at-rest and in-transit, and detailed access and change logs for operational transparency.</p>
-Tag: Research
-
-Title: $50 Gift Card
-Value: We are offering a $50 Gift Card for potential clients to schedule a call with us. During the call, we aim to gather information about their devops system, understand their priorities, and explore potential collaboration opportunities.
-Tag: Offer
+Title: Hiring Designers is a Huge Hassle
+Value: Hiring designers is a huge hassle. Startup founders often have to juggle between other priorities as design. Designers can also be hard to find due to their “full stack” capabilities across product, marketing, different tools, and more.
+Tag: Pain Point
 
 
 ## Output:
 ### Email:
-Hi [[prospect first name]],
+Hi [[ prospect first name ]],
 
-As a [[informalized prospect title. all lowercase]], you're responsible for keeping [[ informalized prospect company name]]'s systems secure and efficient. You probably haven't heard of us yet, but I'm reaching out from Doppler, a secrets management platform. I'd love to get us on your radar.
+I know that finding top-tier Designers can be a hassle, especially when you factor in the risks and the high costs of hiring and (if needed) firing.
 
-Our platform helps manage, orchestrate, and rotate secrets across any environment or app config, simplifying your tasks and boosting security. This is especially relevant if you're dealing with insurance data - which, from what I understand about [[informalized prospect company name]], you are.
+To add to it, you’ll have to juggle between hiring product designers, graphic designers, web designers, and more which will only multiply the problems even further. Even if you do manage to get through all these challenges, retaining these "Top-Tier" Designers is a struggle in itself.
 
-If relevant, free for a quick 15-20 minute chat next week?
+If you've experienced these problems at [[ prospect company ]], then we here at Drool have the perfect solution.
 
-As a thank you, I'd love to send over a $50 Amazon gift card for your time.
+Would it be okay if I shared some more info? Or maybe there's someone else on your team who'd be the right fit for this conversation?
 
-Best,
+Thank you for your time, and I look forward to hearing from you.
 
-Hristina
-### Angle: Advantage-based
-### Angle Description: Bullet point format, plain and simple
+Regards,
+Sarthak Mishra
+CEO @ Drool
+### Angle: Narrative-based
+### Angle Description: Come up with a narrative that someone can resonate with
         
         """.strip()
 
         if step_num == 2:
-            return f"""
-        
-## Assets: 
-Title: Integrations with AWS, Azure, GCP and More
-Value: <p>Doppler seamlessly integrates with leading cloud providers such as AWS, Azure, and GCP, which is essential for insurance industries. These integrations enable secure management of secrets and compliance with high-security standards in the financial sector.</p>
-Tag: Value Prop
-
-
-## Output:
-### Email:
-Hi [[prospect first name]],
-
-I'm guessing that you all already have a secrets management solution in place.
-
-Do you all use AWS, Azure, GCP, and/or something else?
-
-We seamlessly integrate with all these platforms. This allows for secure management of secrets and compliance with the high-security standards in the insurance sector.
-
-Would you be open for a quick call on how we can save you hours per week on secrets management?
-
-Have a nice Wednesday :)
-
-Hristina
-hbencheva@gmail.com
-925.348.5239
-### Angle: Security-Focused with Incentive
-        
-        """.strip()
+            return f"""""".strip()
 
         if step_num == 3:
-            return f"""
+            return f"""""".strip()
 
-## Assets: 
-Title: Integrations with AWS, Azure, GCP and More
-Value: <p>Doppler seamlessly integrates with leading cloud providers such as AWS, Azure, and GCP, which is essential for insurance industries. These integrations enable secure management of secrets and compliance with high-security standards in the financial sector.</p>
-Tag: Value Prop
-
-
-## Output:
-### Email:
-Hi [[prospect first name]] - haven't heard back.
-
-Can you just let me know if you're:
-
-1. not looking to change your secrets management solution
-
-2. not interested
-
-3. not the right contact
-
-Best,
-Hristina
-### Angle: Security-Focused with Incentive
-          
-          """.strip()
-
-    # Ishan Sharma
+    # Ayush Sharma
     if example_num == 2:
         if step_num == 1:
             return f"""
           
 ## Assets: 
-Title: Followed by Top VCs
-Value: DailyDropout.fyi has a strong following from top investors like Sequoia, Kleiner Perkins, Lightspeed, Contrary, and others. They have a wide readership of over 130k+ including venture capitalists, founders, and more.
-Tag: Phrase
+Title: Payroll Compliance Takes Weeks
+Value: Compliance takes weeks to complete for founders and is often cumbersome, complex, and hard to navigate.
+Tag: Pain Point
 
-Title: We'd love to feature their startup!
-Value: <p>Let the recipient know that we found their startup quite interesting and would love to feature them in our newsletter! Let them know that (1) this is free of cost (2) we'll handle writing, editing, sending, distributions, and (3) we accept donations if they're open to it.</p>
-Tag: Offer
+Title: Easy to migrate
+Value: Migrating from Rippling, Gusto, or Dee takes 15 minutes
+Tag: Value Prop
 
 
 ## Output:
 ### Email:
-Happy Monday [[ first name ]]! 👋 I'm Ishan, the editor-in-chief here at DailyDropout.fyi. (startup newsletter with 130k+ subscribers, we feature interesting startups every week to get interesting companies in front of investors and future employees).
+Hi [[ prospect first name ]],
 
-I recently came across [[ colloquialized prospect's company ]] and wanted to personally reach out - we were just thinking about making our next feature about a co. in the [[ 1-2 words phrase, casual lowercase space. Ensure it's only 1-2 words maximum. ]] space.
+Imagine if you could skip weeks of frustrating payroll and compliance paperwork.
 
-**The ask: would you like to be featured?**
+With Warp, you can bypass weeks of tedious paperwork as all your tasks, like opening and managing payroll tax accounts, filing submissions, and setting up unemployment insurance rates are handled automatically.
+
+If you're migrating from Rippling, Gusto, or Deel, a quick 15-minute call is all it takes for onboarding and migration.
+
+Would love to show you Warp if you have some time this week, could you let me know some times?
 
 Best,
-
-Ishan
-
-
-Answers to a couple common questions I get asked:
-
-1. _How does this work?_ -> We'll handle writing, editing, and publishing! One ask we have for you is that you share on socials once published.
-
-2. _How much does this cost?_ -> Entirely free for you! However, we do accept donations. Typically, startups have donated anywhere from $50 to $1,000 to support our platform in the past. Any amount helps - I can send a stripe link if you'd like to support.
-### Angle: Exclusive Feature Invitation with Support Option
+Ayush
+### Angle: Imagination-based
+### Angle Description: Show what a world would look like with us
           
         """.strip()
 
         if step_num == 2:
-            return f"""
-
-## Assets: 
-Title: Tranch Case Study
-Value: <p>Tranch is a fintech startup that provides non-dilutive cash solutions for fast-growing businesses. We featured them in our newsletter a couple months back. After being featured - we got them 30k+ views, hundreds of link clicks, and many conversations.</p> https://dailydropout.substack.com/p/tranch-non-dilutive-cash-for-startups
-Tag: Case Study
-
-
-## Output:
-### Email:
-Just wanted to circle back here [[ first name ]].
-
-A couple months back, we featured tranch (startup in the fintech space) and they had over 35,000+ impressions with hundreds of clicks towards their website within 48 hours of publishing.
-
-Link: [Tranch - DailyDropout.fyi Article](https://dailydropout.substack.com/p/tranch-non-dilutive-cash-for-startups)
-
-Let me know if you'd like to get [[ company name ]] featured as well! We'd love to get the word out there.
-
-Ishan
-### Angle: Security-Focused with Incentive
-          
-        """.strip()
+            return f"""""".strip()
 
         if step_num == 3:
-            return f"""
-          
-## Assets: 
-Title: SDR Dashboard
-Value: <p>Attached is a daily SDR dashboard from my old job. It includes information on how you should track your new hire's performance. Some strategies include putting it up on a flat screen TV across the floor, connecting it live with Salesforce, and using it to drive competition/accountability.</p>
-Tag: Offer
+            return f"""""".strip()
 
-
-## Output:
-### Email:
-Hey [[ prospect first name ]],
-
-How's the new hire for SDRs going?
-
-PS if helpful, I attached my old job's daily SDR dashbaord. It includes information on how you should track your new hire's performance. Some strategies:
-- Put up on a flat screen TV across the floor
-- Connected live with Salesforce
-- Helps drive competition/accountability
-
-Best,
-Ishan
-### Angle: Security-Focused with Incentive
-
-        """.strip()
-
-    # Shivang Patel
+    # Will Han
     if example_num == 3:
         if step_num == 1:
             return f"""
           
 ## Assets: 
-Title: Article on HR in the Insurance Industry
-Value: The insurance industry is facing a crisis due to an aging workforce and a knowledge shortfall among new professionals entering the field. This talent gap was highlighted during the 2017 hurricane season when the demand for adjusters far exceeded the supply. The lack of experienced professionals can lead to mistakes in claims handling, ethical concerns, and ultimately harm policyholders and insurers. https://www.businessinsurance.com/article/20240205/NEWS06/912362439/Perspectives-An-industry-in-crisis-%E2%80%94-challenges-and-opportunities
-Tag: Research
-
-Title: Talent strategy trends offer
-Value: <p>NewtonX has helped several companies in creating a competitive talent strategy; we'd love to offer some top trends we're seeing in talent in the insurance space.</p>
-Tag: Offer
+Title: Lowest Price
+Value: Bitsync provides the lowest price amongst providers, sets up your instance instantly, and gives free trials
+Tag: Value Prop
 
 
 ## Output:
 ### Email:
-Hi [[first name]],
+Hi [[ prospect first name ]],
 
-[[Some variation of: I noticed that you're leading HR/people/etc. at informalized prospect company name]]. I trust you're aware of the crisis facing large insurers: an aging workforce, knowledge shortfall, and attrition. (Source: [Business Insurance](https://www.businessinsurance.com/article/20240205/NEWS06/912362439/Perspectives-An-industry-in-crisis-%E2%80%94-challenges-and-opportunities))
+My name is Will Han, and I’m a cofounder of BitSync. We are a low-cost GPU Cloud and training platform that is easy to migrate to.
 
-It can be tough to manage, but not impossible.
+Key advantages of BitSync Cloud are:
 
-At NewtonX, we've been helping companies create competitive talent strategies. We'd love to share some top insurance talent trends we're seeing. Maybe it'd be valuable for your next exec meeting.
+- Guaranteed lowest price amongst cloud providers
+- Free instance time to transfer your setup (i.e. billing doesn’t start until your model/data are uploaded and drivers are installed)
+- Free ingress/egress + storage
+We build complementary infrastructure for your unique needs (e.g. distributed computing, etc)
+- Free trials + credits for new customers
 
-Would you be open to a brief call next week to discuss this further?
+If you are interested or have any questions, just let me know. Looking forward to hearing from you!
 
 Best,
-Shivang
-### Angle: Addressing HR Challenges with Expertise Offer
+Will
+### Angle: Advantage-based
+### Angle Description: Bullet point format, plain and simple
 
         """.strip()
 
         if step_num == 2:
-            return f"""
-          
-## Assets: 
-Title: Case study: How a design software company uncovered trends and best practices for hiring designers with NewtonX
-Value: <p><span style="color: rgb(0, 0, 0);">NewtonX surveyed 300 design hiring managers in four countries over 10 days for a design software firm, uncovering hiring trends and emphasizing supportive cultures, personalized recruitment, and development opportunities, against a backdrop of 23% job growth in digital design by 2031.</span></p><p><br></p><p>URL: https://eng7e.seismic.com/i/gQYIGwxf0nN9Y8HZzoHuJWA1mW___xw6___lPLUSSIGNp7lzPAitYg8Xqu8cPLUSSIGN8Ud6Tg9MgjefO6VGMdPAFrtLz6PLUSSIGNkCpkQozmQ___LnKv8x6wXqgC7WsBqn___XArcRK3ztvQix55jRpqGUZ</p><p><br></p>
-Tag: Case Study
-
-Title: Talent strategy trends offer
-Value: <p>NewtonX has helped several companies in creating a competitive talent strategy; we'd love to offer some top trends we're seeing in talent in the insurance space.</p>
-Tag: Offer
-
-
-## Output:
-### Email:          
-Hi [[first name]],
-
-I hope the previous article I shared got you thinking about the talent strategies at [[informalized prospect company name]]. To further illustrate the value we can bring, I'd like to share a case study where we helped a $bn company uncover hiring trends and best practices.
-
-Here's the link: [Case Study](https://eng7e.seismic.com/i/gQYIGwxf0nN9Y8HZzoHuJWA1mW___xw6___lPLUSSIGNp7lzPAitYg8Xqu8cPLUSSIGN8Ud6Tg9MgjefO6VGMdPAFrtLz6PLUSSIGNkCpkQozmQ___LnKv8x6wXqgC7WsBqn___XArcRK3ztvQix55jRpqGUZ)
-
-I'd like to offer you a comprehensive analysis of the HR Insurance landscape. This customized report will provide actionable insights to help [[company]] address unique HR needs and stay ahead of the competition.
-
-Let me know if this sounds interesting and we can set up a time to delve into details.
-
-Best,
-
-Shiv
-### Angle: Addressing HR Challenges with Expertise Offer
-
-        """.strip()
+            return f"""""".strip()
 
     return None
