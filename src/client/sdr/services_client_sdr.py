@@ -629,21 +629,6 @@ def adjust_sla_schedules(client_sdr_id: int) -> bool:
 
         return False  # No need to adjust the SLA schedules
 
-    for schedule in sla_schedules:
-        # LINKEDIN AI ADJUSTMENT
-        if last_week_sla_schedule:
-            schedule.linkedin_past_volume = last_week_sla_schedule.linkedin_volume
-            schedule.linkedin_volume = last_week_sla_schedule.linkedin_volume
-        else:
-            schedule.linkedin_volume = 25
-            schedule.linkedin_past_volume = 5
-        schedule.linkedin_ai_adjusted = True
-
-        # EMAIL AI ADJUSTMENT
-        # schedule.email_past_volume = last_week_sla_schedule.email_volume
-        # schedule.email_volume = last_week_sla_schedule.email_volume
-        # schedule.email_ai_adjusted = True
-
     db.session.commit()
 
     return True
