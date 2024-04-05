@@ -58,6 +58,30 @@ def get_prospect_upload_history(
     return [upload_history.to_dict() for upload_history in upload_histories]
 
 
+def get_prospect_upload_history_details(
+    upload_id: int,
+) -> dict:
+    """Get the breakdown of a ProspectUploadHistory entry.
+
+    Args:
+        upload_id (int): The ID of the ProspectUploadHistory entry.
+
+    Returns:
+        dict: The details of the ProspectUploadHistory entry.
+    """
+    upload_history: ProspectUploadHistory = ProspectUploadHistory.query.get(upload_id)
+    if not upload_history:
+        return {}
+
+    prospect_uploads: list[ProspectUploads] = ProspectUploads.query.filter_by(
+        prospect_upload_history_id=upload_id
+    ).all()
+
+    return {
+        "uploads": [prospect_upload.to_dict() for prospect_upload in prospect_uploads],
+    }
+
+
 def create_prospect_upload_history(
     client_id: int,
     client_sdr_id: int,

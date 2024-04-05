@@ -32,6 +32,17 @@ def get_prospect_upload_history_endpoint(client_sdr_id: int):
     return jsonify({"status": "success", "data": {"history": history}}), 200
 
 
+@PROSPECTING_UPLOAD_BLUEPRINT.route(
+    "/history/<int:history_id>/details", methods=["GET"]
+)
+@require_user
+def get_prospect_upload_history_details_endpoint(client_sdr_id: int, history_id: int):
+    """Gets the Prospect Upload History Details for a Client SDR."""
+    details = get_prospect_upload_history(upload_id=history_id)
+
+    return jsonify({"status": "success", "data": {"details": details}}), 200
+
+
 @PROSPECTING_UPLOAD_BLUEPRINT.route("/linkedin_link", methods=["POST"])
 @require_user
 def post_upload_prospect_from_linkedin_link(client_sdr_id: int):
