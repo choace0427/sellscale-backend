@@ -28,6 +28,7 @@ from src.client.services import (
     update_client_auto_generate_email_messages_setting,
     update_client_sdr_territory_name,
 )
+from src.client.services_client_archetype import auto_turn_off_finished_archetypes
 from src.prospecting.services import create_note
 from src.automation.resend import send_email
 from src.client.services import (
