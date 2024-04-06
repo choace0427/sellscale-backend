@@ -10,6 +10,7 @@ from src.personas.services import (
     unassign_prospects,
 )
 from src.personas.services_generation import generate_sequence
+from src.personas.services_creation import add_sequence
 from src.utils.request_helpers import get_request_parameter
 
 PERSONAS_BLUEPRINT = Blueprint("personas", __name__)
@@ -151,8 +152,8 @@ def post_generate_sequence(client_sdr_id: int):
     sequence_type = get_request_parameter(
         "sequence_type", request, json=True, required=True, parameter_type=str
     )
-    num_steps = get_request_parameter(
-        "num_steps", request, json=True, required=True, parameter_type=int
+    step_num = get_request_parameter(
+        "step_num", request, json=True, required=True, parameter_type=int
     )
     additional_prompting = get_request_parameter(
         "additional_prompting",
@@ -166,8 +167,43 @@ def post_generate_sequence(client_sdr_id: int):
         client_id=client_id,
         archetype_id=archetype_id,
         sequence_type=sequence_type,
-        num_steps=num_steps,
+        step_num=step_num,
         additional_prompting=additional_prompting,
+    )
+
+    return jsonify({"status": "success", "data": result}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/add_sequence", methods=["POST"])
+@require_user
+def post_add_sequence(client_sdr_id: int):
+    """Adds a sequence for an archetype"""
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    sequence_type = get_request_parameter(
+        "sequence_type", request, json=True, required=True, parameter_type=str
+    )
+    ctas = get_request_parameter(
+        "ctas", request, json=True, required=True, parameter_type=list
+    )
+    subject_lines = get_request_parameter(
+        "subject_lines", request, json=True, required=True, parameter_type=list
+    )
+    steps = get_request_parameter(
+        "steps", request, json=True, required=True, parameter_type=list
+    )
+
+    result = add_sequence(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        sequence_type=sequence_type,
+        ctas=ctas,
+        subject_lines=subject_lines,
+        steps=steps,
     )
 
     return jsonify({"status": "success", "data": result}), 200

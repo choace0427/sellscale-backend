@@ -16,7 +16,7 @@ import re
 from src.utils.string.string_utils import rank_number
 
 GEN_AMOUNT = 5
-ASSET_AMOUNT = 10
+ASSET_AMOUNT = 2
 
 
 def get_sdr_prompting_context_info(client_sdr_id: int):
@@ -147,7 +147,7 @@ def generate_sequence(
     client_id: int,
     archetype_id: int,
     sequence_type: str,
-    num_steps: int,
+    step_num: int,
     additional_prompting: str,
 ):
 
@@ -172,55 +172,53 @@ def generate_sequence(
     output = []
     if sequence_type == "EMAIL":
 
-        for i in range(1, num_steps + 1):
+        assets = random.sample(
+            all_assets,
+            min(ASSET_AMOUNT, len(all_assets)),
+        )
+        assets_str = "## Assets: \n" + "\n\n".join(
+            [
+                f"Title: {asset.get('title')}\nValue: {asset.get('value')}\nTag: {asset.get('tag')}\nID: {asset.get('id')}"
+                for asset in assets
+            ]
+        )
 
-            assets = random.sample(
-                all_assets,
-                min(ASSET_AMOUNT, len(all_assets)),
+        if step_num == 1:
+            output.append(
+                {
+                    "result": clean_output_with_ai(
+                        generate_email_initial(
+                            client_id=client_id,
+                            archetype_id=archetype_id,
+                            context_info=context_info,
+                            assets_str=assets_str,
+                            additional_prompting=additional_prompting,
+                        )
+                    ),
+                    "assets": assets,
+                    "step_num": step_num,
+                }
             )
-            assets_str = "## Assets: \n" + "\n\n".join(
-                [
-                    f"Title: {asset.get('title')}\nValue: {asset.get('value')}\nTag: {asset.get('tag')}"
-                    for asset in assets
-                ]
-            )
+        else:
 
-            if i == 1:
-                output.append(
-                    {
-                        "result": clean_output_with_ai(
-                            generate_email_initial(
+            output.append(
+                {
+                    "result": clean_output_with_ai(
+                        clean_output(
+                            generate_email_follow_up_quick_and_dirty(
                                 client_id=client_id,
                                 archetype_id=archetype_id,
+                                step_num=step_num,
                                 context_info=context_info,
                                 assets_str=assets_str,
                                 additional_prompting=additional_prompting,
                             )
-                        ),
-                        "assets": assets,
-                        "step_num": i,
-                    }
-                )
-            else:
-
-                output.append(
-                    {
-                        "result": clean_output_with_ai(
-                            clean_output(
-                                generate_email_follow_up_quick_and_dirty(
-                                    client_id=client_id,
-                                    archetype_id=archetype_id,
-                                    step_num=i,
-                                    context_info=context_info,
-                                    assets_str=assets_str,
-                                    additional_prompting=additional_prompting,
-                                )
-                            )
-                        ),
-                        "assets": assets,
-                        "step_num": i,
-                    }
-                )
+                        )
+                    ),
+                    "assets": assets,
+                    "step_num": step_num,
+                }
+            )
 
     else:
         output = []
@@ -259,7 +257,7 @@ I will give you 3 few shot examples. Each example contains
 I’m going to give you outreach information (which includes an asset), and you are to return {GEN_AMOUNT} angles and their associated email copy.
 
 The more diverse the outputs are, and creative, the better. You should follow general email practices like keeping it short, concise, and free of fillers such as (”I hope this finds you well”).
-Pick 1-3 assets to utilize in your email. Be creative and use them in different ways.
+Pick 1-3 assets to utilize in your email. In your output say the IDs of the assets you used. Be creative and use them in different ways.
 
 {additional_prompting if additional_prompting else ""}
 
@@ -328,7 +326,7 @@ Please generate a cold email outline for generative outreach to prospects.
                     "content": prompt,
                 }
             ],
-            model="gpt-4",  # claude-3-opus-20240229
+            model="claude-3-opus-20240229",  # claude-3-opus-20240229
             max_tokens=4000,
             type="EMAIL",
             temperature=0.85,
@@ -365,12 +363,46 @@ def generate_email_follow_up_quick_and_dirty(
     {additional_prompting if additional_prompting else ""}
     
     
-    Here's some assets, use them to create a follow-up email. Pick 1-3 assets to utilize in your email. But, again, be creative and use them in different ways.
+    Here's some assets, use them to create a follow-up email. Pick 1-3 assets to utilize in your email. But, again, be creative and use them in different ways. Say the IDs of the assets you used.
     
     {assets_str}
     
     
     {context_info}
+    
+    
+    
+    ## Some examples:
+    
+    ---------------------------------------------------
+    Hello [prospect name],
+
+    Hope your week is going well. It was great to hear about your [business pain point] on our last call. I think [company name] can help you [insert benefit].
+
+    I'd love the opportunity to tell you a few of my ideas over a 15-minute call. Are you free this Thursday? If so, feel free to book some time on my calendar: [insert calendar link].
+
+    Thanks,
+
+    [Signature]
+    ---------------------------------------------------
+    Hello [prospect name],
+
+    Just bumping this up in your inbox. Did you get a chance to speak to [higher-up] about moving forward with [product or service]?
+
+    If not, I’d love to set up a phone call so I can get your team started [achieving X results]. Are you and your manager available on Wednesday morning for a brief phone call?
+
+    Thanks,
+
+    [Signature]
+    ---------------------------------------------------
+    Hey [prospect name],
+
+    It seems like it’s not a great time for us to connect, but I really think [specific features] could help your business [achieve X results].
+
+    If you’re not the right person to talk to, whom should I reach out to?
+
+    Thanks,
+    ---------------------------------------------------
     
     
     ## General guidelines
@@ -395,7 +427,7 @@ def generate_email_follow_up_quick_and_dirty(
                     "content": prompt,
                 }
             ],
-            model="gpt-4",  # claude-3-opus-20240229
+            model="claude-3-opus-20240229",  # claude-3-opus-20240229
             max_tokens=4000,
             type="EMAIL",
             temperature=0.85,
@@ -499,12 +531,13 @@ def clean_output_with_ai(output: str):
     
     I'm going to give you some data and I want you to format it in a JSON array format with EXACTLY this structure:
     
-    (
+    [(
     "angle": <SOMETHING>-based,
     "angle_description": <ANGLE_DESCRIPTION>,
     "subject": <EMAIL_SUBJECT>,
     "message": <EMAIL_BODY>,
-    )
+    "asset_ids": [<ASSET_IDS>],
+    )]
     
     If you don't have something, just put an empty string. Maintain the newline formatting in the JSON message. ONLY respond with the JSON array format.
     
@@ -522,7 +555,7 @@ def clean_output_with_ai(output: str):
                     "content": prompt,
                 }
             ],
-            model="gpt-3.5-turbo-0125",
+            model="gpt-4-turbo-preview",  # -3.5-turbo-0125
             max_tokens=4000,
             type="MISC_CLASSIFY",
             temperature=0.85,
