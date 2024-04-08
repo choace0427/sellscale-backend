@@ -123,7 +123,7 @@ def patch_domain():
 @require_user
 def delete_domain_endpoint(client_sdr_id: int, domain_id: int):
     """Deletes a domain"""
-    success, msg = delete_domain(client_sdr_id=client_sdr_id, domain_id=domain_id)
+    success, msg = delete_domain(domain_id=domain_id)
     if not success:
         return (
             jsonify(

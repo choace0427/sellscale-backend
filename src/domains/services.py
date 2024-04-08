@@ -1340,21 +1340,16 @@ def delete_workmail_inbox(workmail_user_id: str) -> tuple[bool, str]:
     return False, "Failed to delete workmail inbox"
 
 
-def delete_domain(client_sdr_id: int, domain_id: int) -> tuple[bool, str]:
+def delete_domain(domain_id: int) -> tuple[bool, str]:
     """Delete a domain (turn off auto-renewal)
 
     Args:
-        client_sdr_id (int): The ID of the ClientSDR
         domain_id (int): The ID of the Domain object
 
     Returns:
         tuple: A tuple containing the status and a message
     """
     domain: Domain = Domain.query.get(domain_id)
-    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(sdr.client_id)
-    if not domain or domain.client_id != client.id:
-        return False, "Domain does not exist"
 
     # Make sure we don't delete a domain with active inboxes
     email_banks = SDREmailBank.query.filter_by(domain_id=domain.id).count()

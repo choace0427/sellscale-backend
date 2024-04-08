@@ -72,7 +72,7 @@ def post_create_sdr_email_bank(client_sdr_id: int):
 def delete_sdr_email_bank(client_sdr_id: int, email_bank_id: int):
     """Endpoint to delete an SDR Email Bank"""
     email_bank = SDREmailBank.query.filter(SDREmailBank.id == email_bank_id).first()
-    if not email_bank or email_bank.client_sdr_id != client_sdr_id:
+    if not email_bank:
         return jsonify({"status": "error", "message": "Email bank not found"}), 400
 
     success, msg = remove_sdr_email_bank(email_bank_id=email_bank_id)
