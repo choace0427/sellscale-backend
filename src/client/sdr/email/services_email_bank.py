@@ -245,7 +245,9 @@ def remove_sdr_email_bank(
 
     # Remove AWS Workmail User
     if email_bank.aws_workmail_user_id:
-        success, msg = delete_workmail_inbox(email=email_bank.email_address)
+        success, msg = delete_workmail_inbox(
+            workmail_user_id=email_bank.aws_workmail_user_id
+        )
         if success:  # Remove the AWS Workmail User ID
             email_bank.aws_workmail_user_id = None
             email_bank.aws_username = None

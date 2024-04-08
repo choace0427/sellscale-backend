@@ -14,7 +14,6 @@ from src.client.sdr.email.services_email_bank import (
 )
 from src.client.sdr.email.services_email_schedule import update_sdr_email_send_schedule
 from src.domains.services import (
-    delete_workmail_inbox,
     validate_domain_configuration_for_client,
 )
 from src.utils.request_helpers import get_request_parameter
