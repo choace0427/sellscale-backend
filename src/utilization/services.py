@@ -252,13 +252,32 @@ def get_completed_campaign_data(client_id: int):
                 count(distinct prospect.id) num_total_linkedin,
                 
                 count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is not null) num_used_email,
-                count(distinct prospect.id) filter (where prospect.email is not null) num_total_email
+                count(distinct prospect.id) filter (where prospect.email is not null) num_total_email,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'SENT_OUTREACH' or 
+                        prospect_email_status_records.to_status = 'SENT_OUTREACH'
+                ) num_sent,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'ACCEPTED' or 
+                        prospect_email_status_records.to_status = 'EMAIL_OPENED'
+                ) num_opens,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
+                        prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+                ) num_replies,
+                count(distinct prospect.id) filter (
+                    where prospect_status_records.to_status = 'DEMO_SET' or
+                        prospect_email_status_records.to_status = 'DEMO_SET'
+                ) num_demos
                 
             from
                 client_sdr
                 join client_archetype on client_archetype.client_sdr_id = client_sdr.id
                 join prospect on prospect.archetype_id = client_archetype.id
                     and prospect.overall_status not in ('REMOVED')
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
             where
                 client_sdr.active
                 and not client_archetype.active
