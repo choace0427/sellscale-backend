@@ -212,7 +212,7 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         #     initial_email_send_date=None,
         # )
 
-        prospect_email.outreach_status = ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH
+        prospect_email.outreach_status = ProspectEmailOutreachStatus.NOT_SENT
         prospect_email.email_status = ProspectEmailStatus.APPROVED
 
         bulk_updates.append(prospect_email)

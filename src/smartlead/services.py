@@ -1190,6 +1190,7 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
             email_body: GeneratedMessage = GeneratedMessage.query.get(message.body_id)
             custom_fields[f"Body_{index+1}"] = email_body.completion
 
+    # Add the prospect to the campaign
     sl = Smartlead()
     result = sl.add_campaign_leads(
         campaign_id=archetype.smartlead_campaign_id,
@@ -1200,7 +1201,19 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
             }
         ],
     )
-    if result.get("upload_count") != result.get("total_leads"):
+
+    # Log the result
+    if log:
+        log.log.append(
+            f"upload_prospect_to_campaign ({datetime.datetime.utcnow()}): Smartlead Upload Result: {result}"
+        )
+        flag_modified(log, "log")
+        db.session.commit()
+
+    # If not all prospects were uploaded, send a slack message
+    if (result.get("upload_count") != result.get("total_leads")) and (
+        result.get("upload_count") != result.get("already_added_to_campaign")
+    ):
         send_slack_message(
             message=f"Only {result.get('upload_count')} of {result.get('total_leads')} prospects were uploaded to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
             webhook_urls=[URL_MAP["eng-sandbox"]],
@@ -1234,11 +1247,11 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         flag_modified(log, "log")
     db.session.commit()
 
-    prospect_email: ProspectEmail = ProspectEmail.query.get(
-        prospect.approved_prospect_email_id
+    # Update the Prospect Status
+    update_prospect_status_email(
+        prospect_id=prospect.id,
+        new_status=ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
     )
-    prospect_email.outreach_status = ProspectEmailOutreachStatus.NOT_SENT
-    db.session.commit()
 
     return True, 1
 

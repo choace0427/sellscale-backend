@@ -553,6 +553,9 @@ VALID_NEXT_EMAIL_STATUSES = {
     ProspectEmailOutreachStatus.NOT_SENT: [
         ProspectEmailOutreachStatus.SENT_OUTREACH,
     ],
+    ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH: [
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+    ],
     ProspectEmailOutreachStatus.SENT_OUTREACH: [
         ProspectEmailOutreachStatus.EMAIL_OPENED,
         ProspectEmailOutreachStatus.NOT_QUALIFIED,
