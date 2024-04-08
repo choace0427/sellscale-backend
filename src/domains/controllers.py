@@ -3,9 +3,7 @@ from src.client.sdr.email.services_email_bank import get_sdr_email_banks_for_cli
 from src.domains.services import (
     add_email_dns_records,
     create_domain_entry,
-    delete_email_domain,
-    delete_email_sdr,
-    delete_email_single,
+    delete_domain,
     domain_blacklist_check,
     domain_purchase_workflow,
     domain_setup_workflow,
@@ -119,6 +117,32 @@ def patch_domain():
             ),
             400,
         )
+
+
+@DOMAINS_BLUEPRINT.route("/<int:domain_id>", methods=["DELETE"])
+@require_user
+def delete_domain_endpoint(client_sdr_id: int, domain_id: int):
+    """Deletes a domain"""
+    success, msg = delete_domain(client_sdr_id=client_sdr_id, domain_id=domain_id)
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": msg,
+                }
+            ),
+            400,
+        )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+            }
+        ),
+        200,
+    )
 
 
 @DOMAINS_BLUEPRINT.route("/validate", methods=["POST"])
@@ -323,89 +347,6 @@ def get_domain_blacklist_check():
             {
                 "status": "success",
                 "data": result,
-            }
-        ),
-        200,
-    )
-
-
-@DOMAINS_BLUEPRINT.route("/single", methods=["DELETE"])
-@require_user
-def delete_domain_single(client_sdr_id: int):
-    email = get_request_parameter(
-        "email", request, json=True, required=True, parameter_type=str
-    )
-
-    success, msg = delete_email_single(email)
-    if not success:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": msg,
-                }
-            ),
-            400,
-        )
-
-    return (
-        jsonify(
-            {
-                "status": "success",
-            }
-        ),
-        200,
-    )
-
-
-@DOMAINS_BLUEPRINT.route("/all", methods=["DELETE"])
-@require_user
-def delete_domain_all(client_sdr_id: int):
-    success, msg = delete_email_sdr(client_sdr_id)
-    if not success:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": msg,
-                }
-            ),
-            400,
-        )
-
-    return (
-        jsonify(
-            {
-                "status": "success",
-            }
-        ),
-        200,
-    )
-
-
-@DOMAINS_BLUEPRINT.route("/domain", methods=["DELETE"])
-@require_user
-def delete_domain_domain(client_sdr_id: int):
-    domain = get_request_parameter(
-        "domain", request, json=True, required=True, parameter_type=str
-    )
-
-    success, msg = delete_email_domain(domain)
-    if not success:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": msg,
-                }
-            ),
-            400,
-        )
-
-    return (
-        jsonify(
-            {
-                "status": "success",
             }
         ),
         200,

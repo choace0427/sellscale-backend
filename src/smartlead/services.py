@@ -1402,13 +1402,7 @@ Volume: 2 / day""",
     return result.get("ok", False), result.get("message", ""), email_account_id
 
 
-def deactivate_sdr_account(client_sdr_id: int):
-    warmings = get_email_warmings(client_sdr_id=client_sdr_id)
-    for warming in warmings:
-        deactivate_email_account(email_account_id=warming.get("id"))
-
-
-def deactivate_email_account(email_account_id: str):
+def smartlead_deactivate_email_account(email_account_id: str):
     sl = Smartlead()
     result = sl.deactivate_email_account(email_account_id)
 

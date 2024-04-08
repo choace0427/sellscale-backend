@@ -7,11 +7,16 @@ from src.client.sdr.email.models import EmailType, SDREmailBank
 from src.client.sdr.email.services_email_bank import (
     create_sdr_email_bank,
     get_sdr_email_banks,
+    remove_all_sdr_email_banks,
+    remove_sdr_email_bank,
     sync_email_bank_statistics_for_client,
     update_sdr_email_bank,
 )
 from src.client.sdr.email.services_email_schedule import update_sdr_email_send_schedule
-from src.domains.services import validate_domain_configuration_for_client
+from src.domains.services import (
+    delete_workmail_inbox,
+    validate_domain_configuration_for_client,
+)
 from src.utils.request_helpers import get_request_parameter
 
 
@@ -58,6 +63,32 @@ def post_create_sdr_email_bank(client_sdr_id: int):
 
     if not success:
         return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "success"}), 200
+
+
+@SDR_EMAIL_BLUEPRINT.route("/<int:email_bank_id>", methods=["DELETE"])
+@require_user
+def delete_sdr_email_bank(client_sdr_id: int, email_bank_id: int):
+    """Endpoint to delete an SDR Email Bank"""
+    email_bank = SDREmailBank.query.filter(SDREmailBank.id == email_bank_id).first()
+    if not email_bank or email_bank.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Email bank not found"}), 400
+
+    success, msg = remove_sdr_email_bank(email_bank_id=email_bank_id)
+    if not success:
+        return jsonify({"status": "error", "message": msg}), 400
+
+    return jsonify({"status": "success"}), 200
+
+
+@SDR_EMAIL_BLUEPRINT.route("/all", methods=["DELETE"])
+@require_user
+def delete_all_sdr_email_banks(client_sdr_id: int):
+    """Endpoint to delete all SDR Email Banks"""
+    overall_success, statuses = remove_all_sdr_email_banks(client_sdr_id=client_sdr_id)
+    if not overall_success:
+        return jsonify({"status": "error", "message": statuses}), 400
 
     return jsonify({"status": "success"}), 200
 
