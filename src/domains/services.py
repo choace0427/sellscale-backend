@@ -1093,6 +1093,7 @@ def domain_purchase_workflow(
         forward_to=client.domain or domain_name,
         aws=True,
         aws_domain_registration_job_id=operation_id,
+        aws_autorenew_enabled=True,
     )
 
     from src.automation.orchestrator import add_process_for_future
