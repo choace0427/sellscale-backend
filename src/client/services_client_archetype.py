@@ -1211,6 +1211,7 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
         linkedin_eligible_prospects: list[Prospect] = Prospect.query.filter(
             Prospect.archetype_id == client_archetype.id,
             Prospect.status == ProspectStatus.PROSPECTED,
+            Prospect.linkedin_url != None,
         ).all()
         if not linkedin_eligible_prospects:
             return True
@@ -1224,6 +1225,7 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
         email_eligible_prospects: list[Prospect] = Prospect.query.filter(
             Prospect.archetype_id == client_archetype.id,
             Prospect.approved_prospect_email_id == None,
+            Prospect.email != None,
         ).all()
         if not email_eligible_prospects:
             return True
@@ -1259,6 +1261,7 @@ def check_archetype_finished(client_archetype_id: int) -> bool:
     # Check that the campaign is finished
     finished = linkedin_finished and email_finished
     return finished
+
 
 @celery.task
 def auto_turn_off_finished_archetypes() -> int:

@@ -56,6 +56,10 @@ def capture_outbound_quota_snapshot() -> OutboundQuotaSnapshot:
         # Get the SDR
         sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
 
+        # Exclude SDRs that have an invalid LinkedIn token
+        if sdr.li_at_token is None or sdr.li_at_token == "INVALID":
+            continue
+
         # Get the SLASchedule for this SDR for this week
         sla_schedule: SLASchedule = SLASchedule.query.filter(
             SLASchedule.client_sdr_id == sdr.id,
