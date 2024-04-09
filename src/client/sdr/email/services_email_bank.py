@@ -269,6 +269,14 @@ def remove_sdr_email_bank(
         else:
             return False, "Error removing Smartlead account"
 
+    # Get and delete the SendSchedules
+    send_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter(
+        SDREmailSendSchedule.email_bank_id == email_bank_id
+    ).all()
+    for schedule in send_schedule:
+        db.session.delete(schedule)
+
+    # Delete the email bank
     db.session.delete(email_bank)
     db.session.commit()
 
