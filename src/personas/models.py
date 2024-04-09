@@ -64,8 +64,8 @@ class Persona(db.Model):
         db.Integer, db.ForeignKey("stack_ranked_message_generation_configuration.id")
     )
 
-    def to_dict(self):
-        return {
+    def to_dict(self, deep_get=True):
+        payload = {
             "id": self.id,
             "client_id": self.client_id,
             "client_sdr_id": self.client_sdr_id,
@@ -74,6 +74,13 @@ class Persona(db.Model):
             "saved_apollo_query_id": self.saved_apollo_query_id,
             "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
         }
+        if deep_get:
+            asset_mappings = PersonaToAssetMapping.query.filter_by(
+                persona_id=self.id
+            ).all()
+            payload["assets"] = [m.client_assets_id for m in asset_mappings]
+
+        return payload
 
 
 class PersonaToAssetMapping(db.Model):

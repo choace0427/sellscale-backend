@@ -1,4 +1,11 @@
-from model_import import Persona, ClientSDR, PersonaToAssetMapping
+from model_import import (
+    Persona,
+    ClientSDR,
+    PersonaToAssetMapping,
+    ClientAssets,
+    StackRankedMessageGenerationConfiguration,
+    SavedApolloQuery,
+)
 from app import db
 
 
@@ -31,6 +38,14 @@ def link_persona_to_saved_apollo_query(
     persona_id: int, saved_apollo_query_id: int
 ) -> bool:
     """Links a persona to a saved apollo query"""
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
+        saved_apollo_query_id
+    )
+    persona: Persona = Persona.query.get(persona_id)
+
+    if saved_apollo_query.client_sdr_id != persona.client_sdr_id:
+        return False
+
     persona = Persona.query.get(persona_id)
     persona.saved_apollo_query_id = saved_apollo_query_id
     db.session.commit()
@@ -41,6 +56,15 @@ def link_persona_to_stack_ranked_message_generation_configuration(
     persona_id: int, stack_ranked_message_generation_configuration_id: int
 ) -> bool:
     """Links a persona to a stack ranked message generation configuration"""
+    srmgc: StackRankedMessageGenerationConfiguration = (
+        StackRankedMessageGenerationConfiguration.query.get(
+            stack_ranked_message_generation_configuration_id
+        )
+    )
+    persona: Persona = Persona.query.get(persona_id)
+    if srmgc.client_id != persona.client_id:
+        return False
+
     persona = Persona.query.get(persona_id)
     persona.stack_ranked_message_generation_configuration_id = (
         stack_ranked_message_generation_configuration_id
@@ -51,6 +75,11 @@ def link_persona_to_stack_ranked_message_generation_configuration(
 
 def link_asset_to_persona(persona_id: int, asset_id: int) -> bool:
     """Links an asset to a persona"""
+    client_asset: ClientAssets = ClientAssets.query.get(asset_id)
+    persona: Persona = Persona.query.get(persona_id)
+    if client_asset.client_id != persona.client_id:
+        return False
+
     persona_to_asset_mapping = PersonaToAssetMapping(
         persona_id=persona_id,
         client_assets_id=asset_id,
@@ -62,6 +91,11 @@ def link_asset_to_persona(persona_id: int, asset_id: int) -> bool:
 
 def unlink_asset_from_persona(persona_id: int, asset_id: int) -> bool:
     """Unlinks an asset from a persona"""
+    client_asset: ClientAssets = ClientAssets.query.get(asset_id)
+    persona: Persona = Persona.query.get(persona_id)
+    if client_asset.client_id != persona.client_id:
+        return False
+
     persona_to_asset_mapping = PersonaToAssetMapping.query.filter_by(
         persona_id=persona_id, client_assets_id=asset_id
     ).first()
