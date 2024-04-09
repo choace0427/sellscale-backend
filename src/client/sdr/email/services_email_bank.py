@@ -218,6 +218,99 @@ def create_sdr_email_bank(
     return email_bank.id
 
 
+def remove_sdr_email_bank(
+    email_bank_id: int,
+) -> tuple[bool, str]:
+    """Removes an SDR Email Bank.
+
+    Removes:
+    - AWS Workmail User
+    - Smartlead Account
+
+    DOES NOT REMOVE NYLAS CONNECTIONS. TODO: Add this functionality.
+
+    Args:
+        email_bank_id (int): ID of the email bank
+
+    Returns:
+        tuple[bool, str]: Tuple containing the success status and message
+    """
+    from src.domains.services import delete_workmail_inbox
+    from src.smartlead.services import smartlead_deactivate_email_account
+
+    email_bank: SDREmailBank = SDREmailBank.query.get(email_bank_id)
+
+    if not email_bank:
+        return False, "Email bank not found"
+
+    # Remove AWS Workmail User
+    if email_bank.aws_workmail_user_id:
+        success, msg = delete_workmail_inbox(
+            workmail_user_id=email_bank.aws_workmail_user_id
+        )
+        if success:  # Remove the AWS Workmail User ID
+            email_bank.aws_workmail_user_id = None
+            email_bank.aws_username = None
+            email_bank.aws_password = None
+            db.session.commit()
+        else:
+            return False, msg
+
+    # Remove Smartlead Account
+    if email_bank.smartlead_account_id:
+        success = smartlead_deactivate_email_account(
+            email_account_id=email_bank.smartlead_account_id
+        )
+        if success:  # Remove the Smartlead Account ID
+            email_bank.smartlead_account_id = None
+            email_bank.smartlead_warmup_enabled = False
+            email_bank.smartlead_reputation = 0
+            db.session.commit()
+        else:
+            return False, "Error removing Smartlead account"
+
+    # Get and delete the SendSchedules
+    send_schedule: SDREmailSendSchedule = SDREmailSendSchedule.query.filter(
+        SDREmailSendSchedule.email_bank_id == email_bank_id
+    ).all()
+    for schedule in send_schedule:
+        db.session.delete(schedule)
+    db.session.commit()
+
+    # Delete the email bank
+    db.session.delete(email_bank)
+    db.session.commit()
+
+    return True, None
+
+
+def remove_all_sdr_email_banks(client_sdr_id: int) -> tuple[bool, str]:
+    """Removes all SDR Email Banks for a given Client SDR
+
+    Args:
+        client_sdr_id (int): ID of the Client SDR
+
+    Returns:
+        tuple[bool, str]: Tuple containing the success status and message
+    """
+    email_banks: list[SDREmailBank] = SDREmailBank.query.filter(
+        SDREmailBank.client_sdr_id == client_sdr_id
+    ).all()
+
+    removal_statuses = {}
+    overall_success = True
+
+    for email_bank in email_banks:
+        success, msg = remove_sdr_email_bank(email_bank_id=email_bank.id)
+        removal_statuses[email_bank.email_address] = {
+            "success": success,
+            "message": msg,
+        }
+        overall_success = overall_success and success
+
+    return overall_success, removal_statuses
+
+
 def email_belongs_to_sdr(client_sdr_id: int, email_address: str) -> bool:
     """Checks if an email belongs to an SDR
 

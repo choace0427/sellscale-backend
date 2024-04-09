@@ -147,6 +147,14 @@ def create_voice_builder_sample(
         archetype_id = voice_builder_onboarding.client_archetype_id
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
 
+        research_point_types = get_all_research_point_types(
+            archetype.client_sdr_id, names_only=True, archetype_id=archetype_id
+        )
+        transformer_blocklist = archetype.transformer_blocklist_initial
+        filtered_research_point_types: any = [
+            x for x in research_point_types if x not in transformer_blocklist
+        ]
+
         (
             prompt,
             _,
@@ -156,9 +164,7 @@ def create_voice_builder_sample(
             prospect_id,
         ) = get_sample_prompt_from_config_details(
             generated_message_type=voice_builder_onboarding.generated_message_type.value,
-            research_point_types=get_all_research_point_types(
-                archetype.client_sdr_id, names_only=True, archetype_id=archetype_id
-            ),
+            research_point_types=filtered_research_point_types,
             configuration_type="DEFAULT",
             client_id=voice_builder_onboarding.client_id,
             archetype_id=archetype_id,

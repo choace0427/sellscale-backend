@@ -100,11 +100,11 @@ def run_create_custom_research_entries(
                 print(f"Could not find prospect for {li_url} or {email}")
                 continue
 
-            research_point_id = create_custom_research_point_type(
-                prospect_id=prospect_id,
-                label=label,
-                data={"custom": value},
-                category=category,
+            create_custom_research_point_type.delay(
+                prospect_id,
+                label,
+                {"custom": value},
+                category,
             )
 
         db.session.commit()
@@ -114,6 +114,7 @@ def run_create_custom_research_entries(
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
 
+@celery.task
 def create_custom_research_point_type(
     prospect_id: int, label: str, data: dict, category: Optional[str] = None
 ) -> list[int]:

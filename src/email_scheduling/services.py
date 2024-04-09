@@ -406,7 +406,7 @@ def populate_email_messaging_schedule_entries(
                 ),
             ).first()
             if pq_entry and not prospect_exists_in_smartlead(prospect.id):
-                upload_prospect_to_campaign(prospect.id)
+                upload_prospect_to_campaign.delay(prospect.id)
                 return [
                     True,
                     [email.id for email in existing_email_messaging_schedules],
@@ -587,7 +587,7 @@ def populate_email_messaging_schedule_entries(
             )
             flag_modified(log, "log")
             db.session.commit()
-        upload_prospect_to_campaign(prospect.id)
+        upload_prospect_to_campaign.delay(prospect.id)
 
     return [True, email_ids]
 

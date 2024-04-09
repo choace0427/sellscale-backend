@@ -154,7 +154,7 @@ def run_message_rule_engine_on_linkedin_completion(
         case_preserved_completion, prompt, problems, highlighted_words
     )
     # rule_no_ampersand(completion, problems, highlighted_words)
-    # rule_no_fancying_a_chat(completion, problems, highlighted_words)
+    rule_no_fancying_a_chat(completion, problems, highlighted_words)
     # rule_no_ingratiation(completion, problems, highlighted_words)
 
     if run_arree:
@@ -259,7 +259,7 @@ def run_message_rule_engine(message_id: int):
             case_preserved_completion, prompt, problems, highlighted_words
         )
     # rule_no_ampersand(completion, problems, highlighted_words)
-    # rule_no_fancying_a_chat(completion, problems, highlighted_words)
+    rule_no_fancying_a_chat(completion, problems, highlighted_words)
 
     # if message.message_type != GeneratedMessageType.EMAIL:
     #     rule_no_ingratiation(completion, problems, highlighted_words)
@@ -921,19 +921,18 @@ def rule_no_brackets(
     return
 
 
-# DEPRECATED [2024-03-25]: LLMs have become much better at sounding genuine. This rule is no longer necessary.
-# def rule_no_fancying_a_chat(completion: str, problems: list, highlighted_words: list):
-#     """Rule: No Fancying a Chat
+def rule_no_fancying_a_chat(completion: str, problems: list, highlighted_words: list):
+    """Rule: No Fancying a Chat
 
-#     No 'fancy a chat' allowed in the completion.
-#     """
-#     if "fancy a chat" in completion:
-#         problems.append(
-#             "Contains 'fancy a chat'. Do not use this phrase in the completions. Do not use the word 'fancy' in the completion."
-#         )
-#         highlighted_words.append("fancy a")
+    No 'fancy a chat' allowed in the completion.
+    """
+    if "fancy a chat" in completion:
+        problems.append(
+            "Contains 'fancy a chat'. Do not use this phrase in the completions. Do not use the word 'fancy' in the completion."
+        )
+        highlighted_words.append("fancy a")
 
-#     return
+    return
 
 
 def rule_subject_line_character_limit(

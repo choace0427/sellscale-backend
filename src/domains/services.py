@@ -35,7 +35,7 @@ from src.utils.domains.pythondns import (
     dmarc_record_valid,
     spf_record_valid,
 )
-from src.smartlead.services import deactivate_email_account, sync_workmail_to_smartlead
+from src.smartlead.services import sync_workmail_to_smartlead
 import os
 import time
 from src.utils.slack import send_slack_message, URL_MAP
@@ -363,7 +363,7 @@ def register_aws_domain(domain_name: str) -> tuple[list, dict, str]:
             DomainName=domain_name,
             IdnLangCode="",
             DurationInYears=1,
-            AutoRenew=False,
+            AutoRenew=True,
             AdminContact={
                 "FirstName": "Aakash",
                 "LastName": "Adesara",
@@ -1093,6 +1093,7 @@ def domain_purchase_workflow(
         forward_to=client.domain or domain_name,
         aws=True,
         aws_domain_registration_job_id=operation_id,
+        aws_autorenew_enabled=True,
     )
 
     from src.automation.orchestrator import add_process_for_future
@@ -1315,61 +1316,61 @@ def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
     )
 
 
-def delete_email_from_bank(email_bank_id: int):
-    email_bank = SDREmailBank.query.get(email_bank_id)
-
-    deactivate_email_account(email_bank.smartlead_account_id)
-
-    # Delete workmail account
-    organization_id = os.environ.get("AWS_WORKMAIL_ORG_ID")
-    try:
-        response = aws_workmail_client.deregister_from_work_mail(
-            OrganizationId=organization_id, EntityId=email_bank.aws_workmail_user_id
-        )
-        print("User deleted successfully:", response)
-    except Exception as e:
-        print("Error deleting user:", e)
-
-
-def delete_email_single(email: str):
+def delete_workmail_inbox(workmail_user_id: str) -> tuple[bool, str]:
     """Delete a workmail inbox for an email
 
     Args:
-        email (str): The email address to delete
+        workmail_user_id (str): The ID of the workmail user
 
     Returns:
         tuple: A tuple containing the status and a message
     """
+    try:
+        organization_id = os.environ.get("AWS_WORKMAIL_ORG_ID")
+        response = aws_workmail_client.deregister_from_work_mail(
+            OrganizationId=organization_id, EntityId=workmail_user_id
+        )
+        response_metadata = response.get("ResponseMetadata", {})
+        status_code = response_metadata.get("HTTPStatusCode", 500)
+        if status_code == 200:
+            return True, "Workmail inbox deleted successfully"
+    except Exception as e:
+        return False, f"Failed to delete workmail inbox: {e}"
 
-    email_bank: SDREmailBank = get_sdr_email_bank(email_address=email)
-    if not email_bank:  # Email bank entry does not exist
-        return False, "Email bank entry does not exist"
-
-    delete_email_from_bank(email_bank_id=email_bank.id)
-    return True, "Email deleted successfully"
-
-
-def delete_email_sdr(client_sdr: int):
-    email_banks = SDREmailBank.query.filter_by(client_sdr_id=client_sdr).all()
-    for email_bank in email_banks:
-        delete_email_from_bank(email_bank_id=email_bank.id)
-
-    return True, "Emails deleted successfully"
+    return False, "Failed to delete workmail inbox"
 
 
-def delete_email_domain(domain_name: str):
-    domain = Domain.query.filter_by(domain=domain_name).first()
-    if not domain:
-        return False, "Domain does not exist"
+def delete_domain(domain_id: int) -> tuple[bool, str]:
+    """Delete a domain (turn off auto-renewal)
 
-    email_banks = SDREmailBank.query.filter_by(domain_id=domain.id).all()
-    for email_bank in email_banks:
-        delete_email_from_bank(email_bank_id=email_bank.id)
+    Args:
+        domain_id (int): The ID of the Domain object
 
-    # Make sure the domain is not auto-renewed
-    # Auto renew is set to false by default
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+    domain: Domain = Domain.query.get(domain_id)
 
-    return True, "Emails deleted successfully"
+    # Make sure we don't delete a domain with active inboxes
+    email_banks = SDREmailBank.query.filter_by(domain_id=domain.id).count()
+    if email_banks > 0:
+        return False, "Domain has active inboxes. Please remove them first"
+
+    # Delete the domain (disable auto-renewal)
+    try:
+        result = aws_route53domains_client.disable_domain_auto_renew(
+            DomainName=domain.domain
+        )
+        if result.get("ResponseMetadata", {}).get("HTTPStatusCode", 500) != 200:
+            return False, "Failed to disable domain auto-renewal"
+    except Exception as e:
+        return False, f"Failed to disable domain auto-renewal: {e}"
+
+    # Mark the domain as auto-renewal disabled
+    domain.aws_autorenew_enabled = False
+    db.session.commit()
+
+    return True, "Domain auto-renewal disabled successfully"
 
 
 def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, str]:
@@ -1445,6 +1446,7 @@ def create_domain_entry(
     aws_domain_registration_job_id: Optional[str] = None,
     aws_domain_registration_status: Optional[str] = None,
     aws_hosted_zone_id: Optional[str] = None,
+    aws_autorenew_enabled: Optional[bool] = None,
     dmarc_record: Optional[str] = None,
     spf_record: Optional[str] = None,
     dkim_record: Optional[str] = None,
@@ -1459,6 +1461,7 @@ def create_domain_entry(
         aws_domain_registration_job_id (Optional[str], optional): The ID of the AWS Domain Registration Job. Defaults to None.
         aws_domain_registration_status (Optional[str], optional): The status of the AWS Domain Registration. Defaults to None.
         aws_hosted_zone_id (Optional[str], optional): The ID of the AWS Hosted Zone. Defaults to None.
+        aws_autorenew_enabled (Optional[bool], optional): Whether auto-renewal is enabled. Defaults to None.
         dmarc_record (Optional[str], optional): The DMARC record. Defaults to None.
         spf_record (Optional[str], optional): The SPF record. Defaults to None.
         dkim_record (Optional[str], optional): The DKIM record. Defaults to None.
@@ -1474,6 +1477,7 @@ def create_domain_entry(
         aws_domain_registration_job_id=aws_domain_registration_job_id,
         aws_domain_registration_status=aws_domain_registration_status,
         aws_hosted_zone_id=aws_hosted_zone_id,
+        aws_autorenew_enabled=aws_autorenew_enabled,
         dmarc_record=dmarc_record,
         spf_record=spf_record,
         dkim_record=dkim_record,

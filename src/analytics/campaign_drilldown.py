@@ -4,54 +4,76 @@ from app import db
 
 def get_campaign_drilldown_data(archetype_id):
     sql = """
-    select 
-        prospect.id "prospect_id",
-        prospect.full_name "prospect_name",
-        case 
-            when  prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') 
-                then 'ACTIVE_CONVO_SCHEDULING'
-            when prospect_email_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
-            	then 'ACTIVE_CONVO_SCHEDULING'
-            when prospect_email_status_records.to_status is not null
-            	then cast(prospect_email_status_records.to_status as VARCHAR)
-            else cast(prospect_status_records.to_status as VARCHAR)
-        end "to_status",
-        case 
-            when prospect.icp_fit_score = 4 then 'VERY HIGH'
-            when prospect.icp_fit_score = 3 then 'HIGH'
-            when prospect.icp_fit_score = 2 then 'MEDIUM'
-            when prospect.icp_fit_score = 1 then 'LOW'
-            when prospect.icp_fit_score = 0 then 'VERY LOW'
-            else 'UNKNOWN'
-        end "prospect_icp_fit_score",
-        prospect.title "prospect_title",
-        prospect.company "prospect_company",
-        client_archetype.archetype "prospect_archetype",
-        prospect.img_url "img_url",
-        max(case 
-        	when prospect.li_last_message_from_prospect is not null
-            	then prospect.li_last_message_from_prospect
-			when prospect_email.id is not null and prospect_email.outreach_status not in ('SENT_OUTREACH', 'EMAIL_OPENED')
-				then 'Responded to an email'
-            else 'no response yet.'
-        end) "li_last_message_from_prospect",
-        max(prospect.li_last_message_timestamp) "li_last_message_timestamp"
-    from prospect
-    	join client_archetype on client_archetype.id = prospect.archetype_id
-        left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
-        left join prospect_email on prospect_email.prospect_id = prospect.id
-        left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-    where 
-        (
-        	prospect_status_records.to_status in ('SENT_OUTREACH', 'ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET', 'ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
-        	or
-        	prospect_email_status_records.to_status is not null
-        )
-        and prospect.archetype_id = :archetype_id
-    group by 1,2,3,4,5,6,7,8
-    order by 
-        case when prospect.li_last_message_timestamp is null then 1 else 0 end,
-        li_last_message_timestamp desc;
+    SELECT
+	prospect.id "prospect_id",
+	prospect.full_name "prospect_name",
+	CASE WHEN prospect_status_records.to_status IN ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') THEN
+		'ACTIVE_CONVO_SCHEDULING'
+	WHEN prospect_email_status_records.to_status IN ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') THEN
+		'ACTIVE_CONVO_SCHEDULING'
+	WHEN prospect_email_status_records.to_status IS NOT NULL THEN
+		cast(prospect_email_status_records.to_status AS varchar)
+	ELSE
+		cast(prospect_status_records.to_status AS varchar)
+	END "to_status",
+	CASE WHEN prospect.icp_fit_score = 4 THEN
+		'VERY HIGH'
+	WHEN prospect.icp_fit_score = 3 THEN
+		'HIGH'
+	WHEN prospect.icp_fit_score = 2 THEN
+		'MEDIUM'
+	WHEN prospect.icp_fit_score = 1 THEN
+		'LOW'
+	WHEN prospect.icp_fit_score = 0 THEN
+		'VERY LOW'
+	ELSE
+		'UNKNOWN'
+	END "prospect_icp_fit_score",
+	prospect.title "prospect_title",
+	prospect.company "prospect_company",
+	client_archetype.archetype "prospect_archetype",
+	prospect.img_url "img_url",
+	max(
+		CASE WHEN prospect.li_last_message_from_prospect IS NOT NULL THEN
+			prospect.li_last_message_from_prospect
+		WHEN prospect_email.id IS NOT NULL
+			AND prospect_email.outreach_status NOT IN ('SENT_OUTREACH', 'EMAIL_OPENED') THEN
+			prospect_email.last_message
+		ELSE
+			'no response yet.'
+		END) "last_message_from_prospect",
+	max(
+		CASE WHEN prospect_email.id IS NOT NULL
+			AND prospect_email.outreach_status NOT IN ('SENT_OUTREACH', 'EMAIL_OPENED') THEN
+			prospect_email.last_reply_time
+		ELSE
+			prospect.li_last_message_timestamp
+		END) "last_message_timestamp"
+FROM
+	prospect
+	JOIN client_archetype ON client_archetype.id = prospect.archetype_id
+	LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id
+	LEFT JOIN prospect_email ON prospect_email.prospect_id = prospect.id
+	LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+WHERE (prospect_status_records.to_status IN ('SENT_OUTREACH', 'ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET', 'ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
+	OR prospect_email_status_records.to_status IS NOT NULL)
+AND prospect.archetype_id = :archetype_id
+GROUP BY
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8
+ORDER BY
+	CASE WHEN prospect.li_last_message_timestamp IS NULL THEN
+		1
+	ELSE
+		0
+	END,
+	li_last_message_timestamp DESC;
     """
 
     # Execute Query with parameters
