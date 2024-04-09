@@ -94,6 +94,8 @@ from src.personas.models import (
     PersonaSplitRequestTaskStatus,
     PersonaSplitRequest,
     PersonaSplitRequestTask,
+    Persona,
+    PersonaToAssetMapping,
 )
 from src.voice_builder.models import VoiceBuilderOnboarding, VoiceBuilderSamples
 from src.company.models import Company, CompanyRelation

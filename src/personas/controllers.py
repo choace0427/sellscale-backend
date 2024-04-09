@@ -11,6 +11,14 @@ from src.personas.services import (
 )
 from src.personas.services_generation import generate_sequence
 from src.personas.services_creation import add_sequence
+from src.personas.services_persona import (
+    create_persona,
+    get_all_personas,
+    link_asset_to_persona,
+    link_persona_to_saved_apollo_query,
+    link_persona_to_stack_ranked_message_generation_configuration,
+    unlink_asset_from_persona,
+)
 from src.utils.request_helpers import get_request_parameter
 
 PERSONAS_BLUEPRINT = Blueprint("personas", __name__)
@@ -207,3 +215,128 @@ def post_add_sequence(client_sdr_id: int):
     )
 
     return jsonify({"status": "success", "data": result}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/personas", methods=["GET"])
+@require_user
+def get_all_personas_endpoint(client_sdr_id: int):
+    personas = get_all_personas(client_sdr_id=client_sdr_id)
+    return jsonify({"status": "success", "personas": personas}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/persona", methods=["POST"])
+@require_user
+def create_persona_endpoint(client_sdr_id: int):
+    name = get_request_parameter("name", request, json=True, required=True)
+    description = get_request_parameter(
+        "description", request, json=True, required=True
+    )
+
+    persona = create_persona(
+        client_sdr_id=client_sdr_id,
+        name=name,
+        description=description,
+    )
+    return jsonify({"status": "success", "persona": persona}), 201
+
+
+@PERSONAS_BLUEPRINT.route("/persona/link_apollo_query", methods=["POST"])
+@require_user
+def link_persona_to_saved_apollo_query_endpoint(client_sdr_id: int):
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True)
+    saved_apollo_query_id = get_request_parameter(
+        "saved_apollo_query_id", request, json=True, required=True
+    )
+
+    success = link_persona_to_saved_apollo_query(
+        persona_id=persona_id,
+        saved_apollo_query_id=saved_apollo_query_id,
+    )
+    if not success:
+        return (
+            jsonify(
+                {"status": "error", "message": "Failed to link persona to Apollo query"}
+            ),
+            400,
+        )
+
+    return jsonify({"status": "success"}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/persona/link_message_generation_config", methods=["POST"])
+@require_user
+def link_persona_to_stack_ranked_msg_gen_config_endpoint(client_sdr_id: int):
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True)
+    stack_ranked_msg_gen_config_id = get_request_parameter(
+        "stack_ranked_message_generation_configuration_id",
+        request,
+        json=True,
+        required=True,
+    )
+
+    success = link_persona_to_stack_ranked_message_generation_configuration(
+        persona_id=persona_id,
+        stack_ranked_message_generation_configuration_id=stack_ranked_msg_gen_config_id,
+    )
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Failed to link persona to message generation configuration",
+                }
+            ),
+            400,
+        )
+
+    return jsonify({"status": "success"}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/persona/link_asset", methods=["POST"])
+@require_user
+def link_asset_to_persona_endpoint(client_sdr_id: int):
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True)
+    asset_id = get_request_parameter("asset_id", request, json=True, required=True)
+
+    success = link_asset_to_persona(
+        persona_id=persona_id,
+        asset_id=asset_id,
+    )
+    if not success:
+        return (
+            jsonify({"status": "error", "message": "Failed to link asset to persona"}),
+            400,
+        )
+
+    return (
+        jsonify(
+            {"status": "success", "message": "Asset linked to persona successfully"}
+        ),
+        200,
+    )
+
+
+@PERSONAS_BLUEPRINT.route("/persona/unlink_asset", methods=["POST"])
+@require_user
+def unlink_asset_from_persona_endpoint(client_sdr_id: int):
+    persona_id = get_request_parameter("persona_id", request, json=True, required=True)
+    asset_id = get_request_parameter("asset_id", request, json=True, required=True)
+
+    success = unlink_asset_from_persona(
+        persona_id=persona_id,
+        asset_id=asset_id,
+    )
+    if not success:
+        return (
+            jsonify(
+                {"status": "error", "message": "Failed to unlink asset from persona"}
+            ),
+            400,
+        )
+
+    return (
+        jsonify(
+            {"status": "success", "message": "Asset unlinked from persona successfully"}
+        ),
+        200,
+    )
