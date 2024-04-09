@@ -1,3 +1,4 @@
+from app import db
 from typing import Optional
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect
@@ -39,6 +40,31 @@ class CampaignCompletedNotification(SlackNotificationClass):
         Returns:
             bool: Whether or not the message was successfully sent
         """
+        linkedin_stats_query = f"""SELECT
+                                    count(distinct p.id) filter (where psr.to_status = 'SENT_OUTREACH'),
+                                    count(distinct p.id) filter (where psr.to_status = 'ACCEPTED'),
+                                    count(distinct p.id) filter (where psr.to_status::text ILIKE '%ACTIVE_CONVO%'),
+                                    count(distinct p.id) filter (where psr.to_status::text ILIKE '%DEMO%')
+                                FROM
+                                    client_archetype ca
+                                    LEFT JOIN prospect p ON p.archetype_id = ca.id
+                                    LEFT JOIN prospect_status_records psr ON psr.prospect_id = p.id
+                                where
+                                    archetype_id = {self.campaign_id};
+        """
+        email_stats_query = f"""SELECT
+                                    count(DISTINCT p.id) FILTER (WHERE pesr.to_status = 'SENT_OUTREACH'),
+                                    count(DISTINCT p.id) FILTER (WHERE pesr.to_status = 'EMAIL_OPENED'),
+                                    count(DISTINCT p.id) FILTER (WHERE pesr.to_status::text ILIKE '%ACTIVE_CONVO%'),
+                                    count(DISTINCT p.id) FILTER (WHERE pesr.to_status::text ILIKE '%DEMO%')
+                                FROM
+                                    client_archetype ca
+                                    LEFT JOIN prospect p ON p.archetype_id = ca.id
+                                    LEFT JOIN prospect_email pe on p.approved_prospect_email_id = pe.id
+                                    LEFT JOIN prospect_email_status_records pesr ON pesr.prospect_email_id = pe.id
+                                WHERE
+                                    archetype_id = {self.campaign_id};
+        """
 
         def get_preview_fields() -> dict:
             """Gets the fields to be used in the preview message."""
@@ -46,7 +72,8 @@ class CampaignCompletedNotification(SlackNotificationClass):
 
             return {
                 "sequence_name": "CEOs at AI Companies",
-                "channel_prospect_breakdown": "*LinkedIn*: `5` prospects have been reached out to.\n*Email*: `12` prospects have been reached out to.",
+                "sequence_emoji": "🤖 ",
+                "stats_string": f"*LinkedIn Summary:*\n➡️ Sent: *20* | ✅ Accepted: *15* | ↩️ Replies: *8* | 🎉 Demos: *5*\n*Email Summary:*\n➡️ Sent: *10* | 📬 Opens: *7* | ↩️ Replies: *4* | 🎉 Demos: *3*",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -58,25 +85,36 @@ class CampaignCompletedNotification(SlackNotificationClass):
             client_archetype: ClientArchetype = ClientArchetype.query.get(
                 self.campaign_id
             )
-            prospects: list[Prospect] = Prospect.query.filter(
-                Prospect.archetype_id == self.campaign_id
-            ).all()
 
-            channel_prospect_breakdown: str = ""
+            stats_string: str = ""
+
+            # If LinkedIn is active
             if client_archetype.linkedin_active:
-                linkedin_prospects: list[Prospect] = [
-                    prospect for prospect in prospects if prospect.linkedin_url
-                ]
-                channel_prospect_breakdown += f"*LinkedIn*: `{len(linkedin_prospects)}` prospects have been reached out to.\n"
+                # Get the LinkedIn stats
+                linkedin_stats = db.session.execute(linkedin_stats_query).fetchall()
+                sent = linkedin_stats[0][0]
+                accepted = linkedin_stats[0][1]
+                active_convo = linkedin_stats[0][2]
+                demo = linkedin_stats[0][3]
+                stats_string = f"*LinkedIn Summary:*\n➡️ Sent: *{sent}* | ✅ Accepted: *{accepted}* | ↩️ Replies: *{active_convo}* | 🎉 Demos: *{demo}*\n"
+
+            # If email is active
             if client_archetype.email_active:
-                email_prospects: list[Prospect] = [
-                    prospect for prospect in prospects if prospect.email
-                ]
-                channel_prospect_breakdown += f"*Email*: `{len(email_prospects)}` prospects have been reached out to."
+                # Get the email stats
+                db.session.execute(email_stats_query)
+                email_stats = db.session.fetchone()
+                sent = email_stats[0][0]
+                opened = email_stats[0][1]
+                active_convo = email_stats[0][2]
+                demo = email_stats[0][3]
+                stats_string += f"*Email Summary:*\n➡️ Sent: *{sent}* | 📬 Opens: *{opened}* | ↩️ Replies: *{active_convo}* | 🎉 Demos: *{demo}*"
 
             return {
                 "sequence_name": client_archetype.archetype,
-                "channel_prospect_breakdown": channel_prospect_breakdown,
+                "sequence_emoji": (
+                    client_archetype.emoji if client_archetype.emoji else ""
+                ),
+                "stats_string": stats_string,
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=setup/email?campaign_id={campaign_id}".format(
                     auth_token=client_sdr.auth_token, campaign_id=client_archetype.id
                 ),
@@ -90,9 +128,10 @@ class CampaignCompletedNotification(SlackNotificationClass):
 
         # Get the fields
         sequence_name = fields.get("sequence_name")
-        channel_prospect_breakdown = fields.get("channel_prospect_breakdown")
+        sequence_emoji = fields.get("sequence_emoji")
+        stats_string = fields.get("stats_string")
         direct_link = fields.get("direct_link")
-        if not sequence_name or not direct_link or not channel_prospect_breakdown:
+        if not sequence_name or not direct_link:
             return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
@@ -108,7 +147,7 @@ class CampaignCompletedNotification(SlackNotificationClass):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🏁 Campaign complete: {sequence_name}",
+                        "text": f"🏁 Campaign complete: {sequence_emoji}{sequence_name}",
                         "emoji": True,
                     },
                 },
@@ -119,7 +158,7 @@ class CampaignCompletedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": channel_prospect_breakdown,
+                        "text": stats_string,
                     },
                 },
                 {
