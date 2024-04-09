@@ -275,6 +275,7 @@ def remove_sdr_email_bank(
     ).all()
     for schedule in send_schedule:
         db.session.delete(schedule)
+    db.session.commit()
 
     # Delete the email bank
     db.session.delete(email_bank)
