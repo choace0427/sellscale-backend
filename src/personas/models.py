@@ -44,3 +44,50 @@ class PersonaSplitRequestTask(db.Model):
     prompt = db.Column(db.String)
     raw_completion = db.Column(db.String)
     json_completion = db.Column(db.JSON)
+
+
+class Persona(db.Model):
+    __tablename__ = "persona"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+
+    saved_apollo_query_id = db.Column(
+        db.Integer, db.ForeignKey("saved_apollo_query.id")
+    )
+    stack_ranked_message_generation_configuration_id = db.Column(
+        db.Integer, db.ForeignKey("stack_ranked_message_generation_configuration.id")
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_sdr_id": self.client_sdr_id,
+            "name": self.name,
+            "description": self.description,
+            "saved_apollo_query_id": self.saved_apollo_query_id,
+            "stack_ranked_message_generation_configuration_id": self.stack_ranked_message_generation_configuration_id,
+        }
+
+
+class PersonaToAssetMapping(db.Model):
+    __tablename__ = "persona_to_asset_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey("persona.id"), nullable=False)
+    client_assets_id = db.Column(
+        db.Integer, db.ForeignKey("client_assets.id"), nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "persona_id": self.persona_id,
+            "client_assets_id": self.client_assets_id,
+        }
