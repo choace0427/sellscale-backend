@@ -65,6 +65,60 @@ from datetime import datetime, timedelta
 from src.individual.services import add_individual_from_linkedin_url
 
 
+US_STATES_TIMEZONES = {
+    "Alabama": "America/Chicago",
+    "Alaska": "America/Anchorage",
+    "Arizona": "America/Phoenix",
+    "Arkansas": "America/Chicago",
+    "California": "America/Los_Angeles",
+    "Colorado": "America/Denver",
+    "Connecticut": "America/New_York",
+    "Delaware": "America/New_York",
+    "Florida": "America/New_York",
+    "Georgia": "America/New_York",
+    "Hawaii": "Pacific/Honolulu",
+    "Idaho": "America/Boise",
+    "Illinois": "America/Chicago",
+    "Indiana": "America/Indianapolis",
+    "Iowa": "America/Chicago",
+    "Kansas": "America/Chicago",
+    "Kentucky": "America/New_York",
+    "Louisiana": "America/Chicago",
+    "Maine": "America/New_York",
+    "Maryland": "America/New_York",
+    "Massachusetts": "America/New_York",
+    "Michigan": "America/Detroit",
+    "Minnesota": "America/Chicago",
+    "Mississippi": "America/Chicago",
+    "Missouri": "America/Chicago",
+    "Montana": "America/Denver",
+    "Nebraska": "America/Chicago",
+    "Nevada": "America/Los_Angeles",
+    "New Hampshire": "America/New_York",
+    "New Jersey": "America/New_York",
+    "New Mexico": "America/Denver",
+    "New York": "America/New_York",
+    "North Carolina": "America/New_York",
+    "North Dakota": "America/Chicago",
+    "Ohio": "America/New_York",
+    "Oklahoma": "America/Chicago",
+    "Oregon": "America/Los_Angeles",
+    "Pennsylvania": "America/New_York",
+    "Rhode Island": "America/New_York",
+    "South Carolina": "America/New_York",
+    "South Dakota": "America/Chicago",
+    "Tennessee": "America/Chicago",
+    "Texas": "America/Chicago",
+    "Utah": "America/Denver",
+    "Vermont": "America/New_York",
+    "Virginia": "America/New_York",
+    "Washington": "America/Los_Angeles",
+    "West Virginia": "America/New_York",
+    "Wisconsin": "America/Chicago",
+    "Wyoming": "America/Denver",
+}
+
+
 def get_profile_urn_id(prospect_id: int, api: Union[LinkedIn, None] = None):
     """Gets the URN ID of a prospect, saving the URN ID if it's not already saved
 
@@ -143,7 +197,9 @@ def update_sdr_timezone_from_li(client_sdr_id: int):
 
     timezone = "America/Los_Angeles"
     if location == "United States":
-        timezone = "America/Los_Angeles"
+        state = deep_get(personal_info, "location.state")
+        if state:
+            timezone = US_STATES_TIMEZONES.get(state, "America/Los_Angeles")
     elif location == "United Kingdom":
         timezone = "Europe/London"
     elif location == "Canada":
@@ -158,7 +214,6 @@ def update_sdr_timezone_from_li(client_sdr_id: int):
 
 
 def update_sdr_li_url(client_sdr_id: int):
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     if not client_sdr:
@@ -566,14 +621,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             mark_task_complete(prospect.client_sdr_id, scheduling_needed_entry.id)
 
     # Auto-complete any `rep_intervention_needed_` dash cards for this prospect
-    rep_intervention_needed_entries: list[OperatorDashboardEntry] = (
-        OperatorDashboardEntry.query.filter(
-            OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
-            OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
-            OperatorDashboardEntry.tag
-            == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
-        ).all()
-    )
+    rep_intervention_needed_entries: list[
+        OperatorDashboardEntry
+    ] = OperatorDashboardEntry.query.filter(
+        OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
+        OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
+        OperatorDashboardEntry.tag
+        == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
+    ).all()
 
     for entry in rep_intervention_needed_entries:
         if (
