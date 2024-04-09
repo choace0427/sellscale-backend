@@ -39,9 +39,9 @@ def generate_client_assets(
 
     prompt = f"""
     
-You are working with a new client to create a series of marketing assets for them. These assets are unique value props, pain points, case studies, unique facts, etc that can be used in marketing outreach.
+You are working with a new client to create a series of marketing assets for them. These assets are unique value props, pain points, social proofs, unique facts, etc that can be used in marketing outreach.
 You will be provided with some general information to give context about the client and then you will be provided a text dump.
-Please use the text dump to create at least 3 value prop-based marketing assets, 3 pain point-based marketing assets, 2 case study-based marketing assets, 2 unique fact-based marketing assets, and as many as possible phrase or template marketing assets.
+Please use the text dump to create at least 3 value prop-based marketing assets, 3 pain point-based marketing assets, 2 social proof-based marketing assets, 2 unique fact-based marketing assets, and as many as possible phrase or template marketing assets.
 If you're unable to meet that criteria, it's okay. Just do your best and prioritize concise quality assets over quantity.
 
 {additional_prompting if additional_prompting else ""}
@@ -103,10 +103,10 @@ Leverage generative Ai to reduce costs
 - higher accuracy: improve quality of data sets by
 - Reduce downtime: once we’re on the line, we can adopt to new products, defects, changes,
 
-Case study
+Social Proof
 
 - **Auto maker:** We worked with an auto-maker
-- case study
+- social proof
     
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/9142e2cc-8ebc-44b1-b954-ad6fcf62bc1d/Untitled.png)
     
@@ -123,12 +123,18 @@ They were experiencing 55% defect rates. With us they saw a 52% reduction in def
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/faabd0c5-62e3-4d78-a9af-85d90ac882ff/Untitled.png)
     
 
-how it works
+how it works 1.
 
 - 
 - detect defection & segmentation → many boxes on a conveyor belt and the segmentation model will say where the box is
 
 Data collection issues. Issue with variation and variety and high change-over in parts. 
+
+How it works 2.
+is that you first order test kit which is shipped in about in 24 hours.
+Customers self-collect it at home and ship is to the lab. 
+Should see results in three to five days-ish.
+
 
 Call to action
 
@@ -183,11 +189,19 @@ Tag: Pain Point
 
 Title: Adaptability of mnfg lines
 Value: Auto-manufacturer was previously experiencing 55% defect rates. After implementing, they saw a 52% reduction from using Advex's AI technology after 3 months.
-Tag: Case Study
+Tag: Social Proof
+
+Title: Getting started
+Value: Getting started with Ash is easy: 1. Order test kit 2. Test kit shipped in 24 hours 3. Customers self-collect at home 4. Customer ships to lab 5. Lab results in 3-5 days
+Tag: How it Works
+
+Title: Detect defection & segmentation
+Value: Detect defection & segmentation → many boxes on a conveyor belt and the segmentation model will say where the box is
+Tag: How it Works
 
 Title: OpenAI Used Us
 Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
-Tag: Phrase
+Tag: Social Proof
 
 ... TODO, continue generating assets ...
 
@@ -247,7 +261,9 @@ def parse_data_to_assets(data: str):
             # Append the extracted data as a dict to the assets list
             assets.append(
                 {
-                    "title": title,
+                    "title": title.replace("**Title**:", "")
+                    .replace("Title:", "")
+                    .strip(),
                     "value": clean_value(value),
                     "tag": convert_tag_to_asset_tag(tag),
                 }
@@ -274,8 +290,8 @@ def convert_tag_to_asset_tag(tag: str):
         return "Value Prop"
     elif "pain" in tag:
         return "Pain Point"
-    elif "case" in tag:
-        return "Case Study"
+    elif "social" in tag:
+        return "Social Proof"
     elif "fact" in tag:
         return "Value Prop"
     elif "phrase" in tag:
