@@ -1,6 +1,8 @@
 from app import db
 import sqlalchemy as sa, enum
 
+from src.contacts.models import SavedApolloQuery
+
 
 class PersonaSplitRequestTaskStatus(enum.Enum):
     QUEUED = "QUEUED"
@@ -79,6 +81,12 @@ class Persona(db.Model):
                 persona_id=self.id
             ).all()
             payload["assets"] = [m.client_assets_id for m in asset_mappings]
+
+            saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
+                self.saved_apollo_query_id
+            )
+            if saved_apollo_query:
+                payload["saved_apollo_query"] = saved_apollo_query.to_dict()
 
         return payload
 

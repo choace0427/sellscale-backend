@@ -1170,6 +1170,15 @@ def get_client_archetype_stats(client_archetype_id):
     }
 
 
+def fetch_all_assets_in_client(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id: int = client_sdr.client_id
+
+    return ClientAssets.query.filter(
+        ClientAssets.client_id == client_id,
+    ).all()
+
+
 def fetch_archetype_assets(client_archetype_id: int):
     assets_query = """
       select

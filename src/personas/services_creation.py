@@ -57,7 +57,7 @@ def add_sequence(client_id, archetype_id, sequence_type, ctas, subject_lines, st
                     else (1 if step["step_num"] == 2 else step["step_num"] - 2)
                 ),
                 mapped_asset_ids=step["assets"],
-                sellscale_default_generated=True,
+                sellscale_default_generated=False,
             )
 
         # Wipe the existing subject lines

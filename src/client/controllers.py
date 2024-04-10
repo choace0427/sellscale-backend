@@ -28,7 +28,10 @@ from src.client.services import (
     update_client_auto_generate_email_messages_setting,
     update_client_sdr_territory_name,
 )
-from src.client.services_client_archetype import auto_turn_off_finished_archetypes
+from src.client.services_client_archetype import (
+    auto_turn_off_finished_archetypes,
+    fetch_all_assets_in_client,
+)
 from src.prospecting.services import create_note
 from src.automation.resend import send_email
 from src.client.services import (
@@ -3305,6 +3308,16 @@ def post_query_gpt_v_endpoint():
         ),
         200,
     )
+
+
+@CLIENT_BLUEPRINT.route("/all_assets_in_client", methods=["GET"])
+@require_user
+def get_all_assets_in_client(client_sdr_id: int):
+    """Gets all assets for a client sdr"""
+    assets = fetch_all_assets_in_client(client_sdr_id=client_sdr_id)
+    asset_dicts = [asset.to_dict() for asset in assets]
+
+    return jsonify({"message": "Success", "data": asset_dicts}), 200
 
 
 @CLIENT_BLUEPRINT.route("/all_assets/<int:archetype_id>", methods=["GET"])

@@ -98,7 +98,8 @@ def unlink_asset_from_persona(persona_id: int, asset_id: int) -> bool:
 
     persona_to_asset_mapping = PersonaToAssetMapping.query.filter_by(
         persona_id=persona_id, client_assets_id=asset_id
-    ).first()
-    db.session.delete(persona_to_asset_mapping)
+    ).all()
+    for mapping in persona_to_asset_mapping:
+        db.session.delete(mapping)
     db.session.commit()
     return True
