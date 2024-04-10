@@ -4,6 +4,7 @@ from src.authentication.decorators import require_user
 from src.contacts.services import (
     apollo_get_contacts,
     apollo_get_organizations_from_company_names,
+    get_company_name_using_urllib,
     get_territories,
     predict_filters_needed,
 )
@@ -167,13 +168,32 @@ def index(client_sdr_id: int):
 @require_user
 def get_company(client_sdr_id: int):
     company_names = get_request_parameter(
-        "company_names", request, json=True, required=True
+        "company_names", request, json=True, required=False, default_value=None
     )
+    company_urls = get_request_parameter(
+        "company_urls", request, json=True, required=False, default_value=None
+    )
+    if not company_names and not company_urls:
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Company names or urls must be provided.",
+            }
+        )
 
-    data = apollo_get_organizations_from_company_names(
-        client_sdr_id=client_sdr_id,
-        company_names=company_names,
-    )
+    if company_names:
+        data = apollo_get_organizations_from_company_names(
+            client_sdr_id=client_sdr_id,
+            company_names=company_names,
+        )
+    elif company_urls:
+        converted_names = get_company_name_using_urllib(
+            urls=company_urls,
+        )
+        data = apollo_get_organizations_from_company_names(
+            client_sdr_id=client_sdr_id,
+            company_names=converted_names,
+        )
 
     return jsonify(
         {
