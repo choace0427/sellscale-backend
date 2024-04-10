@@ -16,7 +16,7 @@ from src.utils.string.string_utils import rank_number
 GEN_AMOUNT = 5
 ASSET_AMOUNT = 2
 
-MESSAGE_MODEL = "gpt-4"  # "claude-3-opus-20240229"
+MESSAGE_MODEL = "claude-3-opus-20240229"  # "claude-3-opus-20240229"
 CLEANING_MODEL = "gpt-4-turbo-preview"
 
 
@@ -204,15 +204,13 @@ def generate_sequence(
             output.append(
                 {
                     "result": clean_output_with_ai(
-                        clean_output(
-                            generate_email_follow_up_quick_and_dirty(
-                                client_id=client_id,
-                                archetype_id=archetype_id,
-                                step_num=step_num,
-                                context_info=context_info,
-                                assets_str=assets_str,
-                                additional_prompting=additional_prompting,
-                            )
+                        generate_email_follow_up_quick_and_dirty(
+                            client_id=client_id,
+                            archetype_id=archetype_id,
+                            step_num=step_num,
+                            context_info=context_info,
+                            assets_str=assets_str,
+                            additional_prompting=additional_prompting,
                         )
                     ),
                     "assets": assets,
@@ -259,15 +257,13 @@ def generate_sequence(
             output.append(
                 {
                     "result": clean_output_with_ai(
-                        clean_output(
-                            generate_linkedin_follow_up(
-                                client_id=client_id,
-                                archetype_id=archetype_id,
-                                step_num=step_num,
-                                context_info=context_info,
-                                assets_str=assets_str,
-                                additional_prompting=additional_prompting,
-                            )
+                        generate_linkedin_follow_up(
+                            client_id=client_id,
+                            archetype_id=archetype_id,
+                            step_num=step_num,
+                            context_info=context_info,
+                            assets_str=assets_str,
+                            additional_prompting=additional_prompting,
                         )
                     ),
                     "assets": assets,
@@ -367,9 +363,6 @@ Please generate a cold email outline for generative outreach to prospects.
 
     """.strip()
 
-    #    print(prompt)
-
-    print("GENERATING EMAIL INITIAL")
     completion = (
         get_text_generation(
             [
@@ -386,6 +379,7 @@ Please generate a cold email outline for generative outreach to prospects.
         )
         or ""
     )
+    # print("GENERATED EMAIL INITIAL", completion)
 
     return completion
 
@@ -476,7 +470,6 @@ def generate_email_follow_up_quick_and_dirty(
     
     """.strip()
 
-    print(f"GENERATING EMAIL FOLLOW UP {step_num}")
     completion = (
         get_text_generation(
             [
@@ -493,6 +486,7 @@ def generate_email_follow_up_quick_and_dirty(
         )
         or ""
     )
+    # print(f"GENERATED EMAIL FOLLOW UP {step_num}", completion)
 
     return completion
 
@@ -544,6 +538,8 @@ Hey [[ prospect first name ]] – saw you do some [[ prospect industry work ]] w
 ### Angle Description: Helps them solve a problem related to their work
 
 
+...TODO, would generate {GEN_AMOUNT - 1} MORE
+
 -------------------------------------------------------------
 # Previous Example 2 #
 -------------------------------------------------------------
@@ -562,6 +558,9 @@ Tag: Value Prop
 [[ prospect first name ]], I work with Diabetes Educators who are on the frontlines caring for patients with Diabetes during Covid 19, and I was hoping to connect with you here!
 ### Angle: Value-based
 ### Angle Description: Speaks of the value they provide in general
+
+
+...TODO, would generate {GEN_AMOUNT - 1} MORE
 
 -------------------------------------------------------------
 
@@ -582,7 +581,8 @@ Please generate a cold outbound LinkedIn message outline for generative outreach
     - structure - mix up message approach
 - Keep the angles one word, then -based. Such as `Persona-based`
 - remember, on LinkedIn, you can only include 300 characters in an initial outbound message. Please keep your messages under 3 sentences.
-
+- Please generate {GEN_AMOUNT} different angles and messages.
+- We NEED {GEN_AMOUNT} different angles and messages, not just 1 example.
 
 
 ## Assets: 
@@ -592,7 +592,6 @@ Please generate a cold outbound LinkedIn message outline for generative outreach
 ## Output:
 """.strip()
 
-    print(f"GENERATING LINKEDIN INITIAL")
     completion = (
         get_text_generation(
             [
@@ -609,6 +608,7 @@ Please generate a cold outbound LinkedIn message outline for generative outreach
         )
         or ""
     )
+    # print(f"GENERATED LINKEDIN INITIAL", completion)
 
     return completion
 
@@ -661,6 +661,8 @@ curious - how's demand gen going at Rippling? 🚀
 ### Angle Description: Question tangentially related to their work
 
 
+...TODO, would generate {GEN_AMOUNT - 1} MORE
+
 -------------------------------------------------------------
 # Previous Example 2 #
 -------------------------------------------------------------
@@ -679,6 +681,9 @@ Tag: Social Proof
 Was curious to see what you’re working on. For context, I’ve designed top-selling products for Oracle, Intuit, IBM, and Cisco. Open to talking UX some time [[ prospect first name ]]?
 ### Angle: Experience-based
 ### Angle Description: Shares experience to build credibility
+
+
+...TODO, would generate {GEN_AMOUNT - 1} MORE
 
 -------------------------------------------------------------
 
@@ -699,7 +704,9 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
     - structure - mix up message approach
 - Keep the angles one word, then -based. Such as `Persona-based`
 - remember, most people don't like to get flooded with massive messages. Please keep your messages under 3 sentences.
-
+- Please generate {GEN_AMOUNT} different angles and messages.
+- Each message should LITERALLY be like "curious - how's demand gen going at Rippling? 🚀" and not a full message
+- We NEED {GEN_AMOUNT} different reply angles and messages, not just 1 example.
 
 
 ## Assets: 
@@ -709,7 +716,6 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
 ## Output:
 """.strip()
 
-    print(f"GENERATING LINKEDIN FOLLOW UP")
     completion = (
         get_text_generation(
             [
@@ -726,6 +732,7 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
         )
         or ""
     )
+    # print(f"GENERATING LINKEDIN FOLLOW UP", completion)
 
     return completion
 
@@ -815,7 +822,9 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
     - structure - mix up message approach
 - Keep the angles one word, then -based. Such as `Persona-based`
 - remember, this should be an ending call to action, so make sure it's clear and concise.
-
+- Please generate {GEN_AMOUNT} different angles and CTAs.
+- Each message should LITERALLY be like "Would love to see if AskEdith would be helpful for you all." and not a full message.
+- Keep it short, only a couple words.
 
 
 ## Assets: 
@@ -825,7 +834,6 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
 ## Output:
 """.strip()
 
-    print(f"GENERATING LINKEDIN CTA")
     completion = (
         get_text_generation(
             [
@@ -842,6 +850,7 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
         )
         or ""
     )
+    # print(f"GENERATED LINKEDIN CTA", completion)
 
     return completion
 
@@ -910,8 +919,6 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
 
 #     """.strip()
 
-#     print(prompt)
-
 #     completion = (
 #         get_text_generation(
 #             [
@@ -936,25 +943,34 @@ def clean_output_with_ai(output: str):
 
     prompt = f"""
     
-    I'm going to give you some data and I want you to format it in a JSON array format with EXACTLY this structure:
+    I'm going to give you some data that's a list of messages and I want you to format each message so that it fits in this JSON array format:
     
-    [(
-    "angle": <SOMETHING>-based,
-    "angle_description": <ANGLE_DESCRIPTION>,
-    "subject": <MESSAGE_SUBJECT>,
-    "message": <MESSAGE_BODY>,
-    "asset_ids": [<ASSET_IDS>],
-    )]
+    [
+    (
+    "angle": <1_SOMETHING>-based,
+    "angle_description": <1_ANGLE_DESCRIPTION>,
+    "subject": <1_MESSAGE_SUBJECT>,
+    "message": <1_MESSAGE_BODY>,
+    "asset_ids": [<1_ASSET_IDS>],
+    ),
+    (
+    "angle": <2_SOMETHING>-based,
+    "angle_description": <2_ANGLE_DESCRIPTION>,
+    "subject": <2_MESSAGE_SUBJECT>,
+    "message": <2_MESSAGE_BODY>,
+    "asset_ids": [<2_ASSET_IDS>],
+    ),
+    ...OTHERS...
+    ]
     
     If you don't have something, just put an empty string. Maintain the newline formatting in the JSON message. ONLY respond with the JSON array format.
-    The message should just be the message body, not the subject line, not the angle, not the angle description, and not the asset IDs.
+    The message property should just be the message body, not the subject line, not the angle, not the angle description, and not the asset IDs.
     
     # Data #
     {output}
     
     """.strip()
 
-    print("CLEANING OUTPUT")
     completion = (
         get_text_generation(
             [
@@ -979,29 +995,29 @@ def clean_output_with_ai(output: str):
             completion.replace("```json", "").replace("```", "").strip()
         )
     except:
-        print("ERROR", completion)
+        # print("ERROR", completion)
         return []
 
 
-def clean_output(output: str):
-    parts = output.split("\n### Angle")
-    message_raw = parts[0].strip()
-    message_parts = message_raw.split("### Message")
-    message = (
-        message_parts[1].strip() if len(message_parts) > 1 else message_parts[0].strip()
-    )
-    angle = parts[1].strip() if len(parts) > 1 else "Unknown Angle"
+# def clean_output(output: str):
+#     parts = output.split("\n### Angle")
+#     message_raw = parts[0].strip()
+#     message_parts = message_raw.split("### Message")
+#     message = (
+#         message_parts[1].strip() if len(message_parts) > 1 else message_parts[0].strip()
+#     )
+#     angle = parts[1].strip() if len(parts) > 1 else "Unknown Angle"
 
-    # Remove potential subject line
-    message = re.sub(
-        r"^\W*Subject:.+?\n", "", message, 1, flags=re.MULTILINE | re.IGNORECASE
-    )
+#     # Remove potential subject line
+#     message = re.sub(
+#         r"^\W*Subject:.+?\n", "", message, 1, flags=re.MULTILINE | re.IGNORECASE
+#     )
 
-    # Remove potential generation fluff
-    message = re.sub(r"^\W+", "", message)
-    angle = re.sub(r"^\W+", "", angle)
+#     # Remove potential generation fluff
+#     message = re.sub(r"^\W+", "", message)
+#     angle = re.sub(r"^\W+", "", angle)
 
-    return {"message": message, "angle": angle}
+#     return {"message": message, "angle": angle}
 
 
 def get_email_example(example_num: int, step_num: int):

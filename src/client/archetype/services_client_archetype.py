@@ -694,15 +694,8 @@ def import_linkedin_sequence(
             bumped_count=bumped_count,
             active=True,
             default=True,
+            asset_ids=step.get("asset_ids", []),
         )
-
-        for asset_id in step.get("asset_ids", []):
-            mapping = BumpFrameworkToAssetMapping(
-                bump_framework_id=bf_id,
-                client_assets_id=asset_id,
-            )
-            db.session.add(mapping)
-        db.session.commit()
 
         print(
             "Created bump framework for step {} with title {} with bumped count {}".format(
@@ -711,6 +704,42 @@ def import_linkedin_sequence(
         )
 
     return True
+
+
+def create_linkedin_initial_message_template(
+    title: str,
+    message: str,
+    client_sdr_id: int,
+    client_archetype_id: int,
+    research_points: list[str],
+    additional_instructions: str = "",
+    asset_ids: list[int] = [],
+):
+
+    template = LinkedinInitialMessageTemplate(
+        title=title,
+        message=message,
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=client_archetype_id,
+        active=True,
+        times_used=0,
+        times_accepted=0,
+        sellscale_generated=True,
+        research_points=research_points,
+        additional_instructions=additional_instructions,
+    )
+    db.session.add(template)
+    db.session.commit()
+
+    for asset_id in asset_ids:
+        mapping = LinkedInInitialMessageToAssetMapping(
+            linkedin_initial_message_id=template.id,
+            client_assets_id=asset_id,
+        )
+        db.session.add(mapping)
+    db.session.commit()
+
+    return template.id
 
 
 def wipe_email_sequence(campaign_id: int):

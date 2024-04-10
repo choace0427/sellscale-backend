@@ -195,9 +195,6 @@ def post_add_sequence(client_sdr_id: int):
     sequence_type = get_request_parameter(
         "sequence_type", request, json=True, required=True, parameter_type=str
     )
-    ctas = get_request_parameter(
-        "ctas", request, json=True, required=True, parameter_type=list
-    )
     subject_lines = get_request_parameter(
         "subject_lines", request, json=True, required=True, parameter_type=list
     )
@@ -209,7 +206,6 @@ def post_add_sequence(client_sdr_id: int):
         client_id=client_id,
         archetype_id=archetype_id,
         sequence_type=sequence_type,
-        ctas=ctas,
         subject_lines=subject_lines,
         steps=steps,
     )

@@ -285,6 +285,7 @@ def create_bump_framework(
     bump_framework_human_readable_prompt: Optional[str] = None,
     additional_context: Optional[str] = None,
     transformer_blocklist: Optional[list] = [],
+    asset_ids: Optional[list[int]] = [],
 ) -> int:
     """Create a new bump framework, if default is True, set all other bump frameworks to False
 
@@ -348,6 +349,15 @@ def create_bump_framework(
     db.session.add(bump_framework)
     db.session.commit()
     bump_framework_id = bump_framework.id
+
+    # Create asset mappings
+    for asset_id in asset_ids or []:
+        mapping = BumpFrameworkToAssetMapping(
+            bump_framework_id=bump_framework_id,
+            client_assets_id=asset_id,
+        )
+        db.session.add(mapping)
+    db.session.commit()
 
     # Add an activity log
     add_activity_log(
