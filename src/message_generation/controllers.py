@@ -1295,3 +1295,18 @@ def get_all_asset_mapping(client_sdr_id: int):
     mappings = get_all_cta_assets(generated_message_cta_id=generated_message_cta_id)
 
     return jsonify({"mappings": mappings}), 200
+
+
+@MESSAGE_GENERATION_BLUEPRINT.route(
+    "/stack_ranked_configuration/get_all_for_client", methods=["GET"]
+)
+@require_user
+def get_all_stack_ranked_configurations_for_client(client_sdr_id: int):
+    """Gets all stack ranked configurations for a given client_sdr_id"""
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+    configurations = StackRankedMessageGenerationConfiguration.query.filter(
+        StackRankedMessageGenerationConfiguration.client_id == client_id
+    ).all()
+
+    return jsonify({"data": [c.to_dict() for c in configurations]}), 200

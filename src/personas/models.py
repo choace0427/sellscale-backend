@@ -2,6 +2,7 @@ from app import db
 import sqlalchemy as sa, enum
 
 from src.contacts.models import SavedApolloQuery
+from src.message_generation.models import StackRankedMessageGenerationConfiguration
 
 
 class PersonaSplitRequestTaskStatus(enum.Enum):
@@ -87,6 +88,16 @@ class Persona(db.Model):
             )
             if saved_apollo_query:
                 payload["saved_apollo_query"] = saved_apollo_query.to_dict()
+
+            stack_ranked_message_generation_configuration = (
+                StackRankedMessageGenerationConfiguration.query.get(
+                    self.stack_ranked_message_generation_configuration_id
+                )
+            )
+            if stack_ranked_message_generation_configuration:
+                payload["stack_ranked_message_generation_configuration"] = (
+                    stack_ranked_message_generation_configuration.to_dict()
+                )
 
         return payload
 
