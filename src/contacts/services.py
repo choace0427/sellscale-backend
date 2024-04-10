@@ -408,6 +408,56 @@ def apollo_get_contacts_for_page(
     return response.json(), data, saved_query_id
 
 
+def get_company_name_using_urllib(urls: list[str]) -> list[str]:
+    """Get the company name from a list of URLs using urllib. Hacky solution, but it works.
+
+    Args:
+        urls (list[str]): List of URLs to extract the company names from
+
+    Returns:
+        list[str]: List of company names
+    """
+    import re
+    from urllib.parse import urlparse
+
+    company_names = []
+
+    for url in urls:
+        try:
+            # Parse the URL
+            parsed_url = urlparse(url)
+
+            # If this is something we can parse
+            if parsed_url.netloc:
+                # Remove 'www.' if present
+                netloc = parsed_url.netloc.replace("www.", "")
+                # Extract the domain name
+                domain_parts = netloc.split(".")
+                if len(domain_parts) > 2:
+                    domain_name = ".".join(domain_parts[-2:])
+                else:
+                    domain_name = netloc
+                domain_name = domain_name.title()
+                domain_name = domain_name.split(".")[0]
+                print("Using URLLIB", domain_name)
+                company_names.append(domain_name)
+            else:
+                # Use regex to extract the domain name
+                domain_name = re.search(
+                    r"(?:https?://)?(?:www\.)?([^./]+(?:\.[^./]+)+)", url
+                ).group(1)
+
+                # Make the domain name title case
+                domain_name = domain_name.title()
+                domain_name = domain_name.split(".")[0]
+                print("Using regex", domain_name)
+                company_names.append(domain_name)
+        except Exception as e:
+            print("Error:", e)
+
+    return company_names
+
+
 def apollo_get_organizations_from_company_names(
     client_sdr_id: int,
     company_names: list[str],
