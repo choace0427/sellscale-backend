@@ -61,6 +61,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm.attributes import flag_modified
 from nylas import APIClient
 from src.analytics.services import add_activity_log
+import yaml
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
@@ -611,7 +612,7 @@ def predict_titles_from_archetype_name(archetype: str, retries=3):
             max_tokens=100,
         )
 
-        obj = json.loads(completion)
+        obj = yaml.safe_load(completion)
         titles = obj["titles"]
         return titles
     except Exception as e:

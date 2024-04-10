@@ -1,5 +1,6 @@
 import requests
 import json
+import yaml
 import os
 
 from src.ml.services import get_text_generation
@@ -55,7 +56,7 @@ def get_basic_openai_completion(prompt, max_tokens: int = 100, n: int = 1):
     raw_response = requests.request(
         "POST", OPENAI_URL, headers=headers, data=payload
     ).text
-    response = json.loads(raw_response)
+    response = yaml.safe_load(raw_response)
     return [
         response["choices"][i]["text"].strip() for i in range(len(response["choices"]))
     ]

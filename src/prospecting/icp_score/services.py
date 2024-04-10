@@ -1,5 +1,6 @@
 import datetime
 import json
+import yaml
 from multiprocessing import process
 from typing import Counter, Optional
 
@@ -1667,7 +1668,7 @@ JSON:""",
 
     titles = []
     try:
-        data: dict = json.loads(response)
+        data: dict = yaml.safe_load(response)
         titles = data.get("data", [])
     except:
         return False

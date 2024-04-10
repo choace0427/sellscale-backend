@@ -4,6 +4,7 @@ import demoji
 import emoji
 import requests
 import json
+import yaml
 import csv
 import regex as re
 from model_import import GeneratedMessage, GeneratedMessageType, Prospect, Client
@@ -44,7 +45,7 @@ def get_adversarial_ai_approval(prompt):
     raw_response = requests.request(
         "POST", OPENAI_URL, headers=headers, data=payload
     ).text
-    response = json.loads(raw_response)
+    response = yaml.safe_load(raw_response)
     choice = response["choices"][0]["text"].strip()
 
     return choice == "TRUE"

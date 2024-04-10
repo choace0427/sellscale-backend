@@ -1,4 +1,5 @@
 import json
+import yaml
 import random
 from typing import Optional, TypedDict
 
@@ -138,7 +139,7 @@ The JSON response:""".format(
     print(response)
 
     try:
-        response_dict: dict = json.loads(response)
+        response_dict: dict = yaml.safe_load(response)
         remove_ids = response_dict.get("remove_ids")
         message = response_dict.get("message")
         if remove_ids and message:
@@ -192,7 +193,7 @@ DO NOT INCLUDE ```json``` in your response. Just the dictionary.
         model="gpt-4-0125-preview",
     )
     try:
-        response_dict: dict = json.loads(response)
+        response_dict: dict = yaml.safe_load(response)
         remove_ids = response_dict.get("remove_ids")
         message = response_dict.get("message")
         if remove_ids and message:

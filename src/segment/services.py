@@ -1,4 +1,4 @@
-import json
+import yaml
 from typing import Optional
 from sqlalchemy import or_, and_
 
@@ -409,7 +409,7 @@ JSON:""",
 
     titles = []
     try:
-        data: dict = json.loads(response)
+        data: dict = yaml.safe_load(response)
         titles = data.get("data", [])
     except:
         return {}

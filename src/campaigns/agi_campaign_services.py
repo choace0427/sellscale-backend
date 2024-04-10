@@ -1,4 +1,5 @@
 import json
+import yaml
 from model_import import ClientSDR, Client, ClientArchetype, GeneratedMessageCTA
 from app import db
 
@@ -168,7 +169,7 @@ def create_agi_campaign(
             max_tokens=600,
         )
 
-        ctas = json.loads(new_ctas)["ctas"]
+        ctas = yaml.safe_load(new_ctas)["ctas"]
 
         # make 3-4 step linkedin sequence and import steps in
         print("Creating linkedin sequence")
@@ -296,7 +297,7 @@ def create_agi_campaign(
             max_tokens=1500,
         )
 
-        linkedin_sequence = json.loads(linkedin_sequence_str)["sequence"]
+        linkedin_sequence = yaml.safe_load(linkedin_sequence_str)["sequence"]
 
         # create new review task for linkedin
         print("Creating review task for linkedin")
@@ -364,7 +365,7 @@ def create_agi_campaign(
             max_tokens=1500,
         )
 
-        email_sequence = json.loads(email_sequence_str)["sequence"]
+        email_sequence = yaml.safe_load(email_sequence_str)["sequence"]
 
         # create new review task for email
 

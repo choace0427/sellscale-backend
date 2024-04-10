@@ -10,13 +10,14 @@ from src.client.models import (
 from model_import import Individual
 from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
-from src.utils.datetime.dateutils import get_current_time_casual
-from src.individual.services import parse_work_history
 import re
 from src.utils.string.string_utils import rank_number
 
 GEN_AMOUNT = 5
 ASSET_AMOUNT = 2
+
+MESSAGE_MODEL = "gpt-4"  # "claude-3-opus-20240229"
+CLEANING_MODEL = "gpt-4-turbo-preview"
 
 
 def get_sdr_prompting_context_info(client_sdr_id: int):
@@ -169,20 +170,19 @@ def generate_sequence(
         for asset in raw_assets
     ]
 
+    assets = random.sample(
+        all_assets,
+        min(ASSET_AMOUNT, len(all_assets)),
+    )
+    assets_str = "## Assets: \n" + "\n\n".join(
+        [
+            f"Title: {asset.get('title')}\nValue: {asset.get('value')}\nTag: {asset.get('tag')}\nID: {asset.get('id')}"
+            for asset in assets
+        ]
+    )
+
     output = []
     if sequence_type == "EMAIL":
-
-        assets = random.sample(
-            all_assets,
-            min(ASSET_AMOUNT, len(all_assets)),
-        )
-        assets_str = "## Assets: \n" + "\n\n".join(
-            [
-                f"Title: {asset.get('title')}\nValue: {asset.get('value')}\nTag: {asset.get('tag')}\nID: {asset.get('id')}"
-                for asset in assets
-            ]
-        )
-
         if step_num == 1:
             output.append(
                 {
@@ -221,7 +221,59 @@ def generate_sequence(
             )
 
     else:
-        output = []
+        if step_num == 1:
+            if sequence_type == "LINKEDIN-CTA":
+                output.append(
+                    {
+                        "result": clean_output_with_ai(
+                            generate_linkedin_cta(
+                                client_id=client_id,
+                                archetype_id=archetype_id,
+                                context_info=context_info,
+                                assets_str=assets_str,
+                                additional_prompting=additional_prompting,
+                            )
+                        ),
+                        "assets": assets,
+                        "step_num": step_num,
+                    }
+                )
+            else:
+                output.append(
+                    {
+                        "result": clean_output_with_ai(
+                            generate_linkedin_initial(
+                                client_id=client_id,
+                                archetype_id=archetype_id,
+                                context_info=context_info,
+                                assets_str=assets_str,
+                                additional_prompting=additional_prompting,
+                            )
+                        ),
+                        "assets": assets,
+                        "step_num": step_num,
+                    }
+                )
+        else:
+
+            output.append(
+                {
+                    "result": clean_output_with_ai(
+                        clean_output(
+                            generate_linkedin_follow_up(
+                                client_id=client_id,
+                                archetype_id=archetype_id,
+                                step_num=step_num,
+                                context_info=context_info,
+                                assets_str=assets_str,
+                                additional_prompting=additional_prompting,
+                            )
+                        )
+                    ),
+                    "assets": assets,
+                    "step_num": step_num,
+                }
+            )
 
     return output
 
@@ -326,7 +378,7 @@ Please generate a cold email outline for generative outreach to prospects.
                     "content": prompt,
                 }
             ],
-            model="claude-3-opus-20240229",  # claude-3-opus-20240229
+            model=MESSAGE_MODEL,
             max_tokens=4000,
             type="EMAIL",
             temperature=0.85,
@@ -375,6 +427,8 @@ def generate_email_follow_up_quick_and_dirty(
     ## Some examples:
     
     ---------------------------------------------------
+    ## Output:
+    ### Message:
     Hello [prospect name],
 
     Hope your week is going well. It was great to hear about your [business pain point] on our last call. I think [company name] can help you [insert benefit].
@@ -385,6 +439,8 @@ def generate_email_follow_up_quick_and_dirty(
 
     [Signature]
     ---------------------------------------------------
+    ## Output:
+    ### Message:
     Hello [prospect name],
 
     Just bumping this up in your inbox. Did you get a chance to speak to [higher-up] about moving forward with [product or service]?
@@ -395,6 +451,8 @@ def generate_email_follow_up_quick_and_dirty(
 
     [Signature]
     ---------------------------------------------------
+    ## Output:
+    ### Message:
     Hey [prospect name],
 
     It seems like it’s not a great time for us to connect, but I really think [specific features] could help your business [achieve X results].
@@ -427,7 +485,356 @@ def generate_email_follow_up_quick_and_dirty(
                     "content": prompt,
                 }
             ],
-            model="claude-3-opus-20240229",  # claude-3-opus-20240229
+            model=MESSAGE_MODEL,
+            max_tokens=4000,
+            type="EMAIL",
+            temperature=0.85,
+            use_cache=False,
+        )
+        or ""
+    )
+
+    return completion
+
+
+def generate_linkedin_initial(
+    client_id: int,
+    archetype_id: int,
+    context_info: str,
+    assets_str: str,
+    additional_prompting: str,
+):
+
+    prompt = f"""
+  
+You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
+When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+
+{additional_prompting}
+
+I will give you 3 few shot examples. Each example contains
+
+- ## Assets
+- ## Output: LinkedIn message
+- ## Angle: Angle-based
+- ## Angle Description: Description of the angle
+
+I’m going to give you outreach information (which includes an asset), and you are to return 6 angles and their associated cold outreach LinkedIn message.
+
+The more diverse the outputs are, and creative, the better. You should follow general LinkedIn message practices like keeping it short, concise, and free of fillers such as (”I hope this finds you well”).
+Pick 1-3 assets to utilize in your message. In your output say the IDs of the assets you used. Be creative and use them in different ways.
+
+Here's some previous examples of what you're expected to generate.
+# Previous Example 1 #
+-------------------------------------------------------------
+
+Please generate a cold outbound LinkedIn message outline for generative outreach to prospects.
+
+
+## Assets: 
+Title: Better estimates
+Value: We help create better estimates for stubs on bid day
+Tag: Value Prop
+
+
+## Output:
+### Message:
+Hey [[ prospect first name ]] – saw you do some [[ prospect industry work ]] work and wanted to reach out. We’re working on a new platform for faster and more organized estimates from subs on bid day. Would be great to share more and get your thoughts on it.
+### Angle: Solution-based
+### Angle Description: Helps them solve a problem related to their work
+
+
+-------------------------------------------------------------
+# Previous Example 2 #
+-------------------------------------------------------------
+
+Please generate a cold outbound LinkedIn message outline for generative outreach to prospects.
+
+
+## Assets: 
+Title: Diabetes Care
+Value: Looks after of patients with Diabetes during Covid 19
+Tag: Value Prop
+
+
+## Output:
+### Message:
+[[ prospect first name ]], I work with Diabetes Educators who are on the frontlines caring for patients with Diabetes during Covid 19, and I was hoping to connect with you here!
+### Angle: Value-based
+### Angle Description: Speaks of the value they provide in general
+
+-------------------------------------------------------------
+
+# Your Turn #
+Okay now it's your turn to generate some messages. Good luck!
+
+
+Please generate a cold outbound LinkedIn message outline for generative outreach to prospects.
+
+
+{context_info}
+
+
+## General guidelines
+
+- Final note - each message should follow a different structure. Here are some things you can vary on:
+    - tone - informal, creative, informational (try different types but avoid being salesy)
+    - structure - mix up message approach
+- Keep the angles one word, then -based. Such as `Persona-based`
+- remember, on LinkedIn, you can only include 300 characters in an initial outbound message. Please keep your messages under 3 sentences.
+
+
+
+## Assets: 
+{assets_str}
+
+
+## Output:
+""".strip()
+
+    print(f"GENERATING LINKEDIN INITIAL")
+    completion = (
+        get_text_generation(
+            [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model=MESSAGE_MODEL,
+            max_tokens=4000,
+            type="EMAIL",
+            temperature=0.85,
+            use_cache=False,
+        )
+        or ""
+    )
+
+    return completion
+
+
+def generate_linkedin_follow_up(
+    client_id: int,
+    archetype_id: int,
+    step_num: int,
+    context_info: str,
+    assets_str: str,
+    additional_prompting: str,
+):
+
+    prompt = f"""
+  
+You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative replies on generative outreach to prospects.
+When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+
+{additional_prompting}
+
+I will give you 3 few shot examples. Each example contains
+
+- ## Assets
+- ## Output: LinkedIn message
+- ## Angle: Angle-based
+- ## Angle Description: Description of the angle
+
+I’m going to give you outreach information (which includes an asset), and you are to return 6 angles and their associated LinkedIn follow-up message.
+
+The more diverse the outputs are, and creative, the better. You should follow general LinkedIn message practices like keeping it short, concise, and free of fillers such as (”I hope this finds you well”).
+Pick 1-3 assets to utilize in your message. In your output say the IDs of the assets you used. Be creative and use them in different ways.
+
+Here's some previous examples of what you're expected to generate.
+# Previous Example 1 #
+-------------------------------------------------------------
+
+Please generate a follow up LinkedIn message outline for generative outreach to prospects.
+
+
+## Assets: 
+Title: #1 in Demand Generation
+Value: Rippling is #1 when it comes to demand generation especially in the tech industry
+Tag: Value Prop
+
+
+## Output:
+### Message:
+curious - how's demand gen going at Rippling? 🚀
+### Angle: Related-based
+### Angle Description: Question tangentially related to their work
+
+
+-------------------------------------------------------------
+# Previous Example 2 #
+-------------------------------------------------------------
+
+Please generate a follow up LinkedIn message outline for generative outreach to prospects.
+
+
+## Assets: 
+Title: Top Selling Products
+Value: Designed top-selling products for Oracle, Intuit, IBM, Cisco, Sharecare, Filezilla, and more
+Tag: Social Proof
+
+
+## Output:
+### Message:
+Was curious to see what you’re working on. For context, I’ve designed top-selling products for Oracle, Intuit, IBM, and Cisco. Open to talking UX some time [[ prospect first name ]]?
+### Angle: Experience-based
+### Angle Description: Shares experience to build credibility
+
+-------------------------------------------------------------
+
+# Your Turn #
+Okay now it's your turn to generate some messages. Good luck!
+
+
+Please generate a follow up LinkedIn message outline for generative outreach to prospects.
+
+
+{context_info}
+
+
+## General guidelines
+
+- Final note - each message should follow a different structure. Here are some things you can vary on:
+    - tone - informal, creative, informational (try different types but avoid being salesy)
+    - structure - mix up message approach
+- Keep the angles one word, then -based. Such as `Persona-based`
+- remember, most people don't like to get flooded with massive messages. Please keep your messages under 3 sentences.
+
+
+
+## Assets: 
+{assets_str}
+
+
+## Output:
+""".strip()
+
+    print(f"GENERATING LINKEDIN FOLLOW UP")
+    completion = (
+        get_text_generation(
+            [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model=MESSAGE_MODEL,
+            max_tokens=4000,
+            type="EMAIL",
+            temperature=0.85,
+            use_cache=False,
+        )
+        or ""
+    )
+
+    return completion
+
+
+def generate_linkedin_cta(
+    client_id: int,
+    archetype_id: int,
+    context_info: str,
+    assets_str: str,
+    additional_prompting: str,
+):
+
+    prompt = f"""
+  
+You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative call to actions on generative outreach to prospects.
+When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+
+{additional_prompting}
+
+I will give you 3 few shot examples. Each example contains
+
+- ## Assets
+- ## Output: LinkedIn Call to Action
+- ## Angle: Angle-based
+- ## Angle Description: Description of the angle
+
+I’m going to give you outreach information (which includes an asset), and you are to return 6 angles and their associated LinkedIn call to action.
+
+The more diverse the outputs are, and creative, the better.
+Pick 1 asset to utilize in your message. In your output say the IDs of the assets you used. Be creative and use them in different ways.
+
+Here's some previous examples of what you're expected to generate.
+# Previous Example 1 #
+-------------------------------------------------------------
+
+Please generate a follow up LinkedIn message outline for generative outreach to prospects.
+
+
+## Assets: 
+Title: 95% Demand Generation
+Value: AskEdith helps with 95% of demand generation tasks
+Tag: Value Prop
+
+
+## Output:
+### Message:
+Would love to see if AskEdith would be helpful for you all.
+### Angle: Help-based
+### Angle Description: Offers help
+
+
+-------------------------------------------------------------
+# Previous Example 2 #
+-------------------------------------------------------------
+
+Please generate a follow up LinkedIn message outline for generative outreach to prospects.
+
+
+## Assets: 
+Title: 1000s of Companies
+Value: Files bills for 1000s of companies
+Tag: Social Proof
+
+
+## Output:
+### Message:
+How are you all dealing with billing and the back office?
+### Angle: Question-based
+### Angle Description: Asks a probing question
+
+-------------------------------------------------------------
+
+# Your Turn #
+Okay now it's your turn to generate some messages. Good luck!
+
+
+Please generate a follow up LinkedIn message outline for generative outreach to prospects.
+
+
+{context_info}
+
+
+## General guidelines
+
+- Final note - each message should follow a different structure. Here are some things you can vary on:
+    - tone - informal, creative, informational (try different types but avoid being salesy)
+    - structure - mix up message approach
+- Keep the angles one word, then -based. Such as `Persona-based`
+- remember, this should be an ending call to action, so make sure it's clear and concise.
+
+
+
+## Assets: 
+{assets_str}
+
+
+## Output:
+""".strip()
+
+    print(f"GENERATING LINKEDIN CTA")
+    completion = (
+        get_text_generation(
+            [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model=MESSAGE_MODEL,
             max_tokens=4000,
             type="EMAIL",
             temperature=0.85,
@@ -513,7 +920,7 @@ def generate_email_follow_up_quick_and_dirty(
 #                     "content": prompt,
 #                 }
 #             ],
-#             model="gpt-4-turbo-preview",  # -turbo-preview
+#             model=MESSAGE_MODEL,
 #             max_tokens=4000,
 #             type="EMAIL",
 #             temperature=0.85,
@@ -534,12 +941,13 @@ def clean_output_with_ai(output: str):
     [(
     "angle": <SOMETHING>-based,
     "angle_description": <ANGLE_DESCRIPTION>,
-    "subject": <EMAIL_SUBJECT>,
-    "message": <EMAIL_BODY>,
+    "subject": <MESSAGE_SUBJECT>,
+    "message": <MESSAGE_BODY>,
     "asset_ids": [<ASSET_IDS>],
     )]
     
     If you don't have something, just put an empty string. Maintain the newline formatting in the JSON message. ONLY respond with the JSON array format.
+    The message should just be the message body, not the subject line, not the angle, not the angle description, and not the asset IDs.
     
     # Data #
     {output}
@@ -555,7 +963,7 @@ def clean_output_with_ai(output: str):
                     "content": prompt,
                 }
             ],
-            model="gpt-4-turbo-preview",  # -3.5-turbo-0125
+            model=CLEANING_MODEL,
             max_tokens=4000,
             type="MISC_CLASSIFY",
             temperature=0.85,
@@ -564,10 +972,12 @@ def clean_output_with_ai(output: str):
         or ""
     )
 
-    import json
+    import yaml
 
     try:
-        return json.loads(completion.replace("```json", "").replace("```", "").strip())
+        return yaml.safe_load(
+            completion.replace("```json", "").replace("```", "").strip()
+        )
     except:
         print("ERROR", completion)
         return []
@@ -575,21 +985,23 @@ def clean_output_with_ai(output: str):
 
 def clean_output(output: str):
     parts = output.split("\n### Angle")
-    email_raw = parts[0].strip()
-    email_parts = email_raw.split("### Email")
-    email = email_parts[1].strip() if len(email_parts) > 1 else email_parts[0].strip()
+    message_raw = parts[0].strip()
+    message_parts = message_raw.split("### Message")
+    message = (
+        message_parts[1].strip() if len(message_parts) > 1 else message_parts[0].strip()
+    )
     angle = parts[1].strip() if len(parts) > 1 else "Unknown Angle"
 
     # Remove potential subject line
-    email = re.sub(
-        r"^\W*Subject:.+?\n", "", email, 1, flags=re.MULTILINE | re.IGNORECASE
+    message = re.sub(
+        r"^\W*Subject:.+?\n", "", message, 1, flags=re.MULTILINE | re.IGNORECASE
     )
 
     # Remove potential generation fluff
-    email = re.sub(r"^\W+", "", email)
+    message = re.sub(r"^\W+", "", message)
     angle = re.sub(r"^\W+", "", angle)
 
-    return {"message": email, "angle": angle}
+    return {"message": message, "angle": angle}
 
 
 def get_email_example(example_num: int, step_num: int):
@@ -747,7 +1159,7 @@ Tag: Pain Point
 
 
 ## Output:
-### Email:
+### Message:
 Hi [[ prospect first name ]],
 
 I know that finding top-tier Designers can be a hassle, especially when you factor in the risks and the high costs of hiring and (if needed) firing.
@@ -790,7 +1202,7 @@ Tag: Value Prop
 
 
 ## Output:
-### Email:
+### Message:
 Hi [[ prospect first name ]],
 
 Imagine if you could skip weeks of frustrating payroll and compliance paperwork.
@@ -826,7 +1238,7 @@ Tag: Value Prop
 
 
 ## Output:
-### Email:
+### Message:
 Hi [[ prospect first name ]],
 
 My name is Will Han, and I’m a cofounder of BitSync. We are a low-cost GPU Cloud and training platform that is easy to migrate to.

@@ -1,4 +1,5 @@
 import json
+import yaml
 import os
 from typing import Optional
 from app import db
@@ -490,7 +491,7 @@ def predict_filters_types_needed(query: str) -> list:
         messages=[{"role": "user", "content": prompt}], max_tokens=300, model="gpt-4"
     )
 
-    data = json.loads(completion)
+    data = yaml.safe_load(completion)
 
     return data["filters"]
 
@@ -529,7 +530,7 @@ def predict_filters_needed(query: str) -> dict:
             model="gpt-4",
         )
 
-        data = json.loads(completion)
+        data = yaml.safe_load(completion)
 
         overall_filters[filter_type] = data["data"]
 

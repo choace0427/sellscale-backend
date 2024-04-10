@@ -31,6 +31,7 @@ from src.prospecting.models import ProspectStatus
 from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
+import yaml
 from sqlalchemy import func
 
 from src.research.account_research import generate_prospect_research
@@ -343,7 +344,7 @@ Output:""",
 
         task.raw_completion = output
 
-        output_dict = json.loads(output)
+        output_dict = yaml.safe_load(output)
         task.json_completion = output_dict
 
         archetype_id_number = output_dict["persona_id"]
@@ -611,11 +612,11 @@ def clone_persona(
             )
 
     if option_voices:
-        original_voices: list[
-            StackRankedMessageGenerationConfiguration
-        ] = StackRankedMessageGenerationConfiguration.query.filter_by(
-            archetype_id=original_persona_id
-        ).all()
+        original_voices: list[StackRankedMessageGenerationConfiguration] = (
+            StackRankedMessageGenerationConfiguration.query.filter_by(
+                archetype_id=original_persona_id
+            ).all()
+        )
         for original_voice in original_voices:
             voice = StackRankedMessageGenerationConfiguration(
                 configuration_type=original_voice.configuration_type,

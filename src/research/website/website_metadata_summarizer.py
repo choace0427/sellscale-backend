@@ -5,7 +5,7 @@ Uses a caching mechanism to avoid making the same request multiple times.
 
 import requests
 from bs4 import BeautifulSoup
-import json
+import yaml
 import sys
 import openai
 import os
@@ -17,6 +17,7 @@ from app import db
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
+
 
 # This is a placeholder function as direct interaction with GPT-4 is not possible in this context.
 # In a real-world scenario, you would replace this with an API call or integration with GPT-4.
@@ -109,7 +110,7 @@ def get_website_details(url: str) -> dict:
     # Use GPT-4 to interpret the HTML content
     gpt4_results = gpt4_interpret_html(clean_text)
 
-    convert_to_json = json.loads(gpt4_results)
+    convert_to_json = yaml.safe_load(gpt4_results)
 
     # add 'website_url' field to JSON
     convert_to_json["website_url"] = url

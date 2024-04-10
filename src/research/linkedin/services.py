@@ -23,6 +23,7 @@ from src.voice_builder.models import VoiceBuilderSamples
 from ..sample_research_response import SAMPLE_RESEARCH_RESPONSE
 
 import json
+import yaml
 import os
 import requests
 from datetime import datetime, timedelta
@@ -50,7 +51,7 @@ def research_personal_profile_details(profile_id: str):
         "POST", PROFILE_DETAILS_URL, headers=headers, data=payload
     )
 
-    return json.loads(response.text)
+    return yaml.safe_load(response.text)
 
 
 def research_corporate_profile_details(company_name: str):

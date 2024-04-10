@@ -1,5 +1,6 @@
 import requests
 import json
+import yaml
 from src.research.linkedin.services import (
     ISCRAPER_API_KEY,
     LINKEDIN_SEARCH_URL,
@@ -14,7 +15,7 @@ def get_location_ids_from_iscraper(location: str):
 
     response = requests.request("POST", DATA_TYPES_URL, headers=headers, data=payload)
 
-    d = json.loads(response.text)
+    d = yaml.safe_load(response.text)
     location_ids = [x["id"] for x in d]
 
     return location_ids
@@ -37,7 +38,7 @@ def get_linkedin_link_from_iscraper(name: str, location: str):
     response = requests.request(
         "POST", LINKEDIN_SEARCH_URL, headers=headers, data=payload
     )
-    data = json.loads(response.text)
+    data = yaml.safe_load(response.text)
 
     if not data or not data["results"]:
         return {"message": "Prospect not found"}
@@ -63,7 +64,7 @@ def get_linkedin_search_results_from_iscraper(name: str, location: str):
     response = requests.request(
         "POST", LINKEDIN_SEARCH_URL, headers=headers, data=payload
     )
-    data = json.loads(response.text)
+    data = yaml.safe_load(response.text)
 
     if not data or not data["results"]:
         return {"message": "Prospect not found"}

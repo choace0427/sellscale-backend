@@ -43,6 +43,7 @@ import re
 import math
 import openai
 import json
+import yaml
 from src.company.services import find_company_for_prospect
 from src.utils.abstract.attr_utils import deep_get
 
@@ -964,7 +965,7 @@ The JSON output:
     )
 
     try:
-        json_response: dict = json.loads(response)
+        json_response: dict = yaml.safe_load(response)
     except:
         return ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS
 
@@ -1221,7 +1222,7 @@ Output:
             max_tokens=100,
             model=OPENAI_CHAT_GPT_4_TURBO_MODEL,
         )
-        response = json.loads(response)
+        response = yaml.safe_load(response)
 
         hallucinations = response.get("hallucinations", [])
     except Exception as e:

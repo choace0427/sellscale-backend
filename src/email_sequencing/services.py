@@ -14,6 +14,7 @@ from src.email_sequencing.models import (
     EmailTemplatePool,
     EmailTemplateType,
 )
+import yaml
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional
 from src.ml.openai_wrappers import (
@@ -971,7 +972,7 @@ def detect_tones(subject: str, text: str) -> dict:
     )
 
     try:
-        return json.loads(completion)
+        return yaml.safe_load(completion)
     except:
         return []
 
@@ -1096,7 +1097,7 @@ output:
     )
 
     try:
-        return json.loads(completion)
+        return yaml.safe_load(completion)
     except:
         return []
 
@@ -1175,7 +1176,7 @@ Output:
     )
 
     try:
-        return json.loads(completion)
+        return yaml.safe_load(completion)
     except:
         return []
 

@@ -7,6 +7,7 @@ from src.prospecting.models import Prospect
 from src.client.services import create_client_archetype
 from model_import import ClientSDR, ClientArchetype
 import json
+import yaml
 
 
 def create_unassigned_contacts_archetype(client_sdr_id: int) -> tuple[bool, str]:
@@ -14,11 +15,11 @@ def create_unassigned_contacts_archetype(client_sdr_id: int) -> tuple[bool, str]
     if not client_sdr:
         return False, "Client SDR not found"
 
-    unassigned_contacts_client_archetypes: list[
-        ClientArchetype
-    ] = ClientArchetype.query.filter_by(
-        client_sdr_id=client_sdr_id, is_unassigned_contact_archetype=True
-    ).all()
+    unassigned_contacts_client_archetypes: list[ClientArchetype] = (
+        ClientArchetype.query.filter_by(
+            client_sdr_id=client_sdr_id, is_unassigned_contact_archetype=True
+        ).all()
+    )
     if len(unassigned_contacts_client_archetypes) >= 1:
         return False, "Unassigned Contacts Archetype already exists"
 
@@ -91,6 +92,6 @@ JSON data:
         ),
     )
 
-    data = json.loads(json_open_ai_categorization)
+    data = yaml.safe_load(json_open_ai_categorization)
 
     return True, data

@@ -6,6 +6,7 @@ from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
 )
 import json
+import yaml
 from model_import import AccountResearchType, AccountResearchPoints
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
@@ -54,7 +55,7 @@ def generate_generic_research(prompt: str, retries: int):
             json_str = wrapped_create_completion(
                 prompt=prompt, model=OPENAI_CHAT_GPT_3_5_TURBO_MODEL, max_tokens=1000
             )
-            research = json.loads(json_str)
+            research = yaml.safe_load(json_str)
             if research:
                 break
         except:
@@ -154,7 +155,7 @@ def generate_research(
             # Get JSON
             history, completion = get_research_json(history)
 
-            research = json.loads(completion)
+            research = yaml.safe_load(completion)
             return True, research
         except:
             attempts += 1
@@ -196,7 +197,8 @@ def get_research_paragraph_form(prospect_id: int) -> tuple[list, str]:
     company_size = deep_get(research_payload, "company.details.staff.total") or ""
     company_size = str(company_size) + " employees" if company_size else ""
 
-    prompt: str = """I am a sales researcher who is identifying why the prospect company would be interested in purchasing my company, {sdr_company_name}'s, product or service.
+    prompt: str = (
+        """I am a sales researcher who is identifying why the prospect company would be interested in purchasing my company, {sdr_company_name}'s, product or service.
 
 This is what my company, {sdr_company_name}, does:
 - tagline: {sdr_company_tagline}
@@ -216,18 +218,19 @@ I am selling to a prospect named '{prospect_name}' who works at a company called
 Based on this information, give me a detailed report as to why {prospect_name} and {prospect_company_name} would want to buy {sdr_company_name}'s product.
 
 Ensure you relate each point to {prospect_name} and {prospect_company_name} and be very specific.""".format(
-        sdr_company_name=client.company,
-        sdr_company_tagline=client.tagline,
-        sdr_company_description=client.description,
-        prospect_name=prospect.full_name,
-        prospect_title=prospect.title,
-        prospect_persona_name=archetype.archetype,
-        prospect_bio=prospect.linkedin_bio,
-        prospect_persona_buy_reason=archetype.persona_fit_reason,
-        prospect_company_name=prospect.company,
-        prospect_company_tagline=company_tagline,
-        prospect_company_description=company_description,
-        prospect_company_size=company_size,
+            sdr_company_name=client.company,
+            sdr_company_tagline=client.tagline,
+            sdr_company_description=client.description,
+            prospect_name=prospect.full_name,
+            prospect_title=prospect.title,
+            prospect_persona_name=archetype.archetype,
+            prospect_bio=prospect.linkedin_bio,
+            prospect_persona_buy_reason=archetype.persona_fit_reason,
+            prospect_company_name=prospect.company,
+            prospect_company_tagline=company_tagline,
+            prospect_company_description=company_description,
+            prospect_company_size=company_size,
+        )
     )
 
     history, completion = wrapped_chat_gpt_completion_with_history(
@@ -346,7 +349,8 @@ def get_research_generation_prompt(prospect_id: int) -> str:
     company_tagline = client.tagline
     archetype_value_prop = client_archetype.persona_fit_reason
 
-    prompt: str = """Prospect Information:
+    prompt: str = (
+        """Prospect Information:
 - prospect's full name: {prospect_name}
 - prospect's title: {prospect_title}
 - prospect's bio: {prospect_bio}
@@ -363,14 +367,15 @@ You are a sales account research assistant. Using the information about the Pros
 Generate a javascript array of objects. Each object should have two elements: source and reason. In source, label which prospect information you used to gather the data point. Keep reasons short, to 1 sentence maximum.
 
 JSON payload:""".format(
-        prospect_name=prospect_name,
-        prospect_title=prospect_title,
-        prospect_bio=prospect_bio,
-        prospect_company=prospect_company,
-        company_name=company_name,
-        prospect_archetype=prospect_archetype,
-        company_tagline=company_tagline,
-        archetype_value_prop=archetype_value_prop,
+            prospect_name=prospect_name,
+            prospect_title=prospect_title,
+            prospect_bio=prospect_bio,
+            prospect_company=prospect_company,
+            company_name=company_name,
+            prospect_archetype=prospect_archetype,
+            company_tagline=company_tagline,
+            archetype_value_prop=archetype_value_prop,
+        )
     )
 
     return prompt
@@ -379,9 +384,9 @@ JSON payload:""".format(
 def get_account_research_points_by_prospect_id(
     prospect_id: int,
 ) -> list[dict]:
-    account_research_points: list[
-        AccountResearchPoints
-    ] = AccountResearchPoints.query.filter_by(prospect_id=prospect_id).all()
+    account_research_points: list[AccountResearchPoints] = (
+        AccountResearchPoints.query.filter_by(prospect_id=prospect_id).all()
+    )
     return [arp.to_dict() for arp in account_research_points]
 
 
