@@ -181,19 +181,27 @@ def get_company(client_sdr_id: int):
             }
         )
 
+    # Get organizations from company names
+    data: list = []
     if company_names:
-        data = apollo_get_organizations_from_company_names(
+        orgs = apollo_get_organizations_from_company_names(
             client_sdr_id=client_sdr_id,
             company_names=company_names,
         )
-    elif company_urls:
+        data.extend(orgs)
+
+    if company_urls:
         converted_names = get_company_name_using_urllib(
             urls=company_urls,
         )
-        data = apollo_get_organizations_from_company_names(
+        orgs = apollo_get_organizations_from_company_names(
             client_sdr_id=client_sdr_id,
             company_names=converted_names,
         )
+        data.extend(orgs)
+
+    # Deduplicate
+    data = [dict(t) for t in {tuple(d.items()) for d in data}]
 
     return jsonify(
         {
