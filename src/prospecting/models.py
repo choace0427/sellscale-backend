@@ -1,3 +1,4 @@
+import merge
 from src.individual.models import Individual
 from app import db
 from sqlalchemy.dialects.postgresql import JSONB
@@ -515,6 +516,10 @@ class Prospect(db.Model):
     company_location = db.Column(db.String, nullable=True)
 
     meta_data = db.Column(db.JSON, nullable=True)
+
+    merge_account_id = db.Column(db.String, nullable=True)
+    merge_contact_id = db.Column(db.String, nullable=True)
+    merge_opportunity_id = db.Column(db.String, nullable=True)
 
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 

@@ -475,6 +475,8 @@ class ClientSDR(db.Model):
     # Messaging
     default_transformer_blocklist = db.Column(db.ARRAY(db.String), nullable=True)
 
+    merge_user_id = db.Column(db.String, nullable=True)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.name)
         self.uuid = uuid_str
