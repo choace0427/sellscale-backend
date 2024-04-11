@@ -296,58 +296,22 @@ def create_contact(client_sdr_id: int, prospect_id: int):
     p: Prospect = Prospect.query.get(prospect_id)
 
     merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
-    # lead_res = merge_client.crm.leads.create(
-    #     model={
-    #         "leadSource": "SellScale",
-    #         "title": p.title,
-    #         "company": p.company,
-    #         "firstName": p.first_name,
-    #         "lastName": p.last_name,
-    #         "addresses": [],
-    #         "emailAddresses": [
-    #             {
-    #                 "emailAddress": p.email,
-    #                 "emailAddressType": "Work",
-    #             }
-    #         ],
-    #         "phoneNumbers": [],
-    #         "convertedDate": datetime.datetime.utcnow().isoformat(),
-    #     }
-    # )
-
-    if not get_operation_availability(client_sdr_id, "CRMContact"):
-        return False, "Operation not available"
-
-    contact_res = merge_client.crm.contacts.create(
+    merge_client.crm.contacts.create(
         model=ContactRequest(
             first_name=p.first_name,
             last_name=p.last_name,
-            addresses=[
-                # AddressRequest(
-                #     street_1="50 Bowling Green Dr",
-                #     street_2="Golden Gate Park",
-                #     city="San Francisco",
-                #     state="CA",
-                #     postal_code="94122",
-                # )
-            ],
+            addresses=[],
             email_addresses=[
                 EmailAddressRequest(
                     email_address=p.email,
                     email_address_type="Work",
                 )
             ],
-            phone_numbers=[
-                # PhoneNumberRequest(
-                #     phone_number="+3198675309",
-                #     phone_number_type="Mobile",
-                # )
-            ],
+            phone_numbers=[],
             last_activity_at=datetime.datetime.utcnow().isoformat(),
         ),
     )
 
-    print(contact_res)
     return True, "Contact created"
 
 
