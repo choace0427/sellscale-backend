@@ -453,6 +453,7 @@ def add_segment_filters_to_icp_scoring_ruleset_for_campaign(
         "excluded_skills_keywords": "excluded_individual_skills_keywords",
         "years_of_experience_start": "individual_years_of_experience_start",
         "years_of_experience_end": "individual_years_of_experience_end",
+        "included_company_size": "company_size_start",
         "included_industry_keywords": "included_individual_industry_keywords",
         "excluded_industry_keywords": "excluded_individual_industry_keywords",
     }

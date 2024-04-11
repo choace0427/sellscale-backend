@@ -984,7 +984,6 @@ def apply_icp_scoring_ruleset_filters(
     client_archetype_id: int,
     prospect_ids: Optional[list[int]] = None,
 ):
-
     try:
         """
         Apply the ICP scoring ruleset to all prospects in the client archetype.
@@ -1597,6 +1596,19 @@ def update_icp_filters(client_archetype_id: int, filters, merge=False):
             if key == "client_archetype_id":
                 continue
 
+            if key == "company_size_start":
+                start = 0
+                end = 1000000
+                if value:
+                    try:
+                        start = int(value[0].split(",")[0])
+                        end = int(value[-1].split(",")[1])
+                    except:
+                        pass
+                icp_scoring_ruleset.company_size_start = start
+                icp_scoring_ruleset.company_size_end = end
+                continue
+
             if value == ["None"] or value == [""] or value == []:
                 setattr(icp_scoring_ruleset, key, None)
             else:
@@ -1682,7 +1694,6 @@ JSON:""",
 
 
 def get_ruleset_hash(archetype_id: int):
-
     icp_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=archetype_id
     ).first()
@@ -1698,14 +1709,12 @@ def get_ruleset_hash(archetype_id: int):
 
 @celery.task(bind=True, max_retries=3)
 def auto_run_icp_scoring():
-
     archetypes: list[ClientArchetype] = ClientArchetype.query.filter(
         ClientArchetype.is_unassigned_contact_archetype == False,
         ClientArchetype.active == True,
     ).all()
 
     for archetype in archetypes:
-
         icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
             client_archetype_id=archetype.id
         ).first()
