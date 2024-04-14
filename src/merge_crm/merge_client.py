@@ -54,6 +54,9 @@ class MergeClient:
             ")",
         )
 
+        client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+        merge_user_id = client_sdr.merge_user_id
+
         # check for existing contact
         if p.merge_contact_id:
             contact = self.find_contact_by_prospect_id(prospect_id)
@@ -85,6 +88,7 @@ class MergeClient:
                     phone_numbers=[],
                     last_activity_at=datetime.datetime.utcnow().isoformat(),
                     account=p.merge_account_id if p.merge_account_id else None,
+                    owner=merge_user_id,
                 ),
             )
 
@@ -125,6 +129,9 @@ class MergeClient:
         p: Prospect = Prospect.query.get(prospect_id)
         print("⚡️ Creating account for company: ", p.company)
 
+        client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+        merge_user_id = client_sdr.merge_user_id
+
         return_account_id = None
         return_message = ""
 
@@ -158,6 +165,7 @@ class MergeClient:
                     website=website_url,
                     number_of_employees=company_size,
                     last_activity_at=datetime.datetime.utcnow().isoformat(),
+                    owner=merge_user_id,
                 )
             )
 
@@ -177,6 +185,9 @@ class MergeClient:
         p: Prospect = Prospect.query.get(prospect_id)
         print("⚡️ Creating opportunity for prospect #", p.id)
         company: Company = Company.query.get(p.company_id)
+
+        client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+        merge_user_id = client_sdr.merge_user_id
 
         description = ""
         if company:
@@ -220,6 +231,7 @@ class MergeClient:
                     account=p.merge_account_id,
                     contact=p.merge_contact_id,
                     status="OPEN",
+                    owner=merge_user_id,
                 )
             )
 
@@ -239,3 +251,6 @@ class MergeClient:
 
     def get_stages(self) -> list:
         return self.client.crm.stages.list()
+
+    def get_users(self) -> list:
+        return self.client.crm.users.list()
