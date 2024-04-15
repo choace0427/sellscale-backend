@@ -171,7 +171,7 @@ def post_generate_sequence(client_sdr_id: int):
         parameter_type=str,
     )
 
-    result = generate_sequence.delay(
+    result = generate_sequence(
         client_id,
         archetype_id,
         sequence_type,
