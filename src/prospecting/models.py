@@ -593,6 +593,9 @@ class Prospect(db.Model):
             "prospect_location": self.prospect_location,
             "company_location": self.company_location,
             "meta_data": self.meta_data,
+            "merge_account_id": self.merge_account_id,
+            "merge_contact_id": self.merge_contact_id,
+            "merge_opportunity_id": self.merge_opportunity_id,
         }
 
     def to_dict(
@@ -692,6 +695,9 @@ class Prospect(db.Model):
                 "contract_size": self.contract_size,
                 "is_lookalike_profile": self.is_lookalike_profile,
                 "meta_data": self.meta_data,
+                "merge_account_id": self.merge_account_id,
+                "merge_contact_id": self.merge_contact_id,
+                "merge_opportunity_id": self.merge_opportunity_id,
             }
 
         # Get generated message if it exists and is requested
@@ -835,6 +841,9 @@ class Prospect(db.Model):
             "individual_data": individual_data,
             "contract_size": self.contract_size,
             "meta_data": self.meta_data,
+            "merge_account_id": self.merge_account_id,
+            "merge_contact_id": self.merge_contact_id,
+            "merge_opportunity_id": self.merge_opportunity_id,
         }
 
 

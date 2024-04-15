@@ -24,6 +24,10 @@ class MergeClient:
         self.account_token = client.merge_crm_account_token
         self.client = Merge(api_key=self.api_key, account_token=self.account_token)
 
+    def get_crm_type(self):
+        account_details = self.client.crm.account_details.retrieve()
+        return account_details.integration
+
     def find_contact_by_prospect_id(self, prospect_id: int):
         try:
             prospect: Prospect = Prospect.query.get(prospect_id)
@@ -254,3 +258,6 @@ class MergeClient:
 
     def get_users(self) -> list:
         return self.client.crm.users.list()
+
+    def create_note(self, prospect) -> list:
+        pass

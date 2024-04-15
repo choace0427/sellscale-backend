@@ -20,6 +20,8 @@ from merge.resources.crm import (
     LinkedAccountsListRequestCategory,
     ContactsListRequestExpand,
 )
+from model_import import Prospect
+from src.merge_crm.merge_client import MergeClient
 
 API_KEY = os.environ.get("MERGE_API_KEY")
 
@@ -369,3 +371,18 @@ def create_test_account(client_sdr_id: int):
             ),
         ),
     )
+
+def create_opportunity_from_prospect_id(
+    client_sdr_id: int, prospect_id: int
+) -> tuple[bool, str]:
+    prospect: Prospect =  Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return False, "Prospect not found"
+
+    mc: MergeClient = MergeClient(client_sdr_id)
+    success = mc.create_opportunity(prospect_id)
+
+    if not success:
+        return False, "Opportunity not created"
+    
+    return True, "Opportunity created"
