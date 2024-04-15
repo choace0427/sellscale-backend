@@ -219,6 +219,8 @@ class MergeClient:
             p.overall_status, "cf07e8fa-b5c2-4683-966e-4dc471963a32"
         )
 
+        opportunity_value = 500
+
         try:
             opportunity_res = self.client.crm.opportunities.create(
                 model=OpportunityRequest(
@@ -230,7 +232,7 @@ class MergeClient:
                         fit_reason=p.icp_fit_reason,
                         company_description=description,
                     ),
-                    amount=500,
+                    amount=opportunity_value,
                     last_activity_at=datetime.datetime.utcnow().isoformat(),
                     account=p.merge_account_id,
                     contact=p.merge_contact_id,
@@ -246,6 +248,7 @@ class MergeClient:
                 )
 
             p.merge_opportunity_id = opportunity_res.model.id
+            p.contract_size = opportunity_value
             db.session.add(p)
             db.session.commit()
 
