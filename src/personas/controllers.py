@@ -201,6 +201,12 @@ def post_add_sequence(client_sdr_id: int):
     steps = get_request_parameter(
         "steps", request, json=True, required=True, parameter_type=list
     )
+    override = (
+        get_request_parameter(
+            "override", request, json=True, required=True, parameter_type=bool
+        )
+        or False
+    )
 
     result = add_sequence(
         client_id=client_id,
@@ -208,6 +214,7 @@ def post_add_sequence(client_sdr_id: int):
         sequence_type=sequence_type,
         subject_lines=subject_lines,
         steps=steps,
+        override=override,
     )
 
     return jsonify({"status": "success", "data": result}), 200

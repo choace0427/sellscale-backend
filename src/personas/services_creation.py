@@ -34,25 +34,28 @@ from src.bump_framework.services import (
 )
 
 
-def add_sequence(client_id, archetype_id, sequence_type, subject_lines, steps):
+def add_sequence(
+    client_id, archetype_id, sequence_type, subject_lines, steps, override=False
+):
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
 
     if sequence_type == "EMAIL":
 
         # Wipe the existing sequence steps
-        sequence_steps = EmailSequenceStep.query.filter_by(
-            client_archetype_id=archetype_id
-        ).all()
-
-        for step in sequence_steps:
-            mappings = EmailSequenceStepToAssetMapping.query.filter_by(
-                email_sequence_step_id=step.id
+        if override:
+            sequence_steps = EmailSequenceStep.query.filter_by(
+                client_archetype_id=archetype_id
             ).all()
-            for mapping in mappings:
-                delete_email_sequence_step_asset_mapping(mapping.id)
-            db.session.delete(step)
-        db.session.commit()
+
+            for step in sequence_steps:
+                mappings = EmailSequenceStepToAssetMapping.query.filter_by(
+                    email_sequence_step_id=step.id
+                ).all()
+                for mapping in mappings:
+                    delete_email_sequence_step_asset_mapping(mapping.id)
+                db.session.delete(step)
+            db.session.commit()
 
         # Add the new sequence steps
         for i, step in enumerate(steps):
@@ -81,13 +84,14 @@ def add_sequence(client_id, archetype_id, sequence_type, subject_lines, steps):
             )
 
         # Wipe the existing subject lines
-        subject_line_templates = EmailSubjectLineTemplate.query.filter_by(
-            client_archetype_id=archetype_id
-        ).all()
+        if override:
+            subject_line_templates = EmailSubjectLineTemplate.query.filter_by(
+                client_archetype_id=archetype_id
+            ).all()
 
-        for subject_line in subject_line_templates:
-            db.session.delete(subject_line)
-        db.session.commit()
+            for subject_line in subject_line_templates:
+                db.session.delete(subject_line)
+            db.session.commit()
 
         # Add the new subject lines
         for i, subject_line in enumerate(subject_lines):
@@ -101,15 +105,16 @@ def add_sequence(client_id, archetype_id, sequence_type, subject_lines, steps):
     elif sequence_type == "LINKEDIN-CTA":
 
         # Wipe the existing CTAs
-        ctas = GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id).all()
+        if override:
+            ctas = GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id).all()
 
-        for cta in ctas:
-            mappings = GeneratedMessageCTAToAssetMapping.query.filter_by(
-                generated_message_cta_id=cta.id
-            ).all()
-            for mapping in mappings:
-                delete_cta_asset_mapping(mapping.id)
-            delete_cta(cta.id)
+            for cta in ctas:
+                mappings = GeneratedMessageCTAToAssetMapping.query.filter_by(
+                    generated_message_cta_id=cta.id
+                ).all()
+                for mapping in mappings:
+                    delete_cta_asset_mapping(mapping.id)
+                delete_cta(cta.id)
 
         # Add the new CTAs
         for i, cta_input in enumerate(subject_lines):
@@ -123,18 +128,19 @@ def add_sequence(client_id, archetype_id, sequence_type, subject_lines, steps):
     elif sequence_type == "LINKEDIN-TEMPLATE":
 
         # Wipe the existing initial messages
-        linkedin_initial_messages = LinkedinInitialMessageTemplate.query.filter_by(
-            client_archetype_id=archetype_id
-        ).all()
-
-        for message in linkedin_initial_messages:
-            mappings = LinkedInInitialMessageToAssetMapping.query.filter_by(
-                linkedin_initial_message_id=message.id
+        if override:
+            linkedin_initial_messages = LinkedinInitialMessageTemplate.query.filter_by(
+                client_archetype_id=archetype_id
             ).all()
-            for mapping in mappings:
-                delete_li_init_template_asset_mapping(mapping.id)
-            db.session.delete(message)
-        db.session.commit()
+
+            for message in linkedin_initial_messages:
+                mappings = LinkedInInitialMessageToAssetMapping.query.filter_by(
+                    linkedin_initial_message_id=message.id
+                ).all()
+                for mapping in mappings:
+                    delete_li_init_template_asset_mapping(mapping.id)
+                db.session.delete(message)
+            db.session.commit()
 
         # Add the new initial messages
         for i, step in enumerate(steps):
@@ -160,16 +166,19 @@ def add_sequence(client_id, archetype_id, sequence_type, subject_lines, steps):
         db.session.commit()
 
         # Wipe the existing bump frameworks
-        bumps = BumpFramework.query.filter_by(client_archetype_id=archetype_id).all()
-
-        for bump in bumps:
-            mappings = BumpFrameworkToAssetMapping.query.filter_by(
-                bump_framework_id=bump.id
+        if override:
+            bumps = BumpFramework.query.filter_by(
+                client_archetype_id=archetype_id
             ).all()
-            for mapping in mappings:
-                delete_bump_framework_asset_mapping(mapping.id)
-            db.session.delete(bump)
-        db.session.commit()
+
+            for bump in bumps:
+                mappings = BumpFrameworkToAssetMapping.query.filter_by(
+                    bump_framework_id=bump.id
+                ).all()
+                for mapping in mappings:
+                    delete_bump_framework_asset_mapping(mapping.id)
+                db.session.delete(bump)
+            db.session.commit()
 
         # Add the new sequence steps
         for i, step in enumerate(steps):
@@ -192,8 +201,5 @@ def add_sequence(client_id, archetype_id, sequence_type, subject_lines, steps):
                 active=True,
                 default=True,
             )
-
-            print("TEST ING")
-            print(id, step)
 
     return True
