@@ -12,6 +12,9 @@ from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
 import re
 from src.utils.string.string_utils import rank_number
+from app import db, celery
+from src.automation.orchestrator import add_process_for_future
+from datetime import datetime
 
 GEN_AMOUNT = 5
 ASSET_AMOUNT = 2
@@ -144,6 +147,7 @@ Here's some contextual info about you. Feel free to reference this when appropri
     return context_info
 
 
+@celery.task
 def generate_sequence(
     client_id: int,
     archetype_id: int,

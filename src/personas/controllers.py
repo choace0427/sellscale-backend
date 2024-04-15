@@ -171,12 +171,12 @@ def post_generate_sequence(client_sdr_id: int):
         parameter_type=str,
     )
 
-    result = generate_sequence(
-        client_id=client_id,
-        archetype_id=archetype_id,
-        sequence_type=sequence_type,
-        step_num=step_num,
-        additional_prompting=additional_prompting,
+    result = generate_sequence.delay(
+        client_id,
+        archetype_id,
+        sequence_type,
+        step_num,
+        additional_prompting,
     )
 
     return jsonify({"status": "success", "data": result}), 200
