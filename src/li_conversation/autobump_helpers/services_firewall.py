@@ -120,11 +120,11 @@ def rule_default_framework(autobump_id: int, violations: list) -> tuple[bool, st
     if not bump_framework:
         violations.append("Bump framework no longer exists")
         return False, "Bump framework no longer exists"
-    if not bump_framework.default:
-        violations.append(
-            "Bump framework (#{}) is not default".format(bump_framework.id)
-        )
-        return False, "Bump framework is not default"
+    # if not bump_framework.default:
+    #     violations.append(
+    #         "Bump framework (#{}) is not default".format(bump_framework.id)
+    #     )
+    #     return False, "Bump framework is not default"
 
     return True, "Success"
 

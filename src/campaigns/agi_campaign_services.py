@@ -239,7 +239,6 @@ def create_agi_campaign(
                 from bump_framework
                     join client_archetype on client_archetype.id = bump_framework.client_archetype_id
                 where bump_framework.overall_status in ('ACCEPTED', 'BUMPED')
-                    and bump_framework.default
                     and bump_framework.active
                     and client_archetype.client_id = 47
                 group by 1

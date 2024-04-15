@@ -141,6 +141,7 @@ def get_bump_frameworks(client_sdr_id: int):
         exclude_client_archetype_ids=exclude_client_archetype_ids,
         exclude_ss_default=exclude_ss_default,
         unique_only=unique_only,
+        active_only=False,
         bumped_count=bumped_count,
         include_archetype_sequence_id=include_archetype_sequence_id,
         include_assets=include_assets,
@@ -512,6 +513,12 @@ def patch_bump_framework(client_sdr_id: int):
         )
         or False
     )
+    active = (
+        get_request_parameter(
+            "active", request, json=True, required=False, parameter_type=bool
+        )
+        or False
+    )
     length: str = (
         get_request_parameter(
             "length", request, json=True, required=False, parameter_type=str
@@ -611,7 +618,8 @@ def patch_bump_framework(client_sdr_id: int):
         bumped_count=bumped_count,
         bump_delay_days=bump_delay_days,
         use_account_research=use_account_research,
-        default=default,
+        default=active or default,
+        active=active,
         blocklist=blocklist,
         additional_context=additional_context,
         bump_framework_template_name=bump_framework_template_name,

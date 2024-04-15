@@ -1111,7 +1111,6 @@ def get_client_archetype_stats(client_archetype_id):
             where client_archetype_id = {client_archetype_id}
                 and overall_status in ('ACCEPTED', 'BUMPED')
                 and bump_framework.active
-                and bump_framework.default
             order by
                 bumped_count asc;
         """.format(

@@ -560,11 +560,11 @@ def generate_linkedin_outreaches_with_configurations(
     ### Use legacy CTA + Voice generation ###
     NUM_GENERATIONS = 1
     for i in range(NUM_GENERATIONS):
-        TOP_CONFIGURATION: Optional[
-            StackRankedMessageGenerationConfiguration
-        ] = get_top_stack_ranked_config_ordering(
-            generated_message_type=GeneratedMessageType.LINKEDIN.value,
-            prospect_id=prospect_id,
+        TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
+            get_top_stack_ranked_config_ordering(
+                generated_message_type=GeneratedMessageType.LINKEDIN.value,
+                prospect_id=prospect_id,
+            )
         )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -631,9 +631,9 @@ def generate_linkedin_outreaches(
 
     campaign: OutboundCampaign = OutboundCampaign.query.get(outbound_campaign_id)
 
-    research_points_list: list[
-        ResearchPoints
-    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    research_points_list: list[ResearchPoints] = (
+        ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    )
 
     perms = generate_batches_of_research_points(points=research_points_list, n=4)
 
@@ -1227,12 +1227,12 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         # 8a. Get the Subject Line
         subjectline_template_id = None
         subjectline_strict = False  # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
-        subjectline_templates: list[
-            EmailSubjectLineTemplate
-        ] = EmailSubjectLineTemplate.query.filter(
-            EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
-            EmailSubjectLineTemplate.active == True,
-        ).all()
+        subjectline_templates: list[EmailSubjectLineTemplate] = (
+            EmailSubjectLineTemplate.query.filter(
+                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
+                EmailSubjectLineTemplate.active == True,
+            ).all()
+        )
         subjectline_template: EmailSubjectLineTemplate = (
             random.choice(subjectline_templates) if subjectline_templates else None
         )
@@ -1262,12 +1262,13 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             subjectline_template_id = None
             # Tracks if we need to use AI generate. [[ and {{ in template signify AI hence not strict
             subjectline_strict = False
-            subjectline_templates: list[
-                EmailSubjectLineTemplate
-            ] = EmailSubjectLineTemplate.query.filter(
-                EmailSubjectLineTemplate.client_archetype_id == prospect.archetype_id,
-                EmailSubjectLineTemplate.active == True,
-            ).all()
+            subjectline_templates: list[EmailSubjectLineTemplate] = (
+                EmailSubjectLineTemplate.query.filter(
+                    EmailSubjectLineTemplate.client_archetype_id
+                    == prospect.archetype_id,
+                    EmailSubjectLineTemplate.active == True,
+                ).all()
+            )
             subjectline_template: EmailSubjectLineTemplate = random.choice(
                 subjectline_templates
             )
@@ -1940,11 +1941,11 @@ def get_generation_statuses(campaign_id: int) -> dict:
     jobs_list = []
 
     # Get generation jobs
-    generation_jobs: list[
-        GeneratedMessageJobQueue
-    ] = GeneratedMessageJobQueue.query.filter(
-        GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
-    ).all()
+    generation_jobs: list[GeneratedMessageJobQueue] = (
+        GeneratedMessageJobQueue.query.filter(
+            GeneratedMessageJobQueue.outbound_campaign_id == campaign_id,
+        ).all()
+    )
 
     # Add job to statistics
     for job in tqdm(generation_jobs):
@@ -2517,11 +2518,11 @@ def clear_auto_generated_bumps(bump_framework_id: int) -> bool:
         bool: True if successful
     """
 
-    generated_bumps: List[
-        GeneratedMessageAutoBump
-    ] = GeneratedMessageAutoBump.query.filter(
-        GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
-    ).all()
+    generated_bumps: List[GeneratedMessageAutoBump] = (
+        GeneratedMessageAutoBump.query.filter(
+            GeneratedMessageAutoBump.bump_framework_id == bump_framework_id
+        ).all()
+    )
 
     for bump in generated_bumps:
         db.session.delete(bump)
@@ -2716,12 +2717,6 @@ def generate_followup_response(
             if prospect.status == ProspectStatus.ACTIVE_CONVO_CONTINUE_SEQUENCE
             else None
         )
-        default_only = (
-            True
-            if overall_status
-            in [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
-            else False
-        )
 
         bump_frameworks: list[dict] = get_bump_frameworks_for_sdr(
             client_sdr_id=client_sdr_id,
@@ -2730,7 +2725,7 @@ def generate_followup_response(
             client_archetype_ids=archetype_ids,
             active_only=True,
             bumped_count=bump_count,
-            default_only=default_only,
+            default_only=False,
             include_archetype_sequence_id=include_archetype_sequence_id,
         )
 
@@ -2770,20 +2765,29 @@ def generate_followup_response(
         if len(bump_frameworks) > 0:
             # Determine the best bump framework
             if len(bump_frameworks) == 1:
-                framework_index = 0
+                framework_id = bump_frameworks[0].get("id")
             else:
-                framework_index = determine_best_bump_framework_from_convo(
-                    convo_history=convo_history,
-                    bump_framework_ids=[bf.get("id", -1) for bf in bump_frameworks],
-                )
+                if overall_status in [
+                    ProspectOverallStatus.ACCEPTED,
+                    ProspectOverallStatus.BUMPED,
+                ]:
+                    framework_id = random.choice(bump_frameworks).get("id", -1)
+                else:
+                    framework_id = determine_best_bump_framework_from_convo(
+                        convo_history=convo_history,
+                        bump_framework_ids=[bf.get("id", -1) for bf in bump_frameworks],
+                    )
 
             if show_slack_messages:
                 send_slack_message(
-                    message=f" - Found best framework: {framework_index+1}/{len(bump_frameworks)}",
+                    message=f" - Found best framework: {framework_id}",
                     webhook_urls=[URL_MAP["operations-auto-bump-msg-gen"]],
                 )
 
-            best_framework = bump_frameworks[framework_index]
+            best_framework = next(
+                (bf for bf in bump_frameworks if bf.get("id") == framework_id),
+                None,
+            )
 
             if show_slack_messages:
                 send_slack_message(
@@ -3127,8 +3131,6 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
             research_points=template.research_points or [],
         )
 
-        # print("prompt", prompt)
-
         completion = get_text_generation(
             [{"role": "user", "content": prompt}],
             max_tokens=200,
@@ -3149,11 +3151,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
         }
 
     ### Use legacy CTA + Voice generation ###
-    TOP_CONFIGURATION: Optional[
-        StackRankedMessageGenerationConfiguration
-    ] = get_top_stack_ranked_config_ordering(
-        generated_message_type=GeneratedMessageType.LINKEDIN.value,
-        prospect_id=prospect_id,
+    TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
+        get_top_stack_ranked_config_ordering(
+            generated_message_type=GeneratedMessageType.LINKEDIN.value,
+            prospect_id=prospect_id,
+        )
     )
     perms = generate_batch_of_research_points_from_config(
         prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -3162,11 +3164,11 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
     if not perms or len(perms) == 0:
         get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-        TOP_CONFIGURATION: Optional[
-            StackRankedMessageGenerationConfiguration
-        ] = get_top_stack_ranked_config_ordering(
-            generated_message_type=GeneratedMessageType.LINKEDIN.value,
-            prospect_id=prospect_id,
+        TOP_CONFIGURATION: Optional[StackRankedMessageGenerationConfiguration] = (
+            get_top_stack_ranked_config_ordering(
+                generated_message_type=GeneratedMessageType.LINKEDIN.value,
+                prospect_id=prospect_id,
+            )
         )
         perms = generate_batch_of_research_points_from_config(
             prospect_id=prospect_id, config=TOP_CONFIGURATION, n=1
@@ -3482,9 +3484,9 @@ def get_prospect_research_points(
 
     get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
 
-    all_research_points: list[
-        ResearchPoints
-    ] = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    all_research_points: list[ResearchPoints] = (
+        ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    )
 
     found_research_points = [
         research_point
@@ -3606,12 +3608,12 @@ def delete_cta_asset_mapping(
 
 
 def get_all_cta_assets(generated_message_cta_id: int):
-    mappings: list[
-        GeneratedMessageCTAToAssetMapping
-    ] = GeneratedMessageCTAToAssetMapping.query.filter(
-        GeneratedMessageCTAToAssetMapping.generated_message_cta_id
-        == generated_message_cta_id
-    ).all()
+    mappings: list[GeneratedMessageCTAToAssetMapping] = (
+        GeneratedMessageCTAToAssetMapping.query.filter(
+            GeneratedMessageCTAToAssetMapping.generated_message_cta_id
+            == generated_message_cta_id
+        ).all()
+    )
     asset_ids = [mapping.client_assets_id for mapping in mappings]
     assets: list[ClientAssets] = ClientAssets.query.filter(
         ClientAssets.id.in_(asset_ids)

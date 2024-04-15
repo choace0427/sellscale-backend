@@ -102,7 +102,7 @@ def get_bump_frameworks_for_sdr(
     exclude_client_archetype_ids: Optional[list[int]] = [],
     exclude_ss_default: Optional[bool] = False,
     unique_only: Optional[bool] = False,
-    active_only: Optional[bool] = True,
+    active_only: Optional[bool] = False,
     bumped_count: Optional[int] = None,
     default_only: Optional[bool] = False,
     include_archetype_sequence_id: Optional[int] = None,
@@ -158,7 +158,6 @@ def get_bump_frameworks_for_sdr(
                 BumpFramework.client_sdr_id == None,
                 BumpFramework.client_archetype_id == None,
                 BumpFramework.overall_status.in_(overall_statuses),
-                BumpFramework.default == True,
             ),
         )
     )
@@ -200,7 +199,6 @@ def get_bump_frameworks_for_sdr(
                         ]
                     ),
                     BumpFramework.active == True,
-                    BumpFramework.default == True,
                     BumpFramework.bumped_count < ca.li_bump_amount,
                 )
                 .order_by(BumpFramework.bumped_count)
@@ -243,7 +241,9 @@ def get_bump_framework_count_for_sdr(
         client_archetype_ids (Optional[list[int]], optional): Which archetypes to retrieve the bump frameworks. Defaults to all archetypes.
     """
     bump_frameworks = get_bump_frameworks_for_sdr(
-        client_sdr_id, client_archetype_ids=client_archetype_ids
+        client_sdr_id,
+        client_archetype_ids=client_archetype_ids,
+        active_only=True,
     )
 
     counts = {
@@ -307,20 +307,20 @@ def create_bump_framework(
     Returns:
         int: The id of the newly created bump framework
     """
-    if default and client_archetype_id:
-        all_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-            client_sdr_id=client_sdr_id,
-            client_archetype_id=client_archetype_id,
-            overall_status=overall_status,
-        )
-        if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
-            all_bump_frameworks = all_bump_frameworks.filter_by(
-                bumped_count=bumped_count
-            )
-        all_bump_frameworks = all_bump_frameworks.all()
-        for bump_framework in all_bump_frameworks:
-            bump_framework.default = False
-            db.session.add(bump_framework)
+    # if default and client_archetype_id:
+    #     all_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
+    #         client_sdr_id=client_sdr_id,
+    #         client_archetype_id=client_archetype_id,
+    #         overall_status=overall_status,
+    #     )
+    #     if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
+    #         all_bump_frameworks = all_bump_frameworks.filter_by(
+    #             bumped_count=bumped_count
+    #         )
+    #     all_bump_frameworks = all_bump_frameworks.all()
+    #     for bump_framework in all_bump_frameworks:
+    #         bump_framework.default = False
+    #         db.session.add(bump_framework)
 
     if length not in [BumpLength.LONG, BumpLength.SHORT, BumpLength.MEDIUM]:
         length = BumpLength.MEDIUM
@@ -383,6 +383,7 @@ def modify_bump_framework(
     bump_delay_days: Optional[int] = None,
     use_account_research: Optional[bool] = None,
     default: Optional[bool] = False,
+    active: Optional[bool] = None,
     blocklist: Optional[list] = None,
     additional_context: Optional[str] = None,
     bump_framework_template_name: Optional[str] = None,
@@ -457,22 +458,25 @@ def modify_bump_framework(
     if human_feedback != None:
         bump_framework.human_feedback = human_feedback
 
-    if default and client_archetype_id:
-        default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
-            BumpFramework.client_sdr_id == client_sdr_id,
-            BumpFramework.client_archetype_id == client_archetype_id,
-            BumpFramework.overall_status == overall_status,
-            BumpFramework.default == True,
-        )
-        if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
-            default_bump_frameworks = default_bump_frameworks.filter(
-                BumpFramework.bumped_count == bumped_count
-            )
-        default_bump_frameworks = default_bump_frameworks.all()
-        for default_bump_framework in default_bump_frameworks:
-            default_bump_framework.default = False
-            db.session.add(default_bump_framework)
+    # if default and client_archetype_id:
+    #     default_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter(
+    #         BumpFramework.client_sdr_id == client_sdr_id,
+    #         BumpFramework.client_archetype_id == client_archetype_id,
+    #         BumpFramework.overall_status == overall_status,
+    #         BumpFramework.default == True,
+    #     )
+    #     if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
+    #         default_bump_frameworks = default_bump_frameworks.filter(
+    #             BumpFramework.bumped_count == bumped_count
+    #         )
+    #     default_bump_frameworks = default_bump_frameworks.all()
+    #     for default_bump_framework in default_bump_frameworks:
+    #         default_bump_framework.default = False
+    #         db.session.add(default_bump_framework)
     bump_framework.default = default
+
+    if active is not None:
+        bump_framework.active = active
 
     bump_framework.sellscale_default_generated = False
 
@@ -584,7 +588,6 @@ def get_db_bump_sequence(archetype_id: int):
             where bump_framework.client_archetype_id = {archetype_id}
             and bump_framework.overall_status in ('ACCEPTED', 'BUMPED')
             and bump_framework.active
-            and bump_framework.default
             and bumped_count < client_archetype.li_bump_amount
             order by bumped_count;
         """
@@ -595,7 +598,6 @@ def get_db_bump_sequence(archetype_id: int):
             BumpFramework.id.in_([bf["bump_id"] for bf in bump_frameworks]),
             BumpFramework.client_archetype_id == archetype_id,
             BumpFramework.active,
-            BumpFramework.default,
             BumpFramework.overall_status.in_(
                 [ProspectOverallStatus.ACCEPTED, ProspectOverallStatus.BUMPED]
             ),
