@@ -989,6 +989,7 @@ class ProspectUploadHistory(db.Model):
     upload_name = db.Column(db.String, nullable=False)
     upload_size = db.Column(db.Integer, nullable=False)
     uploads_completed = db.Column(db.Integer, nullable=False)
+    uploads_not_started = db.Column(db.Integer, nullable=False)
     uploads_in_progress = db.Column(db.Integer, nullable=False)
     uploads_failed = db.Column(db.Integer, nullable=False)
     uploads_other = db.Column(db.Integer, nullable=False)
@@ -1021,6 +1022,7 @@ class ProspectUploadHistory(db.Model):
             "upload_name": self.upload_name,
             "upload_size": self.upload_size,
             "uploads_completed": self.uploads_completed,
+            "uploads_not_started": self.uploads_not_started,
             "uploads_in_progress": self.uploads_in_progress,
             "uploads_failed": self.uploads_failed,
             "uploads_other": self.uploads_other,
@@ -1037,8 +1039,8 @@ class ProspectUploadHistory(db.Model):
 
     def update_status(self):
         """Updates own status and uploads_completed by querying ProspectUploads table."""
-        if self.status == self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
-            return
+        # if self.status == self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
+        #     return
 
         # Get the number of uploads created by this history
         uploads: list[ProspectUploads] = ProspectUploads.query.filter(
@@ -1054,6 +1056,14 @@ class ProspectUploadHistory(db.Model):
             if upload.status == ProspectUploadsStatus.UPLOAD_COMPLETE
         ]
 
+        # NOT STARTED
+        not_started = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+            or upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
+        ]
+
         # FAILED
         failed = [
             upload
@@ -1067,8 +1077,6 @@ class ProspectUploadHistory(db.Model):
             upload
             for upload in uploads
             if upload.status == ProspectUploadsStatus.UPLOAD_IN_PROGRESS
-            or upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
-            or upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
         ]
 
         # # OTHER
@@ -1079,6 +1087,7 @@ class ProspectUploadHistory(db.Model):
         # ]
 
         self.uploads_completed = len(complete)
+        self.uploads_not_started = len(not_started)
         self.uploads_failed = len(failed)
         self.uploads_in_progress = len(in_progress)
         # self.uploads_other = len(other)
