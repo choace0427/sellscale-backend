@@ -989,6 +989,9 @@ class ProspectUploadHistory(db.Model):
     upload_name = db.Column(db.String, nullable=False)
     upload_size = db.Column(db.Integer, nullable=False)
     uploads_completed = db.Column(db.Integer, nullable=False)
+    uploads_in_progress = db.Column(db.Integer, nullable=False)
+    uploads_failed = db.Column(db.Integer, nullable=False)
+    uploads_other = db.Column(db.Integer, nullable=False)
     upload_source = db.Column(db.Enum(ProspectUploadSource), nullable=False)
     status = db.Column(db.Enum(ProspectUploadHistoryStatus), nullable=False)
 
@@ -1018,6 +1021,9 @@ class ProspectUploadHistory(db.Model):
             "upload_name": self.upload_name,
             "upload_size": self.upload_size,
             "uploads_completed": self.uploads_completed,
+            "uploads_in_progress": self.uploads_in_progress,
+            "uploads_failed": self.uploads_failed,
+            "uploads_other": self.uploads_other,
             "upload_source": self.upload_source.value,
             "status": self.status.value,
             "client_archetype_id": self.client_archetype_id,
@@ -1041,26 +1047,46 @@ class ProspectUploadHistory(db.Model):
         if not uploads:
             return
 
-        # Check if there are any uploads still queued or in progress or not started
-        not_complete = [
-            upload
-            for upload in uploads
-            if upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
-            or upload.status == ProspectUploadsStatus.UPLOAD_IN_PROGRESS
-            or upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
-        ]
-        if not_complete:
-            self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
-        else:
-            self.status = self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE
-
-        # Get the number completed
+        # COMPLETE
         complete = [
             upload
             for upload in uploads
             if upload.status == ProspectUploadsStatus.UPLOAD_COMPLETE
         ]
+
+        # FAILED
+        failed = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_FAILED
+        ]
+
+        # IN PROGRESS
+        in_progress = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_IN_PROGRESS
+            or upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
+            or upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+        ]
+
+        # OTHER
+        other = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+            or upload.status == ProspectUploadsStatus.DISQUALIFIED
+        ]
+
         self.uploads_completed = len(complete)
+        self.uploads_failed = len(failed)
+        self.uploads_in_progress = len(in_progress)
+        self.uploads_other = len(other)
+
+        if in_progress:
+            self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
+        else:
+            self.status = self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE
 
         db.session.commit()
         return
