@@ -1039,8 +1039,8 @@ class ProspectUploadHistory(db.Model):
 
     def update_status(self):
         """Updates own status and uploads_completed by querying ProspectUploads table."""
-        # if self.status == self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
-        #     return
+        if self.status == self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
+            return
 
         # Get the number of uploads created by this history
         uploads: list[ProspectUploads] = ProspectUploads.query.filter(
@@ -1090,7 +1090,6 @@ class ProspectUploadHistory(db.Model):
         self.uploads_not_started = len(not_started)
         self.uploads_failed = len(failed)
         self.uploads_in_progress = len(in_progress)
-        # self.uploads_other = len(other)
 
         if in_progress:
             self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
