@@ -9,7 +9,7 @@ from src.personas.services import (
     get_unassignable_prospects_using_icp_heuristic,
     unassign_prospects,
 )
-from src.personas.services_generation import generate_sequence
+from src.personas.services_generation import schedule_generate_sequence
 from src.personas.services_creation import add_sequence
 from src.personas.services_persona import (
     create_persona,
@@ -171,7 +171,7 @@ def post_generate_sequence(client_sdr_id: int):
         parameter_type=str,
     )
 
-    result = generate_sequence(
+    schedule_generate_sequence(
         client_id,
         archetype_id,
         sequence_type,
@@ -179,7 +179,42 @@ def post_generate_sequence(client_sdr_id: int):
         additional_prompting,
     )
 
-    return jsonify({"status": "success", "data": result}), 200
+    return jsonify({"status": "success", "data": {}}), 200
+
+
+# @PERSONAS_BLUEPRINT.route("/generate_sequence_poll", methods=["POST"])
+# @require_user
+# def post_poll_generate_sequence(client_sdr_id: int):
+#     """Checks if a sequence has been generated for an archetype"""
+#     client_id = get_request_parameter(
+#         "client_id", request, json=True, required=True, parameter_type=int
+#     )
+#     archetype_id = get_request_parameter(
+#         "archetype_id", request, json=True, required=True, parameter_type=int
+#     )
+#     sequence_type = get_request_parameter(
+#         "sequence_type", request, json=True, required=True, parameter_type=str
+#     )
+#     step_num = get_request_parameter(
+#         "step_num", request, json=True, required=True, parameter_type=int
+#     )
+#     additional_prompting = get_request_parameter(
+#         "additional_prompting",
+#         request,
+#         json=True,
+#         required=True,
+#         parameter_type=str,
+#     )
+
+#     result = schedule_generate_sequence(
+#         client_id,
+#         archetype_id,
+#         sequence_type,
+#         step_num,
+#         additional_prompting,
+#     )
+
+#     return jsonify({"status": "success", "data": {}}), 200
 
 
 @PERSONAS_BLUEPRINT.route("/add_sequence", methods=["POST"])

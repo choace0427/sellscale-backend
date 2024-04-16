@@ -1121,7 +1121,7 @@ def get_text_generation(
     tools: Optional[list] = None,
 ) -> Optional[str]:
     # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY"
-    # | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA" | "CLIENT_ASSETS"
+    # | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA" | "CLIENT_ASSETS" | "SEQUENCE_GEN_<ID>"
 
     def normalize_string(string: str) -> str:
         string = re.sub(r"\\n", " ", string)

@@ -7,7 +7,7 @@ from src.client.models import (
     Client,
     DemoFeedback,
 )
-from model_import import Individual
+from model_import import Individual, TextGeneration
 from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
 import re
@@ -147,6 +147,75 @@ Here's some contextual info about you. Feel free to reference this when appropri
     return context_info
 
 
+def schedule_generate_sequence(
+    client_id: int,
+    archetype_id: int,
+    sequence_type: str,
+    step_num: int,
+    additional_prompting: str,
+):
+    add_process_for_future(
+        type="generate_sequence",
+        args={
+            "client_id": client_id,
+            "archetype_id": archetype_id,
+            "sequence_type": sequence_type,
+            "step_num": step_num,
+            "additional_prompting": additional_prompting,
+        },
+        minutes=0,
+    )
+
+
+def create_gen_id(
+    client_id: int,
+    archetype_id: int,
+    sequence_type: str,
+    step_num: int,
+    additional_prompting: str,
+):
+    import json
+    import hashlib
+
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "client_id": client_id,
+                "archetype_id": archetype_id,
+                "sequence_type": sequence_type,
+                "step_num": step_num,
+                "additional_prompting": additional_prompting,
+            },
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+
+
+def check_for_generated_sequence(
+    client_id: int,
+    archetype_id: int,
+    sequence_type: str,
+    step_num: int,
+    additional_prompting: str,
+):
+    gen_id = create_gen_id(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        sequence_type=sequence_type,
+        step_num=step_num,
+        additional_prompting=additional_prompting,
+    )
+
+    text_gen: TextGeneration = TextGeneration.query.filter(
+        TextGeneration.type == f"SEQUENCE_GEN_{gen_id}"
+    ).first()
+
+    if text_gen:
+        return text_gen.completion
+    else:
+        return None
+
+
 @celery.task
 def generate_sequence(
     client_id: int,
@@ -155,6 +224,13 @@ def generate_sequence(
     step_num: int,
     additional_prompting: str,
 ):
+    gen_id = create_gen_id(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        sequence_type=sequence_type,
+        step_num=step_num,
+        additional_prompting=additional_prompting,
+    )
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     context_info = get_sdr_prompting_context_info(archetype.client_sdr_id)
@@ -192,6 +268,7 @@ def generate_sequence(
                 {
                     "result": clean_output_with_ai(
                         generate_email_initial(
+                            gen_id=gen_id,
                             client_id=client_id,
                             archetype_id=archetype_id,
                             context_info=context_info,
@@ -209,6 +286,7 @@ def generate_sequence(
                 {
                     "result": clean_output_with_ai(
                         generate_email_follow_up_quick_and_dirty(
+                            gen_id=gen_id,
                             client_id=client_id,
                             archetype_id=archetype_id,
                             step_num=step_num,
@@ -229,6 +307,7 @@ def generate_sequence(
                     {
                         "result": clean_output_with_ai(
                             generate_linkedin_cta(
+                                gen_id=gen_id,
                                 client_id=client_id,
                                 archetype_id=archetype_id,
                                 context_info=context_info,
@@ -245,6 +324,7 @@ def generate_sequence(
                     {
                         "result": clean_output_with_ai(
                             generate_linkedin_initial(
+                                gen_id=gen_id,
                                 client_id=client_id,
                                 archetype_id=archetype_id,
                                 context_info=context_info,
@@ -262,6 +342,7 @@ def generate_sequence(
                 {
                     "result": clean_output_with_ai(
                         generate_linkedin_follow_up(
+                            gen_id=gen_id,
                             client_id=client_id,
                             archetype_id=archetype_id,
                             step_num=step_num,
@@ -279,6 +360,7 @@ def generate_sequence(
 
 
 def generate_email_initial(
+    gen_id: str,
     client_id: int,
     archetype_id: int,
     context_info: str,
@@ -377,7 +459,7 @@ Please generate a cold email outline for generative outreach to prospects.
             ],
             model=MESSAGE_MODEL,
             max_tokens=4000,
-            type="EMAIL",
+            type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
         )
@@ -389,6 +471,7 @@ Please generate a cold email outline for generative outreach to prospects.
 
 
 def generate_email_follow_up_quick_and_dirty(
+    gen_id: str,
     client_id: int,
     archetype_id: int,
     step_num: int,
@@ -484,7 +567,7 @@ def generate_email_follow_up_quick_and_dirty(
             ],
             model=MESSAGE_MODEL,
             max_tokens=4000,
-            type="EMAIL",
+            type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
         )
@@ -496,6 +579,7 @@ def generate_email_follow_up_quick_and_dirty(
 
 
 def generate_linkedin_initial(
+    gen_id: str,
     client_id: int,
     archetype_id: int,
     context_info: str,
@@ -606,7 +690,7 @@ Please generate a cold outbound LinkedIn message outline for generative outreach
             ],
             model=MESSAGE_MODEL,
             max_tokens=4000,
-            type="EMAIL",
+            type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
         )
@@ -618,6 +702,7 @@ Please generate a cold outbound LinkedIn message outline for generative outreach
 
 
 def generate_linkedin_follow_up(
+    gen_id: str,
     client_id: int,
     archetype_id: int,
     step_num: int,
@@ -730,7 +815,7 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
             ],
             model=MESSAGE_MODEL,
             max_tokens=4000,
-            type="EMAIL",
+            type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
         )
@@ -742,6 +827,7 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
 
 
 def generate_linkedin_cta(
+    gen_id: str,
     client_id: int,
     archetype_id: int,
     context_info: str,
@@ -848,7 +934,7 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
             ],
             model=MESSAGE_MODEL,
             max_tokens=4000,
-            type="EMAIL",
+            type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
         )
