@@ -1059,6 +1059,7 @@ class ProspectUploadHistory(db.Model):
             upload
             for upload in uploads
             if upload.status == ProspectUploadsStatus.UPLOAD_FAILED
+            or upload.status == ProspectUploadsStatus.DISQUALIFIED
         ]
 
         # IN PROGRESS
@@ -1070,18 +1071,17 @@ class ProspectUploadHistory(db.Model):
             or upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
         ]
 
-        # OTHER
-        other = [
-            upload
-            for upload in uploads
-            if upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
-            or upload.status == ProspectUploadsStatus.DISQUALIFIED
-        ]
+        # # OTHER
+        # other = [
+        #     upload
+        #     for upload in uploads
+        #     if upload.status == ProspectUploadsStatus.DISQUALIFIED
+        # ]
 
         self.uploads_completed = len(complete)
         self.uploads_failed = len(failed)
         self.uploads_in_progress = len(in_progress)
-        self.uploads_other = len(other)
+        # self.uploads_other = len(other)
 
         if in_progress:
             self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
