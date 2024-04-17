@@ -9,7 +9,10 @@ from src.personas.services import (
     get_unassignable_prospects_using_icp_heuristic,
     unassign_prospects,
 )
-from src.personas.services_generation import schedule_generate_sequence
+from src.personas.services_generation import (
+    schedule_generate_sequence,
+    generate_sequence,
+)
 from src.personas.services_creation import add_sequence
 from src.personas.services_persona import (
     create_persona,
@@ -171,7 +174,14 @@ def post_generate_sequence(client_sdr_id: int):
         parameter_type=str,
     )
 
-    schedule_generate_sequence(
+    # schedule_generate_sequence(
+    #     client_id,
+    #     archetype_id,
+    #     sequence_type,
+    #     step_num,
+    #     additional_prompting,
+    # )
+    result = generate_sequence(
         client_id,
         archetype_id,
         sequence_type,
@@ -179,7 +189,7 @@ def post_generate_sequence(client_sdr_id: int):
         additional_prompting,
     )
 
-    return jsonify({"status": "success", "data": {}}), 200
+    return jsonify({"status": "success", "data": result}), 200
 
 
 # @PERSONAS_BLUEPRINT.route("/generate_sequence_poll", methods=["POST"])
