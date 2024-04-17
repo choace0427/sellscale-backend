@@ -4,7 +4,6 @@ from src.ml.openai_wrappers import DEFAULT_TEMPERATURE, OPENAI_CHAT_GPT_4_TURBO_
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
-from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
 
 from src.research.models import IScraperPayloadCache
 from app import db, celery
@@ -449,6 +448,10 @@ def trigger_icp_classification(
     Returns:
         bool: True if successful, False otherwise.
     """
+    from src.prospecting.icp_score.services import (
+        apply_icp_scoring_ruleset_filters_task,
+    )
+
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
         apply_icp_scoring_ruleset_filters_task(
