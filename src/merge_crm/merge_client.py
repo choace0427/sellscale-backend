@@ -11,6 +11,7 @@ from merge.resources.crm import (
     AccountRequest,
     OpportunityRequest,
     PatchedOpportunityRequest,
+    NoteRequest
 )
 
 
@@ -262,5 +263,26 @@ class MergeClient:
     def get_users(self) -> list:
         return self.client.crm.users.list()
 
-    def create_note(self, prospect) -> list:
-        pass
+    def create_note(self, 
+        prospect_id,
+        note,
+        create_on_contact: bool = False,
+        create_on_account: bool = False,
+        create_on_opportunity: bool = False,
+    ):
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+
+        owner_id = client_sdr.merge_user_id
+
+        note = self.client.crm.notes.create(
+            model=NoteRequest(
+                content=note,
+                owner=owner_id,
+                contact=prospect.merge_contact_id if create_on_contact else None,
+                account=prospect.merge_account_id if create_on_account else None,
+                opportunity=prospect.merge_opportunity_id if create_on_opportunity else None,
+            )
+        )
+
+        return note
