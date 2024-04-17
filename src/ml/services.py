@@ -1,20 +1,13 @@
-from datetime import datetime
-from typing import Dict, List, Optional, Union
-
-from bs4 import BeautifulSoup
-from src.email_outbound.models import ProspectEmailOutreachStatus, ProspectEmailStatus
+from typing import Dict, List, Optional
+from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.ml.openai_wrappers import DEFAULT_TEMPERATURE, OPENAI_CHAT_GPT_4_TURBO_MODEL
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 
-from src.research.models import IScraperPayloadCache, ResearchPoints
-from src.research.models import ResearchPayload
-
-from src.research.models import AccountResearchPoints
+from src.research.models import IScraperPayloadCache
 from app import db, celery
-import os
-from src.client.models import Client, ClientArchetype, ClientSDR
+from src.client.models import ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect, ProspectStatus
 from src.message_generation.models import (
     GeneratedMessage,
@@ -23,10 +16,8 @@ from src.message_generation.models import (
 )
 from src.ml.models import (
     GNLPFinetuneJobStatuses,
-    GNLPModel,
     GNLPModelFineTuneJobs,
     GNLPModelType,
-    ModelProvider,
     TextGeneration,
 )
 import traceback
@@ -457,16 +448,16 @@ def trigger_icp_classification(
     Returns:
         bool: True if successful, False otherwise.
     """
+    from src.prospecting.icp_score.services import (
+        apply_icp_scoring_ruleset_filters_task,
+    )
+
     if len(prospect_ids) > 0:
         # Run celery job for each prospect id
-        for index, prospect_id in enumerate(prospect_ids):
-            countdown = float(index * 6)
-            mark_queued_and_classify.apply_async(
-                args=[client_sdr_id, archetype_id, prospect_id, countdown],
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-                priority=1,
-            )
+        apply_icp_scoring_ruleset_filters_task(
+            client_archetype_id=archetype_id,
+            prospect_ids=prospect_ids,
+        )
     else:
         # Get all prospects for the client SDR id and archetype id
         prospects: list[Prospect] = Prospect.query.filter(
@@ -475,15 +466,10 @@ def trigger_icp_classification(
         ).all()
 
         # Run celery job for each prospect
-        for index, prospect in enumerate(prospects):
-            prospect_id = prospect.id
-            countdown = float(index * 6)
-            mark_queued_and_classify.apply_async(
-                args=[client_sdr_id, archetype_id, prospect_id, countdown],
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-                priority=1,
-            )
+        apply_icp_scoring_ruleset_filters_task(
+            client_archetype_id=archetype_id,
+            prospect_ids=[prospect.id for prospect in prospects],
+        )
     return True
 
 

@@ -10,6 +10,7 @@ from src.analytics.services import (
     get_all_campaign_analytics_for_client,
     get_all_campaign_analytics_for_client_campaigns_page,
     get_outreach_over_time,
+    get_overview_pipeline_activity,
     get_sdr_pipeline_all_details,
     get_upload_analytics_for_client,
 )
@@ -209,3 +210,9 @@ def get_activity_logs_endpoint(client_sdr_id: int):
     logs = get_activity_logs(client_sdr_id=client_sdr_id)
 
     return jsonify({"message": "Success", "data": logs}), 200
+
+@ANALYTICS_BLUEPRINT.route("/overview_analytics", methods=['GET'])
+@require_user
+def get_overview_analytics(client_sdr_id: int):
+    data = get_overview_pipeline_activity(client_sdr_id)
+    return jsonify({"message": "Success", "data": data}), 200

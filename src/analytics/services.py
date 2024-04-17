@@ -523,3 +523,59 @@ def get_activity_logs(client_sdr_id: int) -> list[dict]:
         ActivityLog.client_sdr_id == client_sdr_id
     ).all()
     return [activity_log.to_dict() for activity_log in activity_logs]
+
+def get_overview_pipeline_activity(client_sdr_id: int) -> dict:
+    """
+    Gets the following stats for the Client that the ClientSDR is associated with:
+    - Opportunities created: # of opportunities created in the Client's CRM
+    - Pipeline Generated: $ of pipeline generated in the Client's CRM
+    - New Leads this Quarter: # of prospects added to the Client's CRM this quarter
+    - Activities this Quarter: # of activities logged in the Client's CRM this quarter
+
+    Args:
+        client_sdr_id (int): _description_
+
+    Returns:
+        list[dict]: _description_
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    opps_pipeline_leads_stats_query = """
+        select 
+            count(distinct prospect.id) filter (where prospect.merge_opportunity_id is not null) "num_opportunities_all_time",
+            sum(prospect.contract_size) filter (where prospect.merge_opportunity_id is not null) "pipeline_generated_all_time",
+            count(distinct prospect.id) filter (where prospect.created_at > NOW() - '3 month'::INTERVAL) "leads_created_last_3_month",
+            count(distinct prospect.id) filter (where prospect.created_at > NOW() - '1 month'::INTERVAL) "leads_created_last_1_month"
+        from prospect
+        where prospect.client_id = {client_id};
+    """
+
+    distinct_activity_stats = """
+    select 
+        count(distinct prospect.id) filter (where 
+            (prospect_status_records.to_status = 'SENT_OUTREACH' and prospect_status_records.created_at > NOW() - '3 month'::INTERVAL) or 
+            (prospect_email_status_records.to_status = 'SENT_OUTREACH' and prospect_email_status_records.created_at > NOW() - '3 month'::INTERVAL)
+        ) "activity_3_mon",
+        count(distinct prospect.id) filter (where 
+            (prospect_status_records.to_status = 'SENT_OUTREACH' and prospect_status_records.created_at > NOW() - '24 hours'::INTERVAL) or 
+            (prospect_email_status_records.to_status = 'SENT_OUTREACH' and prospect_email_status_records.created_at > NOW() - '24 hours'::INTERVAL)
+        ) "activity_1_day"
+    from prospect
+        left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+        left join prospect_email on prospect_email.prospect_id = prospect.id 
+        left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+    where prospect.client_id = {client_id};
+    """
+
+    opps_pipeline_leads_stats = db.session.execute(opps_pipeline_leads_stats_query.format(client_id=client_id)).fetchone()
+    distinct_activity_stats = db.session.execute(distinct_activity_stats.format(client_id=client_id)).fetchone()
+
+    return {
+        "opportunities_created": opps_pipeline_leads_stats[0],
+        "pipeline_generated": opps_pipeline_leads_stats[1],
+        "leads_created_last_3_month": opps_pipeline_leads_stats[2],
+        "leads_created_last_1_month": opps_pipeline_leads_stats[3],
+        "activity_3_mon": distinct_activity_stats[0],
+        "activity_1_day": distinct_activity_stats[1],
+    }

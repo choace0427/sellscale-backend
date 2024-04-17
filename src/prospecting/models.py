@@ -593,6 +593,9 @@ class Prospect(db.Model):
             "prospect_location": self.prospect_location,
             "company_location": self.company_location,
             "meta_data": self.meta_data,
+            "merge_account_id": self.merge_account_id,
+            "merge_contact_id": self.merge_contact_id,
+            "merge_opportunity_id": self.merge_opportunity_id,
         }
 
     def to_dict(
@@ -692,6 +695,9 @@ class Prospect(db.Model):
                 "contract_size": self.contract_size,
                 "is_lookalike_profile": self.is_lookalike_profile,
                 "meta_data": self.meta_data,
+                "merge_account_id": self.merge_account_id,
+                "merge_contact_id": self.merge_contact_id,
+                "merge_opportunity_id": self.merge_opportunity_id,
             }
 
         # Get generated message if it exists and is requested
@@ -835,6 +841,9 @@ class Prospect(db.Model):
             "individual_data": individual_data,
             "contract_size": self.contract_size,
             "meta_data": self.meta_data,
+            "merge_account_id": self.merge_account_id,
+            "merge_contact_id": self.merge_contact_id,
+            "merge_opportunity_id": self.merge_opportunity_id,
         }
 
 
@@ -879,6 +888,7 @@ class ProspectStatusRecords(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     from_status = db.Column(db.Enum(ProspectStatus), nullable=True)
     to_status = db.Column(db.Enum(ProspectStatus), nullable=True)
+    automated = db.Column(db.Boolean, nullable=True)
 
 
 class ProspectNote(db.Model):
@@ -980,6 +990,10 @@ class ProspectUploadHistory(db.Model):
     upload_name = db.Column(db.String, nullable=False)
     upload_size = db.Column(db.Integer, nullable=False)
     uploads_completed = db.Column(db.Integer, nullable=False)
+    uploads_not_started = db.Column(db.Integer, nullable=False)
+    uploads_in_progress = db.Column(db.Integer, nullable=False)
+    uploads_failed = db.Column(db.Integer, nullable=False)
+    uploads_other = db.Column(db.Integer, nullable=False)
     upload_source = db.Column(db.Enum(ProspectUploadSource), nullable=False)
     status = db.Column(db.Enum(ProspectUploadHistoryStatus), nullable=False)
 
@@ -1009,6 +1023,10 @@ class ProspectUploadHistory(db.Model):
             "upload_name": self.upload_name,
             "upload_size": self.upload_size,
             "uploads_completed": self.uploads_completed,
+            "uploads_not_started": self.uploads_not_started,
+            "uploads_in_progress": self.uploads_in_progress,
+            "uploads_failed": self.uploads_failed,
+            "uploads_other": self.uploads_other,
             "upload_source": self.upload_source.value,
             "status": self.status.value,
             "client_archetype_id": self.client_archetype_id,
@@ -1032,26 +1050,52 @@ class ProspectUploadHistory(db.Model):
         if not uploads:
             return
 
-        # Check if there are any uploads still queued or in progress or not started
-        not_complete = [
-            upload
-            for upload in uploads
-            if upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
-            or upload.status == ProspectUploadsStatus.UPLOAD_IN_PROGRESS
-            or upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
-        ]
-        if not_complete:
-            self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
-        else:
-            self.status = self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE
-
-        # Get the number completed
+        # COMPLETE
         complete = [
             upload
             for upload in uploads
             if upload.status == ProspectUploadsStatus.UPLOAD_COMPLETE
         ]
+
+        # NOT STARTED
+        not_started = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_NOT_STARTED
+            or upload.status == ProspectUploadsStatus.UPLOAD_QUEUED
+        ]
+
+        # FAILED
+        failed = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_FAILED
+            or upload.status == ProspectUploadsStatus.DISQUALIFIED
+        ]
+
+        # IN PROGRESS
+        in_progress = [
+            upload
+            for upload in uploads
+            if upload.status == ProspectUploadsStatus.UPLOAD_IN_PROGRESS
+        ]
+
+        # # OTHER
+        # other = [
+        #     upload
+        #     for upload in uploads
+        #     if upload.status == ProspectUploadsStatus.DISQUALIFIED
+        # ]
+
         self.uploads_completed = len(complete)
+        self.uploads_not_started = len(not_started)
+        self.uploads_failed = len(failed)
+        self.uploads_in_progress = len(in_progress)
+
+        if in_progress:
+            self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
+        else:
+            self.status = self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE
 
         db.session.commit()
         return

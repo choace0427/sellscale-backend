@@ -9,7 +9,6 @@ from src.client.models import Client, ClientAssets, ClientSDR
 from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
 from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
-from src.ml.services import mark_queued_and_classify
 from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from src.simulation.models import SimulationRecord

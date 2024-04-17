@@ -13,6 +13,7 @@ from src.merge_crm.services import (
 from src.utils.request_helpers import get_request_parameter
 from model_import import ClientSDR
 from src.merge_crm.models import ClientSyncCRM
+from src.merge_crm.services import create_opportunity_from_prospect_id
 
 MERGE_CRM_BLUEPRINT = Blueprint("merge_crm", __name__)
 
@@ -111,3 +112,13 @@ def get_crm_operation_available_endpoint(client_sdr_id: int):
     return jsonify(
         {"success": True, "data": {"operation": operation, "available": available}}
     )
+
+@MERGE_CRM_BLUEPRINT.route("/create_opportunity", methods=["POST"])
+@require_user
+def create_opportunity(client_sdr_id: int):
+    prospect_id = get_request_parameter("prospect_id", request, json=True, required=True)
+
+    success, msg = create_opportunity_from_prospect_id(
+        client_sdr_id=client_sdr_id, prospect_id=prospect_id
+    )
+    return jsonify({"success": success, "message": msg}), 200 if success else 400

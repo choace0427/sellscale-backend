@@ -164,23 +164,6 @@ def batch_update_messages():
     return "OK", 200
 
 
-@MESSAGE_GENERATION_BLUEPRINT.route("/approve", methods=["POST"])
-def approve():
-    message_id = get_request_parameter("message_id", request, json=True, required=True)
-
-    success = approve_message(message_id=message_id)
-    if success:
-        return "OK", 200
-
-    # TODO (David): Feeler - Deprecate by 3/1/2024 if not seen in slack channel
-    send_slack_message(
-        message="FEELER: APPROVAL",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
-
-    return "Failed to update", 400
-
-
 @MESSAGE_GENERATION_BLUEPRINT.route("/batch_approve", methods=["POST"])
 def post_batch_approve_message_generations_by_heuristic():
     prospect_ids = get_request_parameter(

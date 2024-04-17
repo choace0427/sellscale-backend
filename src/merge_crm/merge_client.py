@@ -11,6 +11,7 @@ from merge.resources.crm import (
     AccountRequest,
     OpportunityRequest,
     PatchedOpportunityRequest,
+    NoteRequest
 )
 
 
@@ -23,6 +24,10 @@ class MergeClient:
         client: Client = Client.query.get(client_id)
         self.account_token = client.merge_crm_account_token
         self.client = Merge(api_key=self.api_key, account_token=self.account_token)
+
+    def get_crm_type(self):
+        account_details = self.client.crm.account_details.retrieve()
+        return account_details.integration
 
     def find_contact_by_prospect_id(self, prospect_id: int):
         try:
@@ -215,6 +220,8 @@ class MergeClient:
             p.overall_status, "cf07e8fa-b5c2-4683-966e-4dc471963a32"
         )
 
+        opportunity_value = 500
+
         try:
             opportunity_res = self.client.crm.opportunities.create(
                 model=OpportunityRequest(
@@ -226,7 +233,7 @@ class MergeClient:
                         fit_reason=p.icp_fit_reason,
                         company_description=description,
                     ),
-                    amount=500,
+                    amount=opportunity_value,
                     last_activity_at=datetime.datetime.utcnow().isoformat(),
                     account=p.merge_account_id,
                     contact=p.merge_contact_id,
@@ -242,6 +249,7 @@ class MergeClient:
                 )
 
             p.merge_opportunity_id = opportunity_res.model.id
+            p.contract_size = opportunity_value
             db.session.add(p)
             db.session.commit()
 
@@ -254,3 +262,27 @@ class MergeClient:
 
     def get_users(self) -> list:
         return self.client.crm.users.list()
+
+    def create_note(self, 
+        prospect_id,
+        note,
+        create_on_contact: bool = False,
+        create_on_account: bool = False,
+        create_on_opportunity: bool = False,
+    ):
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+
+        owner_id = client_sdr.merge_user_id
+
+        note = self.client.crm.notes.create(
+            model=NoteRequest(
+                content=note,
+                owner=owner_id,
+                contact=prospect.merge_contact_id if create_on_contact else None,
+                account=prospect.merge_account_id if create_on_account else None,
+                opportunity=prospect.merge_opportunity_id if create_on_opportunity else None,
+            )
+        )
+
+        return note

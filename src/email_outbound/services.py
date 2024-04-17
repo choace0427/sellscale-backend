@@ -544,6 +544,7 @@ def update_status_from_ss_data(
                 from_status=old_outreach_status,
                 to_status=new_outreach_status,
                 sales_engagement_interaction_ss_id=sei_ss_id,
+                automated=True,
             )
         )
         db.session.add(prospect_email)
@@ -585,6 +586,7 @@ def update_prospect_email_outreach_status(
                 prospect_email_id=prospect_email_id,
                 from_status=old_status,
                 to_status=new_status,
+                automated=True,
             )
         )
         db.session.add(prospect_email_status_record)
