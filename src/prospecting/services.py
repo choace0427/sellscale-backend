@@ -2462,13 +2462,16 @@ def calculate_prospect_overall_status(prospect_id: int):
                 new_status=prospect.overall_status,
             )
 
-    # SMARTLEAD: We want to DO NOT CONTACT the Prospect if the overall status is REMOVED
-    if prospect.overall_status == ProspectOverallStatus.REMOVED:
-        from src.smartlead.services import smartlead_update_prospect_status
+    # Determine if we need to update the Prospect's status in Smartlead. Useful under these scenarios:
+    # 1. Prospect is removed
+    # 2. Prospect has responded on LI
+    # We want to ensure that we don't contact the Prospect if they are removed or have responded on LI
 
-        smartlead_update_prospect_status(
-            prospect_id=prospect_id, new_status=prospect.overall_status
-        )
+    from src.smartlead.services import smartlead_update_prospect_status
+
+    smartlead_update_prospect_status(
+        prospect_id=prospect_id, new_status=prospect.overall_status
+    )
 
     return None
 

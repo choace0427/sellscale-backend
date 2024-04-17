@@ -1460,10 +1460,28 @@ def smartlead_update_prospect_status(
         if not result.get("ok"):
             return False, "Failed to update lead category"
 
-    send_slack_message(
-        message=f"SMARTLEAD: Moved prospect {prospect.full_name}#{prospect.id} to DO NOT CONTACT",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
+        send_slack_message(
+            message=f"SMARTLEAD: Moved prospect {prospect.full_name}#{prospect.id} to DO NOT CONTACT",
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
+
+    # If the new status ACTIVE_CONVO, then update
+    if new_status == ProspectOverallStatus.ACTIVE_CONVO:
+        sl = Smartlead()
+        lead = sl.get_lead_by_email_address(prospect.email)
+        if not lead:
+            return False, "Lead not found"
+        lead_id = lead["id"]
+        result = sl.post_update_lead_category(
+            campaign_id=archetype.smartlead_campaign_id,
+            lead_id=lead_id,
+            category_id=sl.LEAD_CATEGORIES.get(
+                "Do Not Contact"
+            ),  # We make this Do Not Contact for now, but we can change this later
+        )
+        if not result.get("ok"):
+            return False, "Failed to update lead category"
+
     return True, "Success"
 
 
