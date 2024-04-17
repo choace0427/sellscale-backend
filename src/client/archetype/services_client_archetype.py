@@ -31,12 +31,12 @@ from src.li_conversation.models import (
 )
 from src.message_generation.models import GeneratedMessageCTA
 from src.message_generation.services import create_cta, generate_li_convo_init_msg
-from src.ml.services import mark_queued_and_classify
 from src.notifications.models import (
     OperatorNotificationPriority,
     OperatorNotificationType,
 )
 from src.notifications.services import create_notification
+from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from src.research.models import ResearchPointType
 from src.slack.models import SlackNotificationType
@@ -174,14 +174,9 @@ def bulk_action_move_prospects_to_archetype(
     db.session.commit()
 
     # Re-classify the prospects
-    for index, prospect_id in enumerate(prospect_ids):
-        countdown = float(index * 6)
-        mark_queued_and_classify.apply_async(
-            args=[client_sdr_id, target_archetype_id, prospect_id, countdown],
-            queue="icp_scoring",
-            routing_key="icp_scoring",
-            priority=5,
-        )
+    apply_icp_scoring_ruleset_filters_task(
+        client_archetype_id=target_archetype_id, prospect_ids=prospect_ids
+    )
 
     return True
 
@@ -571,11 +566,11 @@ def wipe_linkedin_sequence_steps(campaign_id: int, steps: list):
     archetype.li_bump_amount = len(steps) - 1
 
     # wipe archetype sequence
-    initial_message_templates: list[LinkedinInitialMessageTemplate] = (
-        LinkedinInitialMessageTemplate.query.filter(
-            LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
-        ).all()
-    )
+    initial_message_templates: list[
+        LinkedinInitialMessageTemplate
+    ] = LinkedinInitialMessageTemplate.query.filter(
+        LinkedinInitialMessageTemplate.client_archetype_id == campaign_id
+    ).all()
     ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
         GeneratedMessageCTA.archetype_id == campaign_id
     ).all()
@@ -715,7 +710,6 @@ def create_linkedin_initial_message_template(
     additional_instructions: str = "",
     asset_ids: list[int] = [],
 ):
-
     template = LinkedinInitialMessageTemplate(
         title=title,
         message=message,
@@ -752,11 +746,11 @@ def wipe_email_sequence(campaign_id: int):
         step.default = False
         db.session.add(step)
 
-    email_subject_lines: list[EmailSubjectLineTemplate] = (
-        EmailSubjectLineTemplate.query.filter(
-            EmailSubjectLineTemplate.client_archetype_id == campaign_id
-        ).all()
-    )
+    email_subject_lines: list[
+        EmailSubjectLineTemplate
+    ] = EmailSubjectLineTemplate.query.filter(
+        EmailSubjectLineTemplate.client_archetype_id == campaign_id
+    ).all()
     for subject_line in email_subject_lines:
         subject_line.active = False
         db.session.add(subject_line)
@@ -846,11 +840,11 @@ def get_archetype_assets(archetype_id: int):
     Returns:
         list[dict]: A list of assets
     """
-    assetArchetypeMapping: list[ClientAssetArchetypeReasonMapping] = (
-        ClientAssetArchetypeReasonMapping.query.filter(
-            ClientAssetArchetypeReasonMapping.client_archetype_id == archetype_id
-        ).all()
-    )
+    assetArchetypeMapping: list[
+        ClientAssetArchetypeReasonMapping
+    ] = ClientAssetArchetypeReasonMapping.query.filter(
+        ClientAssetArchetypeReasonMapping.client_archetype_id == archetype_id
+    ).all()
     assets: list[ClientAssets] = ClientAssets.query.filter(
         ClientAssets.id.in_(
             [mapping.client_asset_id for mapping in assetArchetypeMapping]
@@ -891,12 +885,12 @@ def delete_li_init_template_asset_mapping(
 
 
 def get_all_li_init_template_assets(linkedin_initial_message_id: int):
-    mappings: list[LinkedInInitialMessageToAssetMapping] = (
-        LinkedInInitialMessageToAssetMapping.query.filter(
-            LinkedInInitialMessageToAssetMapping.linkedin_initial_message_id
-            == linkedin_initial_message_id
-        ).all()
-    )
+    mappings: list[
+        LinkedInInitialMessageToAssetMapping
+    ] = LinkedInInitialMessageToAssetMapping.query.filter(
+        LinkedInInitialMessageToAssetMapping.linkedin_initial_message_id
+        == linkedin_initial_message_id
+    ).all()
     asset_ids = [mapping.client_assets_id for mapping in mappings]
     assets: list[ClientAssets] = ClientAssets.query.filter(
         ClientAssets.id.in_(asset_ids)

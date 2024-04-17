@@ -25,8 +25,10 @@ from model_import import (
     BumpFramework,
     StackRankedMessageGenerationConfiguration,
 )
-from src.ml.services import mark_queued_and_classify
-from src.prospecting.icp_score.services import clone_icp_ruleset
+from src.prospecting.icp_score.services import (
+    apply_icp_scoring_ruleset_filters_task,
+    clone_icp_ruleset,
+)
 from src.prospecting.models import ProspectStatus
 from src.prospecting.services import get_prospect_details
 from app import db, celery
@@ -370,11 +372,9 @@ Output:""",
         # If the new archetype is different from the old archetype, clear and rerun the
         # prospect's ICP fit and account research
         if old_archetype_id != archetype_id_number:
-            mark_queued_and_classify(
-                client_sdr_id=client_sdr_id,
-                archetype_id=archetype_id_number,
-                prospect_id=prospect_id,
-                countdown=countdown,
+            apply_icp_scoring_ruleset_filters_task(
+                client_archetype_id=archetype_id_number,
+                prospect_ids=[prospect_id],
             )
             generate_prospect_research(prospect_id, False, True)
 
@@ -509,10 +509,8 @@ def unassign_prospects(
                 prospect.approved_prospect_email_id
             )
             if prospect_email is not None:
-
                 # EMAIL: Before deleting, we need to make sure the email has not been sent
                 if prospect_email.email_status == ProspectEmailStatus.SENT:
-
                     prospect_email.date_scheduled_to_send = None
                     if prospect_email.personalized_body is not None:
                         personalized_body: GeneratedMessage = (
@@ -612,11 +610,11 @@ def clone_persona(
             )
 
     if option_voices:
-        original_voices: list[StackRankedMessageGenerationConfiguration] = (
-            StackRankedMessageGenerationConfiguration.query.filter_by(
-                archetype_id=original_persona_id
-            ).all()
-        )
+        original_voices: list[
+            StackRankedMessageGenerationConfiguration
+        ] = StackRankedMessageGenerationConfiguration.query.filter_by(
+            archetype_id=original_persona_id
+        ).all()
         for original_voice in original_voices:
             voice = StackRankedMessageGenerationConfiguration(
                 configuration_type=original_voice.configuration_type,
