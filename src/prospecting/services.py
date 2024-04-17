@@ -1120,10 +1120,12 @@ def update_prospect_status_linkedin_helper(
     if not override_status and new_status not in VALID_NEXT_LINKEDIN_STATUSES[p.status]:
         raise Exception(f"Invalid status transition from {p.status} to {new_status}")
 
+    automated = not override_status
     record: ProspectStatusRecords = ProspectStatusRecords(
         prospect_id=prospect_id,
         from_status=p.status,
         to_status=new_status,
+        automated=automated,
     )
     db.session.add(record)
     db.session.commit()
@@ -1465,10 +1467,12 @@ def update_prospect_status_email(
     db.session.commit()
 
     # Add a record to the ProspectEmailStatusRecords table
+    automated = not override_status
     record: ProspectEmailStatusRecords = ProspectEmailStatusRecords(
         prospect_email_id=p_email_id,
         from_status=old_status,
         to_status=new_status,
+        automated=automated,
     )
     db.session.add(record)
     db.session.commit()
@@ -2536,7 +2540,10 @@ def update_last_reviewed_and_times_bumped(
 
 
 def mark_prospect_as_removed(
-    client_sdr_id: int, prospect_id: int, removal_reason: Optional[str] = None
+    client_sdr_id: int,
+    prospect_id: int,
+    removal_reason: Optional[str] = None,
+    manual: Optional[bool] = False,
 ) -> bool:
     """
     Removes a prospect from being contacted if their client_sdr assigned
@@ -2547,10 +2554,12 @@ def mark_prospect_as_removed(
         return False
 
     # Create a record
+    automated = not manual
     prospect_removed = ProspectStatusRecords(
         prospect_id=prospect_id,
         from_status=prospect.status,
         to_status=ProspectStatus.NOT_QUALIFIED,
+        automated=automated,
     )
     db.session.add(prospect_removed)
 

@@ -690,6 +690,7 @@ def nylas_send_email(
             prospect_email_id=prospect_email_id,
             from_status=ProspectEmailOutreachStatus.NOT_SENT,
             to_status=ProspectEmailOutreachStatus.SENT_OUTREACH,
+            automated=True,
         )
     )
     db.session.add(prospect_email_status_record)

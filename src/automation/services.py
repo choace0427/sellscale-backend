@@ -692,6 +692,7 @@ def update_pb_linkedin_send_status(client_sdr_id: int, pb_payload_id: int) -> bo
                             client_sdr_id=client_sdr_id,
                             prospect_id=prospect_id,
                             removal_reason="Prospect is already in the SDR's LinkedIn Network",
+                            manual=False,
                         )
                 else:
                     update_prospect_status_linkedin(

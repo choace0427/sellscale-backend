@@ -888,6 +888,7 @@ class ProspectStatusRecords(db.Model):
     prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"))
     from_status = db.Column(db.Enum(ProspectStatus), nullable=True)
     to_status = db.Column(db.Enum(ProspectStatus), nullable=True)
+    automated = db.Column(db.Boolean, nullable=True)
 
 
 class ProspectNote(db.Model):

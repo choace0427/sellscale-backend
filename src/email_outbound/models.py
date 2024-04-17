@@ -403,6 +403,8 @@ class ProspectEmailStatusRecords(db.Model):
         db.Integer, db.ForeignKey("sales_engagement_interaction_ss.id"), nullable=True
     )
 
+    automated = db.Column(db.Boolean, nullable=True)
+
 
 class EmailInteractionState(enum.Enum):
     """

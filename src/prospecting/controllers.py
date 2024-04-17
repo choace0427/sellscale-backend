@@ -1341,7 +1341,7 @@ def remove_from_contact_list(client_sdr_id: int):
         "prospect_id", request, json=False, required=True
     )
     success = mark_prospect_as_removed(
-        client_sdr_id=client_sdr_id, prospect_id=prospect_id
+        client_sdr_id=client_sdr_id, prospect_id=prospect_id, manual=True
     )
     if success:
         return "OK", 200

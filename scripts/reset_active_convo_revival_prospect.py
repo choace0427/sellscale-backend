@@ -1,7 +1,6 @@
 from app import db
 from model_import import (
     Prospect,
-    ProspectStatusRecords,
     ProspectOverallStatus,
     ProspectStatus,
 )
