@@ -16,7 +16,7 @@ from app import db, celery
 from src.automation.orchestrator import add_process_for_future
 from datetime import datetime
 
-GEN_AMOUNT = 5
+GEN_AMOUNT = 3
 ASSET_AMOUNT = 5
 
 MESSAGE_MODEL = "claude-3-opus-20240229"  # "claude-3-opus-20240229"
