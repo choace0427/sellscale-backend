@@ -1314,7 +1314,7 @@ Prospect Title: {prospect.title}
     """
 
     response = get_text_generation(
-        [{"role": "user", "content": prompt}],
+        [{"role": "user", "content": prompt[-10000:]}],
         prospect_id=prospect_id,
         client_sdr_id=client_sdr_id,
         max_tokens=2000,

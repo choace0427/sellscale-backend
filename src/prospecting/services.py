@@ -1291,7 +1291,7 @@ def update_prospect_status_email(
         p_email.outreach_status = new_status
     else:
         # Check if the status is valid to transition to
-        if new_status not in VALID_NEXT_EMAIL_STATUSES[p_email.outreach_status]:
+        if p_email.outreach_status and new_status not in VALID_NEXT_EMAIL_STATUSES[p_email.outreach_status]:
             return (
                 False,
                 f"Invalid status transition from {p_email.outreach_status} to {new_status}",
@@ -2401,6 +2401,7 @@ def map_prospect_email_status_to_prospect_overall_status(
         ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL: ProspectOverallStatus.ACTIVE_CONVO,
+        ProspectEmailOutreachStatus.ACTIVE_CONVO_REFERRAL: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.SCHEDULING: ProspectOverallStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.UNSUBSCRIBED: ProspectOverallStatus.REMOVED,
