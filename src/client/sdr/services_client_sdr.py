@@ -944,3 +944,27 @@ def get_sdr_send_statistics(client_sdr_id: int) -> dict:
         "last_7_days": last_7_days_count,
         "all_time": all_time_count,
     }
+
+
+def get_active_sdrs(client_sdr_id: int) -> list[dict]:
+    """Gets all active SDRs for a given Client SDR
+
+    Args:
+        client_sdr_id (int): The id of the Client SDR
+
+    Returns:
+        list[dict]: The active SDRs for the Client SDR
+    """
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Get all active SDRs
+    sdrs: list[ClientSDR] = ClientSDR.query.filter(
+        ClientSDR.client_id == sdr.client_id, ClientSDR.active == True
+    ).all()
+
+    # Convert to dicts
+    sdr_dicts = []
+    for sdr in sdrs:
+        sdr_dicts.append(sdr.to_dict())
+
+    return sdr_dicts

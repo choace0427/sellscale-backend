@@ -1,13 +1,16 @@
 from flask import Blueprint, jsonify, request
 
 from src.authentication.decorators import require_user
+from src.client.sdr.services_client_sdr import get_active_sdrs
 from src.merge_crm.services import (
     create_link_token,
     create_test_account,
     delete_integration,
+    get_crm_users,
     get_integration,
     get_operation_availability,
     retrieve_account_token,
+    sync_user_to_sdr,
     update_crm_sync,
 )
 from src.utils.request_helpers import get_request_parameter
@@ -77,14 +80,19 @@ def delete_integration_endpoint(client_sdr_id: int):
     if not success:
         return jsonify({"status": "error", "message": message}), 400
 
-    return jsonify({"success": True})
+    return jsonify({"status": "success"})
 
 
 @MERGE_CRM_BLUEPRINT.route("/test_account", methods=["POST"])
 @require_user
 def make_test_account(client_sdr_id: int):
     create_test_account(client_sdr_id=client_sdr_id)
-    return jsonify({"success": True})
+    return jsonify({"status": "success"})
+
+
+###############################
+#    CRM SYNC CONTROLLERS     #
+###############################
 
 
 @MERGE_CRM_BLUEPRINT.route("/update_crm_sync", methods=["PUT"])
@@ -105,7 +113,7 @@ def put_update_crm_sync_endpoint(client_sdr_id: int):
         event_handlers=event_handlers,
     )
 
-    return jsonify({"success": True, "data": result})
+    return jsonify({"status": "success", "data": result})
 
 
 @MERGE_CRM_BLUEPRINT.route("/crm_sync", methods=["GET"])
@@ -118,9 +126,33 @@ def get_crm_sync_endpoint(client_sdr_id: int):
 
     result = client_sync_crm.to_dict() if client_sync_crm else None
 
-    return jsonify({"success": True, "data": result})
+    return jsonify({"status": "success", "data": result})
 
 
+@MERGE_CRM_BLUEPRINT.route("/users", methods=["GET"])
+@require_user
+def get_users_endpoint(client_sdr_id: int):
+    users = get_crm_users(client_sdr_id=client_sdr_id)
+    sdrs = get_active_sdrs(client_sdr_id=client_sdr_id)
+
+    return jsonify({"status": "success", "data": {"users": users, "sdrs": sdrs}})
+
+
+@MERGE_CRM_BLUEPRINT.route("/users/sync/sdr", methods=["POST"])
+@require_user
+def post_sync_user_to_sdr(client_sdr_id: int):
+    merge_user_id = get_request_parameter(
+        "merge_user_id", request, json=True, required=True
+    )
+
+    success = sync_user_to_sdr(client_sdr_id=client_sdr_id, merge_user_id=merge_user_id)
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to sync user"}), 400
+
+    return jsonify({"status": "success"})
+
+
+# TODO: Deprecate
 @MERGE_CRM_BLUEPRINT.route("/crm_operation_available", methods=["GET"])
 @require_user
 def get_crm_operation_available_endpoint(client_sdr_id: int):
@@ -131,7 +163,7 @@ def get_crm_operation_available_endpoint(client_sdr_id: int):
     )
 
     return jsonify(
-        {"success": True, "data": {"operation": operation, "available": available}}
+        {"status": "success", "data": {"operation": operation, "available": available}}
     )
 
 

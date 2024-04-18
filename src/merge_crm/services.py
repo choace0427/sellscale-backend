@@ -1,9 +1,7 @@
 import datetime
 from typing import Optional
 from app import db
-from sqlalchemy.orm import attributes
 
-import requests
 import os
 
 import time
@@ -11,14 +9,10 @@ from src.client.models import ClientSDR, Client, Prospect
 from merge.client import Merge
 from src.merge_crm.models import ClientSyncCRM
 from merge.resources.crm import (
-    AddressRequest,
     ContactRequest,
     EmailAddressRequest,
-    PhoneNumberRequest,
-    LeadRequest,
+    User,
     AccountRequest,
-    LinkedAccountsListRequestCategory,
-    ContactsListRequestExpand,
 )
 from model_import import Prospect
 from src.merge_crm.merge_client import MergeIntegrator, MergeClient
@@ -65,6 +59,40 @@ def retrieve_account_token(client_sdr_id: int, public_token: str) -> tuple[bool,
     return account_token is not None, account_token
 
 
+def get_integration(client_sdr_id: int) -> dict:
+    """Retrieves the integration details from Merge
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        dict: A dictionary containing the integration details
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    merge_crm_account_token = client.merge_crm_account_token
+
+    if not merge_crm_account_token:
+        return None
+
+    mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
+    data = mc.get_crm_account_details()
+
+    return {
+        "id": data.id,
+        "integration": data.integration,
+        "integration_slug": data.integration_slug,
+        "category": data.category,
+        "end_user_origin_id": data.end_user_origin_id,
+        "end_user_organization_name": data.end_user_organization_name,
+        "end_user_email_address": data.end_user_email_address,
+        "status": data.status,
+        "webhook_listener_url": data.webhook_listener_url,
+        "is_duplicate": data.is_duplicate,
+    }
+
+
 def delete_integration(client_sdr_id: int) -> tuple[bool, str]:
     """Deletes the integration from Merge
 
@@ -80,6 +108,42 @@ def delete_integration(client_sdr_id: int) -> tuple[bool, str]:
     return success, message
 
 
+# TODO: This might differ depending on the CRM
+def create_test_account(client_sdr_id: int) -> bool:
+    """Creates a test account in the CRM
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        bool: A boolean indicating success
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+    merge_client.crm.accounts.create(
+        model=AccountRequest(
+            name="SellScale Test",
+            description="Congratulations on integrating with SellScale!",
+            industry="Software",
+            website="https://sellscale.com",
+            number_of_employees=100,
+            last_activity_at=datetime.datetime.fromisoformat(
+                "2022-02-10 00:00:00+00:00",
+            ),
+        ),
+    )
+
+    return True
+
+
+###############################
+#      CRM SYNC METHODS       #
+###############################
+
+
+# Needs Documentation
 def update_crm_sync(
     client_sdr_id: int,
     sync_type: Optional[str],
@@ -108,32 +172,7 @@ def update_crm_sync(
     return client_sync_crm.to_dict()
 
 
-def get_integration(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-
-    merge_crm_account_token = client.merge_crm_account_token
-
-    if not merge_crm_account_token:
-        return None
-
-    mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
-    data = mc.get_crm_account_details()
-
-    return {
-        "id": data.id,
-        "integration": data.integration,
-        "integration_slug": data.integration_slug,
-        "category": data.category,
-        "end_user_origin_id": data.end_user_origin_id,
-        "end_user_organization_name": data.end_user_organization_name,
-        "end_user_email_address": data.end_user_email_address,
-        "status": data.status,
-        "webhook_listener_url": data.webhook_listener_url,
-        "is_duplicate": data.is_duplicate,
-    }
-
-
+# Needs Documentation
 def sync_data(client_sdr_id: int, endpoint: str, timestamp: str):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -169,57 +208,45 @@ def sync_data(client_sdr_id: int, endpoint: str, timestamp: str):
     return data
 
 
-def get_contacts(client_sdr_id: int):
-    sync_data(
-        client_sdr_id=client_sdr_id,
-        endpoint="crm.contacts",
-        timestamp="2022-01-01 00:00:00+00:00",
-    )
+def get_crm_users(client_sdr_id: int) -> list[dict]:
+    """Gets the users from the CRM
 
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        list[dict]: A list of users from the CRM
+    """
+    mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
+    users: list[User] = mc.get_crm_users()
+
+    return [user.dict() for user in users]
+
+
+def sync_user_to_sdr(client_sdr_id: int, merge_user_id: str) -> bool:
+    """Updates the connection between the SDR and the CRM user using the Merge ID
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+        merge_user_id (str): The ID of the CRM user in Merge
+
+    Returns:
+        bool: A boolean indicating success
+    """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
 
-    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
+    client_sdr.merge_user_id = merge_user_id
+    db.session.commit()
 
-    # if there is a next page, load it by passing `next` to the cursor argument
-    start_date = datetime.datetime.fromisoformat("2000-01-01 00:00:00+00:00")
-    response = merge_client.crm.contacts.list(created_after=start_date)
-    while response.next is not None:
-        response = merge_client.crm.contacts.list(
-            cursor=response.next,
-            created_after=start_date,
-            expand=ContactsListRequestExpand.ACCOUNT,
-        )
-
-    contacts = response.dict().get("results")
-
-    # contact_data = [
-    #     get_contact_csm_data(client_sdr_id, contact.get("id")) for contact in contacts
-    # ]
-
-    # print(response.dict())
-
-    # print(merge_client.crm.contacts.list(created_after=start_date).dict())
-    print(merge_client.crm.opportunities.list(created_after=start_date).dict())
-    print(merge_client.crm.stages.list(created_after=start_date).dict())
-    print(merge_client.crm.leads.list(created_after=start_date).dict())
-    print(merge_client.crm.tasks.list(created_after=start_date).dict())
+    return True
 
 
-def get_contact_csm_data(client_sdr_id: int, contact_id: str):
-    from merge.client import Merge
-
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-
-    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
-    response = merge_client.crm.contacts.meta_post_retrieve(
-        remote_id=contact_id,
-    )
-
-    print(response.dict())
+###############################
+#    UNCATEGORIZED METHODS    #
+###############################
 
 
+# TODO: Fix this and move it into the MergeClient class
 def get_operation_availability(client_sdr_id: int, operation_name: str):
     from merge.client import Merge
 
@@ -260,6 +287,7 @@ def get_operation_availability(client_sdr_id: int, operation_name: str):
     )
 
 
+# TODO: Make this use the MergeClient class
 def create_contact(client_sdr_id: int, prospect_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -319,26 +347,6 @@ def create_contact(client_sdr_id: int, prospect_id: int):
 
     print(contact_res)
     return True, "Contact created"
-
-
-def create_test_account(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-
-    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
-
-    merge_client.crm.accounts.create(
-        model=AccountRequest(
-            name="SellScale Test",
-            description="Congratulations on integrating with SellScale!",
-            industry="Software",
-            website="https://sellscale.com",
-            number_of_employees=100,
-            last_activity_at=datetime.datetime.fromisoformat(
-                "2022-02-10 00:00:00+00:00",
-            ),
-        ),
-    )
 
 
 def create_opportunity_from_prospect_id(

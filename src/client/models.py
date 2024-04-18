@@ -596,6 +596,7 @@ class ClientSDR(db.Model):
                 if self.default_transformer_blocklist
                 else []
             ),
+            "merge_user_id": self.merge_user_id,
         }
 
 
