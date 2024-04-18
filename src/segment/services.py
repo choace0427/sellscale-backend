@@ -38,17 +38,41 @@ def create_new_segment(
 
 
 def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False) -> list[dict]:
+    client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
+    client_id: int = client_sdr.client_id
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
+    
     if not include_all_in_client:
         all_segments: list[Segment] = Segment.query.filter_by(client_sdr_id=sdr_id).all()
     else:
-        client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
-        client_id: int = client_sdr.client_id
-        client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
-
         all_segments: list[Segment] = Segment.query.filter(
             Segment.client_sdr_id.in_([sdr.id for sdr in client_sdrs])
         ).all()
-    return [segment.to_dict() for segment in all_segments]
+
+    num_contacted_prospected_for_segments_query = """
+        select 
+            segment_id, 
+            count(distinct prospect.id) num_prospected,
+            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is not null or prospect.approved_outreach_message_id is not null) num_contacted
+        from prospect
+        where prospect.segment_id is not null
+            and prospect.client_id = {client_id}
+        group by 1;
+    """
+
+    num_prospected_for_segments = db.session.execute(
+        num_contacted_prospected_for_segments_query.format(client_id=client_id)
+    ).fetchall()
+    retval = [segment.to_dict() for segment in all_segments]
+
+    for segment_dict in retval:
+        segment_id = segment_dict["id"]
+        for row in num_prospected_for_segments:
+            if row[0] == segment_id:
+                segment_dict["num_prospected"] = row[1]
+                segment_dict["num_contacted"] = row[2]
+
+    return retval
 
 
 def get_base_segment_for_archetype(archetype_id: int) -> Segment:
