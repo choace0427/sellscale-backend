@@ -9,7 +9,7 @@ from src.client.models import ClientArchetype, ClientSDR
 from src.ml.services import get_text_generation
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.prospecting.icp_score.services import update_icp_filters
-from src.prospecting.models import Prospect, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectUploadHistory
 from src.segment.models import Segment
 from sqlalchemy import case
 from sqlalchemy.orm.attributes import flag_modified
@@ -166,6 +166,14 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     ).all()
     if len(prospects_with_segment) > 0:
         return False, "Segment has prospects"
+    
+    upload_history_records: list[ProspectUploadHistory] = ProspectUploadHistory.query.filter(
+        ProspectUploadHistory.client_segment_id == segment_id
+    ).all()
+    for record in upload_history_records:
+        record.client_segment_id = None
+        db.session.add(record)
+    db.session.commit()
 
     db.session.delete(segment)
     db.session.commit()
