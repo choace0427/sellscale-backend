@@ -20,6 +20,11 @@ class Segment(db.Model):
         return f"<Segment {self.id}>"
 
     def to_dict(self):
+        from model_import import ClientSDR, ClientArchetype
+
+        client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
+        client_archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
+
         return {
             "id": self.id,
             "client_sdr_id": self.client_sdr_id,
@@ -27,4 +32,6 @@ class Segment(db.Model):
             "segment_title": self.segment_title,
             "filters": self.filters,
             "parent_segment_id": self.parent_segment_id,
+            "client_sdr": client_sdr.to_dict(include_email_bank=False) if client_sdr else None,
+            "client_archetype": client_archetype.to_dict() if client_archetype else None,
         }

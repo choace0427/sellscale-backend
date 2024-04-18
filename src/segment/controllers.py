@@ -72,7 +72,10 @@ def get_segment(client_sdr_id: int, segment_id: int):
 @SEGMENT_BLUEPRINT.route("/all", methods=["GET"])
 @require_user
 def get_segments(client_sdr_id: int):
-    segments: list[dict] = get_segments_for_sdr(client_sdr_id)
+    include_all_in_client: bool = get_request_parameter(
+        "include_all_in_client", request, json=False, required=False
+    )
+    segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client)
 
     return {"segments": segments}, 200
 
