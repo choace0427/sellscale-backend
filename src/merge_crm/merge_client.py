@@ -94,7 +94,9 @@ class MergeIntegrator:
             return False
 
         # Verify that we can get the account details
-        mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
+        mc: MergeClient = MergeClient(
+            client_sdr_id=client_sdr_id, account_token=account_token
+        )
         account = mc.get_crm_account_details()
         if not account:
             return None
@@ -160,13 +162,19 @@ class MergeIntegrator:
 class MergeClient:
     """Merge CRM Client"""
 
-    def __init__(self, client_sdr_id: int):
+    def __init__(self, client_sdr_id: int, account_token: Optional[str] = None):
         self.api_key = os.environ.get("MERGE_API_KEY") or ""
 
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         client_id = client_sdr.client_id
         client: Client = Client.query.get(client_id)
-        self.account_token = client.merge_crm_account_token
+
+        # Either use the provided account token or the client's account token
+        if account_token:
+            self.account_token = account_token
+        else:
+            self.account_token = client.merge_crm_account_token
+
         self.client = Merge(api_key=self.api_key, account_token=self.account_token)
 
     ###############################
