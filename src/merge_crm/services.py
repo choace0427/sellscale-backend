@@ -21,90 +21,63 @@ from merge.resources.crm import (
     ContactsListRequestExpand,
 )
 from model_import import Prospect
-from src.merge_crm.merge_client import MergeClient
+from src.merge_crm.merge_client import MergeIntegrator, MergeClient
 
 API_KEY = os.environ.get("MERGE_API_KEY")
 
 
-# Replace api_key with your Merge production API Key
-def create_link_token(client_sdr_id):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-
-    organization_id = client.id
-    organization_name = client.company
-    email_address = client_sdr.email
-
-    body = {
-        "end_user_origin_id": client_sdr_id,  # your user's id
-        "end_user_organization_name": organization_name,  # your user's organization name
-        "end_user_email_address": email_address,  # your user's email address
-        "categories": [
-            # "hris",
-            # "ats",
-            # "accounting",
-            # "ticketing",
-            "crm",
-        ],  # choose your category
-    }
-
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-
-    link_token_url = "https://api.merge.dev/api/integrations/create-link-token"
-    link_token_result = requests.post(link_token_url, data=body, headers=headers)
-    link_token = link_token_result.json().get("link_token")
-
-    return link_token
+###############################
+#     INTEGRATION METHODS     #
+###############################
 
 
-def retrieve_account_token(client_sdr_id: int, public_token: str):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
+def create_link_token(client_sdr_id: int) -> tuple[bool, str]:
+    """Creates a link token to be used in Merge integration
 
-    headers = {"Authorization": f"Bearer {API_KEY}"}
+    Args:
+        client_sdr_id (int): The SDR which initiated the integration
 
-    account_token_url = (
-        "https://api.merge.dev/api/integrations/account-token/{}".format(public_token)
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and the link token
+    """
+    mi: MergeIntegrator = MergeIntegrator()
+    link_token = mi.generate_link_token(client_sdr_id=client_sdr_id)
+
+    return link_token is not None, link_token
+
+
+def retrieve_account_token(client_sdr_id: int, public_token: str) -> tuple[bool, str]:
+    """Retrieves the account token from Merge
+
+    Args:
+        client_sdr_id (int): The SDR which initiated the integration
+        public_token (str): The public token generated from the link token
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and the account token
+    """
+
+    mi: MergeIntegrator = MergeIntegrator()
+    account_token = mi.retrieve_account_token(
+        client_sdr_id=client_sdr_id, public_token=public_token
     )
-    account_token_result = requests.get(account_token_url, headers=headers)
 
-    account_token = account_token_result.json().get("account_token")
-
-    client.merge_crm_account_token = account_token
-    db.session.add(client)
-    db.session.commit()
-
-    # Create CRM Sync
-    client_sync_crm = ClientSyncCRM(
-        client_id=client.id,
-        sync_type="leads_only",
-        status_mapping={},
-        event_handlers={},
-    )
-    db.session.add(client_sync_crm)
-    db.session.commit()
-
-    return account_token  # Save this in your database
+    return account_token is not None, account_token
 
 
-def delete_account_token(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
+def delete_integration(client_sdr_id: int) -> tuple[bool, str]:
+    """Deletes the integration from Merge
 
-    merge_crm_account_token = client.merge_crm_account_token
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
 
-    data = None
-    try:
-        mergeClient = Merge(api_key=API_KEY, account_token=merge_crm_account_token)
-        data = mergeClient.crm.delete_account.delete()
-    except:
-        pass
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and a message
+    """
+    mi: MergeIntegrator = MergeIntegrator()
+    success, message = mi.delete_integration(client_sdr_id=client_sdr_id)
 
-    client.merge_crm_account_token = None
-    db.session.add(client)
-    db.session.commit()
-
-    return data
+    return success, message
 
 
 def update_crm_sync(
@@ -135,7 +108,7 @@ def update_crm_sync(
     return client_sync_crm.to_dict()
 
 
-def get_integrations(client_sdr_id: int):
+def get_integration(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
 
@@ -144,9 +117,8 @@ def get_integrations(client_sdr_id: int):
     if not merge_crm_account_token:
         return None
 
-    mergeClient = Merge(api_key=API_KEY, account_token=merge_crm_account_token)
-
-    data = mergeClient.crm.account_details.retrieve()
+    mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
+    data = mc.get_crm_account_details()
 
     return {
         "id": data.id,
@@ -163,7 +135,6 @@ def get_integrations(client_sdr_id: int):
 
 
 def sync_data(client_sdr_id: int, endpoint: str, timestamp: str):
-
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
     merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
@@ -199,7 +170,6 @@ def sync_data(client_sdr_id: int, endpoint: str, timestamp: str):
 
 
 def get_contacts(client_sdr_id: int):
-
     sync_data(
         client_sdr_id=client_sdr_id,
         endpoint="crm.contacts",
@@ -237,7 +207,6 @@ def get_contacts(client_sdr_id: int):
 
 
 def get_contact_csm_data(client_sdr_id: int, contact_id: str):
-
     from merge.client import Merge
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -252,7 +221,6 @@ def get_contact_csm_data(client_sdr_id: int, contact_id: str):
 
 
 def get_operation_availability(client_sdr_id: int, operation_name: str):
-
     from merge.client import Merge
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -362,7 +330,7 @@ def create_test_account(client_sdr_id: int):
     merge_client.crm.accounts.create(
         model=AccountRequest(
             name="SellScale Test",
-            description="SellScale Test",
+            description="Congratulations on integrating with SellScale!",
             industry="Software",
             website="https://sellscale.com",
             number_of_employees=100,
@@ -372,10 +340,11 @@ def create_test_account(client_sdr_id: int):
         ),
     )
 
+
 def create_opportunity_from_prospect_id(
     client_sdr_id: int, prospect_id: int
 ) -> tuple[bool, str]:
-    prospect: Prospect =  Prospect.query.get(prospect_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return False, "Prospect not found"
 
@@ -384,5 +353,5 @@ def create_opportunity_from_prospect_id(
 
     if not success:
         return False, "Opportunity not created"
-    
+
     return True, "Opportunity created"

@@ -6,8 +6,10 @@ class ClientSyncCRM(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    initiating_client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
 
-    sync_type = db.Column(db.String, nullable=False)
+    account_token = db.Column(db.String, nullable=False)
+    crm_type = db.Column(db.String, nullable=False)
     status_mapping = db.Column(db.JSON, nullable=False)
     event_handlers = db.Column(db.JSON, nullable=True)
 
@@ -15,7 +17,7 @@ class ClientSyncCRM(db.Model):
         return {
             "id": self.id,
             "client_id": self.client_id,
-            "sync_type": self.sync_type,
+            "crm_type": self.crm_type,
             "status_mapping": self.status_mapping,
             "event_handlers": self.event_handlers,
         }
