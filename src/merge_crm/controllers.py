@@ -141,8 +141,8 @@ def get_users_endpoint(client_sdr_id: int):
 @MERGE_CRM_BLUEPRINT.route("/users/sync/sdr", methods=["POST"])
 @require_user
 def post_sync_user_to_sdr(client_sdr_id: int):
-    merge_user_id = get_request_parameter(
-        "merge_user_id", request, json=True, required=True
+    merge_user_id = (
+        get_request_parameter("merge_user_id", request, json=True, required=False) or ""
     )
 
     success = sync_user_to_sdr(client_sdr_id=client_sdr_id, merge_user_id=merge_user_id)
