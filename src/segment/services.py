@@ -524,9 +524,14 @@ def move_segment_prospects(
         )
     ).all()
 
-    for prospect in prospects:
-        prospect.segment_id = to_segment_id
-        db.session.add(prospect)
+    if to_segment_id == 0:
+        Prospect.query.filter(Prospect.id.in_([prospect.id for prospect in prospects])).update(
+            {"segment_id": None}, synchronize_session=False
+        )
+    else:
+        Prospect.query.filter(Prospect.id.in_([prospect.id for prospect in prospects])).update(
+            {"segment_id": to_segment_id}, synchronize_session=False
+        )
 
     db.session.commit()
     return True, "Prospects moved to segment"
@@ -536,7 +541,7 @@ def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
     segment: Segment = Segment.query.filter_by(id=segment_id).first()
 
     # If segment is child, move to parent else move to segment 0
-    if segment.parent_segment_id:
+    if segment and segment.parent_segment_id:
         move_segment_prospects(
             client_sdr_id=client_sdr_id,
             from_segment_id=segment_id,
@@ -546,7 +551,7 @@ def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
         move_segment_prospects(
             client_sdr_id=client_sdr_id,
             from_segment_id=segment_id,
-            to_segment_id=0,
+            to_segment_id=0
         )
 
     # wipe_segment_ids_from_prospects_in_segment(segment_id)
