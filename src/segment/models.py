@@ -16,6 +16,10 @@ class Segment(db.Model):
         db.Integer, db.ForeignKey("segment.id"), nullable=True
     )
 
+    saved_apollo_query_id = db.Column(
+        db.Integer, db.ForeignKey("saved_apollo_query.id")
+    )
+
     def __repr__(self):
         return f"<Segment {self.id}>"
 
@@ -34,4 +38,5 @@ class Segment(db.Model):
             "parent_segment_id": self.parent_segment_id,
             "client_sdr": client_sdr.to_dict(include_email_bank=False) if client_sdr else None,
             "client_archetype": client_archetype.to_dict() if client_archetype else None,
+            "saved_apollo_query_id": self.saved_apollo_query_id,
         }
