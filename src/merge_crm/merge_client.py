@@ -470,6 +470,14 @@ class MergeClient:
         p: Prospect = Prospect.query.get(prospect_id)
         print(f"⚡️ Creating opportunity for {p.full_name} (#{p.id})")
 
+        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+            client_id=p.client_id
+        ).first()
+        if not client_sync_crm:
+            return None, "CRM Sync not found."
+        if not client_sync_crm.status_mapping:
+            return None, "CRM Sync status mapping not found."
+
         company: Company = Company.query.get(p.company_id)
         client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
         merge_user_id = client_sdr.merge_user_id
@@ -501,14 +509,12 @@ class MergeClient:
                     "Opportunity not found - ID may be corrupted or prospect may be deleted.",
                 )
 
-        # TODO(Aakash) - Add staging map here per client
-        stage_mapping = {
-            ProspectOverallStatus.ACTIVE_CONVO: "cf07e8fa-b5c2-4683-966e-4dc471963a32",
-            ProspectOverallStatus.DEMO: "e927f7f3-3e66-43fd-b9a8-baf4f0ee4846",
-        }
-        status = stage_mapping.get(
-            p.overall_status, "cf07e8fa-b5c2-4683-966e-4dc471963a32"
-        )
+        stage_mapping = client_sync_crm.status_mapping
+        status = stage_mapping.get(p.overall_status.value)
+        if not status:
+            # We select a random status if the status is not found
+            status = stage_mapping[next(iter(stage_mapping))]
+
         opportunity_value = 500
 
         # Create Opportunity
