@@ -6,6 +6,7 @@ from regex import E
 from app import db
 from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
+from src.contacts.models import SavedApolloQuery
 from src.ml.services import get_text_generation
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.prospecting.icp_score.services import update_icp_filters
@@ -749,3 +750,21 @@ def get_unused_segments_for_sdr(client_sdr_id: int):
         )
 
     return data
+
+def connect_saved_apollo_query_to_segment(segment_id: int, saved_apollo_query_id: int):
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+    
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)
+    if not saved_apollo_query:
+        return False, "Apollo query not found"
+    
+    if saved_apollo_query.client_sdr_id != segment.client_sdr_id:
+        return False, "Apollo query and segment belong to different SDRs"
+
+    segment.saved_apollo_query_id = saved_apollo_query_id
+    db.session.add(segment)
+    db.session.commit()
+
+    return True, "Apollo query connected to segment"

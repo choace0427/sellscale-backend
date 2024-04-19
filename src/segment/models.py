@@ -1,4 +1,5 @@
 from app import db
+from src.contacts.models import SavedApolloQuery
 
 
 class Segment(db.Model):
@@ -28,6 +29,7 @@ class Segment(db.Model):
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client_archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
+        apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(self.saved_apollo_query_id)
 
         return {
             "id": self.id,
@@ -39,4 +41,6 @@ class Segment(db.Model):
             "client_sdr": client_sdr.to_dict(include_email_bank=False) if client_sdr else None,
             "client_archetype": client_archetype.to_dict() if client_archetype else None,
             "saved_apollo_query_id": self.saved_apollo_query_id,
+            "apollo_query": apollo_query.to_dict() if apollo_query else None,
         }
+        

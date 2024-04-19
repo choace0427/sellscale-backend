@@ -9,6 +9,7 @@ from src.segment.models import Segment
 from src.segment.services import (
     add_prospects_to_segment,
     add_unused_prospects_in_segment_to_campaign,
+    connect_saved_apollo_query_to_segment,
     create_new_segment,
     delete_segment,
     extract_data_from_sales_navigator_link,
@@ -415,4 +416,20 @@ def request_campaign_and_move_prospects(client_sdr_id: int, segment_id: int):
     if success:
         return msg, 200
 
+    return "Failed", 400
+
+@SEGMENT_BLUEPRINT.route("/connect_apollo_query", methods=['POST'])
+@require_user
+def post_connect_saved_apollo_query_to_segment(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    saved_apollo_query_id = get_request_parameter("saved_apollo_query_id", request, json=True, required=True)
+
+    success, msg = connect_saved_apollo_query_to_segment(
+        segment_id=segment_id,
+        saved_apollo_query_id=saved_apollo_query_id
+    )
+
+    if success:
+        return msg, 200
+    
     return "Failed", 400
