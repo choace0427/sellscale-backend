@@ -6,12 +6,14 @@ from src.merge_crm.services import (
     create_link_token,
     create_test_account,
     delete_integration,
+    get_client_sync_crm,
+    get_crm_stages,
     get_crm_users,
     get_integration,
     get_operation_availability,
     retrieve_account_token,
-    sync_user_to_sdr,
-    update_crm_sync,
+    sync_sdr_to_crm_user,
+    sync_sellscale_to_crm_stages,
 )
 from src.utils.request_helpers import get_request_parameter
 from model_import import ClientSDR
@@ -95,27 +97,6 @@ def make_test_account(client_sdr_id: int):
 ###############################
 
 
-@MERGE_CRM_BLUEPRINT.route("/update_crm_sync", methods=["PUT"])
-@require_user
-def put_update_crm_sync_endpoint(client_sdr_id: int):
-    sync_type = get_request_parameter("sync_type", request, json=True, required=False)
-    status_mapping = get_request_parameter(
-        "status_mapping", request, json=True, required=False
-    )
-    event_handlers = get_request_parameter(
-        "event_handlers", request, json=True, required=False
-    )
-
-    result = update_crm_sync(
-        client_sdr_id=client_sdr_id,
-        sync_type=sync_type,
-        status_mapping=status_mapping,
-        event_handlers=event_handlers,
-    )
-
-    return jsonify({"status": "success", "data": result})
-
-
 @MERGE_CRM_BLUEPRINT.route("/crm_sync", methods=["GET"])
 @require_user
 def get_crm_sync_endpoint(client_sdr_id: int):
@@ -131,7 +112,7 @@ def get_crm_sync_endpoint(client_sdr_id: int):
 
 @MERGE_CRM_BLUEPRINT.route("/users", methods=["GET"])
 @require_user
-def get_users_endpoint(client_sdr_id: int):
+def get_crm_users_endpoint(client_sdr_id: int):
     users = get_crm_users(client_sdr_id=client_sdr_id)
     sdrs = get_active_sdrs(client_sdr_id=client_sdr_id)
 
@@ -140,15 +121,44 @@ def get_users_endpoint(client_sdr_id: int):
 
 @MERGE_CRM_BLUEPRINT.route("/users/sync/sdr", methods=["POST"])
 @require_user
-def post_sync_user_to_sdr(client_sdr_id: int):
+def post_sync_sdr_to_crm_user(client_sdr_id: int):
     merge_user_id = (
         get_request_parameter("merge_user_id", request, json=True, required=False)
         or None
     )
 
-    success = sync_user_to_sdr(client_sdr_id=client_sdr_id, merge_user_id=merge_user_id)
+    success = sync_sdr_to_crm_user(
+        client_sdr_id=client_sdr_id, merge_user_id=merge_user_id
+    )
     if not success:
         return jsonify({"status": "error", "message": "Failed to sync user"}), 400
+
+    return jsonify({"status": "success"})
+
+
+@MERGE_CRM_BLUEPRINT.route("/stages", methods=["GET"])
+@require_user
+def get_crm_stages_endpoint(client_sdr_id: int):
+    stages = get_crm_stages(client_sdr_id=client_sdr_id)
+    current_mapping = get_client_sync_crm(client_sdr_id).get("status_mapping")
+
+    return jsonify(
+        {"status": "success", "data": {"stages": stages, "mapping": current_mapping}}
+    )
+
+
+@MERGE_CRM_BLUEPRINT.route("/stages/sync", methods=["POST"])
+@require_user
+def post_sync_stages(client_sdr_id: int):
+    stage_mapping = (
+        get_request_parameter("stage_mapping", request, json=True, required=False)
+    ) or {}
+
+    success = sync_sellscale_to_crm_stages(
+        client_sdr_id=client_sdr_id, stage_mapping=stage_mapping
+    )
+    if not success:
+        return jsonify({"status": "error", "message": "Failed to sync stages"}), 400
 
     return jsonify({"status": "success"})
 

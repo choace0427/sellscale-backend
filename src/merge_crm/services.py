@@ -143,33 +143,21 @@ def create_test_account(client_sdr_id: int) -> bool:
 ###############################
 
 
-# Needs Documentation
-def update_crm_sync(
-    client_sdr_id: int,
-    sync_type: Optional[str],
-    status_mapping: Optional[dict],
-    event_handlers: Optional[dict],
-):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
+def get_client_sync_crm(client_sdr_id: int) -> dict:
+    """Gets the CRM sync details for the client
 
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        dict: A dictionary containing the CRM sync details
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
-        client_id=client.id
+        client_id=client_sdr.client_id
     ).first()
 
-    if not client_sync_crm:
-        return None
-
-    if sync_type:
-        client_sync_crm.sync_type = sync_type
-    if status_mapping:
-        client_sync_crm.status_mapping = status_mapping
-    if event_handlers:
-        client_sync_crm.event_handlers = event_handlers
-
-    db.session.add(client_sync_crm)
-    db.session.commit()
-    return client_sync_crm.to_dict()
+    return client_sync_crm.to_dict() if client_sync_crm else None
 
 
 # Needs Documentation
@@ -223,7 +211,9 @@ def get_crm_users(client_sdr_id: int) -> list[dict]:
     return [user.dict() for user in users]
 
 
-def sync_user_to_sdr(client_sdr_id: int, merge_user_id: Optional[str] = None) -> bool:
+def sync_sdr_to_crm_user(
+    client_sdr_id: int, merge_user_id: Optional[str] = None
+) -> bool:
     """Updates the connection between the SDR and the CRM user using the Merge ID
 
     Args:
@@ -236,6 +226,49 @@ def sync_user_to_sdr(client_sdr_id: int, merge_user_id: Optional[str] = None) ->
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     client_sdr.merge_user_id = merge_user_id
+    db.session.commit()
+
+    return True
+
+
+def get_crm_stages(client_sdr_id: int) -> list[dict]:
+    """Gets the stages from the CRM
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        list[dict]: A list of stages from the CRM
+    """
+    mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
+    stages = mc.get_crm_stages()
+
+    return [stage.dict() for stage in stages]
+
+
+def sync_sellscale_to_crm_stages(
+    client_sdr_id: int, stage_mapping: Optional[dict] = {}
+) -> bool:
+    """Syncs the stages from SellScale to the CRM
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+        stage_mapping (dict): A dictionary containing the stage mapping
+
+    Returns:
+        bool: A boolean indicating success
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    # Get the ClientSyncCRM object
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=client.id
+    ).first()
+
+    # Update the status mapping
+    client_sync_crm.status_mapping = stage_mapping
+    db.session.add(client_sync_crm)
     db.session.commit()
 
     return True
