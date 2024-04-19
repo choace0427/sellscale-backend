@@ -73,6 +73,9 @@ def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False) -> li
                 segment_dict["num_prospected"] = row[1]
                 segment_dict["num_contacted"] = row[2]
 
+    # order by segment ID reverse order
+    retval = sorted(retval, key=lambda x: x["id"], reverse=True)
+
     return retval
 
 
