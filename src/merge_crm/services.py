@@ -223,7 +223,7 @@ def get_crm_users(client_sdr_id: int) -> list[dict]:
     return [user.dict() for user in users]
 
 
-def sync_user_to_sdr(client_sdr_id: int, merge_user_id: str) -> bool:
+def sync_user_to_sdr(client_sdr_id: int, merge_user_id: Optional[str] = None) -> bool:
     """Updates the connection between the SDR and the CRM user using the Merge ID
 
     Args:

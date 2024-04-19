@@ -142,7 +142,8 @@ def get_users_endpoint(client_sdr_id: int):
 @require_user
 def post_sync_user_to_sdr(client_sdr_id: int):
     merge_user_id = (
-        get_request_parameter("merge_user_id", request, json=True, required=False) or ""
+        get_request_parameter("merge_user_id", request, json=True, required=False)
+        or None
     )
 
     success = sync_user_to_sdr(client_sdr_id=client_sdr_id, merge_user_id=merge_user_id)
