@@ -24,12 +24,18 @@ def create_new_segment(
     ).first()
     if existing_segment:
         return None
+    
+    parent_segment: Segment = Segment.query.get(parent_segment_id)
+    saved_apollo_query_id = None
+    if parent_segment:
+        saved_apollo_query_id = parent_segment.saved_apollo_query_id
 
     new_segment = Segment(
         client_sdr_id=client_sdr_id,
         segment_title=segment_title,
         filters=filters,
         parent_segment_id=parent_segment_id,
+        saved_apollo_query_id=saved_apollo_query_id,
     )
 
     db.session.add(new_segment)
