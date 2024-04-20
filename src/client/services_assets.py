@@ -9,6 +9,10 @@ def generate_client_assets(
     text_dump: str,
     website_url: Optional[str] = None,
     additional_prompting: Optional[str] = None,
+    num_pain_points: Optional[int] = -1,
+    num_value_props: Optional[int] = -1,
+    num_social_proof: Optional[int] = -1,
+    num_how_it_works: Optional[int] = -1,
 ):
 
     client: Client = Client.query.get(client_id)
@@ -36,6 +40,58 @@ def generate_client_assets(
     website_summary = (
         f'''Website Summary: "{website_summary}"''' if website_summary else ""
     )
+
+    pain_point_example = f"""
+    
+Title: High costs with collecting images
+Value: Today, there is extensive time and high costs associated with collecting images for training computer vision models.
+Tag: Pain Point
+
+Title: Adaptability of mnfg lines
+Value: Changes in the manufacturing line process means you have to rephrase a training process.
+Tag: Pain Point
+    
+    """
+
+    value_prop_example = f"""
+    
+Title: Breakthrough in Computer Vision Model Performance
+Value: Advex enables computer vision engineers to deploy top-performing models within hours, drastically improving accuracy with as few as 5-10 real images for training, thanks to our generative AI technology.
+Tag: Value Prop
+
+Title: Streamlining Visual Inspection Processes
+Value: Our solution not only reduces the cost and time of data collection but also adapts to changes post-deployment, preventing downtime and eliminating the need for repetitive data gathering.
+Tag: Value Prop
+
+Title: Precision in Manufacturing Through AI
+Value: By leveraging generative AI, Advex can create synthetic data sets that lead to higher model accuracy for defect detection and quality control in manufacturing processes.
+Tag: Value Prop
+    
+    """
+
+    how_it_works_example = f"""
+    
+Title: Getting started
+Value: Getting started with Ash is easy: 1. Order test kit 2. Test kit shipped in 24 hours 3. Customers self-collect at home 4. Customer ships to lab 5. Lab results in 3-5 days
+Tag: How it Works
+
+Title: Detect defection & segmentation
+Value: Detect defection & segmentation → many boxes on a conveyor belt and the segmentation model will say where the box is
+Tag: How it Works
+    
+    """
+
+    social_proof_example = f"""
+    
+Title: Adaptability of mnfg lines
+Value: Auto-manufacturer was previously experiencing 55% defect rates. After implementing, they saw a 52% reduction from using Advex's AI technology after 3 months.
+Tag: Social Proof
+
+Title: OpenAI Used Us
+Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
+Tag: Social Proof
+    
+    """
 
     prompt = f"""
     
@@ -167,41 +223,13 @@ case study and link has been the best so far. no case study lower open rate.
 
 # Output:
 
-Title: Breakthrough in Computer Vision Model Performance
-Value: Advex enables computer vision engineers to deploy top-performing models within hours, drastically improving accuracy with as few as 5-10 real images for training, thanks to our generative AI technology.
-Tag: Value Prop
+{num_value_props != -1 and value_prop_example or ""}
 
-Title: Streamlining Visual Inspection Processes
-Value: Our solution not only reduces the cost and time of data collection but also adapts to changes post-deployment, preventing downtime and eliminating the need for repetitive data gathering.
-Tag: Value Prop
+{num_pain_points != -1 and pain_point_example or ""}
 
-Title: Precision in Manufacturing Through AI
-Value: By leveraging generative AI, Advex can create synthetic data sets that lead to higher model accuracy for defect detection and quality control in manufacturing processes.
-Tag: Value Prop
+{num_how_it_works != -1 and how_it_works_example or ""}
 
-Title: High costs with collecting images
-Value: Today, there is extensive time and high costs associated with collecting images for training computer vision models.
-Tag: Pain Point
-
-Title: Adaptability of mnfg lines
-Value: Changes in the manufacturing line process means you have to rephrase a training process.
-Tag: Pain Point
-
-Title: Adaptability of mnfg lines
-Value: Auto-manufacturer was previously experiencing 55% defect rates. After implementing, they saw a 52% reduction from using Advex's AI technology after 3 months.
-Tag: Social Proof
-
-Title: Getting started
-Value: Getting started with Ash is easy: 1. Order test kit 2. Test kit shipped in 24 hours 3. Customers self-collect at home 4. Customer ships to lab 5. Lab results in 3-5 days
-Tag: How it Works
-
-Title: Detect defection & segmentation
-Value: Detect defection & segmentation → many boxes on a conveyor belt and the segmentation model will say where the box is
-Tag: How it Works
-
-Title: OpenAI Used Us
-Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
-Tag: Social Proof
+{num_social_proof != -1 and social_proof_example or ""}
 
 ... TODO, continue generating assets ...
 
@@ -222,9 +250,18 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
 {text_dump}
 --------------------------------------------------------------------------
 
+## Additional Requirements:
+
+{num_value_props != -1 and f"- Create {num_value_props} Value Props" or ""}
+{num_pain_points != -1 and f"- Create {num_pain_points} Pain Points" or ""}
+{num_how_it_works != -1 and f"- Create {num_how_it_works} How It Works" or ""}
+{num_social_proof != -1 and f"- Create {num_social_proof} Social Proofs" or ""}
+
 # Output:
     
     """.strip()
+
+    print(prompt)
 
     completion = (
         get_text_generation(

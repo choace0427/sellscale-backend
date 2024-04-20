@@ -3344,12 +3344,33 @@ def post_generate_assets():
     additional_prompting = get_request_parameter(
         "additional_prompting", request, json=True, required=False, parameter_type=str
     )
+    
+    num_pain_points = get_request_parameter(
+        "num_pain_points", request, json=True, required=False, parameter_type=int
+    )
+    num_value_props = get_request_parameter(
+        "num_value_props", request, json=True, required=False, parameter_type=int
+    )
+    num_case_studies = get_request_parameter(
+        "num_case_studies", request, json=True, required=False, parameter_type=int
+    )
+    num_how_it_works = get_request_parameter(
+        "num_how_it_works", request, json=True, required=False, parameter_type=int
+    )
+    num_pain_points = get_request_parameter(
+        "num_pain_points", request, json=True, required=False, parameter_type=int
+    )
 
     assets = generate_client_assets(
         client_id=client_id,
         text_dump=text_dump,
         website_url=website_url,
         additional_prompting=additional_prompting,
+        num_pain_points=num_pain_points,
+        num_value_props=num_value_props,
+        num_case_studies=num_case_studies,
+        num_how_it_works=num_how_it_works,
+        
     )
 
     return jsonify({"message": "Success", "data": assets}), 200

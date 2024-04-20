@@ -519,6 +519,11 @@ def generate_email_follow_up_quick_and_dirty(
     Thanks,
 
     [Signature]
+    
+    ## Assets Used:
+    Title: [Asset Title]
+    Value: [Asset Value]
+    Tag: [Asset Tag]
     ---------------------------------------------------
     ## Output:
     ### Message:
@@ -531,6 +536,19 @@ def generate_email_follow_up_quick_and_dirty(
     Thanks,
 
     [Signature]
+    
+    ## Assets Used:
+    Title: [Asset Title]
+    Value: [Asset Value]
+    Tag: [Asset Tag]
+    
+    Title: [Asset Title]
+    Value: [Asset Value]
+    Tag: [Asset Tag]
+    
+    Title: [Asset Title]
+    Value: [Asset Value]
+    Tag: [Asset Tag]
     ---------------------------------------------------
     ## Output:
     ### Message:
@@ -541,6 +559,15 @@ def generate_email_follow_up_quick_and_dirty(
     If you’re not the right person to talk to, whom should I reach out to?
 
     Thanks,
+    
+    ## Assets Used:
+    Title: [Asset Title]
+    Value: [Asset Value]
+    Tag: [Asset Tag]
+    
+    Title: [Asset Title]
+    Value: [Asset Value]
+    Tag: [Asset Tag]
     ---------------------------------------------------
     
     
