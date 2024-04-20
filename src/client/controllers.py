@@ -3351,8 +3351,8 @@ def post_generate_assets():
     num_value_props = get_request_parameter(
         "num_value_props", request, json=True, required=False, parameter_type=int
     )
-    num_case_studies = get_request_parameter(
-        "num_case_studies", request, json=True, required=False, parameter_type=int
+    num_social_proof = get_request_parameter(
+        "num_social_proof", request, json=True, required=False, parameter_type=int
     )
     num_how_it_works = get_request_parameter(
         "num_how_it_works", request, json=True, required=False, parameter_type=int
@@ -3368,7 +3368,7 @@ def post_generate_assets():
         additional_prompting=additional_prompting,
         num_pain_points=num_pain_points,
         num_value_props=num_value_props,
-        num_case_studies=num_case_studies,
+        num_social_proof=num_social_proof,
         num_how_it_works=num_how_it_works,
         
     )
