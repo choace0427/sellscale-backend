@@ -788,3 +788,48 @@ def connect_saved_apollo_query_to_segment(segment_id: int, saved_apollo_query_id
     db.session.commit()
 
     return True, "Apollo query connected to segment"
+
+def transfer_segment(
+        current_client_sdr_id: int,
+        segment_id: int, 
+        new_client_sdr_id: int):
+    """
+    Transfers a segment to a new SDR which means that all prospected prospects in the segment will be transferred to the new SDR
+    (i.e. folks who do not have any outreach message or email approved will be transferred to the new SDR)
+    """
+    # verify that current SDR has access to the segment
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+    if segment.client_sdr_id != current_client_sdr_id:
+        return False, "Segment does not belong to current SDR"
+
+    prospects: list[Prospect] = Prospect.query.filter(
+        and_(
+            Prospect.segment_id == segment_id,
+            Prospect.overall_status == ProspectOverallStatus.PROSPECTED,
+            Prospect.approved_outreach_message_id == None,
+            Prospect.approved_prospect_email_id == None,
+        )
+    ).all()
+
+    unassigned_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        client_sdr_id=new_client_sdr_id, is_unassigned_contact_archetype=True
+    ).first()
+    if not unassigned_archetype:
+        return False, "Unassigned archetype not found for new SDR"
+    
+    Prospect.query.filter(
+        Prospect.id.in_([prospect.id for prospect in prospects])
+    ).update({
+        Prospect.client_sdr_id: new_client_sdr_id,
+        Prospect.archetype_id: unassigned_archetype.id
+    }, synchronize_session=False)
+    db.session.commit()
+
+    segment: Segment = Segment.query.get(segment_id)
+    segment.client_sdr_id = new_client_sdr_id
+    db.session.add(segment)
+    db.session.commit()
+
+    return True, "Segment transferred to new SDR"

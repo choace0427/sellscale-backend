@@ -203,6 +203,16 @@ def get_clients(client_sdr_id: int):
     )
 
 
+@CLIENT_BLUEPRINT.route("/sdrs", methods=['GET'])
+@require_user
+def get_sdrs(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    sdrs = ClientSDR.query.filter_by(client_id=client_id, active=True).all()
+    return jsonify({"message": "Success", "data": [sdr.to_dict() for sdr in sdrs]}), 200
+
+
 @CLIENT_BLUEPRINT.route("/all_archetypes", methods=["GET"])
 @require_user
 def get_client_all_archetypes(client_sdr_id: int):
