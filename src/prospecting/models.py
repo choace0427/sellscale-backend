@@ -1002,7 +1002,7 @@ class ProspectUploadHistory(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
     client_segment_id = db.Column(
-        db.Integer, db.ForeignKey("segment.id"), nullable=False
+        db.Integer, db.ForeignKey("segment.id"), nullable=True
     )
     raw_data = db.Column(JSONB, nullable=False)
     raw_data_hash = db.Column(db.String, nullable=False)

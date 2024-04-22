@@ -177,12 +177,22 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     if len(prospects_with_segment) > 0:
         return False, "Segment has prospects"
     
+    # remove upload history records
     upload_history_records: list[ProspectUploadHistory] = ProspectUploadHistory.query.filter(
         ProspectUploadHistory.client_segment_id == segment_id
     ).all()
     for record in upload_history_records:
         record.client_segment_id = None
         db.session.add(record)
+    db.session.commit()
+
+    # any child segment should be moved to parent
+    child_segments: list[Segment] = Segment.query.filter_by(
+        parent_segment_id=segment_id
+    ).all()
+    for child_segment in child_segments:
+        child_segment.parent_segment_id = None
+        db.session.add(child_segment)
     db.session.commit()
 
     db.session.delete(segment)
@@ -561,7 +571,6 @@ def move_segment_prospects(
 ):
     prospects: list[Prospect] = Prospect.query.filter(
         and_(
-            Prospect.client_sdr_id == client_sdr_id,
             Prospect.segment_id == from_segment_id,
         )
     ).all()
@@ -597,7 +606,9 @@ def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
         )
 
     # wipe_segment_ids_from_prospects_in_segment(segment_id)
-    delete_segment(client_sdr_id, segment_id)
+    success, msg = delete_segment(client_sdr_id, segment_id)
+    if not success:
+        return False, msg
     return True, "Segment wiped and deleted"
 
 
