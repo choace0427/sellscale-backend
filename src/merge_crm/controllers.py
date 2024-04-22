@@ -178,7 +178,7 @@ def get_crm_operation_available_endpoint(client_sdr_id: int):
     )
 
 
-@MERGE_CRM_BLUEPRINT.route("/create_opportunity", methods=["POST"])
+@MERGE_CRM_BLUEPRINT.route("/opportunity/create", methods=["POST"])
 @require_user
 def create_opportunity(client_sdr_id: int):
     prospect_id = get_request_parameter(

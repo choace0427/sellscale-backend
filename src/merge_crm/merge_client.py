@@ -111,6 +111,7 @@ class MergeIntegrator:
             client_id=client.id,
             initiating_client_sdr_id=client_sdr_id,
             account_token=account_token,
+            account_id=account.id,
             crm_type=account.integration,
             status_mapping={},
             event_handlers={},
@@ -515,7 +516,9 @@ class MergeClient:
             # We select a random status if the status is not found
             status = stage_mapping[next(iter(stage_mapping))]
 
-        opportunity_value = 500
+        # Get Opportunity Value TODO: Check the Campaign's contract size
+        client: Client = Client.query.get(p.client_id)
+        opportunity_value = client.contract_size or 500
 
         # Create Opportunity
         try:

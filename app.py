@@ -292,6 +292,7 @@ def register_blueprints(app):
 
     from src.utilization.controllers import UTILIZATION_BLUEPRINT
     from src.prospecting.upload.controllers import PROSPECTING_UPLOAD_BLUEPRINT
+    from src.merge_crm.webhooks.controllers import MERGE_CRM_WEBHOOKS_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -365,6 +366,9 @@ def register_blueprints(app):
     app.register_blueprint(SLACK_AUTH_BLUEPRINT, url_prefix="/slack/authentication")
     app.register_blueprint(TRACK_BLUEPRINT, url_prefix="/track")
     app.register_blueprint(MERGE_CRM_BLUEPRINT, url_prefix="/merge_crm")
+    app.register_blueprint(
+        MERGE_CRM_WEBHOOKS_BLUEPRINT, url_prefix="/merge/crm/webhooks"
+    )
     app.register_blueprint(SLACK_EVENTS_BLUEPRINT, url_prefix="/slack/events")
     app.register_blueprint(LINK_URL_BLUEPRINT, url_prefix="/link_url")
     app.register_blueprint(OUTBOUND_QUOTA_BLUEPRINT, url_prefix="/outbound_quota")
