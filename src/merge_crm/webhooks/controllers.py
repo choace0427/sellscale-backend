@@ -1,4 +1,5 @@
 from functools import wraps
+import json
 import os
 from flask import Blueprint, jsonify, request
 
@@ -25,15 +26,13 @@ def authenticate_webhook(f) -> None:
 
     @wraps(f)
     def decorator(*args, **kwargs):
-        signature = os.environ.get("MERGE_CRM_WEBHOOK_SECRET")
-        raw_request_body = request.get_json()
-
-        # Replace special characters with Unicode escape sequences
-        modified_request_body = raw_request_body.replace("’", "\\u2019")
+        signature = os.environ.get("MERGE_API_WEBHOOK_SECRET")
+        request_body: dict = request.get_json()
+        request_body_str: str = json.dumps(request_body)
 
         hmac_digest = hmac.new(
             signature.encode("utf-8"),
-            modified_request_body.encode("utf-8"),
+            request_body_str.encode("utf-8"),
             hashlib.sha256,
         ).digest()
 
