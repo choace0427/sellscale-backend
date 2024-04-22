@@ -561,6 +561,26 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
     option_icp_filters = get_request_parameter(
         "option_icp_filters", request, json=True, required=True, parameter_type=bool
     )
+    option_email_steps = (
+        get_request_parameter(
+            "option_email_steps",
+            request,
+            json=True,
+            required=False,
+            parameter_type=bool,
+        )
+        or False
+    )
+    option_li_init_msg = (
+        get_request_parameter(
+            "option_li_init_msg",
+            request,
+            json=True,
+            required=False,
+            parameter_type=bool,
+        )
+        or False
+    )
 
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -578,6 +598,8 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
         option_voices=option_voices,
         option_email_blocks=option_email_blocks,
         option_icp_filters=option_icp_filters,
+        option_email_steps=option_email_steps,
+        option_li_init_msg=option_li_init_msg,
     )
     if not persona:
         return "Failed to clone archetype", 500
@@ -3354,7 +3376,7 @@ def post_generate_assets():
     additional_prompting = get_request_parameter(
         "additional_prompting", request, json=True, required=False, parameter_type=str
     )
-    
+
     num_pain_points = get_request_parameter(
         "num_pain_points", request, json=True, required=False, parameter_type=int
     )
@@ -3380,7 +3402,6 @@ def post_generate_assets():
         num_value_props=num_value_props,
         num_social_proof=num_social_proof,
         num_how_it_works=num_how_it_works,
-        
     )
 
     return jsonify({"message": "Success", "data": assets}), 200

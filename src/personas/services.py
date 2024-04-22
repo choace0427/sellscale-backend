@@ -24,6 +24,11 @@ from model_import import (
     GeneratedMessageCTA,
     BumpFramework,
     StackRankedMessageGenerationConfiguration,
+    EmailSequenceStep,
+)
+from src.li_conversation.models import (
+    LinkedInInitialMessageToAssetMapping,
+    LinkedinInitialMessageTemplate,
 )
 from src.prospecting.icp_score.services import (
     apply_icp_scoring_ruleset_filters_task,
@@ -37,6 +42,10 @@ import yaml
 from sqlalchemy import func
 
 from src.research.account_research import generate_prospect_research
+from src.client.archetype.services_client_archetype import (
+    create_linkedin_initial_message_template,
+)
+from src.email_sequencing.services import create_email_sequence_step
 
 
 def verify_client_sdr_can_access_archetype(client_sdr_id: int, archetype_id: int):
@@ -563,6 +572,8 @@ def clone_persona(
     option_voices: bool,
     option_email_blocks: bool,
     option_icp_filters: bool,
+    option_email_steps: bool,
+    option_li_init_msg: bool,
 ):
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if sdr is None:
@@ -586,6 +597,10 @@ def clone_persona(
     )
     new_persona_id: int = result.get("client_archetype_id") or -1
 
+    if new_persona_id == -1:
+        print("Failed to create new persona")
+        return None
+
     if option_ctas:
         original_ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter_by(
             archetype_id=original_persona_id
@@ -596,6 +611,22 @@ def clone_persona(
                 text_value=original_cta.text_value,
                 expiration_date=original_cta.expiration_date,
                 active=original_cta.active,
+            )
+
+    if option_li_init_msg:
+        li_init_msgs: list[LinkedinInitialMessageTemplate] = (
+            LinkedinInitialMessageTemplate.query.filter_by(
+                client_archetype_id=original_persona_id
+            ).all()
+        )
+        for li_init_msg in li_init_msgs:
+            create_linkedin_initial_message_template(
+                title=li_init_msg.title,
+                message=li_init_msg.message,
+                client_sdr_id=li_init_msg.client_sdr_id,
+                client_archetype_id=new_persona_id,
+                research_points=li_init_msg.research_points,
+                additional_instructions=li_init_msg.additional_instructions,
             )
 
     if option_bump_frameworks:
@@ -610,11 +641,11 @@ def clone_persona(
             )
 
     if option_voices:
-        original_voices: list[
-            StackRankedMessageGenerationConfiguration
-        ] = StackRankedMessageGenerationConfiguration.query.filter_by(
-            archetype_id=original_persona_id
-        ).all()
+        original_voices: list[StackRankedMessageGenerationConfiguration] = (
+            StackRankedMessageGenerationConfiguration.query.filter_by(
+                archetype_id=original_persona_id
+            ).all()
+        )
         for original_voice in original_voices:
             voice = StackRankedMessageGenerationConfiguration(
                 configuration_type=original_voice.configuration_type,
@@ -653,6 +684,29 @@ def clone_persona(
         )
         persona.email_blocks_configuration = original_persona.email_blocks_configuration
         db.session.commit()
+
+    if option_email_steps:
+        email_sequence_steps: list[EmailSequenceStep] = (
+            EmailSequenceStep.query.filter_by(
+                client_archetype_id=original_persona_id
+            ).all()
+        )
+        for email_sequence_step in email_sequence_steps:
+            create_email_sequence_step(
+                client_sdr_id=email_sequence_step.client_sdr_id,
+                client_archetype_id=new_persona_id,
+                title=email_sequence_step.title,
+                template=email_sequence_step.template,
+                overall_status=email_sequence_step.overall_status,
+                bumped_count=email_sequence_step.bumped_count,
+                active=email_sequence_step.active,
+                substatus=email_sequence_step.substatus,
+                default=email_sequence_step.default,
+                sellscale_default_generated=email_sequence_step.sellscale_default_generated,
+                transformer_blocklist=email_sequence_step.transformer_blocklist,
+                sequence_delay_days=email_sequence_step.sequence_delay_days,
+                mapped_asset_ids=[],
+            )
 
     if option_icp_filters:
         clone_icp_ruleset(

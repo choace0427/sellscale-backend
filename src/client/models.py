@@ -204,9 +204,9 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[
-            GeneratedMessageCTA
-        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        ctas: list[GeneratedMessageCTA] = (
+            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        )
 
         return {
             "id": self.id,
