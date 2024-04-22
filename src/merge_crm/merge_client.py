@@ -459,6 +459,25 @@ class MergeClient:
 
         return opportunity
 
+    def find_opportunity_by_opportunity_id(
+        self, opportunity_id: str
+    ) -> Optional[Opportunity]:
+        """Find Opportunity by Opportunity ID
+
+        Args:
+            opportunity_id (str): Opportunity ID
+
+        Returns:
+            Optional[Opportunity]: Opportunity object
+        """
+        # Find Opportunity
+        try:
+            opportunity = self.client.crm.opportunities.retrieve(id=opportunity_id)
+        except:
+            return None
+
+        return opportunity
+
     def create_opportunity(self, prospect_id: int) -> tuple[Optional[str], str]:
         """Create Opportunity in the client's CRM
 

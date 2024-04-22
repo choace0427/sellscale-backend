@@ -1,6 +1,6 @@
 import datetime
 from typing import Optional
-from app import db
+from app import db, celery
 
 import os
 
@@ -272,6 +272,74 @@ def sync_sellscale_to_crm_stages(
     db.session.commit()
 
     return True
+
+
+###############################
+#       POLLING METHODS       #
+###############################
+
+
+@celery.task
+def poll_crm_opportunities() -> None:
+    """Polls and update opportunities from the CRM
+
+    Returns:
+        None
+    """
+    # Get all unique Merge Opportunity IDs from Prospects
+    sql_query = """
+        SELECT DISTINCT
+            prospect.merge_opportunity_id
+        FROM
+            prospect
+        WHERE
+            merge_opportunity_id IS NOT NULL;
+    """
+    result = db.engine.execute(sql_query).fetchall()
+    merge_opportunity_ids = [row[0] for row in result]
+
+    for opportunity_id in merge_opportunity_ids:
+        print("Processing opportunity:", opportunity_id)
+        # Get the Prospects that are linked to this opportunity
+        prospects: list[Prospect] = Prospect.query.filter(
+            Prospect.merge_opportunity_id == opportunity_id
+        ).all()
+
+        # Get the SDR that is linked to the first Prospect
+        client_sdr_id = prospects[0].client_sdr_id
+        crm: MergeClient = MergeClient(client_sdr_id)
+
+        # Get the latest opportunity details from the CRM
+        opportunity = crm.find_opportunity_by_opportunity_id(opportunity_id)
+        if not opportunity:
+            # A desync has occured, remove the opportunity ID from the Prospects
+            print("Opportunity not found, removing from Prospects.")
+            update_data = [
+                {
+                    "id": prospect.id,
+                    "merge_opportunity_id": None,
+                }
+                for prospect in prospects
+            ]
+            db.session.bulk_update_mappings(Prospect, update_data)
+            continue
+
+        # Get relevant details from the opportunity #TODO: Add more here?
+        amount = opportunity.amount
+
+        # Update the Prospects with the latest opportunity details
+        print("Updating Prospects with opportunity details.")
+        update_data = [
+            {
+                "id": prospect.id,
+                "contract_size": amount,
+            }
+            for prospect in prospects
+        ]
+        db.session.bulk_update_mappings(Prospect, update_data)
+
+    db.session.commit()
+    return
 
 
 ###############################

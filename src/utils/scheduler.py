@@ -447,6 +447,13 @@ def run_auto_turn_off_finished_archetypes():
         auto_turn_off_finished_archetypes.delay()
 
 
+def run_merge_poll_crm_opportunities():
+    from src.merge_crm.services import poll_crm_opportunities
+
+    if is_scheduling_instance():
+        poll_crm_opportunities.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -551,6 +558,7 @@ scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
 scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger)
 scheduler.add_job(run_capture_outbound_quota_snapshot, trigger=daily_trigger)
 scheduler.add_job(run_auto_turn_off_finished_archetypes, trigger=daily_trigger)
+scheduler.add_job(run_merge_poll_crm_opportunities, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
