@@ -829,6 +829,7 @@ def transfer_segment(
 
     segment: Segment = Segment.query.get(segment_id)
     segment.client_sdr_id = new_client_sdr_id
+    segment.client_archetype_id = None
     db.session.add(segment)
     db.session.commit()
 
