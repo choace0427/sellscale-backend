@@ -1,4 +1,5 @@
 from app import db, celery
+from src.client.models import Client, ClientSDR
 from src.merge_crm.models import ClientSyncCRM
 
 from src.merge_crm.webhooks.models import (
@@ -8,6 +9,7 @@ from src.merge_crm.webhooks.models import (
 )
 from src.merge_crm.webhooks.services import create_merge_webhook_payload
 from src.prospecting.models import Prospect
+from src.utils.slack import send_slack_message, URL_MAP
 
 
 def create_and_process_crm_opportunity_updated_payload(payload: dict) -> bool:
@@ -89,9 +91,33 @@ def process_crm_opportunity_updated_webhook(payload_id: int):
         prospects: list[Prospect] = Prospect.query.filter(
             Prospect.merge_opportunity_id == opportunity_id
         ).all()
+        if not prospects:
+            merge_payload.processing_status = MergeWebhookProcessingStatus.FAILED
+            merge_payload.processing_fail_reason = "No prospects found for opportunity"
+            db.session.commit()
+            return False, "No prospects found for opportunity"
+
+        # Update the contract size for each Prospect
+        new_contract_size = data.get("amount")
+        sdr: ClientSDR = ClientSDR.query.get(prospects[0].client_sdr_id)
+        client: Client = Client.query.get(sdr.client_id)
+        slack_alert_sent = False
         for prospect in prospects:
-            # Update the contract size
-            prospect.contract_size = data.get("amount")
+            if new_contract_size != prospect.contract_size:
+                # Send a Slack message
+                if not slack_alert_sent:
+                    slack_alert_sent = True
+                    integration = linked_account.get("integration")
+                    opportunity = data.get("name")
+                    difference = new_contract_size - prospect.contract_size
+                    difference_str = f"{'+' if difference > 0 else ''}${difference}"
+                    send_slack_message(
+                        f"Opportunity value changed in CRM.\nUser: {sdr.name}\nCompany: {client.company}\nCRM: {integration}\n\nOpportunity: {opportunity}\nProspect: {prospect.full_name}\nChange: ${prospect.contract_size} -> ${new_contract_size} ({difference_str})",
+                        webhook_urls=[URL_MAP["ops-alerts-opportunity-changed"]],
+                    )
+
+                # Update the contract size
+                prospect.contract_size = new_contract_size
 
         # Set the payload to "SUCCEEDED"
         merge_payload.processing_status = MergeWebhookProcessingStatus.SUCCEEDED

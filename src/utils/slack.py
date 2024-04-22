@@ -58,6 +58,7 @@ URL_MAP = {
     "honeypot-email-grader": "https://hooks.slack.com/services/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",
     "ops-rep-intervention": "https://hooks.slack.com/services/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",
     "ops-territory-scraper": "https://hooks.slack.com/services/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",
+    "ops-alerts-opportunity-changed": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {
