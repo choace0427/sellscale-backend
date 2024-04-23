@@ -858,3 +858,41 @@ def transfer_segment(
     db.session.commit()
 
     return True, "Segment transferred to new SDR"
+
+def create_n_sub_batches_for_segment(
+    segment_id: int,
+    num_batches: int
+):
+    """
+    Finds all unused prospects in the current segment and creates `num_batches` subsegments as 
+    child segments of the current segment. Each subsegment will have an equal number of prospects
+    added to it.
+    """
+    original_segment: Segment = Segment.query.get(segment_id)
+    unused_prospects = Prospect.query.filter(
+        Prospect.segment_id == segment_id,
+        Prospect.approved_outreach_message_id == None,
+        Prospect.approved_prospect_email_id == None,
+    ).all()
+
+    num_prospects = len(unused_prospects)
+    num_prospects_per_batch = num_prospects // num_batches
+
+    for i in range(num_batches):
+        start_index = i * num_prospects_per_batch
+        end_index = (i + 1) * num_prospects_per_batch
+        if i == num_batches - 1:
+            end_index = num_prospects
+        prospects_in_batch = unused_prospects[start_index:end_index]
+        prospect_ids = [prospect.id for prospect in prospects_in_batch]
+
+        new_segment = create_new_segment(
+            client_sdr_id=original_segment.client_sdr_id,
+            segment_title=f"Batch {i + 1}: {original_segment.segment_title}",
+            filters=original_segment.filters,
+            parent_segment_id=segment_id,
+        )
+
+        add_prospects_to_segment(prospect_ids, new_segment.id)
+
+    return True, "Subsegments created"

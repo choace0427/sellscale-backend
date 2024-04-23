@@ -10,6 +10,7 @@ from src.segment.services import (
     add_prospects_to_segment,
     add_unused_prospects_in_segment_to_campaign,
     connect_saved_apollo_query_to_segment,
+    create_n_sub_batches_for_segment,
     create_new_segment,
     delete_segment,
     duplicate_segment,
@@ -465,4 +466,20 @@ def post_duplicate_segment(client_sdr_id: int):
     if not success:
         return msg, 400
 
+    return msg, 200
+
+@SEGMENT_BLUEPRINT.route("/create_n_subsegments", methods=['POST'])
+@require_user
+def post_create_n_subsegments(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    num_batches = get_request_parameter("num_batches", request, json=True, required=True)
+
+    success, msg = create_n_sub_batches_for_segment(
+        segment_id=segment_id,
+        num_batches=num_batches
+    )
+
+    if not success:
+        return msg, 400
+    
     return msg, 200
