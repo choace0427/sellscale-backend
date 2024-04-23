@@ -789,6 +789,30 @@ def connect_saved_apollo_query_to_segment(segment_id: int, saved_apollo_query_id
 
     return True, "Apollo query connected to segment"
 
+def duplicate_segment(
+    segment_id: int,
+):
+    """
+    Creates a duplicate of the segment with the same filters and title for the same SDR
+    """
+
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+
+    new_segment = Segment(
+        client_sdr_id=segment.client_sdr_id,
+        segment_title="[Duplicate] " + segment.segment_title,
+        filters=segment.filters,
+        parent_segment_id=segment.parent_segment_id,
+        saved_apollo_query_id=segment.saved_apollo_query_id,
+    )
+
+    db.session.add(new_segment)
+    db.session.commit()
+
+    return True, "Segment duplicated"
+
 def transfer_segment(
         current_client_sdr_id: int,
         segment_id: int, 

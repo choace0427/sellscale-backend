@@ -12,6 +12,7 @@ from src.segment.services import (
     connect_saved_apollo_query_to_segment,
     create_new_segment,
     delete_segment,
+    duplicate_segment,
     extract_data_from_sales_navigator_link,
     find_prospects_by_segment_filters,
     get_segment_predicted_prospects,
@@ -445,6 +446,20 @@ def post_transfer_segment(client_sdr_id: int):
         current_client_sdr_id=client_sdr_id,
         segment_id=segment_id,
         new_client_sdr_id=new_client_sdr_id
+    )
+
+    if not success:
+        return msg, 400
+
+    return msg, 200
+
+@SEGMENT_BLUEPRINT.route("/duplicate_segment", methods=['POST'])
+@require_user
+def post_duplicate_segment(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+
+    success, msg = duplicate_segment(
+        segment_id=segment_id
     )
 
     if not success:
