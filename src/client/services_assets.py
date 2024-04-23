@@ -251,11 +251,13 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
 --------------------------------------------------------------------------
 
 ## Additional Requirements:
-
+It is important that you generate ONLY the required number of assets based on the following criteria:
 {num_value_props != -1 and f"- Create {num_value_props} Value Props" or ""}
 {num_pain_points != -1 and f"- Create {num_pain_points} Pain Points" or ""}
 {num_how_it_works != -1 and f"- Create {num_how_it_works} How It Works" or ""}
 {num_social_proof != -1 and f"- Create {num_social_proof} Social Proofs" or ""}
+
+DO NOT create more than the required number of assets.
 
 # Output:
     
