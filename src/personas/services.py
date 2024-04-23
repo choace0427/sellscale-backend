@@ -34,7 +34,7 @@ from src.prospecting.icp_score.services import (
     apply_icp_scoring_ruleset_filters_task,
     clone_icp_ruleset,
 )
-from src.prospecting.models import ProspectStatus
+from src.prospecting.models import ProspectOverallStatus, ProspectStatus
 from src.prospecting.services import get_prospect_details
 from app import db, celery
 import json
@@ -594,6 +594,7 @@ def clone_persona(
         icp_matching_prompt=persona_icp_matching_instructions,
         persona_contact_objective=persona_contact_objective,
         template_mode=original_persona.template_mode,
+        li_bump_amount=original_persona.li_bump_amount,
     )
     new_persona_id: int = result.get("client_archetype_id") or -1
 
@@ -631,7 +632,14 @@ def clone_persona(
 
     if option_bump_frameworks:
         original_bump_frameworks: list[BumpFramework] = BumpFramework.query.filter_by(
-            client_archetype_id=original_persona_id
+            client_archetype_id=original_persona_id   
+        ).filter(
+            BumpFramework.overall_status.in_(
+                [
+                    ProspectOverallStatus.ACCEPTED,
+                    ProspectOverallStatus.BUMPED
+                ]
+            )
         ).all()
         for original_bump_framework in original_bump_frameworks:
             new_id = clone_bump_framework(

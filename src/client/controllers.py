@@ -18,6 +18,7 @@ from src.client.services import (
     delete_archetype_asset,
     delete_client_asset_archetype_mapping,
     get_available_times_via_calendly,
+    get_client_archetypes_for_entire_client,
     get_client_assets,
     get_tam_data,
     modify_client_archetype_reason_mapping,
@@ -583,8 +584,13 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
     )
 
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
+    if not client_archetype:
         return "Failed to find archetype", 404
+    
+    # ensure that client_archetype's client_id is same as client_sdr's client_id
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if client_archetype.client_id != client_sdr.client_id:
+        return "Client Archetype does not belong to client", 404
 
     persona = clone_persona(
         client_sdr_id=client_sdr_id,
@@ -629,6 +635,13 @@ def get_archetypes(client_sdr_id: int):
     )
 
     archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
+    return jsonify({"message": "Success", "archetypes": archetypes}), 200
+
+@CLIENT_BLUEPRINT.route("/archetype/get_archetypes_for_entire_client", methods=["GET"])
+@require_user
+def get_archetypes_for_entire_client(client_sdr_id: int):
+    """Gets all the archetypes in the entire client"""
+    archetypes = get_client_archetypes_for_entire_client(client_sdr_id=client_sdr_id)
     return jsonify({"message": "Success", "archetypes": archetypes}), 200
 
 

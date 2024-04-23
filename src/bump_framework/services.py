@@ -546,13 +546,9 @@ def clone_bump_framework(
     archetype: ClientArchetype = ClientArchetype.query.get(target_archetype_id)
     if not archetype:
         return -1
-    elif archetype.client_sdr_id != client_sdr_id:
-        return -1
 
     existing_bf: BumpFramework = BumpFramework.query.get(bump_framework_id)
     if not existing_bf:
-        return -1
-    elif existing_bf.client_sdr_id != client_sdr_id:
         return -1
 
     new_framework_id: int = create_bump_framework(

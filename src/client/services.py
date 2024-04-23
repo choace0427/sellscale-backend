@@ -314,6 +314,29 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
 
     return [ca.to_dict() for ca in client_archetypes]
 
+def get_client_archetypes_for_entire_client(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    fetch: list[ClientArchetype] = ClientArchetype.query.filter(
+        ClientArchetype.client_id == client_id,
+    ).all()
+
+    archetypes = [ca.to_dict() for ca in fetch]
+
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter(
+        ClientSDR.client_id == client_id,
+    ).all()
+
+    # add client_sdr_name to each archetype
+    for ca in archetypes:
+        for csdr in client_sdrs:
+            if csdr.id == ca["client_sdr_id"]:
+                ca["client_sdr_name"] = csdr.name
+    
+    return archetypes
+
+
 
 def get_client_archetype_prospects(
     client_sdr_id: int, archetype_id: int, query: Optional[str] = ""
@@ -419,6 +442,7 @@ def create_client_archetype(
     lookalike_4: Optional[str] = None,
     lookalike_5: Optional[str] = None,
     template_mode: Optional[bool] = False,
+    li_bump_amount: Optional[int] = 0,
 ):
     c: Client = get_client(client_id=client_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -449,7 +473,7 @@ def create_client_archetype(
             "End with Best, (new line) (My Name) (new line) (Title)",
         ],
         contract_size=persona_contract_size or c.contract_size,
-        li_bump_amount=0,
+        li_bump_amount=li_bump_amount,
         persona_cta_framework_company=cta_blanks_company,
         persona_cta_framework_persona=cta_blanks_persona,
         persona_cta_framework_action=cta_blanks_solution,
