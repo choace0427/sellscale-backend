@@ -478,11 +478,14 @@ class MergeClient:
 
         return opportunity
 
-    def create_opportunity(self, prospect_id: int) -> tuple[Optional[str], str]:
+    def create_opportunity(
+        self, prospect_id: int, stage_id_override: Optional[str]
+    ) -> tuple[Optional[str], str]:
         """Create Opportunity in the client's CRM
 
         Args:
             prospect_id (int): Prospect ID
+            stage_id_override (Optional[str]): Stage ID override
 
         Returns:
             tuple[Optional[str], str]: Opportunity ID and message
@@ -534,6 +537,8 @@ class MergeClient:
         if not status:
             # We select a random status if the status is not found
             status = stage_mapping[next(iter(stage_mapping))]
+        if stage_id_override:
+            status = stage_id_override
 
         # Get Opportunity Value TODO: Check the Campaign's contract size
         client: Client = Client.query.get(p.client_id)

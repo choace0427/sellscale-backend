@@ -12,6 +12,7 @@ from src.merge_crm.services import (
     get_integration,
     get_operation_availability,
     retrieve_account_token,
+    save_sellscale_crm_event_handler,
     sync_sdr_to_crm_user,
     sync_sellscale_to_crm_stages,
 )
@@ -141,9 +142,17 @@ def post_sync_sdr_to_crm_user(client_sdr_id: int):
 def get_crm_stages_endpoint(client_sdr_id: int):
     stages = get_crm_stages(client_sdr_id=client_sdr_id)
     current_mapping = get_client_sync_crm(client_sdr_id).get("status_mapping")
+    current_triggers = get_client_sync_crm(client_sdr_id).get("event_handlers")
 
     return jsonify(
-        {"status": "success", "data": {"stages": stages, "mapping": current_mapping}}
+        {
+            "status": "success",
+            "data": {
+                "stages": stages,
+                "mapping": current_mapping,
+                "triggers": current_triggers,
+            },
+        }
     )
 
 
@@ -159,6 +168,25 @@ def post_sync_stages(client_sdr_id: int):
     )
     if not success:
         return jsonify({"status": "error", "message": "Failed to sync stages"}), 400
+
+    return jsonify({"status": "success"})
+
+
+@MERGE_CRM_BLUEPRINT.route("/sync/event", methods=["PATCH"])
+@require_user
+def patch_event_trigger(client_sdr_id: int):
+    event_mapping = (
+        get_request_parameter("event_mapping", request, json=True, required=False) or {}
+    )
+
+    success = save_sellscale_crm_event_handler(
+        client_sdr_id=client_sdr_id, event_handlers=event_mapping
+    )
+    if not success:
+        return (
+            jsonify({"status": "error", "message": "Failed to update event handler"}),
+            400,
+        )
 
     return jsonify({"status": "success"})
 

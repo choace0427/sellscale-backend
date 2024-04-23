@@ -1291,7 +1291,10 @@ def update_prospect_status_email(
         p_email.outreach_status = new_status
     else:
         # Check if the status is valid to transition to
-        if p_email.outreach_status and new_status not in VALID_NEXT_EMAIL_STATUSES[p_email.outreach_status]:
+        if (
+            p_email.outreach_status
+            and new_status not in VALID_NEXT_EMAIL_STATUSES[p_email.outreach_status]
+        ):
             return (
                 False,
                 f"Invalid status transition from {p_email.outreach_status} to {new_status}",
@@ -2476,6 +2479,15 @@ def calculate_prospect_overall_status(prospect_id: int):
 
     smartlead_update_prospect_status(
         prospect_id=prospect_id, new_status=prospect.overall_status
+    )
+
+    # Use the CRM integration
+    from src.merge_crm.services import check_and_use_crm_event_handler
+
+    check_and_use_crm_event_handler(
+        client_sdr_id=prospect.client_sdr_id,
+        prospect_id=prospect_id,
+        overall_status=prospect.overall_status,
     )
 
     return None

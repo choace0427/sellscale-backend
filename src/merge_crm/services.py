@@ -16,6 +16,7 @@ from merge.resources.crm import (
 )
 from model_import import Prospect
 from src.merge_crm.merge_client import MergeIntegrator, MergeClient
+from src.prospecting.models import ProspectOverallStatus
 
 API_KEY = os.environ.get("MERGE_API_KEY")
 
@@ -274,6 +275,77 @@ def sync_sellscale_to_crm_stages(
     return True
 
 
+def save_sellscale_crm_event_handler(
+    client_sdr_id: int, event_handlers: Optional[dict] = {}
+) -> bool:
+    """Saves the event handlers for the SDR
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+        event_handlers (dict): A dictionary containing the event handlers
+
+    Returns:
+        bool: A boolean indicating success
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    # Get the ClientSyncCRM object
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=client.id
+    ).first()
+
+    # Update the event handlers
+    client_sync_crm.event_handlers = event_handlers
+    db.session.add(client_sync_crm)
+    db.session.commit()
+
+    return True
+
+
+def check_and_use_crm_event_handler(
+    client_sdr_id: int, prospect_id: int, overall_status: ProspectOverallStatus
+) -> tuple[bool, str]:
+    """Checks if there is an event handler for the given status and triggers it
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+        prospect_id (int): The ID of the Prospect
+        overall_status (ProspectOverallStatus): The status of the Prospect
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and a message
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    # Get the prospect
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.merge_opportunity_id:
+        return False, "Prospect already synced"
+
+    # Get the ClientSyncCRM object
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=client.id
+    ).first()
+    if not client_sync_crm:
+        return False, "ClientSyncCRM not found"
+
+    # Check if there is an event handler for the given status
+    event_handler = client_sync_crm.event_handlers.get(overall_status.value)
+    if not event_handler:
+        return False, "No event handler found for the given status"
+
+    # Trigger the event handler
+    success, message = create_opportunity_from_prospect_id(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        stage_id_override=event_handler,
+    )
+
+    return success, message
+
+
 ###############################
 #       POLLING METHODS       #
 ###############################
@@ -451,14 +523,16 @@ def create_contact(client_sdr_id: int, prospect_id: int):
 
 
 def create_opportunity_from_prospect_id(
-    client_sdr_id: int, prospect_id: int
+    client_sdr_id: int, prospect_id: int, stage_id_override: Optional[str] = None
 ) -> tuple[bool, str]:
     prospect: Prospect = Prospect.query.get(prospect_id)
     if not prospect or prospect.client_sdr_id != client_sdr_id:
         return False, "Prospect not found"
 
     mc: MergeClient = MergeClient(client_sdr_id)
-    success = mc.create_opportunity(prospect_id)
+    success = mc.create_opportunity(
+        prospect_id=prospect_id, stage_id_override=stage_id_override
+    )
 
     if not success:
         return False, "Opportunity not created"
