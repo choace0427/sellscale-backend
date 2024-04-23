@@ -24,7 +24,11 @@ from src.utils.access import is_production
 from tomlkit import datetime
 from src.bump_framework.models import BumpFramework
 from src.client.sdr.services_client_sdr import compute_sdr_linkedin_health
-from src.message_generation.models import GeneratedMessage, GeneratedMessageCTA
+from src.message_generation.models import (
+    GeneratedMessage,
+    GeneratedMessageCTA,
+    GeneratedMessageStatus,
+)
 
 from src.message_generation.services import (
     num_messages_in_linkedin_queue,
@@ -621,14 +625,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             mark_task_complete(prospect.client_sdr_id, scheduling_needed_entry.id)
 
     # Auto-complete any `rep_intervention_needed_` dash cards for this prospect
-    rep_intervention_needed_entries: list[
-        OperatorDashboardEntry
-    ] = OperatorDashboardEntry.query.filter(
-        OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
-        OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
-        OperatorDashboardEntry.tag
-        == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
-    ).all()
+    rep_intervention_needed_entries: list[OperatorDashboardEntry] = (
+        OperatorDashboardEntry.query.filter(
+            OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
+            OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
+            OperatorDashboardEntry.tag
+            == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
+        ).all()
+    )
 
     for entry in rep_intervention_needed_entries:
         if (
@@ -1374,3 +1378,36 @@ def create_add_pre_filters_operator_dashboard_card(client_sdr_id: int):
     )
 
     return True
+
+
+@celery.task
+def send_generated_messages():
+
+    gen_msgs: list[GeneratedMessage] = GeneratedMessage.query.filter_by(
+        status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH
+    ).all()
+    for msg in gen_msgs:
+        prospect: Prospect = Prospect.query.get(msg.prospect_id)
+        prospect.linkedin_url
+
+        success = send_generated_message_for_sdr(
+            prospect.client_sdr_id, prospect.linkedin_url, msg.completion
+        )
+        if success:
+            msg.status = GeneratedMessageStatus.SENT
+            db.session.add(msg)
+            db.session.commit()
+            return  # Return after sending one message
+
+
+def send_generated_message_for_sdr(client_sdr_id: int, li_url: str, msg: str):
+
+    if client_sdr_id != 34:
+        return False
+
+    api = LinkedIn(client_sdr_id)
+    public_id = li_url.split("/in/")[1].split("/")[0]
+
+    success = api.add_connection(public_id, msg)
+
+    return success

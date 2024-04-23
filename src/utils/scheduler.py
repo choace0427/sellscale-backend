@@ -77,6 +77,14 @@ def icp_scoring_job():
 
 
 # Using Voyager!
+def send_generated_messages_job():
+    from src.voyager.services import send_generated_messages
+
+    if is_scheduling_instance():
+        send_generated_messages.delay()
+
+
+# Using Voyager!
 def scrape_li_inboxes():
     from src.li_conversation.services import scrape_conversations_inbox
 
@@ -512,6 +520,7 @@ scheduler.add_job(
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
+scheduler.add_job(func=send_generated_messages_job, trigger="interval", minutes=30)
 
 # Hourly triggers
 # scheduler.add_job(func=fill_in_daily_notifications, trigger="interval", hours=1)
