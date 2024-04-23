@@ -343,6 +343,19 @@ def check_and_use_crm_event_handler(
         stage_id_override=event_handler,
     )
 
+    # Send slack message
+    if success:
+        from src.utils.slack import send_slack_message, URL_MAP
+
+        mc: MergeClient = MergeClient(client_sdr_id)
+        mc_details = mc.get_crm_account_details()
+        opportunity_details = mc.find_opportunity_by_prospect_id(prospect_id)
+        opportunity_name = opportunity_details.name
+        send_slack_message(
+            message=f"Added new opportunity into {client.company}'s CRM\nUser: {client_sdr.name}\nCRM: {mc_details.integration}\nProspect: {prospect.full_name} (#{prospect.id})\nEvent: Moved to {overall_status.value}\n\nOpportunity: {opportunity_name}",
+            webhook_urls=[URL_MAP["ops-crm-sync-updates"]],
+        )
+
     return success, message
 
 

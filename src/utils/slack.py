@@ -59,6 +59,7 @@ URL_MAP = {
     "ops-rep-intervention": "https://hooks.slack.com/services/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",
     "ops-territory-scraper": "https://hooks.slack.com/services/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",
     "ops-alerts-opportunity-changed": "https://hooks.slack.com/services/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",
+    "ops-crm-sync-updates": "https://hooks.slack.com/services/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",
 }
 
 CHANNEL_NAME_MAP = {

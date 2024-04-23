@@ -435,14 +435,16 @@ class MergeClient:
     #    OPPORTUNITY METHODS      #
     ###############################
 
-    def find_opportunity_by_prospect_id(self, prospect_id: int) -> Optional[str]:
+    def find_opportunity_by_prospect_id(
+        self, prospect_id: int
+    ) -> Optional[Opportunity]:
         """Find Opportunity by Prospect ID
 
         Args:
             prospect_id (int): Prospect ID
 
         Returns:
-            str: Opportunity ID
+            Optional[Opportunity]: Opportunity object
         """
         prospect: Prospect = Prospect.query.get(prospect_id)
         merge_opportunity_id: str = prospect.merge_opportunity_id
