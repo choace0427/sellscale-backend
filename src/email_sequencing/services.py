@@ -370,6 +370,7 @@ def undefault_all_sequence_steps_in_status(
         return False
 
     sequence_step.default = False
+    sequence_step.active = False
 
     # Get sequence steps in the same status
     sequence_steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
@@ -381,6 +382,7 @@ def undefault_all_sequence_steps_in_status(
     ).all()
     for sequence_step in sequence_steps:
         sequence_step.default = False
+        sequence_step.active = False
 
     db.session.commit()
 
