@@ -306,7 +306,10 @@ def run_find_and_run_queued_question_enrichment_row_job():
     )
 
     if is_scheduling_instance():
-        find_and_run_queued_question_enrichment_row.delay(20)  # num_rows
+        find_and_run_queued_question_enrichment_row.apply_async(
+            args=[20],
+            priority=1,
+        )
 
 
 def run_analytics_backfill_jobs():

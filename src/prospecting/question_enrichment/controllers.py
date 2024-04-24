@@ -10,9 +10,6 @@ QUESTION_ENRICHMENT_BLUEPRINT = Blueprint("question_enrichment", __name__)
 def create_enrichment_request():
     from src.prospecting.question_enrichment.services import (
         create_question_enrichment_request,
-        create_question_enrichment_row,
-        find_and_run_queued_question_enrichment_row,
-        run_question_enrichment_row,
     )
 
     prospect_ids = get_request_parameter(
