@@ -60,11 +60,15 @@ def add_sequence(
         # Add the new sequence steps
         for i, step in enumerate(steps):
 
+            template = step["text"]
+            # replace all \n with <br> for the email template
+            template = template.replace("\n", "<br>")
+
             create_email_sequence_step(
                 client_sdr_id=archetype.client_sdr_id,
                 client_archetype_id=archetype_id,
                 title="Imported Step",
-                template=step["text"],
+                template=template,
                 overall_status=(
                     ProspectOverallStatus.PROSPECTED
                     if step["step_num"] == 1

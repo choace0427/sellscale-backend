@@ -11,6 +11,7 @@ from model_import import Individual, TextGeneration
 from src.client.archetype.services_client_archetype import get_archetype_assets
 from src.ml.services import get_text_generation
 import re
+from src.utils.hasher import generate_uuid
 from src.utils.string.string_utils import rank_number
 from app import db, celery
 from src.automation.orchestrator import add_process_for_future
@@ -1108,9 +1109,15 @@ def clean_output_with_ai(output: str):
     import yaml
 
     try:
-        return yaml.safe_load(
+        data = yaml.safe_load(
             completion.replace("```json", "").replace("```", "").strip()
         )
+
+        # add a custom uuid to each message
+        for i, message in enumerate(data):
+            message["uuid"] = generate_uuid(base=str(datetime.utcnow()))
+
+        return data
     except:
         # print("ERROR", completion)
         return []
