@@ -18,6 +18,7 @@ from src.segment.services import (
     find_prospects_by_segment_filters,
     get_segment_predicted_prospects,
     get_segments_for_sdr,
+    move_segment,
     remove_prospect_from_segment,
     transfer_segment,
     update_segment,
@@ -482,4 +483,21 @@ def post_create_n_subsegments(client_sdr_id: int):
     if not success:
         return msg, 400
     
+    return msg, 200
+
+@SEGMENT_BLUEPRINT.route("/move_segment", methods=['POST'])
+@require_user
+def post_move_segment(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    new_parent_segment_id = get_request_parameter("new_parent_segment_id", request, json=True, required=False)
+
+    success, msg = move_segment(
+        client_sdr_id=client_sdr_id,
+        segment_id=segment_id,
+        new_parent_segment_id=new_parent_segment_id
+    )
+
+    if not success:
+        return msg, 400
+
     return msg, 200

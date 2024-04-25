@@ -813,6 +813,33 @@ def duplicate_segment(
 
     return True, "Segment duplicated"
 
+def move_segment(
+    client_sdr_id: int,
+    segment_id: int,
+    new_parent_segment_id: Optional[int],
+):
+    """
+    Moves the segment to a new parent segment or to the root level
+    """
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+    if segment.client_sdr_id != client_sdr_id:
+        return False, "Segment does not belong to current SDR"
+
+    if new_parent_segment_id:
+        new_parent_segment: Segment = Segment.query.get(new_parent_segment_id)
+        if not new_parent_segment:
+            return False, "New parent segment not found"
+        if new_parent_segment.client_sdr_id != segment.client_sdr_id:
+            return False, "New parent segment belongs to a different SDR"
+    
+    segment.parent_segment_id = new_parent_segment_id
+    db.session.add(segment)
+    db.session.commit()
+
+    return True, "Segment moved"
+
 def transfer_segment(
         current_client_sdr_id: int,
         segment_id: int, 
