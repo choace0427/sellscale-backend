@@ -56,13 +56,13 @@ def find_emails_for_archetype(self, archetype_id: int) -> bool:
         email=None,
     ).all()
 
-    count = 0
-    for prospect in prospects:
-        count += 1
-        if count % 5 == 0:
-            time.sleep(1)
-        find_email_for_prospect_id.delay(prospect_id=prospect.id)
+    from src.automation.orchestrator import add_process_list
 
+    add_process_list(
+        type="find_email_for_prospect_id",
+        args_list=[{"prospect_id": prospect.id} for prospect in prospects],
+        buffer_wait_minutes=2,
+    )
     return True
 
 

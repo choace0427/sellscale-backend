@@ -28,6 +28,7 @@ from src.prospecting.upload.services import upload_from_apollo
 from src.automation.phantom_buster.services import (
     delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape,
 )
+from src.email_outbound.email_store.services import find_email_for_prospect_id
 
 from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import (
@@ -160,6 +161,12 @@ PROCESS_TYPE_MAP = {
         "priority": 2,
         "queue": "prospecting",
         "routing_key": "prospecting",
+    },
+    "find_email_for_prospect_id": {
+        "function": find_email_for_prospect_id,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
     },
 }
 ###############################
