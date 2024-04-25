@@ -390,8 +390,16 @@ def check_and_use_crm_event_handler(
     if not event_handler:
         return False, "No event handler found for the given status"
 
+    # This is a bit of a hack to handle cases where a user may want us to sync
+    # to non-opportunity models. We still want to sync the prospect to the CRM
+    # but don't want to accidentally send to a stage. In theory, we should never
+    # even try to create a CAO if we're not syncing opportunities, but this is
+    # a safety net.
+    if event_handler == "LEAD_ONLY":
+        event_handler = None
+
     # Trigger the event handler
-    success, message = create_opportunity_from_prospect_id(
+    success, message = upload_prospect_to_crm(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         stage_id_override=event_handler,
@@ -482,72 +490,55 @@ def poll_crm_opportunities() -> None:
 
 
 ###############################
-#    UNCATEGORIZED METHODS    #
+#      UPLOADING METHODS      #
 ###############################
 
 
-# TODO: Make this use the MergeClient class
-def create_contact(client_sdr_id: int, prospect_id: int):
+def upload_prospect_to_crm(
+    client_sdr_id: int, prospect_id: int, stage_id_override: Optional[str] = None
+) -> tuple[bool, str]:
+    """Uploads a Prospect to the CRM using whichever models are selected in the CRM sync
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+        prospect_id (int): The ID of the Prospect
+        stage_id_override (Optional[str], optional): The stage ID to override the default stage. Defaults to None.
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and a message
+    """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
-    p: Prospect = Prospect.query.get(prospect_id)
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=client.id
+    ).first()
+    if not client_sync_crm:
+        return False, "ClientSyncCRM not found"
 
-    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
-    # lead_res = merge_client.crm.leads.create(
-    #     model={
-    #         "leadSource": "SellScale",
-    #         "title": p.title,
-    #         "company": p.company,
-    #         "firstName": p.first_name,
-    #         "lastName": p.last_name,
-    #         "addresses": [],
-    #         "emailAddresses": [
-    #             {
-    #                 "emailAddress": p.email,
-    #                 "emailAddressType": "Work",
-    #             }
-    #         ],
-    #         "phoneNumbers": [],
-    #         "convertedDate": datetime.datetime.utcnow().isoformat(),
-    #     }
-    # )
+    mc: MergeClient = MergeClient(client_sdr_id)
 
-    if not get_operation_availability(client_sdr_id, "CRMContact"):
-        return False, "Operation not available"
+    # Lead Mode
+    if client_sync_crm.lead_sync:
+        id, message = mc.create_lead(prospect_id=prospect_id)
+        if not id:
+            return False, message
 
-    contact_res = merge_client.crm.contacts.create(
-        model=ContactRequest(
-            first_name=p.first_name,
-            last_name=p.last_name,
-            addresses=[
-                # AddressRequest(
-                #     street_1="50 Bowling Green Dr",
-                #     street_2="Golden Gate Park",
-                #     city="San Francisco",
-                #     state="CA",
-                #     postal_code="94122",
-                # )
-            ],
-            email_addresses=[
-                EmailAddressRequest(
-                    email_address=p.email,
-                    email_address_type="Work",
-                )
-            ],
-            phone_numbers=[
-                # PhoneNumberRequest(
-                #     phone_number="+3198675309",
-                #     phone_number_type="Mobile",
-                # )
-            ],
-            last_activity_at=datetime.datetime.utcnow().isoformat(),
-        ),
-    )
+    # Contact + Account + Opportunity Mode
+    if (
+        client_sync_crm.contact_sync
+        and client_sync_crm.account_sync
+        and client_sync_crm.opportunity_sync
+    ):
+        id, message = mc.create_opportunity(
+            prospect_id=prospect_id, stage_id_override=stage_id_override
+        )
+        if not id:
+            return False, message
 
-    print(contact_res)
-    return True, "Contact created"
+    return True, "Prospect uploaded"
 
 
+# TODO: Deprecate this
 def create_opportunity_from_prospect_id(
     client_sdr_id: int, prospect_id: int, stage_id_override: Optional[str] = None
 ) -> tuple[bool, str]:

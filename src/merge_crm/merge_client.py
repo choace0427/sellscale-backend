@@ -187,6 +187,28 @@ class MergeClient:
         self.client = Merge(api_key=self.api_key, account_token=self.account_token)
         self.client_sync_crm = client_sync_crm
 
+    def is_allowable(model_name: str):
+        """Decorator to check if the model is allowed to be synced"""
+
+        def decorator(method):
+            def wrapper(self, *args, **kwargs):
+                print(f"Checking if model {model_name} is supported...")
+
+                self: MergeClient = self  # Typing hack
+                allowable_models = self.get_crm_supported_model_operations()
+                allowable_model_names = [model.model_name for model in allowable_models]
+                if model_name not in allowable_model_names:
+                    raise Exception(
+                        f"Model {model_name} is not supported with this CRM integration {self.client_sync_crm.crm_type}."
+                    )
+
+                print(f"Model {model_name} is supported!")
+                return method(self, *args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
     ###############################
     #         CRM METHODS         #
     ###############################
@@ -248,6 +270,7 @@ class MergeClient:
     #       CONTACT METHODS       #
     ###############################
 
+    @is_allowable(model_name="CRMContact")
     def find_contact_by_prospect_id(self, prospect_id: int) -> Optional[Contact]:
         """Finds the contact in the client's CRM using a prospect ID
 
@@ -270,6 +293,7 @@ class MergeClient:
 
         return contact
 
+    @is_allowable(model_name="CRMContact")
     def find_contact_by_email_address(self, email: str) -> Optional[Contact]:
         """Find contact by email address
 
@@ -289,6 +313,7 @@ class MergeClient:
 
         return contact
 
+    @is_allowable(model_name="CRMContact")
     def create_contact(self, prospect_id: int) -> tuple[Optional[str], str]:
         """Creates a contact in the client's CRM using a prospect ID
 
@@ -359,6 +384,7 @@ class MergeClient:
     #       ACCOUNT METHODS       #
     ###############################
 
+    @is_allowable(model_name="CRMAccount")
     def find_account_by_prospect_id(self, prospect_id: int) -> Optional[Account]:
         """Find Account by Prospect ID
 
@@ -381,6 +407,7 @@ class MergeClient:
 
         return account
 
+    @is_allowable(model_name="CRMAccount")
     def find_account_by_name(self, name: str) -> Optional[Account]:
         """Find Account by name
 
@@ -399,6 +426,7 @@ class MergeClient:
         except:  # API returns 404 if Account is not found
             return None
 
+    @is_allowable(model_name="CRMAccount")
     def create_account(self, prospect_id: int) -> tuple[Optional[str], str]:
         """Create Account in the client's CRM
 
@@ -470,6 +498,7 @@ class MergeClient:
     #    OPPORTUNITY METHODS      #
     ###############################
 
+    @is_allowable(model_name="Opportunity")
     def find_opportunity_by_prospect_id(
         self, prospect_id: int
     ) -> Optional[Opportunity]:
@@ -496,6 +525,7 @@ class MergeClient:
 
         return opportunity
 
+    @is_allowable(model_name="Opportunity")
     def find_opportunity_by_opportunity_id(
         self, opportunity_id: str
     ) -> Optional[Opportunity]:
@@ -515,6 +545,7 @@ class MergeClient:
 
         return opportunity
 
+    @is_allowable(model_name="Opportunity")
     def create_opportunity(
         self, prospect_id: int, stage_id_override: Optional[str]
     ) -> tuple[Optional[str], str]:
@@ -625,6 +656,7 @@ class MergeClient:
     #       LEADS METHODS         #
     ###############################
 
+    @is_allowable(model_name="Lead")
     def find_lead_by_prospect_id(self, prospect_id: int) -> Optional[Lead]:
         """Find Lead by Prospect ID
 
@@ -647,6 +679,7 @@ class MergeClient:
 
         return lead
 
+    @is_allowable(model_name="Lead")
     def find_lead_by_email_address(self, email_address: str) -> Optional[Lead]:
         """Find Lead by email address
 
@@ -667,6 +700,7 @@ class MergeClient:
 
         return lead
 
+    @is_allowable(model_name="Lead")
     def create_lead(self, prospect_id: int) -> tuple[Optional[str], str]:
         """Create Lead in the client's CRM
 
@@ -723,6 +757,7 @@ class MergeClient:
     #         NOTE METHODS        #
     ###############################
 
+    @is_allowable(model_name="Note")
     def create_note(
         self,
         prospect_id,
