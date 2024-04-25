@@ -13,6 +13,7 @@ from merge.resources.crm import (
     EmailAddressRequest,
     User,
     AccountRequest,
+    ModelOperation,
 )
 from model_import import Prospect
 from src.merge_crm.merge_client import MergeIntegrator, MergeClient
@@ -159,6 +160,22 @@ def get_client_sync_crm(client_sdr_id: int) -> dict:
     ).first()
 
     return client_sync_crm.to_dict() if client_sync_crm else None
+
+
+def get_client_sync_crm_supported_models(client_sdr_id: int) -> list[str]:
+    """Gets the supported models that the CRM supports, along with their operations
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        list[str]: A list of supported model names
+    """
+    mc: MergeClient = MergeClient(client_sdr_id)
+    supported_models: list[ModelOperation] = mc.get_crm_supported_model_operations()
+    supported_model_names: list[str] = [model.model_name for model in supported_models]
+
+    return supported_model_names
 
 
 # Needs Documentation
@@ -430,47 +447,6 @@ def poll_crm_opportunities() -> None:
 ###############################
 #    UNCATEGORIZED METHODS    #
 ###############################
-
-
-# TODO: Fix this and move it into the MergeClient class
-def get_operation_availability(client_sdr_id: int, operation_name: str):
-    from merge.client import Merge
-
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-
-    merge_client = Merge(api_key=API_KEY, account_token=client.merge_crm_account_token)
-    response = merge_client.crm.linked_accounts.list(
-        category="crm",
-        end_user_email_address=client.contact_email,
-    )
-
-    integrations = response.dict().get("results")
-
-    operations = (
-        integrations[0].get("integration", {}).get("available_model_operations", [])
-        if len(integrations) > 0
-        else []
-    )
-
-    parts = operation_name.split("_")
-    if len(parts) != 2:
-        return False
-
-    model_name = parts[0]
-    op_type = parts[1]
-
-    # print(integrations, model_name, op_type)
-
-    return any(
-        [
-            (
-                model_name == operation.get("model_name")
-                and op_type in operation.get("available_operations", [])
-            )
-            for operation in operations
-        ]
-    )
 
 
 # TODO: Make this use the MergeClient class
