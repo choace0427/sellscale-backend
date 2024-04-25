@@ -74,6 +74,7 @@ def post_get_account_token(client_sdr_id: int):
 def get_integration_endpoint(client_sdr_id: int):
     integration = get_integration(client_sdr_id=client_sdr_id)
     supported_models = get_client_sync_crm_supported_models(client_sdr_id=client_sdr_id)
+    crm_sync = get_client_sync_crm(client_sdr_id=client_sdr_id)
 
     return (
         jsonify(
@@ -82,6 +83,7 @@ def get_integration_endpoint(client_sdr_id: int):
                 "data": {
                     "integration": integration,
                     "supported_models": supported_models,
+                    "crm_sync": crm_sync,
                 },
             }
         ),

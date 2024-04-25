@@ -15,10 +15,10 @@ class ClientSyncCRM(db.Model):
     event_handlers = db.Column(db.JSON, nullable=True)
 
     # Models syncing status
-    lead_sync = db.Column(db.String, nullable=True, default=False)
-    contact_sync = db.Column(db.String, nullable=True, default=False)
-    account_sync = db.Column(db.String, nullable=True, default=False)
-    opportunity_sync = db.Column(db.String, nullable=True, default=False)
+    lead_sync = db.Column(db.Boolean, nullable=True, default=False)
+    contact_sync = db.Column(db.Boolean, nullable=True, default=False)
+    account_sync = db.Column(db.Boolean, nullable=True, default=False)
+    opportunity_sync = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self):
         return {
