@@ -15,17 +15,22 @@ from merge.resources.crm import (
     OpportunityResponse,
     Stage,
     User,
-)
-from model_import import ClientSDR, Prospect, Client, Company, ProspectOverallStatus
-from merge.resources.crm import (
-    ContactsRetrieveRequestExpand,
+    Lead,
     ContactRequest,
     EmailAddressRequest,
     AccountRequest,
     OpportunityRequest,
     PatchedOpportunityRequest,
     NoteRequest,
+    AccountDetailsAndActions,
+    AccountDetailsAndActionsIntegration,
+    ModelOperation,
+    LeadRequest,
+    LeadResponse,
+    PaginatedLeadList,
 )
+
+from model_import import ClientSDR, Prospect, Client, Company, ProspectOverallStatus
 
 from src.merge_crm.models import ClientSyncCRM
 
@@ -169,6 +174,9 @@ class MergeClient:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         client_id = client_sdr.client_id
         client: Client = Client.query.get(client_id)
+        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+            client_id=client_id
+        ).first()
 
         # Either use the provided account token or the client's account token
         if account_token:
@@ -177,6 +185,7 @@ class MergeClient:
             self.account_token = client.merge_crm_account_token
 
         self.client = Merge(api_key=self.api_key, account_token=self.account_token)
+        self.client_sync_crm = client_sync_crm
 
     ###############################
     #         CRM METHODS         #
@@ -214,6 +223,26 @@ class MergeClient:
             list[Stage]: List of Stages
         """
         return self.client.crm.stages.list().results
+
+    def get_crm_supported_model_operations(
+        self,
+    ) -> list[ModelOperation]:
+        """Get the list of supported operations in the CRM
+
+        Args:
+            operations_only (Optional[bool], optional): If True, only return operations. Defaults to False.
+
+        Returns:
+            list[ModelOperation]: List of ModelOperations
+        """
+        account_details: AccountDetailsAndActions = (
+            self.client.crm.linked_accounts.list(
+                id=self.client_sync_crm.account_id
+            ).results
+        )[0]
+        integration: AccountDetailsAndActionsIntegration = account_details.integration
+        operations: list[ModelOperation] = integration.available_model_operations
+        return operations
 
     ###############################
     #       CONTACT METHODS       #
@@ -283,6 +312,9 @@ class MergeClient:
             if contact:
                 return contact.id, "Contact already exists."
             else:
+                p.merge_account_id = None
+                db.session.add(p)
+                db.session.commit()
                 return (
                     None,
                     "Contact not found - ID may be corrupted or prospect may be deleted.",
@@ -388,6 +420,9 @@ class MergeClient:
             if account:
                 return account.id, "Account already exists."
             else:
+                p.merge_account_id = None
+                db.session.add(p)
+                db.session.commit()
                 return (
                     None,
                     "Account not found - ID may be corrupted or prospect may be deleted.",
@@ -413,7 +448,7 @@ class MergeClient:
         try:
             account_res: CrmAccountResponse = self.client.crm.accounts.create(
                 model=AccountRequest(
-                    name=p.company,
+                    name="[SellScale] " + p.company,
                     description="[Source: SellScale]\n" + description,
                     website=website_url,
                     number_of_employees=company_size,
@@ -529,6 +564,9 @@ class MergeClient:
             if opportunity:
                 return None, "Opportunity already exists."
             else:
+                p.merge_opportunity_id = None
+                db.session.add(p)
+                db.session.commit()
                 return (
                     None,
                     "Opportunity not found - ID may be corrupted or prospect may be deleted.",
@@ -582,6 +620,108 @@ class MergeClient:
             return opportunity.id, "Opportunity created."
         except Exception as e:
             return None, str(e)
+
+    ###############################
+    #       LEADS METHODS         #
+    ###############################
+
+    def find_lead_by_prospect_id(self, prospect_id: int) -> Optional[Lead]:
+        """Find Lead by Prospect ID
+
+        Args:
+            prospect_id (int): Prospect ID
+
+        Returns:
+            Optional[Lead]: Lead object
+        """
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        merge_lead_id: str = prospect.merge_lead_id
+        if not merge_lead_id:
+            return None
+
+        # Find Lead
+        try:
+            lead = self.client.crm.leads.retrieve(id=merge_lead_id)
+        except:
+            return None
+
+        return lead
+
+    def find_lead_by_email_address(self, email_address: str) -> Optional[Lead]:
+        """Find Lead by email address
+
+        Args:
+            email_address (str): Email address
+
+        Returns:
+            Optional[Lead]: Lead object
+        """
+        # Find Lead
+        try:
+            leads: PaginatedLeadList = self.client.crm.leads.list(
+                email_addresses=email_address,
+            )
+            lead = leads.results[0] if leads.results else None
+        except:
+            return None
+
+        return lead
+
+    def create_lead(self, prospect_id: int) -> tuple[Optional[str], str]:
+        """Create Lead in the client's CRM
+
+        Args:
+            prospect_id (int): Prospect ID
+
+        Returns:
+            tuple[Optional[str], str]: Lead ID and message
+        """
+        p: Prospect = Prospect.query.get(prospect_id)
+        print(f"⚡️ Creating lead for {p.full_name} (#{p.id})")
+
+        client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+        merge_user_id = client_sdr.merge_user_id
+
+        # Check for existing Lead
+        if p.merge_lead_id:
+            lead = self.find_lead_by_prospect_id(prospect_id)
+            if lead:
+                return lead.id, "Lead already exists."
+            else:
+                p.merge_lead_id = None
+                db.session.add(p)
+                db.session.commit()
+                return (
+                    None,
+                    "Lead not found - ID may be corrupted or prospect may be deleted.",
+                )
+
+        # Create Lead
+        try:
+            lead_res: LeadResponse = self.client.crm.leads.create(
+                model=LeadRequest(
+                    title=p.title,
+                    company=p.company,
+                    first_name=p.first_name,
+                    last_name=p.last_name,
+                    addresses=[],
+                    email_addresses=[EmailAddressRequest(email_address=p.email)],
+                    phone_numbers=[],
+                    owner=merge_user_id,
+                )
+            )
+            lead: Lead = lead_res.model
+            p.merge_lead_id = lead.id
+            db.session.add(p)
+            db.session.commit()
+
+            return lead.id, "Lead created."
+        except:
+            return None, "Failed to create lead."
+
+    ###############################
+    #         NOTE METHODS        #
+    ###############################
 
     def create_note(
         self,

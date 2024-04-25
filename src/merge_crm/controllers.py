@@ -7,10 +7,10 @@ from src.merge_crm.services import (
     create_test_account,
     delete_integration,
     get_client_sync_crm,
+    get_client_sync_crm_supported_models,
     get_crm_stages,
     get_crm_users,
     get_integration,
-    get_operation_availability,
     retrieve_account_token,
     save_sellscale_crm_event_handler,
     sync_sdr_to_crm_user,
@@ -72,8 +72,20 @@ def post_get_account_token(client_sdr_id: int):
 @require_user
 def get_integration_endpoint(client_sdr_id: int):
     integration = get_integration(client_sdr_id=client_sdr_id)
+    supported_models = get_client_sync_crm_supported_models(client_sdr_id=client_sdr_id)
 
-    return jsonify({"integration": integration})
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "integration": integration,
+                    "supported_models": supported_models,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @MERGE_CRM_BLUEPRINT.route("/integration", methods=["DELETE"])
@@ -189,21 +201,6 @@ def patch_event_trigger(client_sdr_id: int):
         )
 
     return jsonify({"status": "success"})
-
-
-# TODO: Deprecate
-@MERGE_CRM_BLUEPRINT.route("/crm_operation_available", methods=["GET"])
-@require_user
-def get_crm_operation_available_endpoint(client_sdr_id: int):
-    operation = get_request_parameter("operation", request, json=False, required=True)
-
-    available = get_operation_availability(
-        client_sdr_id=client_sdr_id, operation_name=operation
-    )
-
-    return jsonify(
-        {"status": "success", "data": {"operation": operation, "available": available}}
-    )
 
 
 @MERGE_CRM_BLUEPRINT.route("/opportunity/create", methods=["POST"])

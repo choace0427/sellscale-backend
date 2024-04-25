@@ -520,6 +520,7 @@ class Prospect(db.Model):
     merge_account_id = db.Column(db.String, nullable=True)
     merge_contact_id = db.Column(db.String, nullable=True)
     merge_opportunity_id = db.Column(db.String, nullable=True)
+    merge_lead_id = db.Column(db.String, nullable=True)
 
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
@@ -596,6 +597,7 @@ class Prospect(db.Model):
             "merge_account_id": self.merge_account_id,
             "merge_contact_id": self.merge_contact_id,
             "merge_opportunity_id": self.merge_opportunity_id,
+            "merge_lead_id": self.merge_lead_id,
         }
 
     def to_dict(
