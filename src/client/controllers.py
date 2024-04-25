@@ -33,6 +33,7 @@ from src.client.services_client_archetype import (
     auto_turn_off_finished_archetypes,
     fetch_all_assets_in_client,
 )
+from src.personas.services_persona import link_asset_to_persona
 from src.prospecting.services import create_note
 from src.automation.resend import send_email
 from src.client.services import (
@@ -204,7 +205,7 @@ def get_clients(client_sdr_id: int):
     )
 
 
-@CLIENT_BLUEPRINT.route("/sdrs", methods=['GET'])
+@CLIENT_BLUEPRINT.route("/sdrs", methods=["GET"])
 @require_user
 def get_sdrs(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -586,7 +587,7 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not client_archetype:
         return "Failed to find archetype", 404
-    
+
     # ensure that client_archetype's client_id is same as client_sdr's client_id
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if client_archetype.client_id != client_sdr.client_id:
@@ -636,6 +637,7 @@ def get_archetypes(client_sdr_id: int):
 
     archetypes = get_client_archetypes(client_sdr_id=client_sdr_id, query=query)
     return jsonify({"message": "Success", "archetypes": archetypes}), 200
+
 
 @CLIENT_BLUEPRINT.route("/archetype/get_archetypes_for_entire_client", methods=["GET"])
 @require_user
@@ -3182,6 +3184,9 @@ def post_unrestricted_create_archetype_asset():
     client_id = get_request_parameter(
         "client_id", request, json=True, required=True, parameter_type=int
     )
+    persona_id = get_request_parameter(
+        "persona_id", request, json=True, required=False, parameter_type=int
+    )
     asset_key = get_request_parameter(
         "asset_key", request, json=True, required=True, parameter_type=str
     )
@@ -3208,6 +3213,9 @@ def post_unrestricted_create_archetype_asset():
         asset_tags=asset_tags or [],
         asset_raw_value=asset_raw_value or asset_value,
     )
+
+    if persona_id and asset_dict:
+        link_asset_to_persona(persona_id=persona_id, asset_id=asset_dict.get("id"))
 
     if not asset_dict:
         return "Failed to create client asset", 400
