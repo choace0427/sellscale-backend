@@ -178,6 +178,43 @@ def get_client_sync_crm_supported_models(client_sdr_id: int) -> list[str]:
     return supported_model_names
 
 
+def update_syncable_models(
+    client_sdr_id: int,
+    lead_sync: Optional[bool] = False,
+    contact_sync: Optional[bool] = False,
+    account_sync: Optional[bool] = False,
+    opportunity_sync: Optional[bool] = False,
+) -> bool:
+    """Updates the syncable models for the client
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+        lead_sync (Optional[bool], optional): Whether we are syncing Leads. Defaults to False.
+        contact_sync (Optional[bool], optional): Whether we are syncing Contacts. Defaults to False.
+        account_sync (Optional[bool], optional): Whether we are syncing Accounts. Defaults to False.
+        opportunity_sync (Optional[bool], optional): Whether we are syncing Opportunities. Defaults to False.
+
+    Returns:
+        bool: A boolean indicating success
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+        client_id=client.id
+    ).first()
+
+    client_sync_crm.lead_sync = lead_sync
+    client_sync_crm.contact_sync = contact_sync
+    client_sync_crm.account_sync = account_sync
+    client_sync_crm.opportunity_sync = opportunity_sync
+
+    db.session.add(client_sync_crm)
+    db.session.commit()
+
+    return True
+
+
 # Needs Documentation
 def sync_data(client_sdr_id: int, endpoint: str, timestamp: str):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)

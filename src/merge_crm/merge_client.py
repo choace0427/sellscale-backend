@@ -312,7 +312,7 @@ class MergeClient:
             if contact:
                 return contact.id, "Contact already exists."
             else:
-                p.merge_account_id = None
+                p.merge_contact_id = None
                 db.session.add(p)
                 db.session.commit()
                 return (

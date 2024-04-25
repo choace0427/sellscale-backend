@@ -15,6 +15,7 @@ from src.merge_crm.services import (
     save_sellscale_crm_event_handler,
     sync_sdr_to_crm_user,
     sync_sellscale_to_crm_stages,
+    update_syncable_models,
 )
 from src.utils.request_helpers import get_request_parameter
 from model_import import ClientSDR
@@ -121,6 +122,37 @@ def get_crm_sync_endpoint(client_sdr_id: int):
     result = client_sync_crm.to_dict() if client_sync_crm else None
 
     return jsonify({"status": "success", "data": result})
+
+
+@MERGE_CRM_BLUEPRINT.route("/crm_sync", methods=["PATCH"])
+@require_user
+def patch_crm_sync_endpoint(client_sdr_id: int):
+    lead_sync = get_request_parameter("lead_sync", request, json=True, required=False)
+    contact_sync = get_request_parameter(
+        "contact_sync", request, json=True, required=False
+    )
+    account_sync = get_request_parameter(
+        "account_sync", request, json=True, required=False
+    )
+    opportunity_sync = get_request_parameter(
+        "opportunity_sync", request, json=True, required=False
+    )
+
+    success = update_syncable_models(
+        client_sdr_id=client_sdr_id,
+        lead_sync=lead_sync,
+        contact_sync=contact_sync,
+        account_sync=account_sync,
+        opportunity_sync=opportunity_sync,
+    )
+
+    if not success:
+        return (
+            jsonify({"status": "error", "message": "Failed to update sync status"}),
+            400,
+        )
+
+    return jsonify({"status": "success"}), 200
 
 
 @MERGE_CRM_BLUEPRINT.route("/users", methods=["GET"])

@@ -14,6 +14,12 @@ class ClientSyncCRM(db.Model):
     status_mapping = db.Column(db.JSON, nullable=False)
     event_handlers = db.Column(db.JSON, nullable=True)
 
+    # Models syncing status
+    lead_sync = db.Column(db.String, nullable=True, default=False)
+    contact_sync = db.Column(db.String, nullable=True, default=False)
+    account_sync = db.Column(db.String, nullable=True, default=False)
+    opportunity_sync = db.Column(db.String, nullable=True, default=False)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -24,4 +30,8 @@ class ClientSyncCRM(db.Model):
             "crm_type": self.crm_type,
             "status_mapping": self.status_mapping,
             "event_handlers": self.event_handlers,
+            "lead_sync": self.lead_sync,
+            "contact_sync": self.contact_sync,
+            "account_sync": self.account_sync,
+            "opportunity_sync": self.opportunity_sync,
         }
