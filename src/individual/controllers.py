@@ -3,6 +3,7 @@ from src.individual.services import (
     backfill_iscraper_cache,
     backfill_prospects,
     convert_to_prospects,
+    get_individual,
     start_upload_from_urn_ids,
     get_all_individuals,
     get_uploads,
@@ -228,6 +229,29 @@ def get_all_individuals_request(client_sdr_id: int):
                     "total": count,
                     "results": results,
                 },
+            }
+        ),
+        200,
+    )
+
+
+@INDIVIDUAL_BLUEPRINT.route("/single", methods=["GET"])
+def get_individual_request():
+
+    li_public_id = get_request_parameter(
+        "li_public_id", request, json=False, required=False, parameter_type=str
+    )
+    email = get_request_parameter(
+        "email", request, json=False, required=False, parameter_type=str
+    )
+
+    result = get_individual(li_public_id=li_public_id, email=email)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
             }
         ),
         200,

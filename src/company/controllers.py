@@ -3,12 +3,14 @@ from src.company.services import (
     authorize_slack_user,
     company_backfill,
     company_backfill_prospects,
+    find_company,
     find_sdr_from_slack,
     company_detail,
     prospect_engagement,
-    get_timeline
+    get_timeline,
 )
 from model_import import Client
+from src.company.models import Company, CompanyRelation
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
 from src.utils.slack import send_slack_message, URL_MAP
@@ -144,9 +146,7 @@ def company_details(client_sdr_id: int):
     )
     companyDetails = company_detail(company_id, client_sdr_id)
 
-    return jsonify({
-        "company_detail": companyDetails
-    }), 200
+    return jsonify({"company_detail": companyDetails}), 200
 
 
 @COMPANY_BLUEPRINT.route("/timeline", methods=["POST"])
@@ -158,9 +158,7 @@ def get_timeData(client_sdr_id: int):
 
     timelineData = get_timeline(company_id, client_sdr_id)
 
-    return jsonify({
-        "timeline": timelineData
-    }), 200
+    return jsonify({"timeline": timelineData}), 200
 
 
 @COMPANY_BLUEPRINT.route("/engagement", methods=["POST"])
@@ -171,6 +169,28 @@ def prospect_engagements(client_sdr_id: int):
     )
     prospectEngagement = prospect_engagement(company_id, client_sdr_id)
 
-    return jsonify({
-        "prospect_engagement": prospectEngagement
-    }), 200
+    return jsonify({"prospect_engagement": prospectEngagement}), 200
+
+
+@COMPANY_BLUEPRINT.route("/single", methods=["GET"])
+def get_company_request():
+
+    company_name = get_request_parameter(
+        "company_name", request, json=False, required=False, parameter_type=str
+    )
+    company_url = get_request_parameter(
+        "company_url", request, json=False, required=False, parameter_type=str
+    )
+
+    company_id = find_company(company_name=company_name, company_url=company_url)
+    result = Company.query.get(company_id).to_dict() if company_id else None
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": result,
+            }
+        ),
+        200,
+    )

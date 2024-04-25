@@ -1103,6 +1103,25 @@ def get_all_individuals(client_archetype_id: int, limit: int = 100, offset: int 
     ], count_individuals
 
 
+def get_individual(li_public_id: str, email: str):
+
+    if email:
+        individual: Individual = Individual.query.filter(
+            Individual.email == email,
+        ).first()
+    else:
+        individual = None
+
+    if li_public_id:
+        individual: Individual = Individual.query.filter(
+            Individual.li_public_id == li_public_id,
+        ).first()
+    else:
+        individual = None
+
+    return individual.to_dict(include_company=True) if individual else None
+
+
 def parse_work_history(work_history: list):
     import json
 
