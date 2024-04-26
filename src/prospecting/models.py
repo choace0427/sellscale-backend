@@ -700,6 +700,7 @@ class Prospect(db.Model):
                 "merge_account_id": self.merge_account_id,
                 "merge_contact_id": self.merge_contact_id,
                 "merge_opportunity_id": self.merge_opportunity_id,
+                "merge_lead_id": self.merge_lead_id,
             }
 
         # Get generated message if it exists and is requested
@@ -846,6 +847,7 @@ class Prospect(db.Model):
             "merge_account_id": self.merge_account_id,
             "merge_contact_id": self.merge_contact_id,
             "merge_opportunity_id": self.merge_opportunity_id,
+            "merge_lead_id": self.merge_lead_id,
         }
 
 

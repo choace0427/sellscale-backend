@@ -26,6 +26,10 @@ from src.client.sdr.email.services_email_bank import (
     sync_email_bank_statistics_for_sdr,
 )
 from src.domains.models import Domain
+from src.slack.models import SlackNotificationType
+from src.slack.slack_notification_center import (
+    create_and_send_slack_notification_class_message,
+)
 from src.utils.converters.string_converters import (
     get_first_name_from_full_name,
     get_last_name_from_full_name,
@@ -1049,14 +1053,16 @@ def create_workmail_inbox(
         ],
     )
 
-    notification = EmailNewInboxCreatedNotification(
-        client_sdr_id=client_sdr_id,
-        email=f"{username}@{domain_name}",
-        warmup_finish_date=(datetime.utcnow() + timedelta(days=14)).strftime(
-            "%B %d, %Y"
-        ),
+    success = create_and_send_slack_notification_class_message(
+        notification_type=SlackNotificationType.EMAIL_NEW_INBOX_CREATED,
+        arguments={
+            "client_sdr_id": client_sdr_id,
+            "email": f"{username}@{domain_name}",
+            "warmup_finish_date": (datetime.utcnow() + timedelta(days=14)).strftime(
+                "%B %d, %Y"
+            ),
+        },
     )
-    success = notification.send_notification(preview_mode=False)
 
     return True, "Workmail inbox created successfully", sdr_email_bank_id
 

@@ -2,6 +2,7 @@ import enum
 from typing import Optional
 from app import db
 from src.client.sdr.email.models import SDREmailBank
+from src.merge_crm.models import ClientSyncCRM
 from src.prospecting.models import ProspectStatus, Prospect
 import sqlalchemy as sa
 import json
@@ -204,9 +205,9 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[GeneratedMessageCTA] = (
-            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
-        )
+        ctas: list[
+            GeneratedMessageCTA
+        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
 
         return {
             "id": self.id,
@@ -522,6 +523,11 @@ class ClientSDR(db.Model):
                 client_sdr_id=self.id
             ).all()
 
+        # Get the CRM Sync
+        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+            client_id=self.client_id
+        ).first()
+
         unassigned_persona: ClientArchetype = ClientArchetype.query.filter_by(
             client_sdr_id=self.id, is_unassigned_contact_archetype=True
         ).first()
@@ -597,6 +603,7 @@ class ClientSDR(db.Model):
                 else []
             ),
             "merge_user_id": self.merge_user_id,
+            "client_sync_crm": client_sync_crm.to_dict() if client_sync_crm else None,
         }
 
 

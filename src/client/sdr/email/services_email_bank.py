@@ -172,6 +172,12 @@ def create_sdr_email_bank(
     ).first()
 
     if duplicate:
+        if aws_workmail_user_id:
+            duplicate.aws_workmail_user_id = aws_workmail_user_id
+            duplicate.aws_username = aws_username
+            duplicate.aws_password = aws_password
+            db.session.add(duplicate)
+            db.session.commit()
         return duplicate.id
 
     # If the email_type is "anchor", replace all other anchor emails with alias
