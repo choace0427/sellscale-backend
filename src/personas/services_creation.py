@@ -67,7 +67,7 @@ def add_sequence(
             create_email_sequence_step(
                 client_sdr_id=archetype.client_sdr_id,
                 client_archetype_id=archetype_id,
-                title="Imported Step",
+                title=step["angle"],
                 template=template,
                 overall_status=(
                     ProspectOverallStatus.PROSPECTED
@@ -151,7 +151,7 @@ def add_sequence(
             if step["step_num"] != 1:
                 continue
             create_linkedin_initial_message_template(
-                title="Imported Step",
+                title=step["angle"],
                 message=step["text"],
                 client_sdr_id=archetype.client_sdr_id,
                 client_archetype_id=archetype_id,
@@ -191,7 +191,7 @@ def add_sequence(
             id = create_bump_framework(
                 client_sdr_id=archetype.client_sdr_id,
                 client_archetype_id=archetype_id,
-                title="Imported Step",
+                title=step["angle"],
                 description=step["text"],
                 overall_status=(
                     ProspectOverallStatus.ACCEPTED
