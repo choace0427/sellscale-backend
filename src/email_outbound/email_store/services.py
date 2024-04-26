@@ -61,7 +61,8 @@ def find_emails_for_archetype(self, archetype_id: int) -> bool:
     add_process_list(
         type="find_email_for_prospect_id",
         args_list=[{"prospect_id": prospect.id} for prospect in prospects],
-        buffer_wait_minutes=2,
+        chunk_size=50,
+        chunk_wait_minutes=1,
     )
     return True
 
