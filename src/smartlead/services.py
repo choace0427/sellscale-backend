@@ -679,6 +679,7 @@ def create_smartlead_campaign(
                     if (
                         warmup_details
                         and warmup_details.get("warmup_reputation") == "100%"
+                        and warmup_details.get('total_sent_count') >= 100
                     ):
                         email_account_ids.append(email.get("id"))
             offset += 100
@@ -687,7 +688,7 @@ def create_smartlead_campaign(
         for email in all_emails:
             if email.get("from_name") == client_sdr.name:
                 warmup_details = email.get("warmup_details")
-                if warmup_details and warmup_details.get("warmup_reputation") == "100%":
+                if warmup_details and warmup_details.get("warmup_reputation") == "100%" and warmup_details.get('total_sent_count') >= 100:
                     email_account_ids.append(email.get("id"))
 
     sl.add_email_account_to_campaign(
