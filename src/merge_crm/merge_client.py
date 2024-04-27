@@ -301,13 +301,14 @@ class MergeClient:
             email (str): Email address
 
         Returns:
-            Contact: Contact object
+            Optional[Contact]: Contact object
         """
         # Find Contact
         try:
-            contact = self.client.crm.contacts.list(
+            results = self.client.crm.contacts.list(
                 email_addresses=email,
-            )
+            ).results
+            contact = results[0] if results else None
         except:  # API returns 404 if contact is not found
             return None
 
@@ -325,7 +326,6 @@ class MergeClient:
         """
         # Get Prospect
         p: Prospect = Prospect.query.get(prospect_id)
-        print(f"⚡️ Creating contact for {p.first_name} {p.last_name} (#{p.id})")
 
         # Get Client SDR
         client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
@@ -335,21 +335,27 @@ class MergeClient:
         if p.merge_contact_id:
             contact = self.find_contact_by_prospect_id(prospect_id)
             if contact:
-                return contact.id, "Contact already exists."
+                return contact.id, "Contact already created for this Prospect."
             else:
                 p.merge_contact_id = None
                 db.session.add(p)
                 db.session.commit()
-                return (
-                    None,
-                    "Contact not found - ID may be corrupted or prospect may be deleted.",
-                )
 
         # If Account is not created, create Account
         if not p.merge_account_id:
             account_id, message = self.create_account(prospect_id)
             if not account_id:
                 return None, f"Could not create Account: {message}"
+
+        print(f"⚡️ Creating contact for {p.first_name} {p.last_name} (#{p.id})")
+
+        # Check for duplicates
+        contact: Contact = self.find_contact_by_email_address(p.email)
+        if contact:
+            p.merge_contact_id = contact.id
+            db.session.add(p)
+            db.session.commit()
+            return contact.id, "Contact already exists in CRM, linked to this prospect."
 
         # Create Contact
         try:
@@ -437,7 +443,6 @@ class MergeClient:
             tuple[Optional[str], str]: Account ID and message
         """
         p: Prospect = Prospect.query.get(prospect_id)
-        print("⚡️ Creating account for company: ", p.company)
 
         client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
         merge_user_id = client_sdr.merge_user_id
@@ -446,15 +451,11 @@ class MergeClient:
         if p.merge_account_id:
             account = self.find_account_by_prospect_id(prospect_id)
             if account:
-                return account.id, "Account already exists."
+                return account.id, "Account already exists for this Prospect."
             else:
                 p.merge_account_id = None
                 db.session.add(p)
                 db.session.commit()
-                return (
-                    None,
-                    "Account not found - ID may be corrupted or prospect may be deleted.",
-                )
 
         # If we do not have a company ID, try to find the company
         if not p.company_id:
@@ -462,6 +463,24 @@ class MergeClient:
 
             find_company_for_prospect(prospect_id=prospect_id)
             p = Prospect.query.get(prospect_id)
+
+        print("⚡️ Creating account for company: ", p.company)
+
+        # Check for duplicates (raw company name)
+        account: Account = self.find_account_by_name(p.company)
+        if account:
+            p.merge_account_id = account.id
+            db.session.add(p)
+            db.session.commit()
+            return account.id, "Account already exists in CRM, linked to this prospect."
+
+        # Check for duplicates ([SellScale] prepended)
+        account: Account = self.find_account_by_name("[SellScale] " + p.company)
+        if account:
+            p.merge_account_id = account.id
+            db.session.add(p)
+            db.session.commit()
+            return account.id, "Account already exists in CRM, linked to this prospect."
 
         company: Company = Company.query.get(p.company_id)
         description = ""
@@ -559,7 +578,6 @@ class MergeClient:
             tuple[Optional[str], str]: Opportunity ID and message
         """
         p: Prospect = Prospect.query.get(prospect_id)
-        print(f"⚡️ Creating opportunity for {p.full_name} (#{p.id})")
 
         client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
             client_id=p.client_id
@@ -598,10 +616,6 @@ class MergeClient:
                 p.merge_opportunity_id = None
                 db.session.add(p)
                 db.session.commit()
-                return (
-                    None,
-                    "Opportunity not found - ID may be corrupted or prospect may be deleted.",
-                )
 
         stage_mapping = client_sync_crm.status_mapping
         status = stage_mapping.get(p.overall_status.value)
@@ -616,10 +630,11 @@ class MergeClient:
         opportunity_value = client.contract_size or 500
 
         # Create Opportunity
+        print(f"⚡️ Creating opportunity for {p.full_name} (#{p.id})")
         try:
             opportunity_res: OpportunityResponse = self.client.crm.opportunities.create(
                 model=OpportunityRequest(
-                    name="[SellScale] " + p.company,
+                    name=f"[SellScale] {p.company} ({p.full_name})",
                     description="{first_name}, who is a {title} at {company}, is interested in our services.\n\nFit Reason:\n{fit_reason}\n\nDescription:\n{company_description}".format(
                         first_name=p.first_name,
                         title=p.title,
@@ -711,7 +726,6 @@ class MergeClient:
             tuple[Optional[str], str]: Lead ID and message
         """
         p: Prospect = Prospect.query.get(prospect_id)
-        print(f"⚡️ Creating lead for {p.full_name} (#{p.id})")
 
         client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
         merge_user_id = client_sdr.merge_user_id
@@ -725,10 +739,16 @@ class MergeClient:
                 p.merge_lead_id = None
                 db.session.add(p)
                 db.session.commit()
-                return (
-                    None,
-                    "Lead not found - ID may be corrupted or prospect may be deleted.",
-                )
+
+        print(f"⚡️ Creating lead for {p.full_name} (#{p.id})")
+
+        # Check for duplicates
+        lead: Lead = self.find_lead_by_email_address(p.email)
+        if lead:
+            p.merge_lead_id = lead.id
+            db.session.add(p)
+            db.session.commit()
+            return lead.id, "Lead already exists in CRM, linked to this prospect."
 
         # Create Lead
         try:
