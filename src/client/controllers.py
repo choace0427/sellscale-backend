@@ -583,6 +583,16 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
         )
         or False
     )
+    option_email_subject_lines = (
+        get_request_parameter(
+            "option_email_subject_lines",
+            request,
+            json=True,
+            required=False,
+            parameter_type=bool,
+        )
+        or False
+    )
 
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not client_archetype:
@@ -607,6 +617,7 @@ def post_archetype_clone_endpoint(client_sdr_id: int, archetype_id: int):
         option_icp_filters=option_icp_filters,
         option_email_steps=option_email_steps,
         option_li_init_msg=option_li_init_msg,
+        option_email_subject_lines=option_email_subject_lines,
     )
     if not persona:
         return "Failed to clone archetype", 500
