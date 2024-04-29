@@ -2178,11 +2178,11 @@ def create_prospect_note(prospect_id: int, note: str) -> int:
 
     return prospect_note.id
 
-
+@celery.task
 def delete_prospect_by_id(prospect_id: int):
     from src.research.linkedin.services import reset_prospect_research_and_messages
 
-    reset_prospect_research_and_messages(prospect_id=prospect_id)
+    reset_prospect_research_and_messages(prospect_id=prospect_id, hard_reset=True)
 
     prospect: Prospect = Prospect.query.get(prospect_id)
     db.session.delete(prospect)

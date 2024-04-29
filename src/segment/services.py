@@ -878,6 +878,15 @@ def transfer_segment(
     }, synchronize_session=False)
     db.session.commit()
 
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(
+        id=segment.saved_apollo_query_id
+    ).first()
+    if saved_apollo_query:
+        saved_apollo_query.client_sdr_id = new_client_sdr_id
+        db.session.add(saved_apollo_query)
+        db.session.commit()
+
+
     segment: Segment = Segment.query.get(segment_id)
     segment.client_sdr_id = new_client_sdr_id
     segment.client_archetype_id = None

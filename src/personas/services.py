@@ -1,5 +1,6 @@
 from typing import Optional
 from src.email_outbound.models import ProspectEmailStatus
+from src.email_sequencing.models import EmailSubjectLineTemplate
 
 from src.ml.services import get_text_generation
 
@@ -571,6 +572,7 @@ def clone_persona(
     option_bump_frameworks: bool,
     option_voices: bool,
     option_email_blocks: bool,
+    option_email_subject_lines: bool,
     option_icp_filters: bool,
     option_email_steps: bool,
     option_li_init_msg: bool,
@@ -647,6 +649,23 @@ def clone_persona(
                 bump_framework_id=original_bump_framework.id,
                 target_archetype_id=new_persona_id,
             )
+
+    if option_email_subject_lines:
+        original_subject_lines: list[EmailSubjectLineTemplate] = (
+            EmailSubjectLineTemplate.query.filter_by(
+                client_archetype_id=original_persona_id
+            ).all()
+        )
+
+        for original_subject_line in original_subject_lines:
+            new_subject_line = EmailSubjectLineTemplate(
+                subject_line=original_subject_line.subject_line,
+                client_sdr_id=client_sdr_id,
+                client_archetype_id=new_persona_id,
+                active=original_subject_line.active,
+            )
+            db.session.add(new_subject_line)
+        db.session.commit()
 
     if option_voices:
         original_voices: list[StackRankedMessageGenerationConfiguration] = (
