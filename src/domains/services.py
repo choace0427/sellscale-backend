@@ -1226,6 +1226,8 @@ def add_email_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
     domain: Domain = Domain.query.get(domain_id)
     if not domain:
         return False, "Domain not found"
+    if domain.dmarc_record or domain.spf_record or domain.dkim_record:
+        return False, "DNS records already exist"
 
     # Refresh our internal DNS record stores to make sure we don't perform redundant work
     _ = validate_domain_configuration(domain_id=domain_id)
