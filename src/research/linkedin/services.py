@@ -294,12 +294,13 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
 
 
 @celery.task
-def reset_prospect_research_and_messages(prospect_id: int):
+def reset_prospect_research_and_messages(prospect_id: int, hard_reset: bool = False):
     from src.message_generation.services import delete_message_generation_by_prospect_id
 
     reset_prospect_approved_status(prospect_id=prospect_id)
     delete_message_generation_by_prospect_id(prospect_id=prospect_id)
-    # delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
+    if hard_reset:
+        delete_research_points_and_payload_by_prospect_id(prospect_id=prospect_id)
 
 
 def reset_batch_of_prospect_research_and_messages(
