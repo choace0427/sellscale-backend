@@ -1193,7 +1193,7 @@ def domain_setup_workflow(
     db.session.commit()
 
     # Add DNS records
-    success, _ = add_email_dns_records(domain_name)
+    success, _ = add_email_dns_records(domain_id=domain_id, domain_name=domain_name)
     if not success:
         return False, "Failed to add email DNS records"
 
@@ -1207,18 +1207,32 @@ def domain_setup_workflow(
     return True, "Domain setup workflow completed successfully"
 
 
-def add_email_dns_records(domain_name: str) -> tuple[bool, str]:
+def add_email_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
     """Adds DNS records for a domain. Namely DKIM, DMARC, SPF, MX, and verification records
 
     Args:
+        domain_id (int): The ID of the Domain object
         domain_name (str): The domain name to add DNS records for
 
     Returns:
         tuple: A tuple containing the status and a message
     """
+    # Verify that this is a Hosted Zone belonging to us
     hosted_zone_id = get_hosted_zone_id(domain_name)
     if hosted_zone_id is None:
         return False, "Hosted zone not found for domain"
+
+    # Get the Domain object
+    domain: Domain = Domain.query.get(domain_id)
+    if not domain:
+        return False, "Domain not found"
+
+    # Refresh our internal DNS record stores to make sure we don't perform redundant work
+    _ = validate_domain_configuration(domain_id=domain_id)
+    domain: Domain = Domain.query.get(domain_id)
+    if domain.dmarc_record or domain.spf_record or domain.dkim_record:
+        return False, "DNS records already exist"
+
     dkim_tokens = generate_dkim_tokens(domain_name)
 
     # DKIM records
@@ -1397,6 +1411,10 @@ def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, 
     domain: Domain = Domain.query.get(domain_id)
     if not domain:
         raise Exception("Domain not found")
+
+    # Make sure we haven't already created an Amplify App
+    if domain.aws_amplify_app_id:
+        return False, "Email forwarding already configured"
 
     # Create an AWS Amplify App
     app_id = create_aws_amplify_app(
