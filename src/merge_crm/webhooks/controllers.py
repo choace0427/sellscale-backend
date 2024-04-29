@@ -2,6 +2,9 @@ from functools import wraps
 import json
 import os
 from flask import Blueprint, jsonify, request
+from src.merge_crm.webhooks.lead_updated import (
+    create_and_process_crm_lead_updated_payload,
+)
 
 from src.merge_crm.webhooks.opportunity_updated import (
     create_and_process_crm_opportunity_updated_payload,
@@ -53,6 +56,24 @@ def account_updated():
     """Webhook for Merge CRM opportunity updated event."""
     payload = request.get_json()
     success = create_and_process_crm_opportunity_updated_payload(payload=payload)
+    if not success:
+        return (
+            jsonify({"status": "error", "message": "Failed to process payload."}),
+            500,
+        )
+
+    return (
+        jsonify({"status": "success", "message": "Payload processed successfully."}),
+        200,
+    )
+
+
+@MERGE_CRM_WEBHOOKS_BLUEPRINT.route("/lead/updated", methods=["POST"])
+@authenticate_webhook
+def lead_updated():
+    """Webhook for Merge CRM lead updated event."""
+    payload = request.get_json()
+    success = create_and_process_crm_lead_updated_payload(payload=payload)
     if not success:
         return (
             jsonify({"status": "error", "message": "Failed to process payload."}),

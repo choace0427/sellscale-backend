@@ -13,6 +13,7 @@ class MergeWebhookProcessingStatus(enum.Enum):
 
 class MergeWebhookType(enum.Enum):
     CRM_OPPORTUNITY_UPDATED = "opportunity.changed"
+    CRM_LEAD_UPDATED = "lead.changed"
 
 
 class MergeWebhookPayload(db.Model):
