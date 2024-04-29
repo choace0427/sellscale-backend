@@ -114,8 +114,8 @@ def process_crm_lead_updated_webhook(payload_id: int):
             sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
             client: Client = Client.query.get(sdr.client_id)
             send_slack_message(
-                message=f"Lead converted to account/contact\nUser: {sdr.name} ({client.company})\nCRM: {integration}\n\nProspect: {prospect.full_name} (#{prospect.id})",
-                webhook_urls=[URL_MAP["ops-alerts-opportunity-changed"]],
+                message=f"Lead converted to account/contact\nUser: {sdr.name} ({client.company})\nCRM: {integration}\n\nProspect: {prospect.full_name} (#{prospect.id})\nEvent: Lead converted to account/contact",
+                webhook_urls=[URL_MAP["ops-crm-sync-updates"]],
             )
 
         # Set the payload to "SUCCEEDED"
