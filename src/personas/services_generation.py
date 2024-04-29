@@ -511,7 +511,7 @@ def generate_email_follow_up_quick_and_dirty(
     ---------------------------------------------------
     ## Output:
     ### Message:
-    Hello [prospect name],
+    Hello [prospect first name],
 
     Hope your week is going well. It was great to hear about your [business pain point] on our last call. I think [company name] can help you [insert benefit].
 
@@ -528,7 +528,7 @@ def generate_email_follow_up_quick_and_dirty(
     ---------------------------------------------------
     ## Output:
     ### Message:
-    Hello [prospect name],
+    Hello [prospect first name],
 
     Just bumping this up in your inbox. Did you get a chance to speak to [higher-up] about moving forward with [product or service]?
 
@@ -553,7 +553,7 @@ def generate_email_follow_up_quick_and_dirty(
     ---------------------------------------------------
     ## Output:
     ### Message:
-    Hey [prospect name],
+    Hey [prospect first name],
 
     It seems like it’s not a great time for us to connect, but I really think [specific features] could help your business [achieve X results].
 
