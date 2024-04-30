@@ -68,7 +68,7 @@ class Client(db.Model):
     analytics_activation_date = db.Column(db.DateTime, nullable=True)
     analytics_deactivation_date = db.Column(db.DateTime, nullable=True)
 
-    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+    contract_size = db.Column(db.Integer, nullable=True)
 
     pre_onboarding_survey = db.Column(db.JSON, nullable=True)
     is_pre_onboarding_survey_imported = db.Column(db.Boolean, nullable=True)

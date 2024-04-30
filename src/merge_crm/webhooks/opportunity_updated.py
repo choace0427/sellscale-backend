@@ -109,7 +109,8 @@ def process_crm_opportunity_updated_webhook(payload_id: int):
                     slack_alert_sent = True
                     integration = linked_account.get("integration")
                     opportunity = data.get("name")
-                    difference = new_contract_size - prospect.contract_size
+                    prospect_contract_size = prospect.contract_size or 0
+                    difference = new_contract_size - prospect_contract_size
                     difference_str = f"{'+' if difference > 0 else ''}${difference}"
                     send_slack_message(
                         f"Opportunity value changed in CRM.\nUser: {sdr.name}\nCompany: {client.company}\nCRM: {integration}\n\nOpportunity: {opportunity}\nProspect: {prospect.full_name}\nChange: ${prospect.contract_size} -> ${new_contract_size} ({difference_str})",
