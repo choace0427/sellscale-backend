@@ -21,6 +21,9 @@ class Segment(db.Model):
         db.Integer, db.ForeignKey("saved_apollo_query.id")
     )
 
+    autoscrape_enabled = db.Column(db.Boolean, default=False)
+    current_scrape_page = db.Column(db.Integer, default=0)
+
     def __repr__(self):
         return f"<Segment {self.id}>"
 
