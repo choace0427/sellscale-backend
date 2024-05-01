@@ -1119,6 +1119,13 @@ def get_individual(li_public_id: str, email: str):
     else:
         individual = None
 
+    if individual is None and li_public_id:
+        success, new_id, created = add_individual_from_linkedin_url(
+            f"https://www.linkedin.com/in/{li_public_id}/"
+        )
+        if new_id:
+            individual = Individual.query.get(new_id)
+
     return individual.to_dict(include_company=True) if individual else None
 
 
