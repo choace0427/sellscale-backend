@@ -246,7 +246,7 @@ def send_message_generic(client_sdr_id: int):
     """Sends a LinkedIn message to a profile"""
 
     li_urn_id = get_request_parameter(
-        "li_urn_id", request, json=True, required=True, parameter_type=int
+        "li_urn_id", request, json=True, required=True, parameter_type=str
     )
     msg = get_request_parameter(
         "message", request, json=True, required=True, parameter_type=str
