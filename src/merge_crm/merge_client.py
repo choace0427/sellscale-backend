@@ -754,6 +754,7 @@ class MergeClient:
         try:
             lead_res: LeadResponse = self.client.crm.leads.create(
                 model=LeadRequest(
+                    lead_source="SellScale",
                     title=p.title,
                     company=p.company,
                     first_name=p.first_name,

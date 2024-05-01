@@ -1997,3 +1997,177 @@ def get_outbound_data(client_sdr_id: int):
         "message_active": message_data[1],
     }
     return data
+
+def get_account_based_data(client_sdr_id: int, offset: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id: int = client_sdr.client_id
+    offset: int = offset
+
+    count_query = """
+        with helper as (
+            with company_spark_helper as (
+                select 
+                    prospect.company_id,
+                    to_char(
+                        case 
+                            when 
+                                (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
+                            when 
+                                (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
+                            else null
+                    end, 'YYYY-MM-DD HH:WW') date,
+                    count(distinct prospect.id) num_prospects
+                from prospect
+                    left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                    left join prospect_email on prospect_email.prospect_id = prospect.id
+                    left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                where prospect.client_id = 47
+                    and (
+                        prospect_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
+                        or prospect_email_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
+                    )
+                group by 1,2
+                order by 2 desc
+            )
+            select 
+                company,
+                prospect.company_id,
+                prospect.company_url,
+                array_agg(
+                    distinct company_spark_helper.num_prospects
+                ) filter (where company_spark_helper.num_prospects is not null) sparkline_data,
+                max(company_spark_helper.num_prospects)	sparkline_max,
+                min(company_spark_helper.num_prospects) sparkline_min,
+                max(
+                    case 
+                        when 
+                            (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
+                        when 
+                            (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
+                        else null
+                end) latest_reply,
+                        
+                count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') num_accepted,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demo
+            from prospect
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                join company_spark_helper on company_spark_helper.company_id = prospect.company_id
+            where prospect.client_id = 47
+            group by 1,2,3
+            having 
+                count(distinct prospect.id) filter 
+                    (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') > 0
+                
+            order by 5 desc
+            offset 0
+        )
+        select 
+            count(*)
+        from helper;
+    """.format(
+        CLIENT_ID=client_id,
+        OFFSET=offset * 15
+    )
+
+    count_result = db.session.execute(count_query).fetchone()
+    count = count_result[0] if count_result else 0
+
+    query = """
+        with helper as (
+            with company_spark_helper as (
+                select 
+                    prospect.company_id,
+                    to_char(
+                        case 
+                            when 
+                                (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
+                            when 
+                                (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
+                            else null
+                    end, 'YYYY-MM-DD HH:WW') date,
+                    count(distinct prospect.id) num_prospects
+                from prospect
+                    left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                    left join prospect_email on prospect_email.prospect_id = prospect.id
+                    left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                where prospect.client_id = {CLIENT_ID}
+                    and (
+                        prospect_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
+                        or prospect_email_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
+                    )
+                group by 1,2
+                order by 2 desc
+            )
+            select 
+                company,
+                prospect.company_id,
+                prospect.company_url,
+                array_agg(
+                    distinct company_spark_helper.num_prospects
+                ) filter (where company_spark_helper.num_prospects is not null) sparkline_data,
+                max(company_spark_helper.num_prospects)	sparkline_max,
+                min(company_spark_helper.num_prospects) sparkline_min,
+                max(
+                    case 
+                        when 
+                            (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
+                        when 
+                            (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
+                        else null
+                end) latest_reply,
+                        
+                count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') num_accepted,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demo
+            from prospect
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                join company_spark_helper on company_spark_helper.company_id = prospect.company_id
+            where prospect.client_id = {CLIENT_ID}
+            group by 1,2,3
+            having 
+                count(distinct prospect.id) filter 
+                    (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') > 0
+                
+            order by 5 desc
+            limit 25
+            offset {OFFSET}
+        )
+        select 
+            company,
+            company_id,
+            company_url,
+            sparkline_data,
+            case 
+                when sparkline_min = sparkline_max then 'LOW'
+                when sparkline_max / cast(sparkline_min as float) < 5 then 'MID'
+                else 'HIGH'
+            end status,
+            latest_reply,
+            num_sent,
+            num_accepted,
+            num_replied,
+            num_positive_reply,
+            num_demo
+                
+        from helper
+        order by latest_reply desc;
+    """.format(
+        CLIENT_ID=client_id,
+        OFFSET=offset
+    )
+
+    results = db.session.execute(query).fetchall()
+
+    if results is not None:
+        results = [dict(row) for row in results]
+
+    return {"count": count, "results": results}
