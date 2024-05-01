@@ -4,10 +4,12 @@ import os
 from typing import Optional
 from app import db
 import requests
-from src.client.models import ClientSDR
+from src.client.models import ClientArchetype, ClientSDR
 from src.contacts.models import SavedApolloQuery
 
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.prospecting.controllers import add_prospect_from_csv_payload
+from src.prospecting.models import ProspectUploadSource
 from src.utils.abstract.attr_utils import deep_get
 from datetime import datetime
 
@@ -637,3 +639,70 @@ def get_territories(client_sdr_id: int):
         )
 
     return territories
+
+def upload_prospects_from_apollo_page_to_segment(
+    client_sdr_id: int,
+    saved_apollo_query_id: int,
+    page: int,
+    segment_id: int,
+):
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)
+    payload = saved_apollo_query.data
+
+    unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype,
+    ).first()
+    if not unassigned_archetype:
+        return {"error": "No unassigned archetype found"}
+    unassigned_archetype_id: int = unassigned_archetype.id
+
+    # call apollo_get_contacts_for_page
+    response, data, saved_query_id = apollo_get_contacts_for_page(
+        client_sdr_id=client_sdr_id,
+        page=page,
+        person_titles=payload.get("person_titles", []),
+        person_not_titles=payload.get("person_not_titles", []),
+        q_person_title=payload.get("q_person_title", ""),
+        q_person_name=payload.get("q_person_name", ""),
+        organization_industry_tag_ids=payload.get("organization_industry_tag_ids", []),
+        organization_num_employees_ranges=payload.get("organization_num_employees_ranges", []),
+        person_locations=payload.get("person_locations", []),
+        organization_ids=payload.get("organization_ids", None),
+        revenue_range=payload.get("revenue_range", {"min": None, "max": None}),
+        organization_latest_funding_stage_cd=payload.get("organization_latest_funding_stage_cd", []),
+        currently_using_any_of_technology_uids=payload.get("currently_using_any_of_technology_uids", []),
+        event_categories=payload.get("event_categories", None),
+        published_at_date_range=payload.get("published_at_date_range", None),
+        person_seniorities=payload.get("person_seniorities", None),
+        q_organization_search_list_id=payload.get("q_organization_search_list_id", None),
+        organization_department_or_subdepartment_counts=payload.get("organization_department_or_subdepartment_counts", None),
+        is_prefilter=payload.get("is_prefilter", False),
+        q_organization_keyword_tags=payload.get("q_organization_keyword_tags", None),
+    )
+
+    # get the contacts and people
+    contacts = response["contacts"]
+    people = response["people"]
+    all_contacts = contacts + people
+    
+    # create a list of {first_name, last_name, linkedin_url}
+    prospects = []
+    for contact in all_contacts:
+        prospects.append({
+            "first_name": contact.get("first_name", ""),
+            "last_name": contact.get("last_name", ""),
+            "linkedin_url": contact.get("linkedin_url", ""),
+        })
+
+    # upload prospects
+    msg, error_code = add_prospect_from_csv_payload(
+        client_sdr_id=client_sdr_id,
+        archetype_id=unassigned_archetype_id,
+        csv_payload=prospects,
+        allow_duplicates=False,
+        source=ProspectUploadSource.CONTACT_DATABASE,
+        segment_id=segment_id,
+    )
+
+    return {"msg": msg, "error_code": error_code}

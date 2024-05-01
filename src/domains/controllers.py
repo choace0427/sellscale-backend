@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.client.sdr.email.services_email_bank import get_sdr_email_banks_for_client
 from src.domains.services import (
-    add_email_dns_records,
     create_domain_entry,
     delete_domain,
     domain_blacklist_check,
@@ -11,7 +10,6 @@ from src.domains.services import (
     find_similar_domains,
     get_domain_details,
     patch_domain_entry,
-    register_aws_domain,
     validate_domain_configuration,
     workmail_setup_workflow,
 )
@@ -203,26 +201,6 @@ def get_find_similar_domains(client_sdr_id: int):
 
     parts = domain.split(".")
     result = find_similar_domains(parts[0], parts[-1])
-
-    return (
-        jsonify(
-            {
-                "status": "success",
-                "data": result,
-            }
-        ),
-        200,
-    )
-
-
-@DOMAINS_BLUEPRINT.route("/add_dns_records", methods=["POST"])
-@require_user
-def post_add_dns_records(client_sdr_id: int):
-    domain = get_request_parameter(
-        "domain", request, json=True, required=True, parameter_type=str
-    )
-
-    result = add_email_dns_records(domain)
 
     return (
         jsonify(

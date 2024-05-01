@@ -495,7 +495,7 @@ class MergeClient:
         try:
             account_res: CrmAccountResponse = self.client.crm.accounts.create(
                 model=AccountRequest(
-                    name="[SellScale] " + p.company,
+                    name=p.company,
                     description="[Source: SellScale]\n" + description,
                     website=website_url,
                     number_of_employees=company_size,

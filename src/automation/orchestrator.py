@@ -5,7 +5,6 @@ from src.voyager.linkedin import send_scheduled_linkedin_message
 from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 
 from src.triggers.services import trigger_runner
-from src.domains.services import domain_setup_workflow, workmail_setup_workflow
 
 from src.prospecting.services import generate_prospect_upload_report
 from src.email_scheduling.services import populate_email_messaging_schedule_entries
@@ -110,18 +109,6 @@ PROCESS_TYPE_MAP = {
     },
     "trigger_runner": {
         "function": trigger_runner,
-        "priority": 10,
-        "queue": None,
-        "routing_key": None,
-    },
-    "domain_setup_workflow": {
-        "function": domain_setup_workflow,
-        "priority": 10,
-        "queue": None,
-        "routing_key": None,
-    },
-    "workmail_setup_workflow": {
-        "function": workmail_setup_workflow,
         "priority": 10,
         "queue": None,
         "routing_key": None,

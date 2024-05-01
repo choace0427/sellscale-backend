@@ -465,6 +465,20 @@ def run_merge_poll_crm_opportunities():
         poll_crm_opportunities.delay()
 
 
+def run_auto_scrape_for_segments():
+    from src.segment.services import scrape_all_enabled_segments
+
+    if is_scheduling_instance():
+        scrape_all_enabled_segments.delay()
+
+
+def run_handle_all_domain_setups():
+    from src.domains.services import handle_all_domain_setups
+
+    if is_scheduling_instance():
+        handle_all_domain_setups.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -508,6 +522,7 @@ scheduler.add_job(func=generate_message_bumps, trigger="interval", minutes=10)
 # scheduler.add_job(func=generate_email_bumps, trigger="interval", minutes=2)
 scheduler.add_job(func=scrape_li_inboxes, trigger="interval", minutes=5)
 scheduler.add_job(func=icp_scoring_job, trigger="interval", minutes=5)
+scheduler.add_job(func=run_handle_all_domain_setups, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
@@ -574,6 +589,7 @@ scheduler.add_job(run_merge_poll_crm_opportunities, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
+scheduler.add_job(run_auto_scrape_for_segments, trigger=weekly_trigger)
 
 # Weekday triggers
 scheduler.add_job(run_weekday_phantom_buster_updater, trigger=weekday_trigger)
