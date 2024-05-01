@@ -932,3 +932,73 @@ def create_n_sub_batches_for_segment(
         add_prospects_to_segment(prospect_ids, new_segment.id)
 
     return True, "Subsegments created"
+
+def toggle_auto_scrape_for_segment(
+    client_sdr_id: int,
+    segment_id: int
+):
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+    if segment.client_sdr_id != client_sdr_id:
+        return False, "Segment does not belong to current SDR"
+
+    segment.autoscrape_enabled = not segment.autoscrape_enabled
+    db.session.add(segment)
+    db.session.commit()
+
+    return True, "Auto scrape toggled"
+
+def run_new_scrape_for_segment(
+    segment_id: int
+):
+    from src.contacts.services import upload_prospects_from_apollo_page_to_segment
+
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+    if not segment.autoscrape_enabled:
+        return False, "Auto scrape not enabled for segment"
+    
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(segment.saved_apollo_query_id)
+    if not saved_apollo_query:
+        return False, "Apollo query not found for segment"
+    
+    max_pages = saved_apollo_query.num_results // 100 + 1
+
+    if not segment.current_scrape_page:
+        segment.current_scrape_page = 1
+
+    if segment.current_scrape_page > max_pages:
+        return False, "All pages scraped"
+
+    # todo(Aakash) run scrape here with celery
+    upload_prospects_from_apollo_page_to_segment(
+        client_sdr_id=segment.client_sdr_id,
+        saved_apollo_query_id=segment.saved_apollo_query_id,
+        page=segment.current_scrape_page,
+        segment_id=segment_id
+    )
+
+    segment.current_scrape_page = segment.current_scrape_page + 1
+    db.session.add(segment)
+    db.session.commit()
+
+    return True, "Scrape initiated"
+
+def run_n_scrapes_for_segment(
+    client_sdr_id: int,
+    segment_id: int,
+    num_scrapes: int
+):
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment or segment.client_sdr_id != client_sdr_id:
+        return False, "Segment not found"
+
+    for i in range(num_scrapes):
+        success, msg = run_new_scrape_for_segment(segment_id)
+        if not success:
+            return False, msg
+    return True, "Scrapes initiated"
+
+    

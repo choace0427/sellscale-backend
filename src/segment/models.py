@@ -45,5 +45,7 @@ class Segment(db.Model):
             "client_archetype": client_archetype.to_dict() if client_archetype else None,
             "saved_apollo_query_id": self.saved_apollo_query_id,
             "apollo_query": apollo_query.to_dict() if apollo_query else None,
+            "autoscrape_enabled": self.autoscrape_enabled,
+            "current_scrape_page": self.current_scrape_page,
         }
         
