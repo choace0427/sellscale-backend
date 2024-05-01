@@ -1013,7 +1013,8 @@ def workmail_setup_workflow(
         return False, "Domain has reached the maximum number of inboxes"
 
     # Make sure that we haven't already created an inbox for this username
-    if SDREmailBank.query.filter_by(username=username).first():
+    email_address = f"{username}@{domain_name}"
+    if SDREmailBank.query.filter_by(email_address=email_address).first():
         return True, "Inbox already exists"
 
     # Generate a random password
