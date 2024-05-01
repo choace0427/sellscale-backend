@@ -21,12 +21,14 @@ from src.segment.services import (
     move_segment,
     remove_prospect_from_segment,
     run_n_scrapes_for_segment,
+    set_current_scrape_page_for_segment,
     toggle_auto_scrape_for_segment,
     transfer_segment,
     update_segment,
     wipe_and_delete_segment,
     wipe_segment_ids_from_prospects_in_segment,
     get_unused_segments_for_sdr,
+    scrape_all_enabled_segments
 )
 from src.segment.services_auto_segment import run_auto_segment
 from src.utils.request_helpers import get_request_parameter
@@ -523,6 +525,20 @@ def post_run_scrapes(client_sdr_id: int):
     num_scrapes = get_request_parameter("num_scrapes", request, json=True, required=True)
 
     success, msg = run_n_scrapes_for_segment(client_sdr_id, segment_id, num_scrapes)
+
+    if success:
+        return msg, 200
+
+    return msg, 400
+
+
+@SEGMENT_BLUEPRINT.route("/set_current_scrape_page", methods=['POST'])
+@require_user
+def post_set_current_scrape_page(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    current_scrape_page = get_request_parameter("current_scrape_page", request, json=True, required=True)
+
+    success, msg = set_current_scrape_page_for_segment(client_sdr_id, segment_id, current_scrape_page)
 
     if success:
         return msg, 200

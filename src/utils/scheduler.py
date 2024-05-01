@@ -464,6 +464,11 @@ def run_merge_poll_crm_opportunities():
     if is_scheduling_instance():
         poll_crm_opportunities.delay()
 
+def run_auto_scrape_for_segments():
+    from src.segment.services import scrape_all_enabled_segments
+
+    if is_scheduling_instance():
+        scrape_all_enabled_segments.delay()
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
@@ -574,6 +579,7 @@ scheduler.add_job(run_merge_poll_crm_opportunities, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)
+scheduler.add_job(run_auto_scrape_for_segments, trigger=weekly_trigger)
 
 # Weekday triggers
 scheduler.add_job(run_weekday_phantom_buster_updater, trigger=weekday_trigger)

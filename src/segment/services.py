@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import or_, and_
 
 from regex import E
-from app import db
+from app import db, celery
 from sqlalchemy.orm import attributes
 from src.client.models import ClientArchetype, ClientSDR
 from src.contacts.models import SavedApolloQuery
@@ -986,6 +986,7 @@ def run_new_scrape_for_segment(
 
     return True, "Scrape initiated"
 
+@celery.task
 def run_n_scrapes_for_segment(
     client_sdr_id: int,
     segment_id: int,
@@ -1002,3 +1003,31 @@ def run_n_scrapes_for_segment(
     return True, "Scrapes initiated"
 
     
+def set_current_scrape_page_for_segment(
+    client_sdr_id: int,
+    segment_id: int,
+    page: int
+):
+    segment: Segment = Segment.query.get(segment_id)
+    if not segment or segment.client_sdr_id != client_sdr_id:
+        return False, "Segment not found"
+    
+    segment.current_scrape_page = page
+    db.session.add(segment)
+    db.session.commit()
+
+    return True, "Current scrape page set"
+
+@celery.task
+def scrape_all_enabled_segments():
+    segments: list[Segment] = Segment.query.filter(
+        and_(
+            Segment.autoscrape_enabled == True
+        )
+    ).all()
+
+    for segment in segments:
+        print(segment.segment_title)
+        # run_n_scrapes_for_segment.delay(client_sdr_id, segment.id, 1)
+
+    return True, "Scrapes initiated for all enabled segments"
