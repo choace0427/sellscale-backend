@@ -37,6 +37,7 @@ from src.campaigns.services import (
     wipe_campaign_generations,
     email_analytics,
     payout_campaigns,
+    get_account_based_data
 )
 from src.campaigns.autopilot.services import (
     collect_and_generate_all_autopilot_campaigns,
@@ -758,3 +759,23 @@ def get_outboundData(client_sdr_id: int):
     data = get_outbound_data(client_sdr_id)
 
     return data
+
+@CAMPAIGN_BLUEPRINT.route("/account_based", methods=["POST"])
+@require_user
+def get_account_based_view_data(client_sdr_id: int):
+
+    offset: int = get_request_parameter(
+        "offset", request, json=True, required=True
+    )
+
+    data = get_account_based_data(client_sdr_id=client_sdr_id, offset=offset)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": data,
+            }
+        ),
+        200,
+    )
