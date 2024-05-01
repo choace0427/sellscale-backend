@@ -25,7 +25,7 @@ from src.client.sdr.email.services_email_bank import (
     get_sdr_email_bank,
     sync_email_bank_statistics_for_sdr,
 )
-from src.domains.models import Domain
+from src.domains.models import Domain, DomainSetupStatuses, DomainSetupTracker
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
@@ -50,6 +50,10 @@ from src.slack.notifications.email_new_inbox_created import (
 
 
 MAX_INBOXES_PER_DOMAIN = 2
+
+###############################
+#    DOMAIN LOOKUP METHODS    #
+###############################
 
 
 def domain_blacklist_check(domain) -> dict:
@@ -572,6 +576,116 @@ def find_similar_domains(key_title: str, current_tld: str) -> list[dict]:
     return similar_domains
 
 
+###############################
+#    DOMAIN SETUP METHODS     #
+###############################
+
+
+@celery.task
+def handle_all_domain_setups() -> bool:
+    """Handles all domain setups
+
+    Returns:
+        bool: True if successful, else False
+    """
+    # Get all DomainSetupTrackers where the status is not COMPLETED
+    domain_setup_trackers = DomainSetupTracker.query.filter(
+        DomainSetupTracker.status != DomainSetupStatuses.COMPLETED
+    ).all()
+
+    for domain_setup_tracker in domain_setup_trackers:
+        handle_domain_setup.delay(domain_setup_tracker.id)
+
+    return True
+
+
+@celery.task
+def handle_domain_setup(domain_setup_tracker_id: int) -> tuple[bool, str]:
+    """Handle the domain setup for a domain
+
+    Args:
+        domain_setup_tracker_id (int): The ID of the domain setup tracker
+
+    Returns:
+        tuple: A tuple containing the status and a message
+    """
+    # Get the domain setup tracker
+    domain_setup_tracker: DomainSetupTracker = DomainSetupTracker.query.get(
+        domain_setup_tracker_id
+    )
+    if domain_setup_tracker is None:
+        return False
+    elif domain_setup_tracker.status == DomainSetupStatuses.COMPLETED:
+        return True
+
+    # Get the domain
+    domain: Domain = Domain.query.get(domain_setup_tracker.domain_id)
+    if domain is None:
+        return False
+
+    # Check the stages
+    if not domain_setup_tracker.stage_purchase_domain:
+        # Stage: Purchase Domain
+        success, message, domain_id = domain_purchase_workflow(
+            client_id=domain.client_id, domain_name=domain.domain
+        )
+        if not success:
+            return False, message
+        domain_setup_tracker.stage_purchase_domain = True
+        domain_setup_tracker.status = DomainSetupStatuses.SETUP_DNS_RECORDS
+        db.session.commit()
+        return True, "Domain purchased successfully"
+    elif not domain_setup_tracker.stage_setup_dns_records:
+        # Stage: Setup DNS Records
+        success, message = domain_setup_workflow(
+            domain_name=domain.domain, domain_id=domain.id
+        )
+        if not success:
+            return False, message
+        domain_setup_tracker.stage_setup_dns_records = True
+        domain_setup_tracker.status = DomainSetupStatuses.SETUP_FORWARDING
+        db.session.commit()
+        return True, "DNS records setup successfully"
+    elif not domain_setup_tracker.stage_setup_forwarding:
+        # Stage: Setup Forwarding
+        success, message = configure_email_forwarding(
+            domain_name=domain.domain, domain_id=domain.id
+        )
+        if not success:
+            return False, message
+        domain_setup_tracker.stage_setup_forwarding = True
+        if not domain_setup_tracker.setup_mailboxes:
+            # We are done!
+            domain_setup_tracker.status = DomainSetupStatuses.COMPLETED
+        else:
+            domain_setup_tracker.status = DomainSetupStatuses.SETUP_MAILBOXES
+
+        db.session.commit()
+        return True, "Domain forwarding setup successfully"
+    elif (
+        domain_setup_tracker.setup_mailboxes
+        and not domain_setup_tracker.stage_setup_mailboxes
+    ):
+        # Stage: Setup Mailboxes
+        overall_success = False
+        overall_message = ""
+        for username in domain_setup_tracker.setup_mailboxes_usernames:
+            success, message = workmail_setup_workflow(
+                client_sdr_id=domain.client_id, domain_id=domain.id, username=username
+            )
+            overall_success = overall_success and success
+            overall_message += message + "\n"
+
+        if not overall_success:
+            return False, overall_message
+        domain_setup_tracker.stage_setup_mailboxes = True
+        domain_setup_tracker.status = DomainSetupStatuses.COMPLETED
+        db.session.commit()
+        return True, "Mailboxes setup successfully"
+
+    return False, "Unknown error"
+
+
 def generate_dkim_tokens(domain_name: str) -> list[str]:
     """Generate DKIM tokens for a domain. Uses SESv1
 
@@ -792,7 +906,6 @@ def setup_managed_inboxes(
         return False, "Client not found"
 
     # Check if the client has an available domain
-    registering_domain = False
     managed_domain: Domain = None
     available_domains = get_available_domains(client_id=client.id)
     if len(available_domains) == 0:
@@ -824,45 +937,37 @@ def setup_managed_inboxes(
         if not success:
             return False, message
         managed_domain = Domain.query.get(domain_id)
-        registering_domain = True
     else:
         managed_domain = Domain.query.get(available_domains[0].get("id"))
 
-    # Get 2 usernames from the SDRs name
-    first_name = get_first_name_from_full_name(client_sdr.name)
-    last_name = get_last_name_from_full_name(client_sdr.name)
-    first_username = first_name.lower()
-    first_dot_last = f"{first_name.lower()}.{last_name.lower()}"
+    # Get the domain
+    if not managed_domain:
+        return False, "Domain not found"
 
-    # Setup workmail inboxes
-    from src.automation.orchestrator import add_process_for_future
-
-    wait_time = 45 if registering_domain else 0
-    add_process_for_future(
-        type="workmail_setup_workflow",
-        args={
-            "client_sdr_id": client_sdr_id,
-            "domain_id": managed_domain.id,
-            "username": (
-                usernames[0] if (usernames and len(usernames) >= 1) else first_username
-            ),
-            "wait_for_domain": True,
-        },
-        minutes=wait_time,
+    # Get the domain setup tracker
+    domain_setup_tracker: DomainSetupTracker = DomainSetupTracker(
+        domain_id=managed_domain.id
     )
-    add_process_for_future(
-        type="workmail_setup_workflow",
-        args={
-            "client_sdr_id": client_sdr_id,
-            "domain_id": managed_domain.id,
-            "username": (
-                usernames[1] if (usernames and len(usernames) >= 2) else first_dot_last
-            ),
-            "wait_for_domain": True,
-        },
-        minutes=wait_time,
-    )
+    if not domain_setup_tracker:
+        domain_setup_tracker_id = create_domain_setup_tracker_entry(
+            domain_id=managed_domain.id
+        )
+        managed_domain.domain_setup_tracker_id = domain_setup_tracker_id
+        db.session.commit()
+        domain_setup_tracker = DomainSetupTracker.query.get(domain_setup_tracker_id)
 
+    # Get the usernames to use
+    if not usernames:
+        # Get 2 usernames from the SDRs name
+        first_name = get_first_name_from_full_name(client_sdr.name)
+        last_name = get_last_name_from_full_name(client_sdr.name)
+        first_username = first_name.lower()
+        first_dot_last = f"{first_name.lower()}.{last_name.lower()}"
+        usernames = [first_username, first_dot_last]
+
+    domain_setup_tracker.setup_mailboxes = True
+    domain_setup_tracker.setup_mailboxes_usernames = usernames
+    db.session.commit()
     return (
         True,
         "Managed inboxes setup workflow initiated. This will take at least 1 hour to complete.",
@@ -874,7 +979,6 @@ def workmail_setup_workflow(
     client_sdr_id: int,
     domain_id: int,
     username: str,
-    wait_for_domain: bool = False,
 ) -> tuple:
     """Workflow to setup a workmail inbox after domain is purchased.
 
@@ -886,7 +990,6 @@ def workmail_setup_workflow(
         client_sdr_id (int): The ID of the client SDR
         domain_id (int): The ID of the domain
         username (str): The username of the inbox
-        wait_for_domain (bool, optional): Whether to wait for the domain to be registered. Defaults to False.
 
     Returns:
         tuple: A tuple containing the status and a message
@@ -899,29 +1002,19 @@ def workmail_setup_workflow(
     if not domain:
         return False, "Domain not found"
     domain_name = domain.domain
+
     # Check that the domain is registered
     if domain.aws_domain_registration_status != "SUCCESSFUL":
-        if wait_for_domain:
-            from src.automation.orchestrator import add_process_for_future
-
-            add_process_for_future(
-                type="workmail_setup_workflow",
-                args={
-                    "client_sdr_id": client_sdr_id,
-                    "domain_id": domain_id,
-                    "username": username,
-                    "wait_for_domain": True,
-                },
-                minutes=10,
-            )
-            return True, "Domain not registered. But retrying in 10 minutes."
-
         return False, "Domain not registered"
 
     # Check that the domain only has MAX_INBOXES_PER_DOMAIN inboxes attached to it
     email_bank_count = SDREmailBank.query.filter_by(domain_id=domain_id).count()
     if email_bank_count > MAX_INBOXES_PER_DOMAIN:
         return False, "Domain has reached the maximum number of inboxes"
+
+    # Make sure that we haven't already created an inbox for this username
+    if SDREmailBank.query.filter_by(username=username).first():
+        return True, "Inbox already exists"
 
     # Generate a random password
     password = "".join(
@@ -1085,6 +1178,11 @@ def domain_purchase_workflow(
     if not client:
         return False, "Client not found", -1
 
+    # Verify that we haven't already purchased this domain
+    domain: Domain = Domain.query.filter_by(domain=domain_name).first()
+    if domain:
+        return True, "Domain already exists", domain.id
+
     # Register the domain
     status, response, error = register_aws_domain(domain_name)
     if status == 500:
@@ -1100,28 +1198,22 @@ def domain_purchase_workflow(
         aws=True,
         aws_domain_registration_job_id=operation_id,
         aws_autorenew_enabled=True,
+        use_setup_tracker=True,
     )
-
-    from src.automation.orchestrator import add_process_for_future
 
     # In 30 min, setup the domain
     send_slack_message(
-        message=f"{domain_name} Domain Registration in Progress, will attempt to setup in 30 minutes",
+        message=f"{domain_name} Domain Registration in Progress, DNS Record Setup will occur shortly",
         webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
         blocks=[
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"[{domain_name}]\n🔥 Domain registration queued, will attempt to setup in 30 minutes",
+                    "text": f"[{domain_name}]\n🔥 Domain Registration in Progress, DNS Record Setup will occur shortly",
                 },
             }
         ],
-    )
-    add_process_for_future(
-        type="domain_setup_workflow",
-        args={"domain_name": domain_name, "domain_id": domain_id},
-        minutes=30,
     )
 
     return True, "Domain purchase workflow completed successfully", domain_id
@@ -1159,10 +1251,8 @@ def domain_setup_workflow(
 
         # In 15 min, setup the domain
         if status == "IN_PROGRESS":
-            from src.automation.orchestrator import add_process_for_future
-
             send_slack_message(
-                message=f"{domain_name} Domain Setup delayed for 30 minutes due to registration in progress",
+                message=f"{domain_name} Domain Setu",
                 webhook_urls=[URL_MAP["ops-domain-setup-notifications"]],
                 blocks=[
                     {
@@ -1173,11 +1263,6 @@ def domain_setup_workflow(
                         },
                     }
                 ],
-            )
-            add_process_for_future(
-                type="domain_setup_workflow",
-                args={"domain_name": domain_name, "domain_id": domain_id},
-                minutes=30,
             )
 
             return False, "Domain registration still in progress"
@@ -1197,14 +1282,7 @@ def domain_setup_workflow(
     if not success:
         return False, "Failed to add email DNS records"
 
-    # Configure email forwarding
-    success, _ = configure_email_forwarding(
-        domain_name=domain_name, domain_id=domain_id
-    )
-    if not success:
-        return False, "Failed to configure email forwarding"
-
-    return True, "Domain setup workflow completed successfully"
+    return True, "Domain DNS setup workflow completed successfully"
 
 
 def add_email_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
@@ -1464,6 +1542,11 @@ def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, 
     return True, "Email forwarding configured successfully"
 
 
+##############################################
+#    DOMAIN ENTRY AND VALIDATION METHODS     #
+##############################################
+
+
 def create_domain_entry(
     domain: str,
     client_id: int,
@@ -1476,6 +1559,7 @@ def create_domain_entry(
     dmarc_record: Optional[str] = None,
     spf_record: Optional[str] = None,
     dkim_record: Optional[str] = None,
+    use_setup_tracker: Optional[bool] = False,
 ) -> int:
     """Creates a Domain object
 
@@ -1491,6 +1575,7 @@ def create_domain_entry(
         dmarc_record (Optional[str], optional): The DMARC record. Defaults to None.
         spf_record (Optional[str], optional): The SPF record. Defaults to None.
         dkim_record (Optional[str], optional): The DKIM record. Defaults to None.
+        use_setup_tracker (Optional[bool], optional): Whether to create a DomainSetupTracker object. Defaults to False.
 
     Returns:
         int: ID of the created Domain object
@@ -1514,6 +1599,14 @@ def create_domain_entry(
 
     if dmarc_record or spf_record or dkim_record:
         validate_domain_configuration(domain.id)
+
+    if use_setup_tracker:
+        setup_tracker_id = create_domain_setup_tracker_entry(
+            domain_id=domain.id,
+            status=DomainSetupStatuses.PURCHASE_DOMAIN,
+        )
+        domain.domain_setup_tracker_id = setup_tracker_id
+        db.session.commit()
 
     return domain.id
 
@@ -1566,6 +1659,28 @@ def patch_domain_entry(
 
     db.session.commit()
     return True
+
+
+def create_domain_setup_tracker_entry(
+    domain_id: int,
+    status: DomainSetupStatuses = DomainSetupStatuses.NOT_STARTED,
+) -> int:
+    """Creates a DomainSetupTracker object
+
+    Args:
+        domain_id (int): The ID of the Domain object
+
+    Returns:
+        int: ID of the created DomainSetupTracker object
+    """
+    domain_setup_tracker = DomainSetupTracker(
+        domain_id=domain_id,
+        status=status,
+    )
+    db.session.add(domain_setup_tracker)
+    db.session.commit()
+
+    return domain_setup_tracker.id
 
 
 @celery.task
