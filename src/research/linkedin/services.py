@@ -3,6 +3,7 @@ from src.company.services import add_company_cache_to_db
 from app import celery, db
 
 from src.client.models import Client, ClientArchetype
+from src.ml.models import TextGeneration
 from src.prospecting.models import Prospect
 from src.research.models import (
     AccountResearchPoints,
@@ -290,6 +291,13 @@ def delete_research_points_and_payload_by_prospect_id(prospect_id: int):
     ).all()
     for voice_builder_sample in voice_builder_samples:
         db.session.delete(voice_builder_sample)
+        db.session.commit()
+
+    text_generations: TextGeneration = TextGeneration.query.filter(
+        TextGeneration.prospect_id == prospect_id
+    ).all()
+    for text_generation in text_generations:
+        db.session.delete(text_generation)
         db.session.commit()
 
 
