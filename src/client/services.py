@@ -13,7 +13,7 @@ from src.client.sdr.services_client_sdr import (
 )
 from sqlalchemy import cast, String
 from src.company.models import Company
-from src.domains.services import setup_managed_inboxes
+from src.domains.services import create_domain_and_managed_inboxes
 from src.email_scheduling.services import (
     create_calendar_link_needed_operator_dashboard_card,
 )
@@ -314,6 +314,7 @@ def get_client_archetypes(client_sdr_id: int, query: Optional[str] = "") -> list
 
     return [ca.to_dict() for ca in client_archetypes]
 
+
 def get_client_archetypes_for_entire_client(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
@@ -333,9 +334,8 @@ def get_client_archetypes_for_entire_client(client_sdr_id: int):
         for csdr in client_sdrs:
             if csdr.id == ca["client_sdr_id"]:
                 ca["client_sdr_name"] = csdr.name
-    
-    return archetypes
 
+    return archetypes
 
 
 def get_client_archetype_prospects(
@@ -721,7 +721,7 @@ def create_client_sdr(
 
     # Create the managed inboxes
     if create_managed_inboxes:
-        setup_managed_inboxes.delay(client_sdr_id=sdr_id)
+        create_domain_and_managed_inboxes.delay(client_sdr_id=sdr_id)
 
     # Create the operator dashboard cards
     if include_connect_li_card:
