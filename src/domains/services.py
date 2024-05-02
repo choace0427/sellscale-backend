@@ -1019,9 +1019,9 @@ def create_domain_and_managed_inboxes(
         return False, "Domain not found"
 
     # Get the domain setup tracker
-    domain_setup_tracker: DomainSetupTracker = DomainSetupTracker(
+    domain_setup_tracker: DomainSetupTracker = DomainSetupTracker.query.filter_by(
         domain_id=managed_domain.id
-    )
+    ).first()
     if not domain_setup_tracker:
         domain_setup_tracker_id = create_domain_setup_tracker_entry(
             domain_id=managed_domain.id
