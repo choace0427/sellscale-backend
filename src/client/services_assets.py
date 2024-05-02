@@ -41,58 +41,6 @@ def generate_client_assets(
         f'''Website Summary: "{website_summary}"''' if website_summary else ""
     )
 
-    pain_point_example = f"""
-    
-Title: High costs with collecting images
-Value: Today, there is extensive time and high costs associated with collecting images for training computer vision models.
-Tag: Pain Point
-
-Title: Adaptability of mnfg lines
-Value: Changes in the manufacturing line process means you have to rephrase a training process.
-Tag: Pain Point
-    
-    """
-
-    value_prop_example = f"""
-    
-Title: Breakthrough in Computer Vision Model Performance
-Value: Advex enables computer vision engineers to deploy top-performing models within hours, drastically improving accuracy with as few as 5-10 real images for training, thanks to our generative AI technology.
-Tag: Value Prop
-
-Title: Streamlining Visual Inspection Processes
-Value: Our solution not only reduces the cost and time of data collection but also adapts to changes post-deployment, preventing downtime and eliminating the need for repetitive data gathering.
-Tag: Value Prop
-
-Title: Precision in Manufacturing Through AI
-Value: By leveraging generative AI, Advex can create synthetic data sets that lead to higher model accuracy for defect detection and quality control in manufacturing processes.
-Tag: Value Prop
-    
-    """
-
-    how_it_works_example = f"""
-    
-Title: Getting started
-Value: Getting started with Ash is easy: 1. Order test kit 2. Test kit shipped in 24 hours 3. Customers self-collect at home 4. Customer ships to lab 5. Lab results in 3-5 days
-Tag: How it Works
-
-Title: Detect defection & segmentation
-Value: Detect defection & segmentation → many boxes on a conveyor belt and the segmentation model will say where the box is
-Tag: How it Works
-    
-    """
-
-    social_proof_example = f"""
-    
-Title: Adaptability of mnfg lines
-Value: Auto-manufacturer was previously experiencing 55% defect rates. After implementing, they saw a 52% reduction from using Advex's AI technology after 3 months.
-Tag: Social Proof
-
-Title: OpenAI Used Us
-Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
-Tag: Social Proof
-    
-    """
-
     prompt = f"""
     
 You are working with a new client to create a series of marketing assets for them. These assets are unique value props, pain points, social proofs, unique facts, etc that can be used in marketing outreach.
@@ -199,7 +147,7 @@ Call to action
     - Do you automate visual inspections or other visual tasks?
     - Do you use [KEYENCE](https://www.keyence.com/)? Or Cognex but it was too complicated
 - pain based:
-    - have you ever been promised that a computer vision model only needs 5-10 images and found that once it’s deployed you need thousands or lots more?
+    - many vendors promise that the computer vision model only needs 5-10 images and found that once it’s deployed you need thousands more
     - Do you find defects are difficult to collect / difficult to train model on defective classes?
 - Robotics:
     - Would it be beneficial to deploy on customer sites faster without data collection time?
@@ -223,13 +171,41 @@ case study and link has been the best so far. no case study lower open rate.
 
 # Output:
 
-{num_value_props != -1 and value_prop_example or ""}
+Title: Breakthrough in Computer Vision Model Performance
+Value: Advex enables computer vision engineers to deploy top-performing models within hours, drastically improving accuracy with as few as 5-10 real images for training, thanks to our generative AI technology.
+Tag: Value Prop
 
-{num_pain_points != -1 and pain_point_example or ""}
+Title: Streamlining Visual Inspection Processes
+Value: Our solution not only reduces the cost and time of data collection but also adapts to changes post-deployment, preventing downtime and eliminating the need for repetitive data gathering.
+Tag: Value Prop
 
-{num_how_it_works != -1 and how_it_works_example or ""}
+Title: High costs with collecting images
+Value: Today, there is extensive time and high costs associated with collecting and processing images for training computer vision models.
+Tag: Pain Point
 
-{num_social_proof != -1 and social_proof_example or ""}
+Title: Adaptability of mnfg lines
+Value: Changes in the manufacturing line process means you have to rephrase a training process. This can be time-consuming and costly.
+Tag: Pain Point
+
+Title: OpenAI Used Us
+Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
+Tag: Social Proof
+
+Title: 52% Reduction in Defects
+Value: An auto-maker experienced a 55% defect rate, which was reduced by 52% after 3 months of using our solution.
+Tag: Social Proof
+
+Title: 10k Fake Images Outperformed Good Images
+Value: Our solution generated 10k synthetic images that outperformed real images in a computer vision model.
+Tag: Social Proof
+
+Title: Detect Defection & Segmentation
+Value: Our model can detect defection and segmentation, making it easier to identify defects in manufacturing processes.
+Tag: How It Works
+
+Title: Order Test Kit
+Value: Customers can order a test kit that is shipped within 24 hours, self-collect it at home, and ship it to the lab for results in 3-5 days.
+Tag: How It Works
 
 ## Client Information:
 {client_name}
@@ -256,7 +232,8 @@ case study and link has been the best so far. no case study lower open rate.
 # Your Turn 
 Okay now it's your turn to generate some assets for the client. Remember to prioritize quality over quantity.
 
-IMPORTANT: ONLY generate the assets, do not include any other information in your response.
+IMPORTANT: 
+- ONLY generate the assets, do not include any other information in your response.
 
 # Output:
     
@@ -275,7 +252,7 @@ IMPORTANT: ONLY generate the assets, do not include any other information in you
             model="gpt-4-turbo-preview",
             max_tokens=4000,
             type="CLIENT_ASSETS",
-            use_cache=True,
+            use_cache=False,
         )
         or ""
     )
