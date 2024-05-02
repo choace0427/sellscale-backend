@@ -667,7 +667,7 @@ def handle_domain_setup(domain_setup_tracker_id: int) -> tuple[bool, str]:
         and not domain_setup_tracker.stage_setup_mailboxes
     ):
         # Stage: Setup Mailboxes
-        overall_success = False
+        overall_success = True
         overall_message = ""
         for username in domain_setup_tracker.setup_mailboxes_usernames:
             success, message = workmail_setup_workflow(
@@ -1495,7 +1495,7 @@ def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, 
 
     # Make sure we haven't already created an Amplify App
     if domain.aws_amplify_app_id:
-        return False, "Email forwarding already configured"
+        return True, "Email forwarding already configured"
 
     # Create an AWS Amplify App
     app_id = create_aws_amplify_app(
