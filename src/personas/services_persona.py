@@ -11,7 +11,10 @@ from app import db
 
 def get_all_personas(client_sdr_id: int) -> list[dict]:
     """Gets all personas at the same client as the given client_sdr_id"""
-    personas: list[Persona] = Persona.query.filter_by(client_sdr_id=client_sdr_id).all()
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id: int = client_sdr.client_id
+    personas: list[Persona] = Persona.query.filter_by(client_id=client_id).all()
+    
     return [persona.to_dict() for persona in personas]
 
 

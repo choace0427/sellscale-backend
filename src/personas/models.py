@@ -3,7 +3,7 @@ import sqlalchemy as sa, enum
 
 from src.contacts.models import SavedApolloQuery
 from src.message_generation.models import StackRankedMessageGenerationConfiguration
-
+from src.client.models import ClientSDR
 
 class PersonaSplitRequestTaskStatus(enum.Enum):
     QUEUED = "QUEUED"
@@ -98,6 +98,10 @@ class Persona(db.Model):
                 payload["stack_ranked_message_generation_configuration"] = (
                     stack_ranked_message_generation_configuration.to_dict()
                 )
+
+            client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
+            if client_sdr:
+                payload["client_sdr"] = client_sdr.to_dict()
 
         return payload
 
