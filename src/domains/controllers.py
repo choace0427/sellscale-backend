@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from src.client.sdr.email.services_email_bank import get_sdr_email_banks_for_client
 from src.domains.services import (
     create_domain_entry,
+    create_multiple_domain_and_managed_inboxes,
     delete_domain,
     domain_blacklist_check,
     domain_purchase_workflow,
@@ -245,6 +246,38 @@ def post_purchase_workflow(client_sdr_id: int):
                     "id": id,
                     "message": "Domain purchased successfully",
                 },
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("/workflow/domain_and_inbox", methods=["POST"])
+@require_user
+def post_domain_and_inbox_workflow(client_sdr_id: int):
+    number_inboxes = get_request_parameter(
+        "number_inboxes", request, json=True, required=True, parameter_type=int
+    )
+
+    success, message = create_multiple_domain_and_managed_inboxes(
+        client_sdr_id=client_sdr_id, number_inboxes=number_inboxes
+    )
+    if not success:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": message,
+                }
+            ),
+            400,
+        )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": message,
             }
         ),
         200,
