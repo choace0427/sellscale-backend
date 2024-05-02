@@ -256,6 +256,8 @@ case study and link has been the best so far. no case study lower open rate.
 # Your Turn 
 Okay now it's your turn to generate some assets for the client. Remember to prioritize quality over quantity.
 
+IMPORTANT: ONLY generate the assets, do not include any other information in your response.
+
 # Output:
     
     """.strip()
