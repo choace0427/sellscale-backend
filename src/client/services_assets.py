@@ -116,7 +116,7 @@ Website Summary: "Name: Advex\nDescription: Advex is a company focused on unlock
 
 ### First campaign
 
-**Who to target**
+Who to target
 
 Contact detail: 
 
@@ -132,7 +132,7 @@ Account detail:
 
 ---
 
-**What to say**
+What to say
 
 Pain points
 
@@ -161,7 +161,7 @@ Leverage generative Ai to reduce costs
 
 Social Proof
 
-- **Auto maker:** We worked with an auto-maker
+- Auto maker: We worked with an auto-maker
 - social proof
     
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/9142e2cc-8ebc-44b1-b954-ad6fcf62bc1d/Untitled.png)
@@ -170,7 +170,7 @@ Social Proof
     
 They were experiencing 55% defect rates. With us they saw a 52% reduction in defects after 3 months.
     
-- **Robotics pick-n-place:**
+- Robotics pick-n-place:
     
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/e266464e-35ec-427b-83bb-e3a792ca92bd/Untitled.png)
     
@@ -231,11 +231,6 @@ case study and link has been the best so far. no case study lower open rate.
 
 {num_social_proof != -1 and social_proof_example or ""}
 
-... TODO, continue generating assets ...
-
-# Your Turn #
-Okay now it's your turn to generate some assets for the client. Remember to prioritize quality over quantity. Good luck!
-
 ## Client Information:
 {client_name}
 {client_tagline}
@@ -251,13 +246,15 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
 --------------------------------------------------------------------------
 
 ## Additional Requirements:
-It is important that you generate ONLY the required number of assets based on the following criteria:
-{num_value_props != -1 and f"- Create {num_value_props} Value Props" or ""}
-{num_pain_points != -1 and f"- Create {num_pain_points} Pain Points" or ""}
-{num_how_it_works != -1 and f"- Create {num_how_it_works} How It Works" or ""}
-{num_social_proof != -1 and f"- Create {num_social_proof} Social Proofs" or ""}
+{((num_value_props or 0) + (num_pain_points or 0) + (num_how_it_works or 0) + (num_social_proof or 0)) > 0 and "It is important that you generate ONLY the required number of assets based on the following criteria:" or ""}
+{num_value_props != -1 and num_value_props and f"- Create {num_value_props} Value Props" or ""}
+{num_pain_points != -1 and num_pain_points and f"- Create {num_pain_points} Pain Points" or ""}
+{num_how_it_works != -1 and num_how_it_works and f"- Create {num_how_it_works} How It Works" or ""}
+{num_social_proof != -1 and num_social_proof and f"- Create {num_social_proof} Social Proofs" or ""}
+{((num_value_props or 0) + (num_pain_points or 0) + (num_how_it_works or 0) + (num_social_proof or 0)) > 0 and "DO NOT create more than the required number of assets." or "Generate 5-10 assets with a mix of value props, pain points, social proofs, unique facts, phrases, and templates."}
 
-DO NOT create more than the required number of assets.
+# Your Turn 
+Okay now it's your turn to generate some assets for the client. Remember to prioritize quality over quantity.
 
 # Output:
     
@@ -300,8 +297,9 @@ def parse_data_to_assets(data: str):
             # Append the extracted data as a dict to the assets list
             assets.append(
                 {
-                    "title": title.replace("**Title**:", "")
+                    "title": title.replace("**", "")
                     .replace("Title:", "")
+                    .replace("#", "")
                     .strip(),
                     "value": clean_value(value),
                     "tag": convert_tag_to_asset_tag(tag),
@@ -315,14 +313,12 @@ def parse_data_to_assets(data: str):
 
 def clean_value(value: str):
     # Remove leading header
-    parts = value.split(": ")
-    if len(parts) > 1 and len(parts[0]) < 15:
-        return parts[1].strip()
-    else:
-        return value.strip()
+    value = value.replace("**", "").replace("Value:", "").strip()
+    return value
 
 
 def convert_tag_to_asset_tag(tag: str):
+    original_tag = tag
     tag = tag.lower().strip()
 
     if "value" in tag:
@@ -348,4 +344,4 @@ def convert_tag_to_asset_tag(tag: str):
     elif "email template" in tag:
         return "Email Template"
     else:
-        return None
+        return original_tag.replace("**", "").replace("#", "").replace("Tag:", "").strip()
