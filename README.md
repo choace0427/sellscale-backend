@@ -106,7 +106,7 @@ The following steps assume that you have the above prerequisites installed - any
 
 6.  Download [Postico 2](https://eggerapps.at/postico2/) - or your own PostgresSQL navigator of choice - to validate that the databases have been created (For Postico 2: New Server -> Fill in Database field with `sellscale` -> Connect. Repeat for `testing`).
 
-7.  Create a `.production.env` file and paste the following example. Ensure that the `DATABASE_URL` points to your `sellscale` db.
+7.  Create a `.local.env` file and paste the following example. Ensure that the `DATABASE_URL` points to your `sellscale` db.
 
     ```
     export FLASK_APP=app.py
@@ -135,7 +135,7 @@ The following steps assume that you have the above prerequisites installed - any
 9.  Now you can upgrade your empty databases with the correct schemas. After running the following commands, use Postico to validate.
 
     ```
-    source .production.env && flask db upgrade
+    source .local.env && flask db upgrade
     source .testing.env && flask db upgrade
     ```
 
