@@ -449,6 +449,30 @@ class Smartlead:
             )
         return response.json()
 
+    def pause_lead_by_campaign_id(
+        self,
+        campaign_id: int,
+        lead_id: int,
+    ):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/pause?api_key={self.api_key}"
+        response = requests.post(url)
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.pause_lead_by_campaign_id(campaign_id, lead_id)
+        return response.json()
+
+    def resume_lead_by_campaign_id(
+        self,
+        campaign_id: int,
+        lead_id: int,
+    ):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/resume?api_key={self.api_key}"
+        response = requests.post(url)
+        if response.status_code == 429:
+            time.sleep(self.DELAY_SECONDS)
+            return self.resume_lead_by_campaign_id(campaign_id, lead_id)
+        return response.json()
+
     def get_message_history_using_lead_and_campaign_id(self, lead_id, campaign_id):
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/message-history?api_key={self.api_key}"
         response = requests.get(url)

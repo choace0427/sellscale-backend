@@ -111,11 +111,11 @@ Message:
         db.session.commit()
 
         # Send a Slack message to the SDR
-        client: Client = Client.query.get(prospect.client_id)
+        # client: Client = Client.query.get(prospect.client_id)
         client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
-        webhook_urls = [URL_MAP["eng-sandbox"]]
-        if client.pipeline_notifications_webhook_url:
-            webhook_urls.append(client.pipeline_notifications_webhook_url)
+        # webhook_urls = [URL_MAP["eng-sandbox"]]
+        # if client.pipeline_notifications_webhook_url:
+        #     webhook_urls.append(client.pipeline_notifications_webhook_url)
 
         clean_email_body = re.sub(r"\n+", "\n>", email_body)
         clean_email_body = "\n>" + clean_email_body
