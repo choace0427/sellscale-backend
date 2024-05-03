@@ -1841,6 +1841,7 @@ def get_available_domains(client_id: int) -> list[dict]:
         .filter(
             Domain.client_id == client_id,
             Domain.aws_domain_registration_status == "SUCCESSFUL",
+            Domain.aws == True,
         )
         .group_by(Domain.id)
         .having(func.count(SDREmailBank.id) < MAX_INBOXES_PER_DOMAIN)
