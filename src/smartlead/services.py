@@ -679,7 +679,7 @@ def create_smartlead_campaign(
                     if (
                         warmup_details
                         and warmup_details.get("warmup_reputation") == "100%"
-                        and warmup_details.get('total_sent_count') >= 100
+                        and warmup_details.get("total_sent_count") >= 100
                     ):
                         email_account_ids.append(email.get("id"))
             offset += 100
@@ -688,7 +688,11 @@ def create_smartlead_campaign(
         for email in all_emails:
             if email.get("from_name") == client_sdr.name:
                 warmup_details = email.get("warmup_details")
-                if warmup_details and warmup_details.get("warmup_reputation") == "100%" and warmup_details.get('total_sent_count') >= 100:
+                if (
+                    warmup_details
+                    and warmup_details.get("warmup_reputation") == "100%"
+                    and warmup_details.get("total_sent_count") >= 100
+                ):
                     email_account_ids.append(email.get("id"))
 
     sl.add_email_account_to_campaign(
@@ -1442,6 +1446,9 @@ def smartlead_update_prospect_status(
     """
     # Get the prospect and archetype
     prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect_email: ProspectEmail = ProspectEmail.query.get(
+        prospect.approved_prospect_email_id
+    )
     archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
     if not archetype.smartlead_campaign_id:
         return False, "No Smartlead campaign ID found"
@@ -1473,6 +1480,21 @@ def smartlead_update_prospect_status(
         if not lead:
             return False, "Lead not found"
         lead_id = lead["id"]
+
+        # If the new status is OOO, we need to pause outreach
+        if (
+            prospect_email.outreach_status
+            != ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
+        ):
+            result = sl.pause_lead_by_campaign_id(
+                campaign_id=archetype.smartlead_campaign_id,
+                lead_id=lead_id,
+            )
+            if not result.get("ok"):
+                return False, "Failed to pause outreach for this lead"
+            return True, "Success"
+
+        # For all other statuses, we mark the Prospect as Do Not Contact
         result = sl.post_update_lead_category(
             campaign_id=archetype.smartlead_campaign_id,
             lead_id=lead_id,

@@ -63,7 +63,7 @@ from src.slack.notifications.demo_feedback_updated import (
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
 )
-from src.client.services_assets import generate_client_assets
+from src.client.services_assets import generate_client_assets, generate_client_offers
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime
 from src.utils.slack import send_slack_message, URL_MAP
 from src.client.services import check_nylas_status, get_client_archetype_prospects
@@ -3425,6 +3425,10 @@ def post_generate_assets():
         "num_pain_points", request, json=True, required=False, parameter_type=int
     )
 
+    num_offers = get_request_parameter(
+        "num_offers", request, json=True, required=False, parameter_type=int
+    )
+
     assets = generate_client_assets(
         client_id=client_id,
         text_dump=text_dump,
@@ -3435,5 +3439,18 @@ def post_generate_assets():
         num_social_proof=num_social_proof,
         num_how_it_works=num_how_it_works,
     )
+
+    if num_offers and num_offers > 0:
+        try:
+            offers = generate_client_offers(
+                client_id=client_id,
+                text_dump=text_dump,
+                website_url=website_url,
+                additional_prompting=additional_prompting,
+                num_offers=num_offers,
+            )
+            assets += offers
+        except Exception as e:
+            print(e)
 
     return jsonify({"message": "Success", "data": assets}), 200

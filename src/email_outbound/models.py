@@ -708,7 +708,11 @@ VALID_NEXT_EMAIL_STATUSES = {
         ProspectEmailOutreachStatus.DEMO_SET,
         ProspectEmailOutreachStatus.NOT_QUALIFIED,
     ],
-    ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO: [
+    ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO: [  # OOO is a special case where the Prospect had an automated response, so moving OOO anywhere is allowable to reset the status
+        ProspectEmailOutreachStatus.SENT_OUTREACH,
+        ProspectEmailOutreachStatus.EMAIL_OPENED,
+        ProspectEmailOutreachStatus.ACCEPTED,
+        ProspectEmailOutreachStatus.BUMPED,
         ProspectEmailOutreachStatus.ACTIVE_CONVO,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION,
         ProspectEmailOutreachStatus.ACTIVE_CONVO_QUAL_NEEDED,

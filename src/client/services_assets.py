@@ -4,6 +4,128 @@ from model_import import Client
 from src.ml.services import get_text_generation
 
 
+def generate_client_offers(
+    client_id: int,
+    text_dump: str,
+    website_url: Optional[str] = None,
+    additional_prompting: Optional[str] = None,
+    num_offers: Optional[int] = -1,
+):
+    """
+    Creates num_offers unique offers based on the client information and text dump provided.
+    Offers are creative and unique value propositions that can be used in marketing outreach. Examples
+    include gift cards, discounts, free trials, invitations to events, etc.
+    """
+
+    client: Client = Client.query.get(client_id)
+    client_name = f"""Name: {client.company}""" if client.company else ""
+    client_tagline = f"""Tagline: {client.tagline}""" if client.tagline else ""
+    client_description = (
+        f"""Description: {client.description}""" if client.description else ""
+    )
+    client_key_value_props = (
+        f"""Key Value Props: {client.value_prop_key_points}"""
+        if client.value_prop_key_points
+        else ""
+    )
+    client_mission = f"""Mission: {client.mission}""" if client.mission else ""
+    client_impressive_facts = (
+        f"""Impressive Facts: {client.impressive_facts}"""
+        if client.impressive_facts
+        else ""
+    )
+
+    if website_url:
+        website_summary = get_summary_from_website(website_url)
+    else:
+        website_summary = None
+    website_summary = (
+        f'''Website Summary: "{website_summary}"''' if website_summary else ""
+    )
+
+    prompt = f"""You are working with a new client to create a series of offers for them. These offers are creative and unique "offers" that can be used in marketing outreach. Examples include gift cards, discounts, free trials, invitations to events, etc.
+
+You will be provided with some general information to give context about the client and then you will be provided a text dump.
+Please use the text dump to create at least {num_offers} unique offers.
+
+Be creative and think outside the box. The goal is to create offers that will grab the attention of potential customers and entice them to learn more about the client.
+
+{additional_prompting if additional_prompting else ""}
+
+Here are examples of offers made for others:
+###############
+Title: Free Scribe 30-Day Trial
+Value: You can use Jordan Scribe for free for 30 days with all features unlocked. No credit card required and if you love it, you can continue using it for just $19/month. 
+Tag: Offer
+
+Title: $100 Amazon Gift Card for Market Interview
+Value: We will give you a $100 Amazon gift card for a 30-minute market interview where you can share your thoughts on general market trends, b2b research, and more.
+Tag: Offer
+
+Title: Free 1-Hour Consultation
+Value: We will provide a free 1-hour consultation to discuss your business needs when it comes to security and compliance and provide you with a roadmap for success.
+Tag: Offer
+
+Title: 50% Off First Month
+Value: Get 50% off your first month of using our platform. No strings attached and no credit card required to sign up. Takes less than 5 minutes to get started.
+Tag: Offer
+
+Title: Free ticket to DevOps Conference
+Value: We are giving away free tickets to the DevOps Conference in San Francisco to 50 lucky devops and IT professionals. Sign up now to get your free ticket.
+Tag: Offer
+
+Title: Free Feature in Newsletter (100k Readers)
+Value: Get your product featured in our newsletter that reaches over 100k readers in the tech industry. A great way to get exposure and drive traffic to your site.
+Tag: Offer
+##############
+
+IMPORTANT:
+- Be as creative as possible and feel free to think outside the box and come up with unique offers that will grab the attention of potential customers.
+- ONLY generate the offers, do not include any other information in your response.
+
+## Client Information:
+{client_name}
+{client_tagline}
+{client_description}
+{client_key_value_props}
+{client_mission}
+{client_impressive_facts}
+{website_summary}
+
+## Text Dump:
+#################################
+{text_dump}
+#################################
+
+## Additional Requirements:
+{num_offers != -1 and num_offers and f"- Create {num_offers} Offers" or ""}
+{num_offers == -1 and "Generate 5-10 offers." or ""}
+# Your Turn
+
+Okay now it's your turn to generate some offers for the client. Remember to prioritize quality over quantity.
+
+# Output:""".strip()
+    
+    print(prompt)
+
+    completion = (
+        get_text_generation(
+            [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="gpt-4-turbo-preview",
+            max_tokens=4000,
+            type="CLIENT_OFFERS",
+            use_cache=False,
+        )
+        or ""
+    )
+
+    return parse_data_to_assets(completion)
+
 def generate_client_assets(
     client_id: int,
     text_dump: str,
@@ -41,58 +163,6 @@ def generate_client_assets(
         f'''Website Summary: "{website_summary}"''' if website_summary else ""
     )
 
-    pain_point_example = f"""
-    
-Title: High costs with collecting images
-Value: Today, there is extensive time and high costs associated with collecting images for training computer vision models.
-Tag: Pain Point
-
-Title: Adaptability of mnfg lines
-Value: Changes in the manufacturing line process means you have to rephrase a training process.
-Tag: Pain Point
-    
-    """
-
-    value_prop_example = f"""
-    
-Title: Breakthrough in Computer Vision Model Performance
-Value: Advex enables computer vision engineers to deploy top-performing models within hours, drastically improving accuracy with as few as 5-10 real images for training, thanks to our generative AI technology.
-Tag: Value Prop
-
-Title: Streamlining Visual Inspection Processes
-Value: Our solution not only reduces the cost and time of data collection but also adapts to changes post-deployment, preventing downtime and eliminating the need for repetitive data gathering.
-Tag: Value Prop
-
-Title: Precision in Manufacturing Through AI
-Value: By leveraging generative AI, Advex can create synthetic data sets that lead to higher model accuracy for defect detection and quality control in manufacturing processes.
-Tag: Value Prop
-    
-    """
-
-    how_it_works_example = f"""
-    
-Title: Getting started
-Value: Getting started with Ash is easy: 1. Order test kit 2. Test kit shipped in 24 hours 3. Customers self-collect at home 4. Customer ships to lab 5. Lab results in 3-5 days
-Tag: How it Works
-
-Title: Detect defection & segmentation
-Value: Detect defection & segmentation → many boxes on a conveyor belt and the segmentation model will say where the box is
-Tag: How it Works
-    
-    """
-
-    social_proof_example = f"""
-    
-Title: Adaptability of mnfg lines
-Value: Auto-manufacturer was previously experiencing 55% defect rates. After implementing, they saw a 52% reduction from using Advex's AI technology after 3 months.
-Tag: Social Proof
-
-Title: OpenAI Used Us
-Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
-Tag: Social Proof
-    
-    """
-
     prompt = f"""
     
 You are working with a new client to create a series of marketing assets for them. These assets are unique value props, pain points, social proofs, unique facts, etc that can be used in marketing outreach.
@@ -116,7 +186,7 @@ Website Summary: "Name: Advex\nDescription: Advex is a company focused on unlock
 
 ### First campaign
 
-**Who to target**
+Who to target
 
 Contact detail: 
 
@@ -132,7 +202,7 @@ Account detail:
 
 ---
 
-**What to say**
+What to say
 
 Pain points
 
@@ -161,7 +231,7 @@ Leverage generative Ai to reduce costs
 
 Social Proof
 
-- **Auto maker:** We worked with an auto-maker
+- Auto maker: We worked with an auto-maker
 - social proof
     
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/9142e2cc-8ebc-44b1-b954-ad6fcf62bc1d/Untitled.png)
@@ -170,7 +240,7 @@ Social Proof
     
 They were experiencing 55% defect rates. With us they saw a 52% reduction in defects after 3 months.
     
-- **Robotics pick-n-place:**
+- Robotics pick-n-place:
     
     ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/d3077c4b-8fa0-484c-bba1-dcd5e8f5ee41/e266464e-35ec-427b-83bb-e3a792ca92bd/Untitled.png)
     
@@ -199,7 +269,7 @@ Call to action
     - Do you automate visual inspections or other visual tasks?
     - Do you use [KEYENCE](https://www.keyence.com/)? Or Cognex but it was too complicated
 - pain based:
-    - have you ever been promised that a computer vision model only needs 5-10 images and found that once it’s deployed you need thousands or lots more?
+    - many vendors promise that the computer vision model only needs 5-10 images and found that once it’s deployed you need thousands more
     - Do you find defects are difficult to collect / difficult to train model on defective classes?
 - Robotics:
     - Would it be beneficial to deploy on customer sites faster without data collection time?
@@ -223,18 +293,41 @@ case study and link has been the best so far. no case study lower open rate.
 
 # Output:
 
-{num_value_props != -1 and value_prop_example or ""}
+Title: Breakthrough in Computer Vision Model Performance
+Value: Advex enables computer vision engineers to deploy top-performing models within hours, drastically improving accuracy with as few as 5-10 real images for training, thanks to our generative AI technology.
+Tag: Value Prop
 
-{num_pain_points != -1 and pain_point_example or ""}
+Title: Streamlining Visual Inspection Processes
+Value: Our solution not only reduces the cost and time of data collection but also adapts to changes post-deployment, preventing downtime and eliminating the need for repetitive data gathering.
+Tag: Value Prop
 
-{num_how_it_works != -1 and how_it_works_example or ""}
+Title: High costs with collecting images
+Value: Today, there is extensive time and high costs associated with collecting and processing images for training computer vision models.
+Tag: Pain Point
 
-{num_social_proof != -1 and social_proof_example or ""}
+Title: Adaptability of mnfg lines
+Value: Changes in the manufacturing line process means you have to rephrase a training process. This can be time-consuming and costly.
+Tag: Pain Point
 
-... TODO, continue generating assets ...
+Title: OpenAI Used Us
+Value: We helped facilitate the vision models that OpenAI uses in Mission Bay, could help you with your vision models too.
+Tag: Social Proof
 
-# Your Turn #
-Okay now it's your turn to generate some assets for the client. Remember to prioritize quality over quantity. Good luck!
+Title: 52% Reduction in Defects
+Value: An auto-maker experienced a 55% defect rate, which was reduced by 52% after 3 months of using our solution.
+Tag: Social Proof
+
+Title: 10k Fake Images Outperformed Good Images
+Value: Our solution generated 10k synthetic images that outperformed real images in a computer vision model.
+Tag: Social Proof
+
+Title: Detect Defection & Segmentation
+Value: Our model can detect defection and segmentation, making it easier to identify defects in manufacturing processes.
+Tag: How It Works
+
+Title: Order Test Kit
+Value: Customers can order a test kit that is shipped within 24 hours, self-collect it at home, and ship it to the lab for results in 3-5 days.
+Tag: How It Works
 
 ## Client Information:
 {client_name}
@@ -251,13 +344,18 @@ Okay now it's your turn to generate some assets for the client. Remember to prio
 --------------------------------------------------------------------------
 
 ## Additional Requirements:
-It is important that you generate ONLY the required number of assets based on the following criteria:
-{num_value_props != -1 and f"- Create {num_value_props} Value Props" or ""}
-{num_pain_points != -1 and f"- Create {num_pain_points} Pain Points" or ""}
-{num_how_it_works != -1 and f"- Create {num_how_it_works} How It Works" or ""}
-{num_social_proof != -1 and f"- Create {num_social_proof} Social Proofs" or ""}
+{((num_value_props or 0) + (num_pain_points or 0) + (num_how_it_works or 0) + (num_social_proof or 0)) > 0 and "It is important that you generate ONLY the required number of assets based on the following criteria:" or ""}
+{num_value_props != -1 and num_value_props and f"- Create {num_value_props} Value Props" or ""}
+{num_pain_points != -1 and num_pain_points and f"- Create {num_pain_points} Pain Points" or ""}
+{num_how_it_works != -1 and num_how_it_works and f"- Create {num_how_it_works} How It Works" or ""}
+{num_social_proof != -1 and num_social_proof and f"- Create {num_social_proof} Social Proofs" or ""}
+{((num_value_props or 0) + (num_pain_points or 0) + (num_how_it_works or 0) + (num_social_proof or 0)) > 0 and "DO NOT create more than the required number of assets." or "Generate 5-10 assets with a mix of value props, pain points, social proofs, unique facts, phrases, and templates."}
 
-DO NOT create more than the required number of assets.
+# Your Turn 
+Okay now it's your turn to generate some assets for the client. Remember to prioritize quality over quantity.
+
+IMPORTANT: 
+- ONLY generate the assets, do not include any other information in your response.
 
 # Output:
     
@@ -276,7 +374,7 @@ DO NOT create more than the required number of assets.
             model="gpt-4-turbo-preview",
             max_tokens=4000,
             type="CLIENT_ASSETS",
-            use_cache=True,
+            use_cache=False,
         )
         or ""
     )
@@ -300,8 +398,10 @@ def parse_data_to_assets(data: str):
             # Append the extracted data as a dict to the assets list
             assets.append(
                 {
-                    "title": title.replace("**Title**:", "")
+                    "title": title.replace("**", "")
                     .replace("Title:", "")
+                    .replace("#", "")
+                    .replace('"', "")
                     .strip(),
                     "value": clean_value(value),
                     "tag": convert_tag_to_asset_tag(tag),
@@ -315,14 +415,12 @@ def parse_data_to_assets(data: str):
 
 def clean_value(value: str):
     # Remove leading header
-    parts = value.split(": ")
-    if len(parts) > 1 and len(parts[0]) < 15:
-        return parts[1].strip()
-    else:
-        return value.strip()
+    value = value.replace("**", "").replace("Value:", "").strip()
+    return value
 
 
 def convert_tag_to_asset_tag(tag: str):
+    original_tag = tag
     tag = tag.lower().strip()
 
     if "value" in tag:
@@ -348,4 +446,4 @@ def convert_tag_to_asset_tag(tag: str):
     elif "email template" in tag:
         return "Email Template"
     else:
-        return None
+        return original_tag.replace("**", "").replace("#", "").replace("Tag:", "").strip()

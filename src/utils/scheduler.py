@@ -479,6 +479,15 @@ def run_handle_all_domain_setups():
         handle_all_domain_setups.delay()
 
 
+def run_check_and_remove_out_of_office_statuses():
+    from src.prospecting.prospect_email.services import (
+        check_and_remove_out_of_office_statuses,
+    )
+
+    if is_scheduling_instance():
+        check_and_remove_out_of_office_statuses.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -586,6 +595,7 @@ scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger)
 scheduler.add_job(run_capture_outbound_quota_snapshot, trigger=daily_trigger)
 scheduler.add_job(run_auto_turn_off_finished_archetypes, trigger=daily_trigger)
 scheduler.add_job(run_merge_poll_crm_opportunities, trigger=daily_trigger)
+scheduler.add_job(run_check_and_remove_out_of_office_statuses, trigger=daily_trigger)
 
 # Weekly triggers
 scheduler.add_job(run_auto_update_sdr_linkedin_sla_jobs, trigger=weekly_trigger)

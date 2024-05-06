@@ -566,7 +566,7 @@ class MergeClient:
 
     @is_allowable(model_name="Opportunity")
     def create_opportunity(
-        self, prospect_id: int, stage_id_override: Optional[str]
+        self, prospect_id: int, stage_id_override: Optional[str] = None
     ) -> tuple[Optional[str], str]:
         """Create Opportunity in the client's CRM
 
@@ -645,7 +645,7 @@ class MergeClient:
                     amount=opportunity_value,
                     last_activity_at=datetime.datetime.utcnow().isoformat(),
                     account=p.merge_account_id,
-                    contact=p.merge_contact_id,
+                    # contact=p.merge_contact_id,
                     status="OPEN",
                     owner=merge_user_id,
                 )

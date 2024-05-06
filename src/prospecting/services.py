@@ -2636,8 +2636,10 @@ def send_to_purgatory(
         return
 
     if (
-        prospect.hidden_until is None
-        or new_hidden_until > prospect.hidden_until
+        (
+            prospect.hidden_until is None
+            or 
+            new_hidden_until > prospect.hidden_until)
         and prospect.overall_status == ProspectOverallStatus.ACTIVE_CONVO
     ):
         prospect.hidden_until = new_hidden_until

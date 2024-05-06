@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import math
 import random
 import string
 from typing import Optional
@@ -667,7 +668,7 @@ def handle_domain_setup(domain_setup_tracker_id: int) -> tuple[bool, str]:
         and not domain_setup_tracker.stage_setup_mailboxes
     ):
         # Stage: Setup Mailboxes
-        overall_success = False
+        overall_success = True
         overall_message = ""
         for username in domain_setup_tracker.setup_mailboxes_usernames:
             success, message = workmail_setup_workflow(
@@ -884,9 +885,78 @@ def is_valid_email_forwarding(
     return True
 
 
+def create_multiple_domain_and_managed_inboxes(
+    client_sdr_id: int,
+    number_inboxes: int,
+) -> tuple[bool, str]:
+    """Creates multiple domain and managed inboxes for a client SDR
+
+    Args:
+        client_sdr_id (int): The ID of the client SDR
+        number_inboxes (int): The number of inboxes to create
+
+    Returns:
+        tuple[bool, str]: A tuple containing the status and a message
+    """
+    # Get the number of domains to create for the requested number of inboxes
+    domains_to_create = []
+    number_domains = math.ceil(number_inboxes / MAX_INBOXES_PER_DOMAIN)
+
+    # Get available domains
+    # available_domains = get_available_domains(client_id=client_sdr_id)
+    # domains_to_create = available_domains[:number_domains]
+
+    if len(domains_to_create) < number_domains:
+        # Let's find similar domains
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not client_sdr:
+            return False, "SDR not found"
+
+        client: Client = Client.query.get(client_sdr.client_id)
+        if not client:
+            return False, "Client not found"
+
+        anchor_domain = client.domain
+        if anchor_domain:
+            # Clean it up
+            anchor_domain = (
+                anchor_domain.replace("http://", "")
+                .replace("https://", "")
+                .replace("www.", "")
+                .split(".")[0]
+                .strip("/")
+            )
+        anchor_tld = anchor_domain.split(".")[-1].strip("/")
+        potential_domains = find_similar_domains(
+            key_title=anchor_domain, current_tld=anchor_tld
+        )
+
+        domains_to_create += potential_domains[
+            : number_domains - len(domains_to_create)
+        ]
+
+    # Create the domains
+    for domain in domains_to_create:
+        create_domain_and_managed_inboxes.delay(
+            client_sdr_id=client_sdr_id,
+            purchase_domain_name=domain.get("domain_name"),
+        )
+
+    return_message = "N/A"
+    if len(domains_to_create) < number_domains:
+        return_message = "Not enough similar domains identified. Less inboxes than requested may be created."
+
+    return (
+        True,
+        f"Domains and managed inboxes setup workflow initiated, please return in 30 minutes to check the status. Extra Information: {return_message}",
+    )
+
+
 @celery.task
-def setup_managed_inboxes(
-    client_sdr_id: int, usernames: Optional[list[str]] = None
+def create_domain_and_managed_inboxes(
+    client_sdr_id: int,
+    usernames: Optional[list[str]] = None,
+    purchase_domain_name: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Setup managed inboxes for a client SDR. Will purchase a domain if necessary.
 
@@ -908,31 +978,35 @@ def setup_managed_inboxes(
     # Check if the client has an available domain
     managed_domain: Domain = None
     available_domains = get_available_domains(client_id=client.id)
-    if len(available_domains) == 0:
-        # If no domain is found, create it
-        if not client.domain:
-            return False, "Client does not have a domain set"
-        anchor_domain = client.domain
-        if anchor_domain:
-            # Clean it up
-            anchor_domain = (
-                anchor_domain.replace("http://", "")
-                .replace("https://", "")
-                .replace("www.", "")
-                .split(".")[0]
-                .strip("/")
+    if len(available_domains) == 0 or purchase_domain_name:
+        domain_name = purchase_domain_name
+
+        # If we don't have a domain name provided, we will automatically find one
+        if not domain_name:
+            # If no domain is found, create it
+            if not client.domain:
+                return False, "Client does not have a domain set"
+            anchor_domain = client.domain
+            if anchor_domain:
+                # Clean it up
+                anchor_domain = (
+                    anchor_domain.replace("http://", "")
+                    .replace("https://", "")
+                    .replace("www.", "")
+                    .split(".")[0]
+                    .strip("/")
+                )
+            anchor_tld = anchor_domain.split(".")[-1].strip("/")
+            potential_domains = find_similar_domains(
+                key_title=anchor_domain, current_tld=anchor_tld
             )
-        anchor_tld = anchor_domain.split(".")[-1].strip("/")
-        potential_domains = find_similar_domains(
-            key_title=anchor_domain, current_tld=anchor_tld
-        )
-        if len(potential_domains) == 0:
-            return False, "No similar domains found"
-        similar_domain = potential_domains[0].get("domain_name")
+            if len(potential_domains) == 0:
+                return False, "No similar domains found"
+            domain_name = potential_domains[0].get("domain_name")
 
         # Register the domain
         success, message, domain_id = domain_purchase_workflow(
-            client_id=client.id, domain_name=similar_domain
+            client_id=client.id, domain_name=domain_name
         )
         if not success:
             return False, message
@@ -945,9 +1019,9 @@ def setup_managed_inboxes(
         return False, "Domain not found"
 
     # Get the domain setup tracker
-    domain_setup_tracker: DomainSetupTracker = DomainSetupTracker(
+    domain_setup_tracker: DomainSetupTracker = DomainSetupTracker.query.filter_by(
         domain_id=managed_domain.id
-    )
+    ).first()
     if not domain_setup_tracker:
         domain_setup_tracker_id = create_domain_setup_tracker_entry(
             domain_id=managed_domain.id
@@ -1306,7 +1380,7 @@ def add_email_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
     if not domain:
         return False, "Domain not found"
     if domain.dmarc_record or domain.spf_record or domain.dkim_record:
-        return False, "DNS records already exist"
+        return True, "DNS records already exist"
 
     # Refresh our internal DNS record stores to make sure we don't perform redundant work
     _ = validate_domain_configuration(domain_id=domain_id)
@@ -1495,7 +1569,7 @@ def configure_email_forwarding(domain_name: str, domain_id: int) -> tuple[bool, 
 
     # Make sure we haven't already created an Amplify App
     if domain.aws_amplify_app_id:
-        return False, "Email forwarding already configured"
+        return True, "Email forwarding already configured"
 
     # Create an AWS Amplify App
     app_id = create_aws_amplify_app(
@@ -1767,6 +1841,7 @@ def get_available_domains(client_id: int) -> list[dict]:
         .filter(
             Domain.client_id == client_id,
             Domain.aws_domain_registration_status == "SUCCESSFUL",
+            Domain.aws == True,
         )
         .group_by(Domain.id)
         .having(func.count(SDREmailBank.id) < MAX_INBOXES_PER_DOMAIN)

@@ -107,6 +107,8 @@ from src.email_outbound.email_store.hunter import (
 )
 from src.prospecting.services import update_prospect_demo_date
 from src.message_generation.services import add_generated_msg_queue
+from src.prospecting.prospect_email.services import remove_email_out_of_office_status
+
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
 
@@ -1690,9 +1692,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 
