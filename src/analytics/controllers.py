@@ -31,6 +31,7 @@ from src.analytics.daily_backfill_response_times_from_sdr import (
 from src.authentication.decorators import require_user
 from model_import import ClientSDR
 from src.analytics.services_asset_analytics import backfill_all_assets_analytics
+from model_import import Prospect
 
 ANALYTICS_BLUEPRINT = Blueprint("analytics", __name__)
 
@@ -58,6 +59,22 @@ def get_all_pipeline_details(client_sdr_id: int):
     )
 
     return {"message": "Success", "pipeline_data": details}, 200
+
+
+@ANALYTICS_BLUEPRINT.route("/inbox_messages_to_view", methods=["GET"])
+@require_user
+def get_inbox_messages_to_see(client_sdr_id: int):
+    """Endpoint to get the count of messages prospects have sent to us"""
+
+    count = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        (
+            Prospect.li_is_last_message_from_sdr
+            | Prospect.email_is_last_message_from_sdr
+        ),
+    ).count()
+
+    return {"message": "Success", "data": count}, 200
 
 
 @ANALYTICS_BLUEPRINT.route("/all_campaign_analytics", methods=["GET"])
@@ -211,7 +228,8 @@ def get_activity_logs_endpoint(client_sdr_id: int):
 
     return jsonify({"message": "Success", "data": logs}), 200
 
-@ANALYTICS_BLUEPRINT.route("/overview_analytics", methods=['GET'])
+
+@ANALYTICS_BLUEPRINT.route("/overview_analytics", methods=["GET"])
 @require_user
 def get_overview_analytics(client_sdr_id: int):
     data = get_overview_pipeline_activity(client_sdr_id)
