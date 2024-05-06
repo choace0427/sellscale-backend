@@ -173,9 +173,27 @@ def post_sync_sdr_to_crm_user(client_sdr_id: int):
         get_request_parameter("merge_user_id", request, json=True, required=False)
         or None
     )
+    given_client_sdr_id = get_request_parameter(
+        "client_sdr_id", request, json=True, required=True
+    )
+
+    # Ensure that this SDR is permissioned to edit the given SDR
+    given_client_sdr: ClientSDR = ClientSDR.query.get(given_client_sdr_id)
+    if not given_client_sdr:
+        return jsonify({"status": "error", "message": "Client SDR not found"}), 400
+    request_client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not request_client_sdr:
+        return jsonify({"status": "error", "message": "Client SDR not found"}), 400
+    if request_client_sdr.client_id != given_client_sdr.client_id:
+        return (
+            jsonify(
+                {"status": "error", "message": "You are not authorized to edit this"}
+            ),
+            401,
+        )
 
     success = sync_sdr_to_crm_user(
-        client_sdr_id=client_sdr_id, merge_user_id=merge_user_id
+        client_sdr_id=given_client_sdr_id, merge_user_id=merge_user_id
     )
     if not success:
         return jsonify({"status": "error", "message": "Failed to sync user"}), 400
