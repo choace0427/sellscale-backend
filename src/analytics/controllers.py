@@ -32,6 +32,7 @@ from src.authentication.decorators import require_user
 from model_import import ClientSDR
 from src.analytics.services_asset_analytics import backfill_all_assets_analytics
 from model_import import Prospect
+from sqlalchemy import not_
 
 ANALYTICS_BLUEPRINT = Blueprint("analytics", __name__)
 
@@ -68,9 +69,9 @@ def get_inbox_messages_to_see(client_sdr_id: int):
 
     count = Prospect.query.filter(
         Prospect.client_sdr_id == client_sdr_id,
-        (
+        not_(
             Prospect.li_is_last_message_from_sdr
-            | Prospect.email_is_last_message_from_sdr
+            & Prospect.email_is_last_message_from_sdr
         ),
     ).count()
 
