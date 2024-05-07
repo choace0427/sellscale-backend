@@ -220,7 +220,7 @@ def get_sdrs(client_sdr_id: int):
 def get_client_all_archetypes(client_sdr_id: int):
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if not sdr or sdr.client_id != 1:
+    if not sdr:
         return (
             jsonify(
                 {
