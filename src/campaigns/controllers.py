@@ -594,7 +594,8 @@ def post_create_li_campaign_from_email():
 
 
 @CAMPAIGN_BLUEPRINT.route("/create_campaign_ai_request", methods=["POST"])
-def post_create_campaign_ai_request():
+@require_user
+def post_create_campaign_ai_request(client_sdr_id: int):
 
     name = get_request_parameter(
         "name", request, json=True, required=True, parameter_type=str
@@ -610,7 +611,11 @@ def post_create_campaign_ai_request():
     )
 
     created = create_campaign_ai_request(
-        name=name, description=description, linkedin=linkedin, email=email
+        sdr_id=client_sdr_id,
+        name=name,
+        description=description,
+        linkedin=linkedin,
+        email=email,
     )
 
     return (
