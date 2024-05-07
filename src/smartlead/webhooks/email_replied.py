@@ -22,6 +22,8 @@ from src.smartlead.webhooks.models import (
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
 
+from sqlalchemy import or_
+
 
 def create_and_process_email_replied_payload(payload: dict) -> bool:
     """Create a new SmartleadWebhookPayloads entry and process it.
@@ -72,14 +74,14 @@ def process_email_replied_webhook(payload_id: int):
             return False, "Event type is not 'EMAIL_REPLY'"
 
         # Get the email address that the email was replied to
-        to_email = payload.get("to_email")
-        if not to_email:
+        sl_lead_email = payload.get("sl_lead_email")
+        if not sl_lead_email:
             smartlead_payload.processing_status = (
                 SmartleadWebhookProcessingStatus.FAILED
             )
-            smartlead_payload.processing_fail_reason = "No 'to_email' field found"
+            smartlead_payload.processing_fail_reason = "No 'sl_lead_email' field found"
             db.session.commit()
-            return False, "No 'to_email' field found"
+            return False, "No 'sl_lead_email' field found"
 
         # Get the campaign ID that the email was replied from
         campaign_id = payload.get("campaign_id")
@@ -102,8 +104,12 @@ def process_email_replied_webhook(payload_id: int):
             smartlead_payload.processing_fail_reason = "No Archetype found"
             db.session.commit()
             return False, "No Archetype found"
-        prospect: Prospect = Prospect.query.filter_by(
-            email=to_email, archetype_id=client_archetype.id
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.email.ilike(sl_lead_email),
+            or_(
+                Prospect.smartlead_campaign_id == campaign_id,
+                Prospect.archetype_id == client_archetype.id,
+            ),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -144,7 +150,10 @@ def process_email_replied_webhook(payload_id: int):
         }
 
         # ANALYTICS
-        if prospect_email.outreach_status and "ACTIVE_CONVO" not in prospect_email.outreach_status.value:
+        if (
+            prospect_email.outreach_status
+            and "ACTIVE_CONVO" not in prospect_email.outreach_status.value
+        ):
             # Cascading Replies: Get all the email schedule entries up to prospect_email.smartlead_sent_count entries
             sent_emails: list[EmailMessagingSchedule] = (
                 EmailMessagingSchedule.query.filter(
@@ -209,3 +218,19 @@ def process_email_replied_webhook(payload_id: int):
         smartlead_payload.processing_fail_reason = str(e)
         db.session.commit()
         return False, str(e)
+
+
+def backfill():
+    """Backfill all EMAIL_REPLY payloads."""
+    payloads: SmartleadWebhookPayloads = SmartleadWebhookPayloads.query.filter(
+        SmartleadWebhookPayloads.smartlead_webhook_type
+        == SmartleadWebhookType.EMAIL_REPLIED,
+        SmartleadWebhookPayloads.processing_status
+        == SmartleadWebhookProcessingStatus.FAILED,
+        SmartleadWebhookPayloads.processing_fail_reason == "No Prospect found",
+    ).all()
+    from tqdm import tqdm
+
+    for payload in tqdm(payloads):
+        process_email_replied_webhook(payload_id=payload.id)
+    return True

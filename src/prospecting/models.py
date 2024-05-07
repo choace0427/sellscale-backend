@@ -522,6 +522,8 @@ class Prospect(db.Model):
     merge_opportunity_id = db.Column(db.String, nullable=True)
     merge_lead_id = db.Column(db.String, nullable=True)
 
+    smartlead_campaign_id = db.Column(db.Integer, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
