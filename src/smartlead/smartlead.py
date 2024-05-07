@@ -389,6 +389,7 @@ class Smartlead:
         reply_email_time: str,
         reply_email_body: str,
         cc: Optional[list],
+        bcc: Optional[list],
     ):
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/reply-email-thread?api_key={self.api_key}"
         data = {
@@ -398,6 +399,7 @@ class Smartlead:
             "reply_email_time": reply_email_time,
             "reply_email_body": reply_email_body,
             "cc": ",".join(cc) if cc else None,
+            "bcc": ",".join(bcc) if bcc else None,
         }
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -411,6 +413,7 @@ class Smartlead:
                 reply_email_time,
                 reply_email_body,
                 cc,
+                bcc,
             )
         if response.status_code == 200:
             return True

@@ -107,7 +107,10 @@ from src.email_outbound.email_store.hunter import (
 )
 from src.prospecting.services import update_prospect_demo_date
 from src.message_generation.services import add_generated_msg_queue
-from src.prospecting.prospect_email.services import remove_email_out_of_office_status
+from src.prospecting.prospect_email.services import (
+    remove_email_out_of_office_status,
+    check_and_remove_out_of_office_statuses,
+)
 
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
