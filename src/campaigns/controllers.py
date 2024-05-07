@@ -7,7 +7,7 @@ from src.campaigns.services import (
     get_client_campaign_view_data,
     mark_campaign_as_ready_to_send,
     mark_campaign_as_initial_review_complete,
-    get_outbound_data
+    get_outbound_data,
 )
 from src.campaigns.autopilot.services import (
     auto_send_campaigns_and_send_approved_messages_job,
@@ -37,7 +37,8 @@ from src.campaigns.services import (
     wipe_campaign_generations,
     email_analytics,
     payout_campaigns,
-    get_account_based_data
+    get_account_based_data,
+    create_campaign_ai_request,
 )
 from src.campaigns.autopilot.services import (
     collect_and_generate_all_autopilot_campaigns,
@@ -592,6 +593,37 @@ def post_create_li_campaign_from_email():
     return jsonify({"campaign_id": campaign.id})
 
 
+@CAMPAIGN_BLUEPRINT.route("/create_campaign_ai_request", methods=["POST"])
+def post_create_campaign_ai_request():
+
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+    description = get_request_parameter(
+        "description", request, json=True, required=True, parameter_type=str
+    )
+    linkedin = get_request_parameter(
+        "linkedin", request, json=True, required=True, parameter_type=bool
+    )
+    email = get_request_parameter(
+        "email", request, json=True, required=True, parameter_type=bool
+    )
+
+    created = create_campaign_ai_request(
+        name=name, description=description, linkedin=linkedin, email=email
+    )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": created,
+            }
+        ),
+        200,
+    )
+
+
 @CAMPAIGN_BLUEPRINT.route("/get_campaign_analytics", methods=["GET"])
 def get_campaign_analytics() -> tuple[dict, int]:
     """Gets campaign analytics, given a campaign_id
@@ -760,13 +792,12 @@ def get_outboundData(client_sdr_id: int):
 
     return data
 
+
 @CAMPAIGN_BLUEPRINT.route("/account_based", methods=["POST"])
 @require_user
 def get_account_based_view_data(client_sdr_id: int):
 
-    offset: int = get_request_parameter(
-        "offset", request, json=True, required=True
-    )
+    offset: int = get_request_parameter("offset", request, json=True, required=True)
 
     data = get_account_based_data(client_sdr_id=client_sdr_id, offset=offset)
 

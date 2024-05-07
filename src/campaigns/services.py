@@ -1845,18 +1845,32 @@ def detect_campaign_multi_channel_dash_card():
 
         if len(li_archetypes) == 0 and len(email_archetypes) > 0:
             # Make card to create li campaign
-            create_campaign_ai_request(sdr_id=sdr_id, type="LinkedIn")
+            create_campaign_ai_request(
+                sdr_id=sdr_id,
+                name="LinkedIn Campaign",
+                description="",
+                linkedin=True,
+                email=False,
+            )
 
         if len(email_archetypes) == 0 and len(li_archetypes) > 0:
             # Make card to create email campaign
-            create_campaign_ai_request(sdr_id=sdr_id, type="Email")
+            create_campaign_ai_request(
+                sdr_id=sdr_id,
+                name="Email Campaign",
+                description="",
+                linkedin=False,
+                email=True,
+            )
 
 
-def create_campaign_ai_request(sdr_id: int, type: str):
+def create_campaign_ai_request(
+    sdr_id: int, name: str, description: str, linkedin: bool, email: bool
+):
     from src.ai_requests.models import AIRequest
     from src.ai_requests.services import create_ai_requests
 
-    title = f"Create {type} Campaign"
+    title = f"New Campaign Request: {name}"
 
     ai_requests: list[AIRequest] = AIRequest.query.filter(
         AIRequest.client_sdr_id == sdr_id, AIRequest.title == title
@@ -1864,9 +1878,24 @@ def create_campaign_ai_request(sdr_id: int, type: str):
     if len(ai_requests) > 0:
         return False
 
+    sdr: ClientSDR = ClientSDR.query.get(sdr_id)
+
     create_ai_requests(
         client_sdr_id=sdr_id,
-        description=f"Please create a campaign for your {type} channel.",
+        description=f"""
+        
+Title: {name}
+
+Description:
+{sdr.name} is requesting a new campaign.
+
+What do you want to say?:
+{description}
+
+Linkedin: {'True' if linkedin else 'False'}
+Email: {'True' if email else 'False'}
+        
+        """.strip(),
         title=title,
         days_till_due=7,
     )
@@ -1998,6 +2027,7 @@ def get_outbound_data(client_sdr_id: int):
     }
     return data
 
+
 def get_account_based_data(client_sdr_id: int, offset: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id: int = client_sdr.client_id
@@ -2070,8 +2100,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
             count(*)
         from helper;
     """.format(
-        CLIENT_ID=client_id,
-        OFFSET=offset * 15
+        CLIENT_ID=client_id, OFFSET=offset * 15
     )
 
     count_result = db.session.execute(count_query).fetchone()
@@ -2161,8 +2190,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
         from helper
         order by latest_reply desc;
     """.format(
-        CLIENT_ID=client_id,
-        OFFSET=offset
+        CLIENT_ID=client_id, OFFSET=offset
     )
 
     results = db.session.execute(query).fetchall()
