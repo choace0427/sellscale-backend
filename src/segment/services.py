@@ -60,7 +60,8 @@ def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False) -> li
         select 
             segment_id, 
             count(distinct prospect.id) num_prospected,
-            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is not null or prospect.approved_outreach_message_id is not null) num_contacted
+            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is not null or prospect.approved_outreach_message_id is not null) num_contacted,
+            count(distinct prospect.company) unique_Companies
         from prospect
         where prospect.segment_id is not null
             and prospect.client_id = {client_id}
@@ -78,6 +79,7 @@ def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False) -> li
             if row[0] == segment_id:
                 segment_dict["num_prospected"] = row[1]
                 segment_dict["num_contacted"] = row[2]
+                segment_dict["unique_companies"] = row[3]
 
     # order by segment ID reverse order
     retval = sorted(retval, key=lambda x: x["id"], reverse=True)
