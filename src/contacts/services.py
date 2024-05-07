@@ -700,7 +700,7 @@ def upload_prospects_from_apollo_page_to_segment(
         client_sdr_id=client_sdr_id,
         archetype_id=unassigned_archetype_id,
         csv_payload=prospects,
-        allow_duplicates=False,
+        allow_duplicates=True,
         source=ProspectUploadSource.CONTACT_DATABASE,
         segment_id=segment_id,
     )
