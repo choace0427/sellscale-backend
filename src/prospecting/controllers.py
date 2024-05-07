@@ -1080,10 +1080,6 @@ def add_prospect_from_csv_payload(
     if not archetype:
         return "Archetype with given ID not found", 400
 
-    # Check for duplicates is always enabled if client is not SellScale
-    if archetype.client_id != 1:
-        allow_duplicates = True
-
     # Get the segment_id
     segment_id = segment_id or get_base_segment_for_archetype(archetype_id=archetype_id)
 
