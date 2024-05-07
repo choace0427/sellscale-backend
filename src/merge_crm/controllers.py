@@ -269,6 +269,6 @@ def post_upload_prospect(client_sdr_id: int):
     success, msg = upload_prospect_to_crm(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
-        stage_id_override=stage_override,
+        stage_id_override=stage_id_override,
     )
     return jsonify({"success": success, "message": msg}), 200 if success else 400
