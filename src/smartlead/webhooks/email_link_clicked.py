@@ -24,6 +24,7 @@ from src.smartlead.webhooks.models import (
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
+from sqlalchemy import or_
 
 
 def create_and_process_email_link_clicked_payload(payload: dict) -> bool:
@@ -107,8 +108,12 @@ def process_email_link_clicked_webhook(payload_id: int):
             smartlead_payload.processing_fail_reason = "No Archetype found"
             db.session.commit()
             return False, "No Archetype found"
-        prospect: Prospect = Prospect.query.filter_by(
-            email=to_email, archetype_id=client_archetype.id
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.email.ilike(to_email),
+            or_(
+                Prospect.smartlead_campaign_id == campaign_id,
+                Prospect.archetype_id == client_archetype.id,
+            ),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -130,30 +135,29 @@ def process_email_link_clicked_webhook(payload_id: int):
             db.session.commit()
             return False, "No Prospect Email found"
 
-        # Set the Prospect Email to "ACCEPTED"
-        update_prospect_status_email(
-            prospect_id=prospect.id,
-            new_status=ProspectEmailOutreachStatus.ACCEPTED,
-        )
-
-        # Send a Slack Notification
-        success = create_and_send_slack_notification_class_message(
-            notification_type=SlackNotificationType.EMAIL_LINK_CLICKED,
-            arguments={
-                "client_sdr_id": prospect.client_sdr_id,
-                "prospect_id": prospect.id,
-                "link_clicked": payload.get("link_details")[0],
-            },
-        )
-
-        # notification = EmailLinkClickedNotification(
-        #     client_sdr_id=prospect.client_sdr_id,
-        #     prospect_id=prospect.id,
-        #     link_clicked=payload.get("link_details")[0],
-        # )
-        # success = notification.send_notification(preview_mode=False)
+        try:
+            # Set the Prospect Email to "ACCEPTED"
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.ACCEPTED,
+            )
+            # Send a Slack Notification
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.EMAIL_LINK_CLICKED,
+                arguments={
+                    "client_sdr_id": prospect.client_sdr_id,
+                    "prospect_id": prospect.id,
+                    "link_clicked": payload.get("link_details")[0],
+                },
+            )
+        except:
+            # If the update fails, then something had gone wrong earlier. We skip for now
+            pass
 
         # Set the payload to "SUCCEEDED"
+        print(
+            f"Processed EMAIL_LINK_CLICKED payload (#{smartlead_payload.id}) successfully"
+        )
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED
         db.session.commit()
     except Exception as e:
@@ -167,3 +171,17 @@ def process_email_link_clicked_webhook(payload_id: int):
         smartlead_payload.processing_fail_reason = str(e)
         db.session.commit()
         return False, str(e)
+
+
+def backfill():
+    """Backfill all the EMAIL_LINK_CLICKED events."""
+    payloads = SmartleadWebhookPayloads.query.filter_by(
+        smartlead_webhook_type=SmartleadWebhookType.EMAIL_LINK_CLICKED,
+        processing_status=SmartleadWebhookProcessingStatus.FAILED,
+    ).all()
+
+    from tqdm import tqdm
+
+    for payload in tqdm(payloads):
+        print(process_email_link_clicked_webhook(payload_id=payload.id))
+    return True

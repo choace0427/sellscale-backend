@@ -1226,6 +1226,10 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
         )
         return False, "Not all prospects were uploaded"
 
+    # Save the campaign ID to the prospect
+    prospect.smartlead_campaign_id = archetype.smartlead_campaign_id
+    db.session.commit()
+
     send_slack_message(
         message=f"Uploaded 1 prospect {prospect.full_name}#{prospect.id} to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
         webhook_urls=[URL_MAP["eng-sandbox"]],

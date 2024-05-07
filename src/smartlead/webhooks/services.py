@@ -1,4 +1,4 @@
-from app import db
+from app import db, celery
 
 from typing import Optional
 from src.smartlead.webhooks.models import (
@@ -6,6 +6,64 @@ from src.smartlead.webhooks.models import (
     SmartleadWebhookProcessingStatus,
     SmartleadWebhookType,
 )
+from datetime import datetime, timedelta
+
+
+@celery.task
+def rerun_stale_smartlead_webhooks() -> None:
+    """Rerun all stale webhooks.
+
+    Stale webhooks are defined as webhooks that:
+    - Are in PENDING or PROCESSING
+    - Was last updated more than 1 hour ago
+
+    Likely causees for Stale webhooks:
+    - The webhook processing task failed
+    - Celery or Redis experienced a failure
+
+    This function is intended to be run as a cron job.
+
+    Returns:
+        None
+    """
+    from src.smartlead.webhooks.email_bounced import process_email_bounce_webhook
+    from src.smartlead.webhooks.email_link_clicked import (
+        process_email_link_clicked_webhook,
+    )
+    from src.smartlead.webhooks.email_opened import process_email_opened_webhook
+    from src.smartlead.webhooks.email_replied import process_email_replied_webhook
+    from src.smartlead.webhooks.email_sent import process_email_sent_webhook
+
+    # Map webhook types to their respective processors
+    webhook_type_to_processor = {
+        SmartleadWebhookType.EMAIL_SENT: process_email_sent_webhook,
+        SmartleadWebhookType.EMAIL_OPENED: process_email_opened_webhook,
+        SmartleadWebhookType.EMAIL_REPLIED: process_email_replied_webhook,
+        SmartleadWebhookType.EMAIL_BOUNCED: process_email_bounce_webhook,
+        SmartleadWebhookType.EMAIL_LINK_CLICKED: process_email_link_clicked_webhook,
+    }
+
+    # Get all stale webhooks
+    stale_webhooks: list[
+        SmartleadWebhookPayloads
+    ] = SmartleadWebhookPayloads.query.filter(
+        SmartleadWebhookPayloads.processing_status.in_(
+            [
+                SmartleadWebhookProcessingStatus.PENDING,
+                SmartleadWebhookProcessingStatus.PROCESSING,
+            ]
+        ),
+        SmartleadWebhookPayloads.updated_at < datetime.now() - timedelta(hours=1),
+    ).all()
+
+    # Rerun each stale webhook
+    for webhook in stale_webhooks:
+        webhook_type = webhook.smartlead_webhook_type
+        processor: function = webhook_type_to_processor.get(webhook_type)
+        if processor:
+            processor.delay(webhook.id)
+
+    return None
 
 
 def create_smartlead_webhook_payload(

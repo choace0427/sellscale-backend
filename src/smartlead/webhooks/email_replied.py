@@ -74,7 +74,7 @@ def process_email_replied_webhook(payload_id: int):
             return False, "Event type is not 'EMAIL_REPLY'"
 
         # Get the email address that the email was replied to
-        sl_lead_email = payload.get("sl_lead_email")
+        sl_lead_email = payload.get("sl_lead_email") or payload.get("to_email")
         if not sl_lead_email:
             smartlead_payload.processing_status = (
                 SmartleadWebhookProcessingStatus.FAILED
@@ -172,13 +172,6 @@ def process_email_replied_webhook(payload_id: int):
                         template.times_replied = 0
                     template.times_replied += 1
 
-        # Set the Prospect Email to "ACTIVE_CONVO"
-        update_prospect_status_email(
-            prospect_id=prospect.id,
-            new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-            metadata=metadata,
-        )
-
         # Set the prospect_email's last_message and last_reply_time
         prospect_email.last_message = reply_message
         prospect.email_last_message_from_prospect = reply_message
@@ -192,19 +185,31 @@ def process_email_replied_webhook(payload_id: int):
         prospect.hidden_until = None
         prospect.hidden_reason = None
 
-        # Generate an automated reply
-        generate_smart_email_response(
-            client_sdr_id=prospect.client_sdr_id,
-            prospect_id=prospect.id,
-        )
+        try:
+            # Set the Prospect Email to "ACTIVE_CONVO"
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
+                metadata=metadata,
+            )
 
-        # Determine "ACTIVE_CONVO" substatus
-        _ = classify_email.delay(
-            prospect_id=prospect.id,
-            email_body=reply_message,
-        )
+            # Generate an automated reply
+            generate_smart_email_response(
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
+            )
+
+            # Determine "ACTIVE_CONVO" substatus
+            _ = classify_email.delay(
+                prospect_id=prospect.id,
+                email_body=reply_message,
+            )
+        except:
+            # If the update fails, then something had gone wrong earlier. We skip for now
+            pass
 
         # Set the payload to "SUCCEEDED"
+        print(f"Processed EMAIL_REPLIED payload (#{smartlead_payload.id}) successfully")
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED
         db.session.commit()
     except Exception as e:
@@ -227,10 +232,9 @@ def backfill():
         == SmartleadWebhookType.EMAIL_REPLIED,
         SmartleadWebhookPayloads.processing_status
         == SmartleadWebhookProcessingStatus.FAILED,
-        SmartleadWebhookPayloads.processing_fail_reason == "No Prospect found",
     ).all()
     from tqdm import tqdm
 
     for payload in tqdm(payloads):
-        process_email_replied_webhook(payload_id=payload.id)
+        print(process_email_replied_webhook(payload_id=payload.id))
     return True

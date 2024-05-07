@@ -18,6 +18,7 @@ from src.smartlead.webhooks.models import (
     SmartleadWebhookType,
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
+from sqlalchemy import or_
 
 
 def create_and_process_email_sent_payload(payload: dict) -> bool:
@@ -100,8 +101,11 @@ def process_email_sent_webhook(payload_id: int):
             db.session.commit()
             return False, "No Archetype found"
         prospect: Prospect = Prospect.query.filter(
-            Prospect.email.ilike(to_email)
-            # , Prospect.archetype_id == client_archetype.id
+            Prospect.email.ilike(to_email),
+            or_(
+                Prospect.smartlead_campaign_id == campaign_id,
+                Prospect.archetype_id == client_archetype.id,
+            ),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -226,7 +230,6 @@ def backfill():
     payloads = SmartleadWebhookPayloads.query.filter_by(
         smartlead_webhook_type=SmartleadWebhookType.EMAIL_SENT,
         processing_status=SmartleadWebhookProcessingStatus.FAILED,
-        processing_fail_reason="",
     ).all()
 
     from tqdm import tqdm
