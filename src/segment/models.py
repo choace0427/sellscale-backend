@@ -24,6 +24,8 @@ class Segment(db.Model):
     autoscrape_enabled = db.Column(db.Boolean, default=False)
     current_scrape_page = db.Column(db.Integer, default=0)
 
+    attached_segment_tag_ids = db.Column(db.ARRAY(db.Integer), default=[])
+
     def __repr__(self):
         return f"<Segment {self.id}>"
 
@@ -49,3 +51,17 @@ class Segment(db.Model):
             "current_scrape_page": self.current_scrape_page,
         }
         
+class SegmentTags(db.Model):
+    __tablename__ = "segment_tags"
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    color = db.Column(db.String(255), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "name": self.name,
+            "color": self.color,
+        }
