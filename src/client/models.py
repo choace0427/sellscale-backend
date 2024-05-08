@@ -542,6 +542,7 @@ class ClientSDR(db.Model):
             "sdr_email": self.email,
             "role": self.role,
             "active": self.active,
+            "auth_token": self.auth_token,
             "weekly_li_outbound_target": self.weekly_li_outbound_target,
             "weekly_email_outbound_target": self.weekly_email_outbound_target,
             "scheduling_link": self.scheduling_link,
