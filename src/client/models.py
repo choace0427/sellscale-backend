@@ -205,9 +205,9 @@ class ClientArchetype(db.Model):
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
-        ctas: list[
-            GeneratedMessageCTA
-        ] = GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        ctas: list[GeneratedMessageCTA] = (
+            GeneratedMessageCTA.get_active_ctas_for_archetype(self.id)
+        )
 
         return {
             "id": self.id,
@@ -349,6 +349,8 @@ class ClientSDR(db.Model):
     email = db.Column(db.String)
     weekly_report_cc_emails = db.Column(db.ARRAY(db.String), nullable=True)
     weekly_report_bcc_emails = db.Column(db.ARRAY(db.String), nullable=True)
+
+    role = db.Column(db.String, nullable=True)
 
     active = db.Column(db.Boolean, nullable=True, default=True)
     is_onboarding = db.Column(db.Boolean, nullable=True, default=False)
@@ -538,6 +540,7 @@ class ClientSDR(db.Model):
             "sdr_name": self.name,
             "sdr_title": self.title,
             "sdr_email": self.email,
+            "role": self.role,
             "active": self.active,
             "weekly_li_outbound_target": self.weekly_li_outbound_target,
             "weekly_email_outbound_target": self.weekly_email_outbound_target,

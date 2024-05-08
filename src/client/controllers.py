@@ -211,7 +211,7 @@ def get_sdrs(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
-    sdrs = ClientSDR.query.filter_by(client_id=client_id, active=True).all()
+    sdrs = ClientSDR.query.filter_by(client_id=client_id).all()
     return jsonify({"message": "Success", "data": [sdr.to_dict() for sdr in sdrs]}), 200
 
 
@@ -772,6 +772,13 @@ def patch_sdr(client_sdr_id: int):
         required=False,
     )
 
+    role = get_request_parameter(
+        "role",
+        request,
+        json=True,
+        required=False,
+    )
+
     email = get_request_parameter(
         "email",
         request,
@@ -789,6 +796,7 @@ def patch_sdr(client_sdr_id: int):
         ai_outreach=ai_outreach,
         browser_extension_ui_overlay=browser_extension_ui_overlay,
         auto_archive_convos=auto_archive_convos,
+        role=role,
         meta_data=meta_data,
     )
     if not success:
