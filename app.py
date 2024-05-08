@@ -114,6 +114,9 @@ def make_celery(app):
         f"src.email_outbound.email_store.services.email_store_hunter_verify": {
             "rate_limit": "2/s",
         },
+        f"src.smartlead.services.upload_prospect_to_campaign": {
+            "rate_limit": "3/s",
+        },
     }
 
     class ContextTask(celery.Task):
