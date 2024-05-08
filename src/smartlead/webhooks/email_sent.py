@@ -18,6 +18,7 @@ from src.smartlead.webhooks.models import (
     SmartleadWebhookType,
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
+from sqlalchemy import or_
 
 
 def create_and_process_email_sent_payload(payload: dict) -> bool:
@@ -99,8 +100,12 @@ def process_email_sent_webhook(payload_id: int):
             smartlead_payload.processing_fail_reason = "No Archetype found"
             db.session.commit()
             return False, "No Archetype found"
-        prospect: Prospect = Prospect.query.filter_by(
-            email=to_email, archetype_id=client_archetype.id
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.email.ilike(to_email),
+            or_(
+                Prospect.smartlead_campaign_id == campaign_id,
+                Prospect.archetype_id == client_archetype.id,
+            ),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -135,6 +140,10 @@ def process_email_sent_webhook(payload_id: int):
         )
         prospect_email.email_status = ProspectEmailStatus.SENT
         prospect_email.date_sent = now
+        db.session.commit()
+
+        # Save the Smartlead Campaign ID onto the Prospect
+        prospect.smartlead_campaign_id = campaign_id
         db.session.commit()
 
         # ANALYTICS: Perform increments on the sequence steps
@@ -175,8 +184,10 @@ def process_email_sent_webhook(payload_id: int):
                     )
                     .order_by(EmailMessagingSchedule.id.asc())
                     .limit(prospect_email.smartlead_sent_count)
-                    .all()[-1]
+                    .all()
                 )
+                if nth_item:
+                    nth_item = nth_item[-1]
                 if (
                     nth_item
                     and nth_item.email_type == EmailMessagingType.FOLLOW_UP_EMAIL
@@ -212,3 +223,17 @@ def process_email_sent_webhook(payload_id: int):
         smartlead_payload.processing_fail_reason = str(e)
         db.session.commit()
         return False, str(e)
+
+
+def backfill():
+    """Backfill all the EMAIL_SENT events."""
+    payloads = SmartleadWebhookPayloads.query.filter_by(
+        smartlead_webhook_type=SmartleadWebhookType.EMAIL_SENT,
+        processing_status=SmartleadWebhookProcessingStatus.FAILED,
+    ).all()
+
+    from tqdm import tqdm
+
+    for payload in tqdm(payloads):
+        process_email_sent_webhook(payload_id=payload.id)
+    return True

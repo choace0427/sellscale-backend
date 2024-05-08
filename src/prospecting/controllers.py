@@ -4,6 +4,7 @@ from typing import Optional
 
 from src.automation.orchestrator import add_process_for_future
 from src.email_outbound.email_store.services import find_emails_for_archetype
+from src.prospecting.champions.services import get_champion_detection_changes, get_champion_detection_stats, mark_prospects_as_champion, refresh_job_data_for_all_champions
 from src.prospecting.models import ExistingContact, ProspectUploadSource
 from src.segment.services import (
     get_base_segment_for_archetype,
@@ -1862,3 +1863,54 @@ def patch_apollo_scrape(client_sdr_id: int):
     )
 
     return jsonify({"message": "Success", "data": result}), 200
+
+@PROSPECTING_BLUEPRINT.route("/champion/get_champion_changes", methods=["GET"])
+@require_user
+def get_champion_changes(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_id = client_sdr.client_id
+    results = get_champion_detection_changes(client_id)
+
+    return jsonify({"message": "Success", "data": results}), 200
+
+@PROSPECTING_BLUEPRINT.route("/champion/refresh_job_data", methods=["POST"])
+@require_user
+def post_refresh_champion_job_data(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_id = client_sdr.client_id
+    success = refresh_job_data_for_all_champions(client_id)
+
+    if success:
+        return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Failed to refresh job data"}), 400
+
+@PROSPECTING_BLUEPRINT.route("/champion/get_stats", methods=["GET"])
+@require_user
+def get_champion_stats(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_id = client_sdr.client_id
+    results = get_champion_detection_stats(client_id)
+
+    return jsonify({"message": "Success", "data": results}), 200
+
+@PROSPECTING_BLUEPRINT.route("/champion/mark_champions", methods=["POST"])
+@require_user
+def post_mark_champions(client_sdr_id: int):
+    prospect_ids = get_request_parameter(
+        "prospect_ids", request, json=True, required=True, parameter_type=list
+    )
+    is_champion = get_request_parameter(
+        "is_champion", request, json=True, required=True, parameter_type=bool
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_id = client_sdr.client_id
+    success = mark_prospects_as_champion(
+        client_id=client_id,
+        prospect_ids=prospect_ids,
+        is_champion=is_champion
+    )
+
+    if success:
+        return jsonify({"message": "Success"}), 200
+    return jsonify({"message": "Failed to mark champions"}), 400

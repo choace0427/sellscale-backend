@@ -18,6 +18,7 @@ from src.smartlead.webhooks.models import (
 )
 from src.smartlead.webhooks.services import create_smartlead_webhook_payload
 from src.analytics.services import add_activity_log
+from sqlalchemy import or_
 
 
 def create_and_process_email_opened_payload(payload: dict) -> bool:
@@ -99,8 +100,12 @@ def process_email_opened_webhook(payload_id: int):
             smartlead_payload.processing_fail_reason = "No Archetype found"
             db.session.commit()
             return False, "No Archetype found"
-        prospect: Prospect = Prospect.query.filter_by(
-            email=to_email, archetype_id=client_archetype.id
+        prospect: Prospect = Prospect.query.filter(
+            Prospect.email.ilike(to_email),
+            or_(
+                Prospect.smartlead_campaign_id == campaign_id,
+                Prospect.archetype_id == client_archetype.id,
+            ),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -156,11 +161,15 @@ def process_email_opened_webhook(payload_id: int):
                         template.times_accepted = 0
                     template.times_accepted += 1
 
-        # Set the Prospect Email to "OPENED"
-        update_prospect_status_email(
-            prospect_id=prospect.id,
-            new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
-        )
+        try:
+            # Set the Prospect Email to "OPENED"
+            update_prospect_status_email(
+                prospect_id=prospect.id,
+                new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
+            )
+        except:
+            # If the update fails, then something had gone wrong earlier. We skip for now
+            pass
 
         # TEMPORARY: Send slack notification
         from src.utils.slack import send_slack_message
@@ -180,6 +189,7 @@ def process_email_opened_webhook(payload_id: int):
         )
 
         # Set the payload to "SUCCEEDED"
+        print(f"Processed EMAIL_OPENED payload (#{smartlead_payload.id}) successfully")
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED
         db.session.commit()
     except Exception as e:
@@ -193,3 +203,17 @@ def process_email_opened_webhook(payload_id: int):
         smartlead_payload.processing_fail_reason = str(e)
         db.session.commit()
         return False, str(e)
+
+
+def backfill():
+    """Backfill all the EMAIL_OPENED events."""
+    payloads = SmartleadWebhookPayloads.query.filter_by(
+        smartlead_webhook_type=SmartleadWebhookType.EMAIL_OPENED,
+        processing_status=SmartleadWebhookProcessingStatus.FAILED,
+    ).all()
+
+    from tqdm import tqdm
+
+    for payload in tqdm(payloads):
+        print(process_email_opened_webhook(payload_id=payload.id))
+    return True

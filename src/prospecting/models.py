@@ -522,6 +522,10 @@ class Prospect(db.Model):
     merge_opportunity_id = db.Column(db.String, nullable=True)
     merge_lead_id = db.Column(db.String, nullable=True)
 
+    smartlead_campaign_id = db.Column(db.Integer, nullable=True)
+
+    is_champion = db.Column(db.Boolean, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -598,6 +602,7 @@ class Prospect(db.Model):
             "merge_contact_id": self.merge_contact_id,
             "merge_opportunity_id": self.merge_opportunity_id,
             "merge_lead_id": self.merge_lead_id,
+            "is_champion": self.is_champion,
         }
 
     def to_dict(

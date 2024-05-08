@@ -255,14 +255,20 @@ def patch_event_trigger(client_sdr_id: int):
     return jsonify({"status": "success"})
 
 
-@MERGE_CRM_BLUEPRINT.route("/opportunity/create", methods=["POST"])
+@MERGE_CRM_BLUEPRINT.route("/upload/prospect", methods=["POST"])
 @require_user
-def create_opportunity(client_sdr_id: int):
+def post_upload_prospect(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True
     )
+    stage_id_override = (
+        get_request_parameter("stage_id_override", request, json=True, required=False)
+        or None
+    )
 
     success, msg = upload_prospect_to_crm(
-        client_sdr_id=client_sdr_id, prospect_id=prospect_id
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        stage_id_override=stage_id_override,
     )
     return jsonify({"success": success, "message": msg}), 200 if success else 400

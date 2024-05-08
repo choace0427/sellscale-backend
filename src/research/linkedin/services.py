@@ -89,8 +89,8 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
     p: Prospect = Prospect.query.get(prospect_id)
     rp: ResearchPayload = ResearchPayload.query.filter(
         ResearchPayload.prospect_id == prospect_id
-    ).first()
-    if rp and p.company_id:
+    ).order_by(ResearchPayload.created_at.desc()).first()
+    if rp and p.company_id and rp.created_at > (datetime.now() - timedelta(weeks=2)):
         return rp.payload
 
     personal_info = {}
@@ -132,7 +132,7 @@ def get_research_payload_new(prospect_id: int, test_mode: bool = False):
         )
     )
     if iscraper_company_cache and iscraper_company_cache.created_at > (
-        datetime.now() - timedelta(weeks=26)
+        datetime.now() - timedelta(weeks=10)
     ):
         company_info = json.loads(iscraper_company_cache.payload)
         add_company_cache_to_db(company_info)

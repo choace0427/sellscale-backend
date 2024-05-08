@@ -488,6 +488,13 @@ def run_check_and_remove_out_of_office_statuses():
         check_and_remove_out_of_office_statuses.delay()
 
 
+def run_rerun_stale_smartlead_webhooks():
+    from src.smartlead.webhooks.services import rerun_stale_smartlead_webhooks
+
+    if is_scheduling_instance():
+        rerun_stale_smartlead_webhooks.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -575,6 +582,7 @@ scheduler.add_job(
     trigger="interval",
     hours=1,
 )
+scheduler.add_job(func=run_rerun_stale_smartlead_webhooks, trigger="interval", hours=1)
 
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
