@@ -520,7 +520,7 @@ def populate_email_messaging_schedule_entries(
             client_archetype_id=prospect.archetype_id,
             bumped_count=followups_created,
             active=True,
-            # default=True,
+            overall_status=ProspectOverallStatus.BUMPED,
         ).all()
         if not bumped_sequence_steps:
             break
