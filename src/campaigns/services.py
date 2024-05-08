@@ -19,6 +19,7 @@ from model_import import (
     OutboundCampaignStatus,
     GeneratedMessageType,
     ClientArchetype,
+    Segment,
 )
 from sqlalchemy.sql.expression import func
 from src.editor.models import Editor, EditorTypes
@@ -1865,7 +1866,12 @@ def detect_campaign_multi_channel_dash_card():
 
 
 def create_campaign_ai_request(
-    sdr_id: int, name: str, description: str, linkedin: bool, email: bool
+    sdr_id: int,
+    name: str,
+    description: str,
+    linkedin: bool,
+    email: bool,
+    segmentId: int = None,
 ):
     from src.ai_requests.models import AIRequest
     from src.ai_requests.services import create_ai_requests
@@ -1880,10 +1886,18 @@ def create_campaign_ai_request(
 
     sdr: ClientSDR = ClientSDR.query.get(sdr_id)
 
+    segment_name = None
+    if segmentId:
+        segment: Segment = Segment.query.get(segmentId)
+        if segment:
+            segment_name = segment.segment_title
+
     create_ai_requests(
         client_sdr_id=sdr_id,
         description=f"""
         
+Segment: {segment_name}
+
 Title: {name}
 
 Description:

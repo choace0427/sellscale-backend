@@ -609,6 +609,9 @@ def post_create_campaign_ai_request(client_sdr_id: int):
     email = get_request_parameter(
         "email", request, json=True, required=True, parameter_type=bool
     )
+    segmentId = get_request_parameter(
+        "segmentId", request, json=True, required=False, parameter_type=int
+    )
 
     created = create_campaign_ai_request(
         sdr_id=client_sdr_id,
@@ -616,6 +619,7 @@ def post_create_campaign_ai_request(client_sdr_id: int):
         description=description,
         linkedin=linkedin,
         email=email,
+        segmentId=segmentId,
     )
 
     return (
