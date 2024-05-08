@@ -495,6 +495,13 @@ def run_rerun_stale_smartlead_webhooks():
         rerun_stale_smartlead_webhooks.delay()
 
 
+def run_retry_upload_prospect_to_campaign():
+    from src.smartlead.services import retry_upload_prospect_to_campaign
+
+    if is_scheduling_instance():
+        retry_upload_prospect_to_campaign.delay()
+
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -583,6 +590,9 @@ scheduler.add_job(
     hours=1,
 )
 scheduler.add_job(func=run_rerun_stale_smartlead_webhooks, trigger="interval", hours=1)
+scheduler.add_job(
+    func=run_retry_upload_prospect_to_campaign, trigger="interval", hours=1
+)
 
 # Daily triggers
 scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
