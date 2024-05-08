@@ -1266,6 +1266,26 @@ def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
     return True, 1
 
 
+@celery.task
+def retry_upload_prospect_to_campaign() -> tuple[bool, str]:
+    """Retries uploading prospects to Smartlead campaigns, for those that failed
+
+    Returns:
+        tuple[bool, str]: A tuple with the first value being True if successful, and the second being a message
+    """
+    # Get the ProspectInSmartlead entries that failed
+    logs: list[ProspectInSmartlead] = ProspectInSmartlead.query.filter(
+        ProspectInSmartlead.in_smartlead == None,
+    ).all()
+
+    from tqdm import tqdm
+
+    for log in tqdm(logs):
+        upload_prospect_to_campaign.delay(prospect_id=log.prospect_id)
+
+    return True, "Success"
+
+
 def generate_smart_email_response(
     client_sdr_id: int,
     prospect_id: int,
