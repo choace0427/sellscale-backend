@@ -728,6 +728,11 @@ def get_sdr(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr", methods=["PATCH"])
 @require_user
 def patch_sdr(client_sdr_id: int):
+
+    sdr_id = get_request_parameter(
+        "sdr_id", request, json=True, required=False, parameter_type=int
+    )
+
     name = get_request_parameter("name", request, json=True, required=False)
     title = get_request_parameter("title", request, json=True, required=False)
 
@@ -787,7 +792,7 @@ def patch_sdr(client_sdr_id: int):
     )
 
     success = update_client_sdr_details(
-        client_sdr_id=client_sdr_id,
+        client_sdr_id=sdr_id or client_sdr_id,
         name=name,
         title=title,
         email=email,
@@ -908,7 +913,12 @@ def create_sdr():
 @CLIENT_BLUEPRINT.route("/sdr/activate_seat", methods=["POST"])
 @require_user
 def post_activate_seat(client_sdr_id: int):
-    success = activate_client_sdr(client_sdr_id=client_sdr_id)
+
+    sdr_id = get_request_parameter(
+        "sdr_id", request, json=True, required=False, parameter_type=int
+    )
+
+    success = activate_client_sdr(client_sdr_id=sdr_id or client_sdr_id)
 
     if not success:
         return "Failed to activate seat", 404
@@ -918,9 +928,14 @@ def post_activate_seat(client_sdr_id: int):
 @CLIENT_BLUEPRINT.route("/sdr/deactivate_seat", methods=["POST"])
 @require_user
 def post_deactivate_seat(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    sdr_id = get_request_parameter(
+        "sdr_id", request, json=True, required=False, parameter_type=int
+    )
+
+    client_sdr: ClientSDR = ClientSDR.query.get(sdr_id or client_sdr_id)
     email = client_sdr.email
-    success = deactivate_client_sdr(client_sdr_id=client_sdr_id, email=email)
+    success = deactivate_client_sdr(client_sdr_id=client_sdr.id, email=email)
 
     if not success:
         return "Failed to deactivate seat", 404
