@@ -1127,7 +1127,11 @@ def sync_prospect_with_lead(
 
 
 @celery.task
-def upload_prospect_to_campaign(prospect_id: int) -> tuple[bool, int]:
+def upload_prospect_to_campaign(
+    prospect_id: int,
+) -> tuple[
+    bool, int
+]:  # PROTECTED FUNCTION NAME, REFERENCE CELERY RATE LIMITER IF CHANGES TO FUNCTION NAME ARE MADE
     """Uploads a single prospect to a Smartlead campaign using `sl.add_leads_to_campaign_by_id`
 
     ASSUMPTIONS:
@@ -1280,8 +1284,10 @@ def retry_upload_prospect_to_campaign() -> tuple[bool, str]:
 
     from tqdm import tqdm
 
-    for log in tqdm(logs):
-        upload_prospect_to_campaign.delay(prospect_id=log.prospect_id)
+    for index, log in enumerate(tqdm(logs)):
+        upload_prospect_to_campaign.apply_async(
+            kwargs={"prospect_id": log.prospect_id}, countdown=0.3 * index
+        )
 
     return True, "Success"
 
