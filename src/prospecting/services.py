@@ -94,6 +94,10 @@ import statistics
 import random
 
 from src.webhooks.services import handle_webhook
+from src.prospecting.prospect_email.services import (
+    remove_email_out_of_office_status,
+    check_and_remove_out_of_office_statuses,
+)
 
 
 def search_prospects(
@@ -2178,6 +2182,7 @@ def create_prospect_note(prospect_id: int, note: str) -> int:
 
     return prospect_note.id
 
+
 @celery.task
 def delete_prospect_by_id(prospect_id: int):
     from src.research.linkedin.services import reset_prospect_research_and_messages
@@ -2636,12 +2641,8 @@ def send_to_purgatory(
         return
 
     if (
-        (
-            prospect.hidden_until is None
-            or 
-            new_hidden_until > prospect.hidden_until)
-        and prospect.overall_status == ProspectOverallStatus.ACTIVE_CONVO
-    ):
+        prospect.hidden_until is None or new_hidden_until > prospect.hidden_until
+    ) and prospect.overall_status == ProspectOverallStatus.ACTIVE_CONVO:
         prospect.hidden_until = new_hidden_until
         prospect.hidden_reason = reason
         db.session.add(prospect)

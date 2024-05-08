@@ -8,6 +8,7 @@ from src.prospecting.services import update_prospect_status_email
 from src.smartlead.smartlead import Smartlead
 
 
+@celery.task
 def check_and_remove_out_of_office_statuses() -> bool:
     """Checks all prospects for OOO statuses and removes them if necessary
 
