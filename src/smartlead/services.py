@@ -1286,7 +1286,7 @@ def retry_upload_prospect_to_campaign() -> tuple[bool, str]:
 
     for index, log in enumerate(tqdm(logs)):
         upload_prospect_to_campaign.apply_async(
-            kwargs={"prospect_id": log.prospect_id}, countdown=0.3 * index
+            kwargs={"prospect_id": log.prospect_id}, countdown=int(0.3 * index)
         )
 
     return True, "Success"
