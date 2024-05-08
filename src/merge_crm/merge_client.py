@@ -1,7 +1,7 @@
 from typing import Optional
 
 import requests
-from app import db
+from app import db, celery
 import datetime
 import os
 from merge.client import Merge
@@ -22,17 +22,25 @@ from merge.resources.crm import (
     OpportunityRequest,
     PatchedOpportunityRequest,
     NoteRequest,
+    NoteResponse,
+    Note,
     AccountDetailsAndActions,
     AccountDetailsAndActionsIntegration,
     ModelOperation,
     LeadRequest,
     LeadResponse,
     PaginatedLeadList,
+    Engagement,
+    EngagementType,
+    EngagementResponse,
+    EngagementRequest,
 )
 
 from model_import import ClientSDR, Prospect, Client, Company, ProspectOverallStatus
 
+from src.client.models import ClientArchetype
 from src.merge_crm.models import ClientSyncCRM
+from src.prospecting.services import get_prospect_overall_history
 
 
 class MergeIntegrator:
@@ -245,6 +253,22 @@ class MergeClient:
             list[Stage]: List of Stages
         """
         return self.client.crm.stages.list().results
+
+    def get_crm_engagements(self) -> list[Engagement]:
+        """Get the list of Engagements in the CRM
+
+        Returns:
+            list[Engagement]: List of Engagements
+        """
+        return self.client.crm.engagements.list().results
+
+    def get_crm_engagement_types(self) -> list[EngagementType]:
+        """Get the list of Engagement types in the CRM
+
+        Returns:
+            list[str]: List of Engagement types
+        """
+        return self.client.crm.engagement_types.list().results
 
     def get_crm_supported_model_operations(
         self,
@@ -663,6 +687,9 @@ class MergeClient:
             db.session.add(p)
             db.session.commit()
 
+            # Create Note
+            self.create_note.delay(prospect_id)
+
             return opportunity.id, "Opportunity created."
         except Exception as e:
             return None, str(e)
@@ -775,33 +802,83 @@ class MergeClient:
             return None, "Failed to create lead."
 
     ###############################
+    #     ENGAGEMENT METHODS      #
+    ###############################
+
+    # WE ARE CHOOSING TO NOT USE ENGAGEMENTS AT THE MOMENT AS IT IS STILL IN BETA
+    @is_allowable(model_name="Engagement")
+    def create_engagement(self) -> tuple[Optional[str], str]:
+        pass
+
+    ###############################
     #         NOTE METHODS        #
     ###############################
 
+    @celery.task
     @is_allowable(model_name="Note")
-    def create_note(
-        self,
-        prospect_id,
-        note,
-        create_on_contact: bool = False,
-        create_on_account: bool = False,
-        create_on_opportunity: bool = False,
-    ):
-        prospect: Prospect = Prospect.query.get(prospect_id)
-        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+    def create_note(self, prospect_id: int):
+        """Create Note in the client's CRM
 
-        owner_id = client_sdr.merge_user_id
+        Args:
+            prospect_id (int): Prospect ID
 
-        note = self.client.crm.notes.create(
-            model=NoteRequest(
-                content=note,
-                owner=owner_id,
-                contact=prospect.merge_contact_id if create_on_contact else None,
-                account=prospect.merge_account_id if create_on_account else None,
-                opportunity=(
-                    prospect.merge_opportunity_id if create_on_opportunity else None
-                ),
+        Returns:
+            tuple[Optional[str], str]: Note ID and message
+        """
+        p: Prospect = Prospect.query.get(prospect_id)
+
+        client_sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
+        archetype: ClientArchetype = ClientArchetype.query.get(p.archetype_id)
+        merge_user_id = client_sdr.merge_user_id
+
+        # Check for existing Note
+        if p.merge_note_id:
+            note = self.client.crm.notes.retrieve(id=p.merge_note_id)
+            if note:
+                return note.id, "Note already exists."
+            else:
+                p.merge_note_id = None
+                db.session.add(p)
+                db.session.commit()
+
+        # Get the base content
+        content = f"""<strong>[SellScale] Activity Breakdown for {p.full_name}</strong><br/><br/><strong>Campaign:</strong> {archetype.archetype}<br/><strong>Title:</strong> {p.colloquialized_title}<br/><strong>ICP Fit Reason:</strong> {p.icp_fit_reason}<br/><strong>Bio:</strong> {p.linkedin_bio}<br/><br/><strong>=== TIMELINE ===</strong><br/>"""
+
+        # Add the prospect's overall history to the content
+        overall_history = get_prospect_overall_history(p.id)
+        subject_line_used = False
+        for event in overall_history:
+            author = event.get("author")
+            message = event.get("message")
+            subject = event.get("subject")
+            email_body = event.get("email_body")
+            date = event.get("date")
+            formatted_date = date.strftime("%Y-%m-%d")
+            if event.get("type") == "EMAIL":
+                subject = f"Subject: {subject}</br>" if not subject_line_used else ""
+                subject_line_used = True
+                content += f"<br/>{formatted_date} - <strong>{author} (Email)</strong><br/>{subject}{email_body}<br/>"
+            elif event.get("type") == "LINKEDIN":
+                content += f"<br/>{formatted_date} - <strong>{author} (LinkedIn)</strong><br/>{message}<br/>"
+            elif event.get("type") == "STATUS_CHANGE":
+                content += (
+                    f"<br/>{author} {formatted_date} - <strong>{message}</strong><br/>"
+                )
+
+        try:
+            note_res: NoteResponse = self.client.crm.notes.create(
+                model=NoteRequest(
+                    content=content,
+                    owner=merge_user_id,
+                    contact=p.merge_contact_id,
+                    account=p.merge_account_id,
+                    opportunity=p.merge_opportunity_id,
+                )
             )
-        )
+            note: Note = note_res.model
+            p.merge_note_id = note.id
+            db.session.commit()
 
-        return note
+            return note, "Note created."
+        except Exception as e:
+            return None, str(e)

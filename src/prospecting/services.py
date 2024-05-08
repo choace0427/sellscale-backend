@@ -1601,7 +1601,7 @@ def add_prospect(
     segment_id: Optional[int] = None,
     prospect_location: Optional[str] = None,
     company_location: Optional[str] = None,
-) -> int or None:
+) -> Union[int, None]:
     """Adds a Prospect to the database.
 
     Args:
@@ -1863,7 +1863,7 @@ def create_prospect_from_linkedin_link(
     allow_duplicates: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
-) -> tuple[bool, int or str]:
+) -> tuple[bool, Union[int, str]]:
     from src.research.linkedin.services import research_personal_profile_details
 
     # Add an activity log
@@ -2937,6 +2937,113 @@ def get_prospect_email_history(prospect_id: int):
             for s in email_status_history
         ],
     }
+
+
+def get_prospect_overall_history(prospect_id: int) -> list[dict]:
+    """Gets the overall history by combining histories of other channels, sorted by date.
+
+    Args:
+        prospect_id (int): ID of the Prospect
+
+    Returns:
+        dict: A dictionary containing the combined history of the Prospect.
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+
+    # Get the histories
+    li_history = get_prospect_li_history(prospect_id=prospect_id)
+    email_history = get_prospect_email_history(prospect_id=prospect_id)
+
+    overall_history = []
+
+    # Process the LI history
+    if li_history:
+        if li_history.get("intro_msg"):
+            date = li_history.get("intro_msg", {}).get("date")
+            message = li_history.get("intro_msg", {}).get("message")
+            overall_history.append(
+                {
+                    "type": "LINKEDIN",
+                    "date": date,
+                    "message": message,
+                    "author": sdr.name,
+                }
+            )
+        if li_history.get("convo"):
+            messages = li_history.get("convo")
+            overall_history.extend(
+                [
+                    {
+                        "type": "LINKEDIN",
+                        "date": message["date"],
+                        "message": message["message"],
+                        "author": (
+                            sdr.name
+                            if message["author"] == "You"
+                            else prospect.full_name
+                        ),
+                    }
+                    for message in messages
+                ]
+            )
+        if li_history.get("statuses"):
+            statuses = li_history.get("statuses")
+            overall_history.extend(
+                [
+                    {
+                        "type": "STATUS_CHANGE",
+                        "date": status["date"],
+                        "message": f"Status changed from {status['from']} to {status['to']}",
+                        "author": "",
+                    }
+                    for status in statuses
+                ]
+            )
+
+    # Process the email history
+    if email_history:
+        if email_history.get("emails"):
+            emails = email_history.get("emails")
+            overall_history.extend(
+                [
+                    {
+                        "type": "EMAIL",
+                        "date": email["date"],
+                        "email_body": email["email_body"],
+                        "subject": email.get("subject"),
+                        "author": sdr.name if email["from_sdr"] else prospect.full_name,
+                    }
+                    for email in emails
+                ]
+            )
+        if email_history.get("email_statuses"):
+            statuses = email_history.get("email_statuses")
+            overall_history.extend(
+                [
+                    {
+                        "type": "STATUS_CHANGE",
+                        "date": status["date"],
+                        "message": f"Status changed from {status['from']} to {status['to']}",
+                        "author": "",
+                    }
+                    for status in statuses
+                ]
+            )
+
+    # For items that have a date, ensure that they're all datetime objects, if not, convert
+    for item in overall_history:
+        if not isinstance(item["date"], datetime):
+            try:
+                item["date"] = datetime.fromisoformat(item["date"])
+            except ValueError:
+                nonz = item["date"][:-1]
+                item["date"] = datetime.fromisoformat(nonz)
+
+    # Sort the overall_history based on the date
+    overall_history = sorted(overall_history, key=lambda x: x["date"])
+
+    return overall_history
 
 
 def send_li_outreach_connection(
