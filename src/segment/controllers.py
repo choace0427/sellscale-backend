@@ -28,7 +28,12 @@ from src.segment.services import (
     wipe_and_delete_segment,
     wipe_segment_ids_from_prospects_in_segment,
     get_unused_segments_for_sdr,
-    scrape_all_enabled_segments
+    scrape_all_enabled_segments,
+    delete_tag_from_all_segments,
+    remove_tag_from_segment,
+    attach_tag_to_segment,
+    get_segment_tags_for_sdr,
+    create_and_add_tag_to_segment
 )
 from src.segment.services_auto_segment import run_auto_segment
 from src.utils.request_helpers import get_request_parameter
@@ -84,7 +89,10 @@ def get_segments(client_sdr_id: int):
     include_all_in_client: bool = get_request_parameter(
         "include_all_in_client", request, json=False, required=False
     )
-    segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client)
+    tag_filter: bool = get_request_parameter(
+        "tag_filter", request, json=False, required=False
+    )
+    segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client, tag_filter=tag_filter)
 
     return {"segments": segments}, 200
 
@@ -544,3 +552,59 @@ def post_set_current_scrape_page(client_sdr_id: int):
         return msg, 200
 
     return msg, 400
+
+@SEGMENT_BLUEPRINT.route("/tags/create", methods=["POST"])
+@require_user
+def create_segment_tag_endpoint(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    name = get_request_parameter("name", request, json=True, required=True)
+    color = get_request_parameter("color", request, json=True, required=True)
+
+    success, tag = create_and_add_tag_to_segment(segment_id, client_sdr_id, name, color)
+    if success:
+        return jsonify(tag.to_dict()), 201
+    else:
+        return jsonify({"error": "Failed to create or add tag"}), 400
+
+@SEGMENT_BLUEPRINT.route("/tags/add", methods=["POST"])
+@require_user
+def add_tag_to_segment(client_sdr_id: int):
+    tag_id = get_request_parameter("tag_id", request, json=True, required=True)
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+
+    result, message = attach_tag_to_segment(segment_id, client_sdr_id, tag_id)
+    if result:
+        return jsonify({"message": message}), 200
+    else:
+        return jsonify({"error": message}), 400
+
+@SEGMENT_BLUEPRINT.route("/tags/<int:tag_id>", methods=['DELETE'])
+@require_user
+def delete_tag_from_segment(client_sdr_id: int, tag_id: int):
+    print('params are', client_sdr_id, tag_id)
+    success, message = delete_tag_from_all_segments(client_sdr_id, tag_id)
+    if success:
+        return jsonify({"message": message}), 200
+    else:
+        return jsonify({"error": message}), 400
+
+
+@SEGMENT_BLUEPRINT.route("/tags/remove", methods=["POST"])
+@require_user
+def remove_tag_from_segment_endpoint(client_sdr_id: int):
+    tag_id = get_request_parameter("tag_id", request, json=True, required=True)
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    success, message = remove_tag_from_segment(segment_id, tag_id)
+    if success:
+        return "Tag removed from segment", 200
+    else:
+        return message, 400
+@SEGMENT_BLUEPRINT.route("/tags", methods=["GET"])
+@require_user
+def get_segment_tags(client_sdr_id: int):
+    success, tags = get_segment_tags_for_sdr(client_sdr_id)
+    if success:
+        return jsonify([tag.to_dict() for tag in tags]), 200
+    else:
+        return jsonify([]), 400
+

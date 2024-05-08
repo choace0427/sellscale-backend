@@ -1,6 +1,7 @@
 import yaml
 from typing import Optional
 from sqlalchemy import or_, and_
+from sqlalchemy.exc import SQLAlchemyError
 
 from regex import E
 from app import db, celery
@@ -12,6 +13,7 @@ from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.prospecting.icp_score.services import update_icp_filters
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectUploadHistory
 from src.segment.models import Segment
+from src.segment.models import SegmentTags
 from sqlalchemy import case
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -44,7 +46,7 @@ def create_new_segment(
     return new_segment
 
 
-def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False) -> list[dict]:
+def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False, tag_filter: int = None) -> list[dict]:
     client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     client_id: int = client_sdr.client_id
     client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
@@ -80,6 +82,14 @@ def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False) -> li
                 segment_dict["num_prospected"] = row[1]
                 segment_dict["num_contacted"] = row[2]
                 segment_dict["unique_companies"] = row[3]
+        attached_segment_tag_ids = Segment.query.get(segment_id).attached_segment_tag_ids
+        # attached_segment_tag_ids is a list of tag ids or null
+        segment_tags = SegmentTags.query.filter(SegmentTags.id.in_(attached_segment_tag_ids)).all() if attached_segment_tag_ids else []
+        segment_dict["attached_segments"] = [tag.to_dict() for tag in segment_tags]
+
+    # Filter segments by tag if tag_filter is not -1
+    if tag_filter != 'undefined':
+        retval = [segment for segment in retval if any(tag['id'] == int(tag_filter) for tag in segment['attached_segments'])]
 
     # order by segment ID reverse order
     retval = sorted(retval, key=lambda x: x["id"], reverse=True)
@@ -1033,3 +1043,122 @@ def scrape_all_enabled_segments():
         # run_n_scrapes_for_segment.delay(client_sdr_id, segment.id, 1)
 
     return True, "Scrapes initiated for all enabled segments"
+
+def create_and_add_tag_to_segment(segment_id: int, client_id: int, name: str, color: str) -> tuple[bool, Segment]:
+    new_tag = SegmentTags(client_id=client_id, name=name, color=color)
+    db.session.add(new_tag)
+    db.session.flush()  # Ensure new_tag.id is available immediately after addition
+    segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, None
+    if segment.attached_segment_tag_ids is None:
+        segment.attached_segment_tag_ids = []
+    print(f"Before adding: {segment.attached_segment_tag_ids}")
+    if new_tag.id not in segment.attached_segment_tag_ids:
+        segment.attached_segment_tag_ids.append(new_tag.id)
+        flag_modified(segment, 'attached_segment_tag_ids')  # Explicitly mark as modified
+        db.session.add(segment)
+        try:
+            db.session.commit()
+            print(f"After adding: {segment.attached_segment_tag_ids}")
+            return True, new_tag
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return False, f"Failed to add tag to segment: {str(e)}"
+    else:
+        return False, None
+    
+def delete_tag_from_all_segments(client_id: int, tag_id: int) -> tuple[bool, str]:
+    # First, find and delete the tag from the SegmentTags table
+    tag = SegmentTags.query.get(tag_id)
+    if not tag or tag.client_id != client_id:
+        return False, "Tag not found or does not belong to client"
+
+    try:
+        # Remove the tag from all segments where it is attached
+        segments = Segment.query.filter(Segment.attached_segment_tag_ids.any(tag_id)).all()
+        for segment in segments:
+            if tag_id in segment.attached_segment_tag_ids:
+                segment.attached_segment_tag_ids.remove(tag_id)
+                flag_modified(segment, 'attached_segment_tag_ids')  # Mark the list as modified
+                db.session.add(segment)
+
+        # Delete the tag from the SegmentTags table
+        db.session.delete(tag)
+        db.session.commit()
+        return True, "Tag deleted from all segments and SegmentTags table"
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return False, f"Failed to delete tag: {str(e)}"
+
+def attach_tag_to_segment(segment_id: int, client_id: int, tag_id: int) -> tuple[bool, str]:
+    print('got params', segment_id, client_id, tag_id)
+    if not segment_id:
+        raise ValueError("Invalid request. Required parameter `segment_id` missing.")
+
+    segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+
+    tag = SegmentTags.query.get(tag_id)
+    if not tag or tag.client_id != client_id:
+        return False, "Tag not found or does not belong to client"
+
+    if segment.attached_segment_tag_ids is None:
+        segment.attached_segment_tag_ids = []
+
+    print(f"Before adding: {segment.attached_segment_tag_ids}")
+    if tag_id not in segment.attached_segment_tag_ids:
+        segment.attached_segment_tag_ids.append(tag_id)
+        flag_modified(segment, 'attached_segment_tag_ids')  # Explicitly mark as modified
+        db.session.add(segment)
+        try:
+            db.session.commit()
+            print(f"After adding: {segment.attached_segment_tag_ids}")
+            return True, "Tag added to segment successfully"
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return False, f"Failed to add tag to segment: {str(e)}"
+    else:
+        return False, "Tag already attached to segment"
+
+def remove_tag_from_segment(segment_id: int, tag_id: int) -> tuple[bool, str]:
+    segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+
+    if tag_id in segment.attached_segment_tag_ids:
+        segment.attached_segment_tag_ids.remove(tag_id)
+        flag_modified(segment, 'attached_segment_tag_ids')  # Explicitly mark as modified
+        db.session.add(segment)
+        
+        try:
+            db.session.commit()
+            return True, "Tag removed from segment"
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return False, f"Failed to remove tag from segment: {str(e)}"
+    else:
+        return False, "Tag not attached to segment"
+    
+def get_segment_tags_for_sdr(client_sdr_id: int) -> tuple[bool, list[SegmentTags]]:
+    tags = SegmentTags.query.filter_by(client_id=client_sdr_id).all()
+    if not tags:
+        return False, "No tags found for SDR"
+    return True, tags
+
+# Update tags for a segment
+def update_segment_tags(segment_id: int, new_tag_ids: list[int]) -> tuple[bool, str]:
+    segment = Segment.query.get(segment_id)
+    if not segment:
+        return False, "Segment not found"
+
+    # Validate all new tag IDs
+    valid_tags = SegmentTags.query.filter(SegmentTags.id.in_(new_tag_ids)).all()
+    if len(valid_tags) != len(new_tag_ids):
+        return False, "One or more tags are invalid"
+
+    segment.attached_segment_tag_ids = new_tag_ids
+    db.session.add(segment)
+    db.session.commit()
+    return True, "Segment tags updated successfully"
