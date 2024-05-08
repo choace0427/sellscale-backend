@@ -94,10 +94,6 @@ import statistics
 import random
 
 from src.webhooks.services import handle_webhook
-from src.prospecting.prospect_email.services import (
-    remove_email_out_of_office_status,
-    check_and_remove_out_of_office_statuses,
-)
 
 
 def search_prospects(
