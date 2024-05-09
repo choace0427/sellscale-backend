@@ -1044,7 +1044,11 @@ def scrape_all_enabled_segments():
 
     return True, "Scrapes initiated for all enabled segments"
 
-def create_and_add_tag_to_segment(segment_id: int, client_id: int, name: str, color: str) -> tuple[bool, Segment]:
+def create_and_add_tag_to_segment(segment_id: int, client_sdr_id: int, name: str, color: str) -> tuple[bool, Segment]:
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False, "Client SDR not found"
+    client_id = client_sdr.client_id
     new_tag = SegmentTags(client_id=client_id, name=name, color=color)
     db.session.add(new_tag)
     db.session.flush()  # Ensure new_tag.id is available immediately after addition
@@ -1068,8 +1072,12 @@ def create_and_add_tag_to_segment(segment_id: int, client_id: int, name: str, co
     else:
         return False, None
     
-def delete_tag_from_all_segments(client_id: int, tag_id: int) -> tuple[bool, str]:
+def delete_tag_from_all_segments(client_sdr_id: int, tag_id: int) -> tuple[bool, str]:
     # First, find and delete the tag from the SegmentTags table
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False, "Client SDR not found"
+    client_id = client_sdr.client_id
     tag = SegmentTags.query.get(tag_id)
     if not tag or tag.client_id != client_id:
         return False, "Tag not found or does not belong to client"
@@ -1091,7 +1099,11 @@ def delete_tag_from_all_segments(client_id: int, tag_id: int) -> tuple[bool, str
         db.session.rollback()
         return False, f"Failed to delete tag: {str(e)}"
 
-def attach_tag_to_segment(segment_id: int, client_id: int, tag_id: int) -> tuple[bool, str]:
+def attach_tag_to_segment(segment_id: int, client_sdr_id: int, tag_id: int) -> tuple[bool, str]:
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False, "Client SDR not found"
+    client_id = client_sdr.client_id
     print('got params', segment_id, client_id, tag_id)
     if not segment_id:
         raise ValueError("Invalid request. Required parameter `segment_id` missing.")
@@ -1142,7 +1154,11 @@ def remove_tag_from_segment(segment_id: int, tag_id: int) -> tuple[bool, str]:
         return False, "Tag not attached to segment"
     
 def get_segment_tags_for_sdr(client_sdr_id: int) -> tuple[bool, list[SegmentTags]]:
-    tags = SegmentTags.query.filter_by(client_id=client_sdr_id).all()
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False, "Client SDR not found"
+    client_id = client_sdr.client_id
+    tags = SegmentTags.query.filter_by(client_id=client_id).all()
     if not tags:
         return False, "No tags found for SDR"
     return True, tags

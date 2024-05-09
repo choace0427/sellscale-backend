@@ -606,5 +606,5 @@ def get_segment_tags(client_sdr_id: int):
     if success:
         return jsonify([tag.to_dict() for tag in tags]), 200
     else:
-        return jsonify([]), 400
+        return jsonify([]), 200
 
