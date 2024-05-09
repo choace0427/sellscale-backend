@@ -184,12 +184,15 @@ def get_archetype_activity(client_sdr_id: int) -> list[dict]:
                         AND prospect_email_status_records.created_at > now() - '{interval}'::interval
                     )
             ) "messages_sent",
-            count(DISTINCT linkedin_conversation_entry.id) FILTER (
+            count(DISTINCT prospect.id) FILTER (
                 WHERE
                     (
                         linkedin_conversation_entry.date > now() - '{interval}'::interval
                         AND linkedin_conversation_entry.ai_generated
                         AND prospect.overall_status IN ('ACCEPTED', 'BUMPED')
+                    ) OR (
+                    	prospect_email_status_records.created_at > now() - '{interval}'::interval
+                        AND prospect_email_status_records.to_status = 'EMAIL_OPENED'
                     )
             ) "bumps_sent",
             count(DISTINCT linkedin_conversation_entry.id) FILTER (
