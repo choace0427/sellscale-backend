@@ -688,7 +688,10 @@ class MergeClient:
             db.session.commit()
 
             # Create Note
-            self.create_note.delay(prospect_id)
+            try:
+                self.create_note.delay(prospect_id)
+            except:
+                pass
 
             return opportunity.id, "Opportunity created."
         except Exception as e:
@@ -814,8 +817,8 @@ class MergeClient:
     #         NOTE METHODS        #
     ###############################
 
-    @celery.task
     @is_allowable(model_name="Note")
+    @celery.task
     def create_note(self, prospect_id: int):
         """Create Note in the client's CRM
 
@@ -866,14 +869,20 @@ class MergeClient:
                 )
 
         try:
+            # Assemble the kwargs, because not all IDs may be present
+            kwargs = {
+                "content": content,
+                "owner": merge_user_id,
+            }
+            if p.merge_contact_id:
+                kwargs.update({"contact": p.merge_contact_id})
+            if p.merge_account_id:
+                kwargs.update({"account": p.merge_account_id})
+            if p.merge_opportunity_id:
+                kwargs.update({"opportunity": p.merge_opportunity_id})
+
             note_res: NoteResponse = self.client.crm.notes.create(
-                model=NoteRequest(
-                    content=content,
-                    owner=merge_user_id,
-                    contact=p.merge_contact_id,
-                    account=p.merge_account_id,
-                    opportunity=p.merge_opportunity_id,
-                )
+                model=NoteRequest(**kwargs)
             )
             note: Note = note_res.model
             p.merge_note_id = note.id
