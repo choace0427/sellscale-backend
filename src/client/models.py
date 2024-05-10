@@ -202,8 +202,8 @@ class ClientArchetype(db.Model):
     sent_activation_notification = db.Column(db.Boolean, nullable=True, default=False)
 
     smartlead_campaign_id = db.Column(db.Integer, nullable=True)
-    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
-    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
+    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
 
     meta_data = db.Column(db.JSON, nullable=True)
 
@@ -439,8 +439,8 @@ class ClientSDR(db.Model):
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
     # Email
-    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
-    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
+    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
 
     # Slack Bot
     slack_user_id = db.Column(db.String, nullable=True)
