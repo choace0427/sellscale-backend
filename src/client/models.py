@@ -224,7 +224,7 @@ class ClientArchetype(db.Model):
             "active": self.active,
             "linkedin_active": self.linkedin_active,
             "email_active": self.email_active,
-            "email_to_linkedin_connection": self.email_to_linkedin_connection.value,
+            "email_to_linkedin_connection": self.email_to_linkedin_connection.value if self.email_to_linkedin_connection else None,
             "transformer_blocklist": (
                 [t for t in self.transformer_blocklist]
                 if self.transformer_blocklist

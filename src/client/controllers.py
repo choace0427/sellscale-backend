@@ -507,7 +507,6 @@ def patch_update_email_to_linkedin_connection(client_sdr_id: int, archetype_id: 
 
 
     return jsonify({"message": "Success"}), 200
-
 # toggle template mode active for archetype
 @CLIENT_BLUEPRINT.route(
     "/archetype/<int:archetype_id>/toggle_template_mode", methods=["PATCH"]
