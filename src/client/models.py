@@ -132,8 +132,11 @@ class Client(db.Model):
             "slack_bot_connected": slack_bot_connected,
             "slack_bot_connecting_user_name": slack_bot_connecting_user_name,
         }
-
-
+class EmailToLinkedInConnection(enum.Enum):
+    RANDOM = "RANDOM"
+    ALL_PROSPECTS = "ALL_PROSPECTS"
+    OPENED_EMAIL_PROSPECTS_ONLY = "OPENED_EMAIL_PROSPECTS_ONLY"
+    CLICKED_LINK_PROSPECTS_ONLY = "CLICKED_LINK_PROSPECTS_ONLY"
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
 
@@ -148,6 +151,12 @@ class ClientArchetype(db.Model):
     active = db.Column(db.Boolean, nullable=True, default=True)
     linkedin_active = db.Column(db.Boolean, nullable=True, default=False)
     email_active = db.Column(db.Boolean, nullable=True, default=False)
+
+    view_linkedin = db.Column(db.Boolean, nullable=True, default=True)
+    view_email = db.Column(db.Boolean, nullable=True, default=True)
+    email_to_linkedin_connection = db.Column(
+        sa.Enum(EmailToLinkedInConnection, create_constraint=False), nullable=True
+    )
 
     transformer_blocklist = db.Column(
         db.ARRAY(db.String),
