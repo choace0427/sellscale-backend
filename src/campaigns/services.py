@@ -694,47 +694,48 @@ def smart_get_prospects_for_campaign(
         top_intent_prospects + top_healthscore_prospects + random_prospects
     )
 
-    # Filter Based on Omni Rules
-    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
-    email_opened_prospects_query = """
-    select 
-        array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "prospects_sent_outreach",
-        array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "prospects_email_opened",
-        array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACCEPTED') "prospects_clicked"
-    from prospect
-        left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
-        left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-    where archetype_id = {client_archetype_id}
-        and prospect.overall_status in ('SENT_OUTREACH', 'PROSPECTED', 'BUMPED', 'ACCEPTED');
-    """
-    email_opened_prospects = db.session.execute(
-        email_opened_prospects_query.format(client_archetype_id=client_archetype_id)
-    ).fetchone()
-    if client_archetype.email_to_linkedin_connection is None or client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.RANDOM:
-        # do nothing
-        pass
-    elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.ALL_PROSPECTS:
-        # Filter prospect ids for prospects that have been sent outreach
-        if email_opened_prospects["prospects_sent_outreach"] is not None:
-            prospect_ids = list(
-                set(prospect_ids).intersection(
-                    email_opened_prospects["prospects_sent_outreach"]
+    # Filter Based on Omni Rules for Linkedin
+    if campaign_type == GeneratedMessageType.LINKEDIN:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+        email_opened_prospects_query = """
+        select 
+            array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "prospects_sent_outreach",
+            array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "prospects_email_opened",
+            array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACCEPTED') "prospects_clicked"
+        from prospect
+            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        where archetype_id = {client_archetype_id}
+            and prospect.overall_status in ('SENT_OUTREACH', 'PROSPECTED', 'BUMPED', 'ACCEPTED');
+        """
+        email_opened_prospects = db.session.execute(
+            email_opened_prospects_query.format(client_archetype_id=client_archetype_id)
+        ).fetchone()
+        if client_archetype.email_to_linkedin_connection is None or client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.RANDOM:
+            # do nothing
+            pass
+        elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.ALL_PROSPECTS:
+            # Filter prospect ids for prospects that have been sent outreach
+            if email_opened_prospects["prospects_sent_outreach"] is not None:
+                prospect_ids = list(
+                    set(prospect_ids).intersection(
+                        email_opened_prospects["prospects_sent_outreach"]
+                    )
                 )
-            )
-    elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.OPENED_EMAIL_PROSPECTS_ONLY:
-        # Filter prospect ids for prospects that have opened emails
-        if email_opened_prospects["prospects_email_opened"] is not None:
-            prospect_ids = list(
-                set(prospect_ids).intersection(
-                    email_opened_prospects["prospects_email_opened"]
+        elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.OPENED_EMAIL_PROSPECTS_ONLY:
+            # Filter prospect ids for prospects that have opened emails
+            if email_opened_prospects["prospects_email_opened"] is not None:
+                prospect_ids = list(
+                    set(prospect_ids).intersection(
+                        email_opened_prospects["prospects_email_opened"]
+                    )
                 )
-            )
-    elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.CLICKED_LINK_PROSPECTS_ONLY:
-        # Filter prospect ids for prospects that have clicked emails
-        if email_opened_prospects["prospects_clicked"] is not None:
-            prospect_ids = list(
-                set(prospect_ids).intersection(email_opened_prospects["prospects_clicked"])
-            )
+        elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.CLICKED_LINK_PROSPECTS_ONLY:
+            # Filter prospect ids for prospects that have clicked emails
+            if email_opened_prospects["prospects_clicked"] is not None:
+                prospect_ids = list(
+                    set(prospect_ids).intersection(email_opened_prospects["prospects_clicked"])
+                )
 
     return prospect_ids
 
