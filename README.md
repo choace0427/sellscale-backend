@@ -71,9 +71,9 @@ If setting up from a fresh machine, make sure you have the following installed b
 
 - Python3 <= 3.11 (For OSX `xcode-select --install`)
 - Pip (For OSX `xcode-select --install`)
-- [Postgres](https://www.postgresql.org/)
 - [Brew](https://brew.sh/)
-
+- [Postgres](https://www.postgresql.org/) (For OSX `brew install postgresql@14`)
+  
 The following steps assume that you have the above prerequisites installed - any necessary installations should be added to the list above.
 
 1.  Install `virtualenv` globally and use it to create your Python3 virtual environment. Make sure to run `virtualenv` in your working directory.
