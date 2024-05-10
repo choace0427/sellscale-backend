@@ -34,6 +34,7 @@ from src.client.services import (
 from src.client.services_client_archetype import (
     auto_turn_off_finished_archetypes,
     fetch_all_assets_in_client,
+    get_email_to_linkedin_connection_amounts,
     set_email_to_linkedin_connection,
 )
 from src.personas.services_persona import link_asset_to_persona
@@ -504,9 +505,16 @@ def patch_update_email_to_linkedin_connection(client_sdr_id: int, archetype_id: 
     set_email_to_linkedin_connection(
         client_sdr_id=client_sdr_id, client_archetype_id=archetype_id, connection_type=email_to_linkedin_connection
     )
-
-
     return jsonify({"message": "Success"}), 200
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/email_to_linkedin_connection_amounts", methods=["GET"])
+@require_user
+def email_to_linkedin_connection_amounts(client_sdr_id: int, archetype_id: int):
+    email_to_linkedin_connection_amounts = get_email_to_linkedin_connection_amounts(
+        client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
+    )
+    return jsonify({"message": "Success", "data": email_to_linkedin_connection_amounts}), 200
+
 # toggle template mode active for archetype
 @CLIENT_BLUEPRINT.route(
     "/archetype/<int:archetype_id>/toggle_template_mode", methods=["PATCH"]

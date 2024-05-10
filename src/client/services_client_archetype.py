@@ -1322,3 +1322,36 @@ def set_email_to_linkedin_connection(
     db.session.commit()
 
     return True
+
+def get_email_to_linkedin_connection_amounts(
+    client_sdr_id: int,
+    client_archetype_id: int,
+):
+    """
+    Get the amount of email to linkedin connections for a given archetype
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        return False
+    if client_archetype.client_sdr_id != client_sdr_id:
+        return False
+
+    query= """
+        select 
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "prospects_sent_outreach",
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "prospects_email_opened",
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACCEPTED') "prospects_clicked"
+        from prospect
+            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        where archetype_id = {client_archetype_id}
+            and prospect.overall_status in ('SENT_OUTREACH', 'PROSPECTED', 'BUMPED', 'ACCEPTED');
+    """.format(client_archetype_id=client_archetype_id)
+
+    data = db.session.execute(query).fetchone()
+
+    return {
+        "prospects_sent_outreach": data[0],
+        "prospects_email_opened": data[1],
+        "prospects_clicked": data[2],
+    }
