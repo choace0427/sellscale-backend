@@ -152,8 +152,6 @@ class ClientArchetype(db.Model):
     linkedin_active = db.Column(db.Boolean, nullable=True, default=False)
     email_active = db.Column(db.Boolean, nullable=True, default=False)
 
-    view_linkedin = db.Column(db.Boolean, nullable=True, default=True)
-    view_email = db.Column(db.Boolean, nullable=True, default=True)
     email_to_linkedin_connection = db.Column(
         sa.Enum(EmailToLinkedInConnection, create_constraint=False), nullable=True
     )
@@ -226,6 +224,7 @@ class ClientArchetype(db.Model):
             "active": self.active,
             "linkedin_active": self.linkedin_active,
             "email_active": self.email_active,
+            "email_to_linkedin_connection": self.email_to_linkedin_connection.value,
             "transformer_blocklist": (
                 [t for t in self.transformer_blocklist]
                 if self.transformer_blocklist
