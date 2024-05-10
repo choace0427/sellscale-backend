@@ -5,7 +5,7 @@ from sqlalchemy import update
 from app import db, celery
 from model_import import ClientArchetype
 from typing import Union, Optional
-from src.client.models import Client, ClientAssets, ClientSDR
+from src.client.models import Client, ClientAssets, ClientSDR, EmailToLinkedInConnection
 from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
 from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
@@ -1302,3 +1302,23 @@ def auto_turn_off_finished_archetypes() -> int:
 
             # Turn off the archetype
             deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True)
+
+def set_email_to_linkedin_connection(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    connection_type: EmailToLinkedInConnection,
+):
+    """
+    Set the email to linkedin connection type for a given archetype
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        return False
+    if client_archetype.client_sdr_id != client_sdr_id:
+        return False
+    
+    client_archetype.email_to_linkedin_connection = connection_type
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return True
