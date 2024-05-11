@@ -215,8 +215,32 @@ def get_sdrs(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
-    sdrs = ClientSDR.query.filter_by(client_id=client_id).all()
-    return jsonify({"message": "Success", "data": [sdr.to_dict() for sdr in sdrs]}), 200
+    sdrs = ClientSDR.query.filter_by(client_id=client_id).filter_by(active=True).all()
+
+    inbox_stats_query = """
+    select 
+        client_sdr.id,
+        client_sdr.name,
+        count(distinct prospect.id) unread_inbox_messages
+    from prospect
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+    where prospect.overall_status = 'ACTIVE_CONVO'
+        and (
+            prospect.hidden_until is null or 
+            prospect.hidden_until < NOW()
+        )
+        and client_sdr.client_id = {client_id}
+    group by 1;
+    """
+    inbox_stats = db.engine.execute(inbox_stats_query.format(client_id=client_id)).fetchall()
+
+    data = [sdr.to_dict() for sdr in sdrs]
+    for row in inbox_stats:
+        for sdr in data:
+            if sdr["id"] == row[0]:
+                sdr["unread_inbox_messages"] = row[2]
+
+    return jsonify({"message": "Success", "data": data}), 200
 
 
 @CLIENT_BLUEPRINT.route("/all_archetypes", methods=["GET"])
