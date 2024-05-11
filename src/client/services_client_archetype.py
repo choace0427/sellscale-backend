@@ -5,7 +5,7 @@ from sqlalchemy import update
 from app import db, celery
 from model_import import ClientArchetype
 from typing import Union, Optional
-from src.client.models import Client, ClientAssets, ClientSDR
+from src.client.models import Client, ClientAssets, ClientSDR, EmailToLinkedInConnection
 from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
 from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
@@ -184,12 +184,15 @@ def get_archetype_activity(client_sdr_id: int) -> list[dict]:
                         AND prospect_email_status_records.created_at > now() - '{interval}'::interval
                     )
             ) "messages_sent",
-            count(DISTINCT linkedin_conversation_entry.id) FILTER (
+            count(DISTINCT prospect.id) FILTER (
                 WHERE
                     (
                         linkedin_conversation_entry.date > now() - '{interval}'::interval
                         AND linkedin_conversation_entry.ai_generated
                         AND prospect.overall_status IN ('ACCEPTED', 'BUMPED')
+                    ) OR (
+                    	prospect_email_status_records.created_at > now() - '{interval}'::interval
+                        AND prospect_email_status_records.to_status = 'EMAIL_OPENED'
                     )
             ) "bumps_sent",
             count(DISTINCT linkedin_conversation_entry.id) FILTER (
@@ -1299,3 +1302,56 @@ def auto_turn_off_finished_archetypes() -> int:
 
             # Turn off the archetype
             deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True)
+
+def set_email_to_linkedin_connection(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    connection_type: EmailToLinkedInConnection,
+):
+    """
+    Set the email to linkedin connection type for a given archetype
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        return False
+    if client_archetype.client_sdr_id != client_sdr_id:
+        return False
+    
+    client_archetype.email_to_linkedin_connection = connection_type
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return True
+
+def get_email_to_linkedin_connection_amounts(
+    client_sdr_id: int,
+    client_archetype_id: int,
+):
+    """
+    Get the amount of email to linkedin connections for a given archetype
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        return False
+    if client_archetype.client_sdr_id != client_sdr_id:
+        return False
+
+    query= """
+        select 
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "prospects_sent_outreach",
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "prospects_email_opened",
+            count(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACCEPTED') "prospects_clicked"
+        from prospect
+            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        where archetype_id = {client_archetype_id}
+            and prospect.overall_status in ('SENT_OUTREACH', 'PROSPECTED', 'BUMPED', 'ACCEPTED');
+    """.format(client_archetype_id=client_archetype_id)
+
+    data = db.session.execute(query).fetchone()
+
+    return {
+        "prospects_sent_outreach": data[0],
+        "prospects_email_opened": data[1],
+        "prospects_clicked": data[2],
+    }

@@ -108,6 +108,8 @@ Message:
 
         # Mark the prospect as snoozed
         prospect_email.hidden_until = ooo_until
+        prospect.hidden_until = ooo_until
+        prospect.hidden_reason = "Email - Out of Office"
         db.session.commit()
 
         # Send a Slack message to the SDR

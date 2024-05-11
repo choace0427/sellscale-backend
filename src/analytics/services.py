@@ -249,7 +249,12 @@ def get_outreach_over_time(
 ):
     query = """
         select 
-            to_char(prospect_status_records.created_at, 'YYYY-MM-DD'),
+            case 
+                when prospect_status_records.created_at is not null 
+                    then to_char(prospect_status_records.created_at, 'YYYY-MM-DD')
+                when prospect_email_status_records.created_at is not null
+                    then to_char(prospect_email_status_records.created_at, 'YYYY-MM-DD')
+            end date,
             count(distinct prospect.id) filter (
                 where prospect_status_records.to_status = 'SENT_OUTREACH' or 
                     prospect_email_status_records.to_status = 'SENT_OUTREACH'
@@ -276,7 +281,11 @@ def get_outreach_over_time(
             left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
             left join prospect_email on prospect_email.prospect_id = prospect.id
             left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-        where prospect_status_records.created_at > NOW() - '{days} days'::INTERVAL
+        where (
+                prospect_status_records.created_at > NOW() - '{days} days'::INTERVAL
+                or 
+                prospect_email_status_records.created_at > NOW() - '{days} days'::INTERVAL
+            )
             and prospect.client_id = {client_id}
         group by 1
         order by 1 asc;

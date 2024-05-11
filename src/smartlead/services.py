@@ -1220,9 +1220,12 @@ def upload_prospect_to_campaign(
         flag_modified(log, "log")
         db.session.commit()
 
+    exists = prospect_exists_in_smartlead(prospect_id=prospect.id)
+
     # If not all prospects were uploaded, send a slack message
     if (result.get("upload_count") != result.get("total_leads")) and (
         result.get("upload_count") != result.get("already_added_to_campaign")
+        and not exists
     ):
         send_slack_message(
             message=f"Only {result.get('upload_count')} of {result.get('total_leads')} prospects were uploaded to Smartlead campaign from {archetype.archetype} (#{archetype.id})",
@@ -1246,7 +1249,6 @@ def upload_prospect_to_campaign(
         flag_modified(log, "log")
         db.session.commit()
 
-    exists = prospect_exists_in_smartlead(prospect_id=prospect.id)
     if exists:
         log.in_smartlead = True
         log.log.append(
@@ -1262,10 +1264,13 @@ def upload_prospect_to_campaign(
     db.session.commit()
 
     # Update the Prospect Status
-    update_prospect_status_email(
-        prospect_id=prospect.id,
-        new_status=ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
-    )
+    try:
+        update_prospect_status_email(
+            prospect_id=prospect.id,
+            new_status=ProspectEmailOutreachStatus.QUEUED_FOR_OUTREACH,
+        )
+    except:
+        pass
 
     return True, 1
 
@@ -1286,7 +1291,7 @@ def retry_upload_prospect_to_campaign() -> tuple[bool, str]:
 
     for index, log in enumerate(tqdm(logs)):
         upload_prospect_to_campaign.apply_async(
-            kwargs={"prospect_id": log.prospect_id}, countdown=int(0.3 * index)
+            kwargs={"prospect_id": log.prospect_id}, countdown=index
         )
 
     return True, "Success"

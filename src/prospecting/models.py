@@ -505,7 +505,7 @@ class Prospect(db.Model):
 
     individual_id = db.Column(db.Integer, db.ForeignKey("individual.id"), nullable=True)
 
-    contract_size = db.Column(db.Integer, server_default="10000", nullable=False)
+    contract_size = db.Column(db.Integer, server_default="10000", nullable=True)
 
     is_lookalike_profile = db.Column(db.Boolean, nullable=True)
 
@@ -521,6 +521,7 @@ class Prospect(db.Model):
     merge_contact_id = db.Column(db.String, nullable=True)
     merge_opportunity_id = db.Column(db.String, nullable=True)
     merge_lead_id = db.Column(db.String, nullable=True)
+    merge_note_id = db.Column(db.String, nullable=True)
 
     smartlead_campaign_id = db.Column(db.Integer, nullable=True)
 
@@ -602,6 +603,7 @@ class Prospect(db.Model):
             "merge_contact_id": self.merge_contact_id,
             "merge_opportunity_id": self.merge_opportunity_id,
             "merge_lead_id": self.merge_lead_id,
+            "merge_note_id": self.merge_note_id,
             "is_champion": self.is_champion,
         }
 

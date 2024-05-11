@@ -132,8 +132,11 @@ class Client(db.Model):
             "slack_bot_connected": slack_bot_connected,
             "slack_bot_connecting_user_name": slack_bot_connecting_user_name,
         }
-
-
+class EmailToLinkedInConnection(enum.Enum):
+    RANDOM = "RANDOM"
+    ALL_PROSPECTS = "ALL_PROSPECTS"
+    OPENED_EMAIL_PROSPECTS_ONLY = "OPENED_EMAIL_PROSPECTS_ONLY"
+    CLICKED_LINK_PROSPECTS_ONLY = "CLICKED_LINK_PROSPECTS_ONLY"
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
 
@@ -148,6 +151,10 @@ class ClientArchetype(db.Model):
     active = db.Column(db.Boolean, nullable=True, default=True)
     linkedin_active = db.Column(db.Boolean, nullable=True, default=False)
     email_active = db.Column(db.Boolean, nullable=True, default=False)
+
+    email_to_linkedin_connection = db.Column(
+        sa.Enum(EmailToLinkedInConnection, create_constraint=False), nullable=True
+    )
 
     transformer_blocklist = db.Column(
         db.ARRAY(db.String),
@@ -195,8 +202,8 @@ class ClientArchetype(db.Model):
     sent_activation_notification = db.Column(db.Boolean, nullable=True, default=False)
 
     smartlead_campaign_id = db.Column(db.Integer, nullable=True)
-    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
-    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
+    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
 
     meta_data = db.Column(db.JSON, nullable=True)
 
@@ -217,6 +224,7 @@ class ClientArchetype(db.Model):
             "active": self.active,
             "linkedin_active": self.linkedin_active,
             "email_active": self.email_active,
+            "email_to_linkedin_connection": self.email_to_linkedin_connection.value if self.email_to_linkedin_connection else None,
             "transformer_blocklist": (
                 [t for t in self.transformer_blocklist]
                 if self.transformer_blocklist
@@ -431,8 +439,8 @@ class ClientSDR(db.Model):
     conversion_percentages = db.Column(db.JSON, nullable=True)
 
     # Email
-    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
-    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=False)
+    email_open_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
+    email_link_tracking_enabled = db.Column(db.Boolean, nullable=True, default=True)
 
     # Slack Bot
     slack_user_id = db.Column(db.String, nullable=True)

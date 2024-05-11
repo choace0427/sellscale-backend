@@ -517,41 +517,40 @@ def upload_prospect_to_crm(
 
     mc: MergeClient = MergeClient(client_sdr_id)
 
-    # Lead Mode
+    # Lead Sync
     if client_sync_crm.lead_sync:
         id, message = mc.create_lead(prospect_id=prospect_id)
         if not id:
             return False, message
 
-    # Contact + Account + Opportunity Mode
-    if (
-        client_sync_crm.contact_sync
-        and client_sync_crm.account_sync
-        and client_sync_crm.opportunity_sync
-    ):
+    # Account Sync
+    if client_sync_crm.account_sync:
+        id, message = mc.create_account(prospect_id=prospect_id)
+        if not id:
+            return False, message
+
+    # Contact Sync
+    if client_sync_crm.contact_sync:
+        id, message = mc.create_contact(prospect_id=prospect_id)
+        if not id:
+            return False, message
+
+    # Opportunity Sync
+    if client_sync_crm.opportunity_sync:
         id, message = mc.create_opportunity(
             prospect_id=prospect_id, stage_id_override=stage_id_override
         )
         if not id:
             return False, message
 
+    # Note sync (it doesn't make sense to sync a note if we're not syncing anything else)
+    if (
+        client_sync_crm.account_sync
+        or client_sync_crm.contact_sync
+        or client_sync_crm.opportunity_sync
+    ):
+        id, message = mc.create_note(prospect_id=prospect_id)
+        if not id:
+            return False, message
+
     return True, "Prospect uploaded"
-
-
-# TODO: Deprecate this
-def create_opportunity_from_prospect_id(
-    client_sdr_id: int, prospect_id: int, stage_id_override: Optional[str] = None
-) -> tuple[bool, str]:
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect or prospect.client_sdr_id != client_sdr_id:
-        return False, "Prospect not found"
-
-    mc: MergeClient = MergeClient(client_sdr_id)
-    success = mc.create_opportunity(
-        prospect_id=prospect_id, stage_id_override=stage_id_override
-    )
-
-    if not success:
-        return False, "Opportunity not created"
-
-    return True, "Opportunity created"

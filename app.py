@@ -115,7 +115,7 @@ def make_celery(app):
             "rate_limit": "2/s",
         },
         f"src.smartlead.services.upload_prospect_to_campaign": {
-            "rate_limit": "3/s",
+            "rate_limit": "1/s",
         },
     }
 

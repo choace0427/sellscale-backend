@@ -1,6 +1,8 @@
 from crypt import methods
 from datetime import datetime
+from pydoc import cli
 from typing import Optional
+from debugpy import connect
 from flask import Blueprint, request, jsonify
 from numpy import require
 from src.client.sdr.email.services_email_bank import (
@@ -32,6 +34,8 @@ from src.client.services import (
 from src.client.services_client_archetype import (
     auto_turn_off_finished_archetypes,
     fetch_all_assets_in_client,
+    get_email_to_linkedin_connection_amounts,
+    set_email_to_linkedin_connection,
 )
 from src.personas.services_persona import link_asset_to_persona
 from src.prospecting.services import create_note
@@ -491,6 +495,25 @@ def create_archetype(client_sdr_id: int):
 
     return ca
 
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/update_email_to_linkedin_connection", methods=["PATCH"])
+@require_user
+def patch_update_email_to_linkedin_connection(client_sdr_id: int, archetype_id: int):
+    email_to_linkedin_connection = get_request_parameter(
+        "email_to_linkedin_connection", request, json=True, required=True
+    )
+
+    set_email_to_linkedin_connection(
+        client_sdr_id=client_sdr_id, client_archetype_id=archetype_id, connection_type=email_to_linkedin_connection
+    )
+    return jsonify({"message": "Success"}), 200
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/email_to_linkedin_connection_amounts", methods=["GET"])
+@require_user
+def email_to_linkedin_connection_amounts(client_sdr_id: int, archetype_id: int):
+    email_to_linkedin_connection_amounts = get_email_to_linkedin_connection_amounts(
+        client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
+    )
+    return jsonify({"message": "Success", "data": email_to_linkedin_connection_amounts}), 200
 
 # toggle template mode active for archetype
 @CLIENT_BLUEPRINT.route(

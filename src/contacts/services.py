@@ -13,6 +13,8 @@ from src.prospecting.models import ProspectUploadSource
 from src.utils.abstract.attr_utils import deep_get
 from datetime import datetime
 
+import concurrent.futures
+
 from src.utils.hasher import generate_uuid
 
 # APOLLO CREDENTIALS (SESSION and XCSRF are reverse engineered tokens, may require manual refreshing periodically)
@@ -473,14 +475,8 @@ def apollo_get_organizations_from_company_names(
     Returns:
         list: List of organization objects
     """
-    # Set the headers
-    headers = {
-        "x-csrf-token": APOLLO_XCSRF_TOKEN,
-        "cookie": APOLLO_SESSION_COOKIE,
-    }
 
-    objects = []
-    for company_name in company_names:
+    def apollo_org_search(company_name: str):
         print("Getting company data for", company_name)
         # Set the data
         data = {
@@ -496,9 +492,31 @@ def apollo_get_organizations_from_company_names(
         )
 
         # Get the organizations and append the first one to the objects list
-        organizations = response.json().get("organizations")
-        if organizations and len(organizations) > 0:
-            objects.append(organizations[0])
+        try:
+            organizations = response.json().get("organizations")
+            if organizations and len(organizations) > 0:
+                return organizations[0]
+        except:
+            print("ERROR", response.text)
+        return None
+
+    # Set the headers
+    headers = {
+        "x-csrf-token": APOLLO_XCSRF_TOKEN,
+        "cookie": APOLLO_SESSION_COOKIE,
+    }
+
+    results = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(
+            executor.map(
+                apollo_org_search,
+                company_names,
+            )
+        )
+
+    # Remove NONE from the results
+    results = [obj for obj in results if obj]
 
     # Save the query
     formatted_date = datetime.now().strftime("%b %d %Y %H:%M:%S")
@@ -511,7 +529,7 @@ def apollo_get_organizations_from_company_names(
     db.session.add(saved_query)
     db.session.commit()
 
-    return objects
+    return results
 
 
 def predict_filters_types_needed(query: str) -> list:
@@ -640,13 +658,16 @@ def get_territories(client_sdr_id: int):
 
     return territories
 
+
 def upload_prospects_from_apollo_page_to_segment(
     client_sdr_id: int,
     saved_apollo_query_id: int,
     page: int,
     segment_id: int,
 ):
-    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
+        saved_apollo_query_id
+    )
     payload = saved_apollo_query.data
 
     unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
@@ -666,17 +687,27 @@ def upload_prospects_from_apollo_page_to_segment(
         q_person_title=payload.get("q_person_title", ""),
         q_person_name=payload.get("q_person_name", ""),
         organization_industry_tag_ids=payload.get("organization_industry_tag_ids", []),
-        organization_num_employees_ranges=payload.get("organization_num_employees_ranges", []),
+        organization_num_employees_ranges=payload.get(
+            "organization_num_employees_ranges", []
+        ),
         person_locations=payload.get("person_locations", []),
         organization_ids=payload.get("organization_ids", None),
         revenue_range=payload.get("revenue_range", {"min": None, "max": None}),
-        organization_latest_funding_stage_cd=payload.get("organization_latest_funding_stage_cd", []),
-        currently_using_any_of_technology_uids=payload.get("currently_using_any_of_technology_uids", []),
+        organization_latest_funding_stage_cd=payload.get(
+            "organization_latest_funding_stage_cd", []
+        ),
+        currently_using_any_of_technology_uids=payload.get(
+            "currently_using_any_of_technology_uids", []
+        ),
         event_categories=payload.get("event_categories", None),
         published_at_date_range=payload.get("published_at_date_range", None),
         person_seniorities=payload.get("person_seniorities", None),
-        q_organization_search_list_id=payload.get("q_organization_search_list_id", None),
-        organization_department_or_subdepartment_counts=payload.get("organization_department_or_subdepartment_counts", None),
+        q_organization_search_list_id=payload.get(
+            "q_organization_search_list_id", None
+        ),
+        organization_department_or_subdepartment_counts=payload.get(
+            "organization_department_or_subdepartment_counts", None
+        ),
         is_prefilter=payload.get("is_prefilter", False),
         q_organization_keyword_tags=payload.get("q_organization_keyword_tags", None),
     )
@@ -685,15 +716,17 @@ def upload_prospects_from_apollo_page_to_segment(
     contacts = response["contacts"]
     people = response["people"]
     all_contacts = contacts + people
-    
+
     # create a list of {first_name, last_name, linkedin_url}
     prospects = []
     for contact in all_contacts:
-        prospects.append({
-            "first_name": contact.get("first_name", ""),
-            "last_name": contact.get("last_name", ""),
-            "linkedin_url": contact.get("linkedin_url", ""),
-        })
+        prospects.append(
+            {
+                "first_name": contact.get("first_name", ""),
+                "last_name": contact.get("last_name", ""),
+                "linkedin_url": contact.get("linkedin_url", ""),
+            }
+        )
 
     # upload prospects
     msg, error_code = add_prospect_from_csv_payload(
