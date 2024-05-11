@@ -13,7 +13,7 @@ from src.email_outbound.email_store.services import (
 )
 from src.merge_crm.models import ClientSyncCRM
 
-from src.individual.services import add_individual_from_prospect
+from src.individual.services import add_individual_from_prospect, get_individual
 from src.campaigns.models import OutboundCampaign
 
 from src.company.services import find_company_for_prospect
@@ -2842,9 +2842,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo_history: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2920,11 +2920,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[
-        ProspectEmailStatusRecords
-    ] = ProspectEmailStatusRecords.query.filter(
-        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-    ).all()
+    email_status_history: List[ProspectEmailStatusRecords] = (
+        ProspectEmailStatusRecords.query.filter(
+            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+        ).all()
+    )
 
     return {
         "emails": email_history_parsed,
@@ -3288,58 +3288,62 @@ def add_existing_contact(
     from src.individual.models import Individual
     from src.prospecting.models import ExistingContact
 
-    individual_id, created = add_individual(
-        full_name=full_name,
-        first_name=first_name,
-        last_name=last_name,
-        title=title,
-        bio=bio,
-        linkedin_url=linkedin_url,
-        instagram_url=instagram_url,
-        facebook_url=facebook_url,
-        twitter_url=twitter_url,
-        email=email,
-        phone=phone,
-        address=address,
-        li_public_id=(
-            linkedin_url.split("/in/")[1].split("/")[0]
-            if linkedin_url
-            else li_public_id
-        ),
-        li_urn_id=li_urn_id,
-        img_url=img_url,
-        img_expire=img_expire,
-        industry=industry,
-        company_name=company_name,
-        company_id=company_id,
-        linkedin_followers=linkedin_followers,
-        instagram_followers=instagram_followers,
-        facebook_followers=facebook_followers,
-        twitter_followers=twitter_followers,
-    )
-    individual: Individual = Individual.query.get(individual_id)
-    if not individual:
-        send_slack_message(
-            message=f"Failed to create or update an individual for the creation of an existing contact {full_name} ({email})",
-            webhook_urls=[URL_MAP["csm-individuals"]],
+    individ_data = get_individual(li_public_id=li_public_id, email=email)
+    if not individ_data:
+        individual_id, created = add_individual(
+            full_name=full_name,
+            first_name=first_name,
+            last_name=last_name,
+            title=title,
+            bio=bio,
+            linkedin_url=linkedin_url,
+            instagram_url=instagram_url,
+            facebook_url=facebook_url,
+            twitter_url=twitter_url,
+            email=email,
+            phone=phone,
+            address=address,
+            li_public_id=(
+                linkedin_url.split("/in/")[1].split("/")[0]
+                if linkedin_url
+                else li_public_id
+            ),
+            li_urn_id=li_urn_id,
+            img_url=img_url,
+            img_expire=img_expire,
+            industry=industry,
+            company_name=company_name,
+            company_id=company_id,
+            linkedin_followers=linkedin_followers,
+            instagram_followers=instagram_followers,
+            facebook_followers=facebook_followers,
+            twitter_followers=twitter_followers,
         )
-        return None
+        individual: Individual = Individual.query.get(individual_id)
+        if not individual:
+            send_slack_message(
+                message=f"Failed to create or update an individual for the creation of an existing contact {full_name} ({email})",
+                webhook_urls=[URL_MAP["csm-individuals"]],
+            )
+            return None
+        else:
+            individ_data = individual.to_dict(include_company=True)
 
     # See if the existing contact already exists
     existing_contact: ExistingContact = ExistingContact.query.filter(
         ExistingContact.client_sdr_id == client_sdr_id,
-        ExistingContact.individual_id == individual_id,
+        ExistingContact.individual_id == individ_data.get("id"),
     ).first()
     if existing_contact:
         return existing_contact.id
 
     existing_contact = ExistingContact(
         client_sdr_id=client_sdr_id,
-        full_name=individual.full_name,
-        title=individual.title,
-        individual_id=individual.id,
-        company_name=individual.company_name,
-        company_id=individual.company_id,
+        full_name=individ_data.get("full_name"),
+        title=individ_data.get("title"),
+        individual_id=individ_data.get("id"),
+        company_name=individ_data.get("company_name"),
+        company_id=individ_data.get("company_id"),
         connection_source=connection_source,
         notes=notes,
     )
