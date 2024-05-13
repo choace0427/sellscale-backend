@@ -88,7 +88,7 @@ def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False, tag_f
         segment_dict["attached_segments"] = [tag.to_dict() for tag in segment_tags]
 
     # Filter segments by tag if tag_filter is not -1
-    if tag_filter != 'undefined':
+    if tag_filter != 'undefined' and tag_filter:
         retval = [segment for segment in retval if any(tag['id'] == int(tag_filter) for tag in segment['attached_segments'])]
 
     # order by segment ID reverse order
