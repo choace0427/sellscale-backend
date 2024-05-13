@@ -1618,8 +1618,12 @@ def update_icp_filters(client_archetype_id: int, filters, merge=False):
                             setattr(
                                 icp_scoring_ruleset,
                                 key,
-                                getattr(icp_scoring_ruleset, key)
-                                + [s.replace('"', "") for s in value],
+                                list(
+                                    set(
+                                        getattr(icp_scoring_ruleset, key)
+                                        + [s.replace('"', "") for s in value]
+                                    )
+                                ),
                             )
                         else:
                             setattr(

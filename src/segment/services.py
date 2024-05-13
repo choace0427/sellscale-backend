@@ -11,7 +11,11 @@ from src.contacts.models import SavedApolloQuery
 from src.ml.services import get_text_generation
 from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.prospecting.icp_score.services import update_icp_filters
-from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectUploadHistory
+from src.prospecting.models import (
+    Prospect,
+    ProspectOverallStatus,
+    ProspectUploadHistory,
+)
 from src.segment.models import Segment
 from src.segment.models import SegmentTags
 from sqlalchemy import case
@@ -26,7 +30,7 @@ def create_new_segment(
     ).first()
     if existing_segment:
         return None
-    
+
     parent_segment: Segment = Segment.query.get(parent_segment_id)
     saved_apollo_query_id = None
     if parent_segment:
@@ -46,21 +50,25 @@ def create_new_segment(
     return new_segment
 
 
-def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False, tag_filter: int = None) -> list[dict]:
+def get_segments_for_sdr(
+    sdr_id: int, include_all_in_client: bool = False, tag_filter: int = None
+) -> list[dict]:
     client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     client_id: int = client_sdr.client_id
     client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
-    
+
     if not include_all_in_client:
-        all_segments: list[Segment] = Segment.query.filter_by(client_sdr_id=sdr_id).all()
+        all_segments: list[Segment] = Segment.query.filter_by(
+            client_sdr_id=sdr_id
+        ).all()
     else:
         all_segments: list[Segment] = Segment.query.filter(
             Segment.client_sdr_id.in_([sdr.id for sdr in client_sdrs])
         ).all()
 
     num_contacted_prospected_for_segments_query = """
-        select 
-            segment_id, 
+        select
+            segment_id,
             count(distinct prospect.id) num_prospected,
             count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is not null or prospect.approved_outreach_message_id is not null) num_contacted,
             count(distinct prospect.company) unique_Companies
@@ -82,14 +90,24 @@ def get_segments_for_sdr(sdr_id: int, include_all_in_client: bool = False, tag_f
                 segment_dict["num_prospected"] = row[1]
                 segment_dict["num_contacted"] = row[2]
                 segment_dict["unique_companies"] = row[3]
-        attached_segment_tag_ids = Segment.query.get(segment_id).attached_segment_tag_ids
+        attached_segment_tag_ids = Segment.query.get(
+            segment_id
+        ).attached_segment_tag_ids
         # attached_segment_tag_ids is a list of tag ids or null
-        segment_tags = SegmentTags.query.filter(SegmentTags.id.in_(attached_segment_tag_ids)).all() if attached_segment_tag_ids else []
+        segment_tags = (
+            SegmentTags.query.filter(SegmentTags.id.in_(attached_segment_tag_ids)).all()
+            if attached_segment_tag_ids
+            else []
+        )
         segment_dict["attached_segments"] = [tag.to_dict() for tag in segment_tags]
 
     # Filter segments by tag if tag_filter is not -1
-    if tag_filter != 'undefined' and tag_filter:
-        retval = [segment for segment in retval if any(tag['id'] == int(tag_filter) for tag in segment['attached_segments'])]
+    if tag_filter != "undefined" and tag_filter:
+        retval = [
+            segment
+            for segment in retval
+            if any(tag["id"] == int(tag_filter) for tag in segment["attached_segments"])
+        ]
 
     # order by segment ID reverse order
     retval = sorted(retval, key=lambda x: x["id"], reverse=True)
@@ -174,6 +192,12 @@ def merge_segment_filters(segment_id: int, segment_filters: dict):
         db.session.add(segment)
         db.session.commit()
 
+    # If the segment has a campaign attached, update the campaign filters
+    if segment.client_archetype_id:
+        add_segment_filters_to_icp_scoring_ruleset_for_campaign(
+            segment_id=segment_id, campaign_id=segment.client_archetype_id
+        )
+
 
 def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     segment = Segment.query.filter_by(
@@ -188,9 +212,11 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
     ).all()
     if len(prospects_with_segment) > 0:
         return False, "Segment has prospects"
-    
+
     # remove upload history records
-    upload_history_records: list[ProspectUploadHistory] = ProspectUploadHistory.query.filter(
+    upload_history_records: list[
+        ProspectUploadHistory
+    ] = ProspectUploadHistory.query.filter(
         ProspectUploadHistory.client_segment_id == segment_id
     ).all()
     for record in upload_history_records:
@@ -588,13 +614,13 @@ def move_segment_prospects(
     ).all()
 
     if to_segment_id == 0:
-        Prospect.query.filter(Prospect.id.in_([prospect.id for prospect in prospects])).update(
-            {"segment_id": None}, synchronize_session=False
-        )
+        Prospect.query.filter(
+            Prospect.id.in_([prospect.id for prospect in prospects])
+        ).update({"segment_id": None}, synchronize_session=False)
     else:
-        Prospect.query.filter(Prospect.id.in_([prospect.id for prospect in prospects])).update(
-            {"segment_id": to_segment_id}, synchronize_session=False
-        )
+        Prospect.query.filter(
+            Prospect.id.in_([prospect.id for prospect in prospects])
+        ).update({"segment_id": to_segment_id}, synchronize_session=False)
 
     db.session.commit()
     return True, "Prospects moved to segment"
@@ -612,9 +638,7 @@ def wipe_and_delete_segment(client_sdr_id: int, segment_id: int):
         )
     else:
         move_segment_prospects(
-            client_sdr_id=client_sdr_id,
-            from_segment_id=segment_id,
-            to_segment_id=0
+            client_sdr_id=client_sdr_id, from_segment_id=segment_id, to_segment_id=0
         )
 
     # wipe_segment_ids_from_prospects_in_segment(segment_id)
@@ -783,15 +807,18 @@ def get_unused_segments_for_sdr(client_sdr_id: int):
 
     return data
 
+
 def connect_saved_apollo_query_to_segment(segment_id: int, saved_apollo_query_id: int):
     segment: Segment = Segment.query.get(segment_id)
     if not segment:
         return False, "Segment not found"
-    
-    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)
+
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
+        saved_apollo_query_id
+    )
     if not saved_apollo_query:
         return False, "Apollo query not found"
-    
+
     if saved_apollo_query.client_sdr_id != segment.client_sdr_id:
         return False, "Apollo query and segment belong to different SDRs"
 
@@ -800,6 +827,7 @@ def connect_saved_apollo_query_to_segment(segment_id: int, saved_apollo_query_id
     db.session.commit()
 
     return True, "Apollo query connected to segment"
+
 
 def duplicate_segment(
     segment_id: int,
@@ -825,6 +853,7 @@ def duplicate_segment(
 
     return True, "Segment duplicated"
 
+
 def move_segment(
     client_sdr_id: int,
     segment_id: int,
@@ -845,17 +874,17 @@ def move_segment(
             return False, "New parent segment not found"
         if new_parent_segment.client_sdr_id != segment.client_sdr_id:
             return False, "New parent segment belongs to a different SDR"
-    
+
     segment.parent_segment_id = new_parent_segment_id
     db.session.add(segment)
     db.session.commit()
 
     return True, "Segment moved"
 
+
 def transfer_segment(
-        current_client_sdr_id: int,
-        segment_id: int, 
-        new_client_sdr_id: int):
+    current_client_sdr_id: int, segment_id: int, new_client_sdr_id: int
+):
     """
     Transfers a segment to a new SDR which means that all prospected prospects in the segment will be transferred to the new SDR
     (i.e. folks who do not have any outreach message or email approved will be transferred to the new SDR)
@@ -881,13 +910,16 @@ def transfer_segment(
     ).first()
     if not unassigned_archetype:
         return False, "Unassigned archetype not found for new SDR"
-    
+
     Prospect.query.filter(
         Prospect.id.in_([prospect.id for prospect in prospects])
-    ).update({
-        Prospect.client_sdr_id: new_client_sdr_id,
-        Prospect.archetype_id: unassigned_archetype.id
-    }, synchronize_session=False)
+    ).update(
+        {
+            Prospect.client_sdr_id: new_client_sdr_id,
+            Prospect.archetype_id: unassigned_archetype.id,
+        },
+        synchronize_session=False,
+    )
     db.session.commit()
 
     saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(
@@ -898,7 +930,6 @@ def transfer_segment(
         db.session.add(saved_apollo_query)
         db.session.commit()
 
-
     segment: Segment = Segment.query.get(segment_id)
     segment.client_sdr_id = new_client_sdr_id
     segment.client_archetype_id = None
@@ -907,12 +938,10 @@ def transfer_segment(
 
     return True, "Segment transferred to new SDR"
 
-def create_n_sub_batches_for_segment(
-    segment_id: int,
-    num_batches: int
-):
+
+def create_n_sub_batches_for_segment(segment_id: int, num_batches: int):
     """
-    Finds all unused prospects in the current segment and creates `num_batches` subsegments as 
+    Finds all unused prospects in the current segment and creates `num_batches` subsegments as
     child segments of the current segment. Each subsegment will have an equal number of prospects
     added to it.
     """
@@ -945,10 +974,8 @@ def create_n_sub_batches_for_segment(
 
     return True, "Subsegments created"
 
-def toggle_auto_scrape_for_segment(
-    client_sdr_id: int,
-    segment_id: int
-):
+
+def toggle_auto_scrape_for_segment(client_sdr_id: int, segment_id: int):
     segment: Segment = Segment.query.get(segment_id)
     if not segment:
         return False, "Segment not found"
@@ -961,9 +988,8 @@ def toggle_auto_scrape_for_segment(
 
     return True, "Auto scrape toggled"
 
-def run_new_scrape_for_segment(
-    segment_id: int
-):
+
+def run_new_scrape_for_segment(segment_id: int):
     from src.contacts.services import upload_prospects_from_apollo_page_to_segment
 
     segment: Segment = Segment.query.get(segment_id)
@@ -971,11 +997,13 @@ def run_new_scrape_for_segment(
         return False, "Segment not found"
     if not segment.autoscrape_enabled:
         return False, "Auto scrape not enabled for segment"
-    
-    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(segment.saved_apollo_query_id)
+
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
+        segment.saved_apollo_query_id
+    )
     if not saved_apollo_query:
         return False, "Apollo query not found for segment"
-    
+
     max_pages = saved_apollo_query.num_results // 100 + 1
 
     if not segment.current_scrape_page:
@@ -989,7 +1017,7 @@ def run_new_scrape_for_segment(
         client_sdr_id=segment.client_sdr_id,
         saved_apollo_query_id=segment.saved_apollo_query_id,
         page=segment.current_scrape_page,
-        segment_id=segment_id
+        segment_id=segment_id,
     )
 
     segment.current_scrape_page = segment.current_scrape_page + 1
@@ -998,12 +1026,9 @@ def run_new_scrape_for_segment(
 
     return True, "Scrape initiated"
 
+
 @celery.task
-def run_n_scrapes_for_segment(
-    client_sdr_id: int,
-    segment_id: int,
-    num_scrapes: int
-):
+def run_n_scrapes_for_segment(client_sdr_id: int, segment_id: int, num_scrapes: int):
     segment: Segment = Segment.query.get(segment_id)
     if not segment or segment.client_sdr_id != client_sdr_id:
         return False, "Segment not found"
@@ -1014,28 +1039,23 @@ def run_n_scrapes_for_segment(
             return False, msg
     return True, "Scrapes initiated"
 
-    
-def set_current_scrape_page_for_segment(
-    client_sdr_id: int,
-    segment_id: int,
-    page: int
-):
+
+def set_current_scrape_page_for_segment(client_sdr_id: int, segment_id: int, page: int):
     segment: Segment = Segment.query.get(segment_id)
     if not segment or segment.client_sdr_id != client_sdr_id:
         return False, "Segment not found"
-    
+
     segment.current_scrape_page = page
     db.session.add(segment)
     db.session.commit()
 
     return True, "Current scrape page set"
 
+
 @celery.task
 def scrape_all_enabled_segments():
     segments: list[Segment] = Segment.query.filter(
-        and_(
-            Segment.autoscrape_enabled == True
-        )
+        and_(Segment.autoscrape_enabled == True)
     ).all()
 
     for segment in segments:
@@ -1044,7 +1064,10 @@ def scrape_all_enabled_segments():
 
     return True, "Scrapes initiated for all enabled segments"
 
-def create_and_add_tag_to_segment(segment_id: int, client_sdr_id: int, name: str, color: str) -> tuple[bool, Segment]:
+
+def create_and_add_tag_to_segment(
+    segment_id: int, client_sdr_id: int, name: str, color: str
+) -> tuple[bool, Segment]:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False, "Client SDR not found"
@@ -1060,7 +1083,9 @@ def create_and_add_tag_to_segment(segment_id: int, client_sdr_id: int, name: str
     print(f"Before adding: {segment.attached_segment_tag_ids}")
     if new_tag.id not in segment.attached_segment_tag_ids:
         segment.attached_segment_tag_ids.append(new_tag.id)
-        flag_modified(segment, 'attached_segment_tag_ids')  # Explicitly mark as modified
+        flag_modified(
+            segment, "attached_segment_tag_ids"
+        )  # Explicitly mark as modified
         db.session.add(segment)
         try:
             db.session.commit()
@@ -1071,7 +1096,8 @@ def create_and_add_tag_to_segment(segment_id: int, client_sdr_id: int, name: str
             return False, f"Failed to add tag to segment: {str(e)}"
     else:
         return False, None
-    
+
+
 def delete_tag_from_all_segments(client_sdr_id: int, tag_id: int) -> tuple[bool, str]:
     # First, find and delete the tag from the SegmentTags table
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -1084,11 +1110,15 @@ def delete_tag_from_all_segments(client_sdr_id: int, tag_id: int) -> tuple[bool,
 
     try:
         # Remove the tag from all segments where it is attached
-        segments = Segment.query.filter(Segment.attached_segment_tag_ids.any(tag_id)).all()
+        segments = Segment.query.filter(
+            Segment.attached_segment_tag_ids.any(tag_id)
+        ).all()
         for segment in segments:
             if tag_id in segment.attached_segment_tag_ids:
                 segment.attached_segment_tag_ids.remove(tag_id)
-                flag_modified(segment, 'attached_segment_tag_ids')  # Mark the list as modified
+                flag_modified(
+                    segment, "attached_segment_tag_ids"
+                )  # Mark the list as modified
                 db.session.add(segment)
 
         # Delete the tag from the SegmentTags table
@@ -1099,12 +1129,15 @@ def delete_tag_from_all_segments(client_sdr_id: int, tag_id: int) -> tuple[bool,
         db.session.rollback()
         return False, f"Failed to delete tag: {str(e)}"
 
-def attach_tag_to_segment(segment_id: int, client_sdr_id: int, tag_id: int) -> tuple[bool, str]:
+
+def attach_tag_to_segment(
+    segment_id: int, client_sdr_id: int, tag_id: int
+) -> tuple[bool, str]:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
         return False, "Client SDR not found"
     client_id = client_sdr.client_id
-    print('got params', segment_id, client_id, tag_id)
+    print("got params", segment_id, client_id, tag_id)
     if not segment_id:
         raise ValueError("Invalid request. Required parameter `segment_id` missing.")
 
@@ -1122,7 +1155,9 @@ def attach_tag_to_segment(segment_id: int, client_sdr_id: int, tag_id: int) -> t
     print(f"Before adding: {segment.attached_segment_tag_ids}")
     if tag_id not in segment.attached_segment_tag_ids:
         segment.attached_segment_tag_ids.append(tag_id)
-        flag_modified(segment, 'attached_segment_tag_ids')  # Explicitly mark as modified
+        flag_modified(
+            segment, "attached_segment_tag_ids"
+        )  # Explicitly mark as modified
         db.session.add(segment)
         try:
             db.session.commit()
@@ -1134,6 +1169,7 @@ def attach_tag_to_segment(segment_id: int, client_sdr_id: int, tag_id: int) -> t
     else:
         return False, "Tag already attached to segment"
 
+
 def remove_tag_from_segment(segment_id: int, tag_id: int) -> tuple[bool, str]:
     segment = Segment.query.get(segment_id)
     if not segment:
@@ -1141,9 +1177,11 @@ def remove_tag_from_segment(segment_id: int, tag_id: int) -> tuple[bool, str]:
 
     if tag_id in segment.attached_segment_tag_ids:
         segment.attached_segment_tag_ids.remove(tag_id)
-        flag_modified(segment, 'attached_segment_tag_ids')  # Explicitly mark as modified
+        flag_modified(
+            segment, "attached_segment_tag_ids"
+        )  # Explicitly mark as modified
         db.session.add(segment)
-        
+
         try:
             db.session.commit()
             return True, "Tag removed from segment"
@@ -1152,7 +1190,8 @@ def remove_tag_from_segment(segment_id: int, tag_id: int) -> tuple[bool, str]:
             return False, f"Failed to remove tag from segment: {str(e)}"
     else:
         return False, "Tag not attached to segment"
-    
+
+
 def get_segment_tags_for_sdr(client_sdr_id: int) -> tuple[bool, list[SegmentTags]]:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
@@ -1162,6 +1201,7 @@ def get_segment_tags_for_sdr(client_sdr_id: int) -> tuple[bool, list[SegmentTags
     if not tags:
         return False, "No tags found for SDR"
     return True, tags
+
 
 # Update tags for a segment
 def update_segment_tags(segment_id: int, new_tag_ids: list[int]) -> tuple[bool, str]:
