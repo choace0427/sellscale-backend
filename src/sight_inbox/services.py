@@ -1,7 +1,13 @@
 from app import db
 from sqlalchemy.orm import attributes
 from sqlalchemy import or_
-from model_import import Prospect, ProspectStatus, ClientSDR, Client
+from model_import import (
+    Prospect,
+    ProspectStatus,
+    ClientSDR,
+    Client,
+    ProspectEmailOutreachStatus,
+)
 from datetime import datetime, timedelta
 
 RECORD_BUMP = "RECORD_BUMP"
@@ -224,8 +230,16 @@ from d;
         # TODO, crm_bucket
 
         if has_linkedin_auto_reply_disabled(
-            sdr, row["status_linkedin"]
-        ) or has_email_auto_reply_disabled(sdr, row["status_email"]):
+            sdr,
+            ProspectStatus(row["status_linkedin"]) if row["status_linkedin"] else None,
+        ) or has_email_auto_reply_disabled(
+            sdr,
+            (
+                ProspectEmailOutreachStatus(row["status_email"])
+                if row["status_email"]
+                else None
+            ),
+        ):
             manual_bucket.append(row)
         else:
             ai_bucket.append(row)
