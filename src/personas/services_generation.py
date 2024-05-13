@@ -20,7 +20,7 @@ from datetime import datetime
 GEN_AMOUNT = 3
 ASSET_AMOUNT = 5
 
-MESSAGE_MODEL = "claude-3-opus-20240229"  # "claude-3-opus-20240229"
+MESSAGE_MODEL = "gpt-4o" # "claude-3-opus-20240229"  # "claude-3-opus-20240229"
 CLEANING_MODEL = "gpt-4-turbo-preview"
 
 
@@ -372,7 +372,7 @@ def generate_email_initial(
 
     You are working to create a cold email in a sequence for generative outreach to prospects.
     The email should use different assets that have a unique value prop, pain point, case study, unique facts, etc that can be used in to make that email stand out. It should also have a particular angle or approach to the outreach.
-    When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+    When fitting, feel free to include double square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
 
 
     """
@@ -380,7 +380,7 @@ def generate_email_initial(
     prompt = f"""
     
 You are an angle creator for outbound emails. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
-When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+When fitting, feel free to include double square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
 
 I will give you 3 few shot examples. Each example contains
 
@@ -445,6 +445,7 @@ Please generate a cold email outline for generative outreach to prospects.
     - tone - informal, creative, informational (try different types but avoid being salesy)
     - structure - mix up email approach
 - Keep the angles one word, then -based. Such as `Persona-based`
+- When generating slots for personalized information, use double square brackets. Such as `[[prospect first name]]`
 
 ## Output:
 
@@ -484,7 +485,7 @@ def generate_email_follow_up_quick_and_dirty(
     prompt = f"""
     
     You're an angle creator for outbound emails. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
-    When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+    When fitting, feel free to include double square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
     
     You need to come up with a follow-up email for a generative outreach sequence. The prospect didn't respond to the initial cold email, so you need to come up with a follow-up email that will get their attention.
     
@@ -618,7 +619,7 @@ def generate_linkedin_initial(
     prompt = f"""
   
 You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
-When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+When fitting, feel free to include double square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
 
 {additional_prompting}
 
@@ -742,7 +743,7 @@ def generate_linkedin_follow_up(
     prompt = f"""
   
 You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative replies on generative outreach to prospects.
-When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+When fitting, feel free to include double square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
 
 {additional_prompting}
 
@@ -866,7 +867,7 @@ def generate_linkedin_cta(
     prompt = f"""
   
 You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative call to actions on generative outreach to prospects.
-When fitting, feel free to include square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
+When fitting, feel free to include double square brackets in areas where you'd want to include personalized information about the prospect and their company - this will be filled in by someone else later.
 
 {additional_prompting}
 
