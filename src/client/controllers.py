@@ -260,12 +260,17 @@ def get_client_all_archetypes(client_sdr_id: int):
         )
 
     client_id = get_request_parameter(
-        "client_id", request, json=False, required=True, parameter_type=int
+        "client_id", request, json=False, required=False, parameter_type=int
     )
 
-    archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
-        client_id=client_id
-    ).all()
+    if client_id:
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+            client_id=client_id
+        ).all()
+    else:
+        archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
+            client_sdr_id=client_sdr_id
+        ).all()
 
     return (
         jsonify(
