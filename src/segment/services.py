@@ -826,6 +826,12 @@ def connect_saved_apollo_query_to_segment(segment_id: int, saved_apollo_query_id
     db.session.add(segment)
     db.session.commit()
 
+    # If the segment has a campaign attached, update the campaign filters
+    if segment.client_archetype_id:
+        add_segment_filters_to_icp_scoring_ruleset_for_campaign(
+            segment_id=segment_id, campaign_id=segment.client_archetype_id
+        )
+
     return True, "Apollo query connected to segment"
 
 
