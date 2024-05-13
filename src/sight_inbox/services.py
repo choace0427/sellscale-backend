@@ -144,3 +144,97 @@ def get_outstanding_inbox(client_sdr_id: int):
     )
 
     return sorted_prospect_lists_by_date
+
+
+def get_inbox_prospects(client_sdr_id: int):
+    """
+    Returns a list of all prospects in the inbox in a series of buckets:
+    - Needs Attention
+    - Queued for AI
+    - Demo Set
+    - CRM Sync
+    - Sent Outreach
+    - Snoozed
+    """
+
+    query = f"""
+with d as (
+select
+prospect.id "prospect_id",
+client_sdr.name "client_sdr_name",
+prospect.full_name,
+prospect.title,
+prospect.company,
+prospect.overall_status,
+prospect.status "status_linkedin",
+prospect_email.outreach_status "status_email",
+prospect.hidden_until,
+prospect.li_last_message_timestamp,
+prospect.li_last_message_from_prospect,
+prospect.email_last_message_timestamp,
+prospect.email_last_message_from_prospect,
+prospect.deactivate_ai_engagement
+from prospect
+join client_sdr on client_sdr.id = prospect.client_sdr_id
+left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+where prospect.overall_status in ('DEMO', 'ACTIVE_CONVO', 'SENT_OUTREACH')
+and client_sdr_id = {client_sdr_id}
+)
+select
+*
+from d;
+    """
+
+    result = db.session.execute(query).fetchall()
+    if result is not None:
+        result = [dict(row) for row in result]
+
+    if result is None:
+        return None
+
+    from src.prospecting.services import (
+        has_linkedin_auto_reply_disabled,
+        has_email_auto_reply_disabled,
+    )
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    manual_bucket = []
+    ai_bucket = []
+    demo_bucket = []
+    crm_bucket = []
+    outreach_bucket = []
+    snoozed_bucket = []
+
+    for row in result:
+        if row["hidden_until"] == None or row["hidden_until"] <= datetime.utcnow():
+            pass  # it's not snoozed
+        else:
+            snoozed_bucket.append(row)
+            continue
+
+        if row["overall_status"] == "DEMO":
+            demo_bucket.append(row)
+            continue
+
+        if row["overall_status"] == "SENT_OUTREACH":
+            outreach_bucket.append(row)
+            continue
+
+        # TODO, crm_bucket
+
+        if has_linkedin_auto_reply_disabled(
+            sdr, row["status_linkedin"]
+        ) or has_email_auto_reply_disabled(sdr, row["status_email"]):
+            manual_bucket.append(row)
+        else:
+            ai_bucket.append(row)
+
+    return {
+        "manual_bucket": manual_bucket,
+        "ai_bucket": ai_bucket,
+        "demo_bucket": demo_bucket,
+        "crm_bucket": crm_bucket,
+        "outreach_bucket": outreach_bucket,
+        "snoozed_bucket": snoozed_bucket,
+    }

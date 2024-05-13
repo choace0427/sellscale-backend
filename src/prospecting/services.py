@@ -476,6 +476,51 @@ def create_note(prospect_id: int, note: str):
     return note_id
 
 
+def has_linkedin_auto_reply_disabled(
+    sdr: ClientSDR, new_status: ProspectStatus
+) -> bool:
+    sdr.meta_data = sdr.meta_data or {}
+    response_options = sdr.meta_data.get("response_options", {})
+
+    if (
+        not response_options.get("use_objections", True)
+        and new_status == ProspectStatus.ACTIVE_CONVO_OBJECTION
+    ):
+        return True
+
+    if (
+        not response_options.get("use_next_steps", True)
+        and new_status == ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
+    ):
+        return True
+
+    if (
+        not response_options.get("use_revival", True)
+        and new_status == ProspectStatus.ACTIVE_CONVO_REVIVAL
+    ):
+        return True
+
+    if (
+        not response_options.get("use_questions", True)
+        and new_status == ProspectStatus.ACTIVE_CONVO_QUESTION
+    ):
+        return True
+
+    if (
+        not response_options.get("use_circle_back", True)
+        and new_status == ProspectStatus.ACTIVE_CONVO_CIRCLE_BACK
+    ):
+        return True
+
+    if (
+        not response_options.get("use_scheduling", True)
+        and new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING
+    ):
+        return True
+
+    return False
+
+
 def update_prospect_status_linkedin(
     prospect_id: int,
     new_status: ProspectStatus,
@@ -498,49 +543,7 @@ def update_prospect_status_linkedin(
         p: Prospect = Prospect.query.get(prospect_id)
         sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
 
-        def has_auto_reply_disabled(sdr: ClientSDR, new_status: ProspectStatus) -> bool:
-            sdr.meta_data = sdr.meta_data or {}
-            response_options = sdr.meta_data.get("response_options", {})
-
-            if (
-                not response_options.get("use_objections", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_OBJECTION
-            ):
-                return True
-
-            if (
-                not response_options.get("use_next_steps", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_NEXT_STEPS
-            ):
-                return True
-
-            if (
-                not response_options.get("use_revival", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_REVIVAL
-            ):
-                return True
-
-            if (
-                not response_options.get("use_questions", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_QUESTION
-            ):
-                return True
-
-            if (
-                not response_options.get("use_circle_back", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_CIRCLE_BACK
-            ):
-                return True
-
-            if (
-                not response_options.get("use_scheduling", True)
-                and new_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING
-            ):
-                return True
-
-            return False
-
-        if not has_auto_reply_disabled(sdr, new_status):
+        if not has_linkedin_auto_reply_disabled(sdr, new_status):
             return False
 
         # Apply disable rules
@@ -1147,6 +1150,51 @@ def update_prospect_status_linkedin_helper(
     return True
 
 
+def has_email_auto_reply_disabled(
+    sdr: ClientSDR, new_status: ProspectEmailOutreachStatus
+) -> bool:
+    sdr.meta_data = sdr.meta_data or {}
+    response_options = sdr.meta_data.get("response_options", {})
+
+    if (
+        not response_options.get("use_objections", True)
+        and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_OBJECTION
+    ):
+        return True
+
+    if (
+        not response_options.get("use_next_steps", True)
+        and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS
+    ):
+        return True
+
+    if (
+        not response_options.get("use_revival", True)
+        and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL
+    ):
+        return True
+
+    if (
+        not response_options.get("use_questions", True)
+        and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION
+    ):
+        return True
+
+    if (
+        not response_options.get("use_circle_back", True)
+        and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
+    ):
+        return True
+
+    if (
+        not response_options.get("use_scheduling", True)
+        and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING
+    ):
+        return True
+
+    return False
+
+
 def update_prospect_status_email(
     prospect_id: int,
     new_status: ProspectEmailOutreachStatus,
@@ -1180,51 +1228,7 @@ def update_prospect_status_email(
         p: Prospect = Prospect.query.get(prospect_id)
         sdr: ClientSDR = ClientSDR.query.get(p.client_sdr_id)
 
-        def has_auto_reply_disabled(
-            sdr: ClientSDR, new_status: ProspectEmailOutreachStatus
-        ) -> bool:
-            sdr.meta_data = sdr.meta_data or {}
-            response_options = sdr.meta_data.get("response_options", {})
-
-            if (
-                not response_options.get("use_objections", True)
-                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_OBJECTION
-            ):
-                return True
-
-            if (
-                not response_options.get("use_next_steps", True)
-                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS
-            ):
-                return True
-
-            if (
-                not response_options.get("use_revival", True)
-                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_REVIVAL
-            ):
-                return True
-
-            if (
-                not response_options.get("use_questions", True)
-                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION
-            ):
-                return True
-
-            if (
-                not response_options.get("use_circle_back", True)
-                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
-            ):
-                return True
-
-            if (
-                not response_options.get("use_scheduling", True)
-                and new_status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING
-            ):
-                return True
-
-            return False
-
-        if not has_auto_reply_disabled(sdr, new_status):
+        if not has_email_auto_reply_disabled(sdr, new_status):
             return False
 
         # Apply disable rules
