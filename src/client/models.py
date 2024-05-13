@@ -209,6 +209,8 @@ class ClientArchetype(db.Model):
 
     base_segment_id = db.Column(db.Integer, nullable=True)
 
+    cycle = db.Column(db.Integer, nullable=True)
+
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
@@ -265,6 +267,7 @@ class ClientArchetype(db.Model):
             "email_link_tracking_enabled": self.email_link_tracking_enabled,
             "meta_data": self.meta_data,
             "base_segment_id": self.base_segment_id,
+            "cycle": self.cycle,
         }
 
 
