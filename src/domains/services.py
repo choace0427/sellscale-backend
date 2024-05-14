@@ -1181,7 +1181,7 @@ def create_workmail_inbox(
     # Create a user and mailbox
     user = aws_workmail_client.create_user(
         OrganizationId=organization_id,
-        DisplayName=f"{username}@{domain_name}",
+        DisplayName=f"{first_name} {last_name}",
         Name=f"{username}@{domain_name}",
         Password=password,
         FirstName=first_name,
@@ -1353,14 +1353,14 @@ def domain_setup_workflow(
     db.session.commit()
 
     # Add DNS records
-    success, _ = add_email_dns_records(domain_id=domain_id, domain_name=domain_name)
+    success, _ = add_domain_dns_records(domain_id=domain_id, domain_name=domain_name)
     if not success:
         return False, "Failed to add email DNS records"
 
     return True, "Domain DNS setup workflow completed successfully"
 
 
-def add_email_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
+def add_domain_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
     """Adds DNS records for a domain. Namely DKIM, DMARC, SPF, MX, and verification records
 
     Args:
