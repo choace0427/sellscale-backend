@@ -547,6 +547,13 @@ VALID_UPDATE_EMAIL_STATUS_MAP = {
 }
 
 
+EMAIL_ACTIVE_CONVO_POSITIVE_STATUSES = [
+    ProspectEmailOutreachStatus.ACTIVE_CONVO_NEXT_STEPS,
+    ProspectEmailOutreachStatus.ACTIVE_CONVO_QUESTION,
+    ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING,
+]
+
+
 VALID_NEXT_EMAIL_STATUSES = {
     ProspectEmailOutreachStatus.UNKNOWN: [
         ProspectEmailOutreachStatus.NOT_SENT,

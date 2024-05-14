@@ -7,6 +7,10 @@ import os
 import time
 from src.client.models import ClientSDR, Client, Prospect
 from merge.client import Merge
+from src.email_outbound.models import (
+    EMAIL_ACTIVE_CONVO_POSITIVE_STATUSES,
+    ProspectEmail,
+)
 from src.merge_crm.models import ClientSyncCRM
 from merge.resources.crm import (
     ContactRequest,
@@ -17,7 +21,11 @@ from merge.resources.crm import (
 )
 from model_import import Prospect
 from src.merge_crm.merge_client import MergeIntegrator, MergeClient
-from src.prospecting.models import ProspectOverallStatus
+from src.prospecting.models import (
+    LINKEDIN_ACTIVE_CONVO_POSITIVE_STATUSES,
+    ProspectOverallStatus,
+    ProspectStatus,
+)
 
 API_KEY = os.environ.get("MERGE_API_KEY")
 
@@ -370,27 +378,68 @@ def check_and_use_crm_event_handler(
     Returns:
         tuple[bool, str]: A tuple containing a boolean indicating success and a message
     """
+
+    def is_prospect_status_active_convo_positive(prospect_id: int) -> bool:
+        """Checks if the Prospect status is positive
+
+        Args:
+            prospect_id (int): The ID of the Prospect
+
+        Returns:
+            bool: A boolean indicating if the Prospect status is positive
+        """
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
+
+        # Is LinkedIn status positive?
+        if prospect.status in LINKEDIN_ACTIVE_CONVO_POSITIVE_STATUSES:
+            return True
+
+        # Is Email status positive?
+        if (
+            prospect_email
+            and prospect_email.outreach_status in EMAIL_ACTIVE_CONVO_POSITIVE_STATUSES
+        ):
+            return True
+
+        return False
+
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
 
-    # Get the prospect
-    prospect: Prospect = Prospect.query.get(prospect_id)
-    if prospect.merge_opportunity_id:
-        return False, "Prospect already synced"
-
-    # Get the ClientSyncCRM object
+    # 0a. Get the ClientSyncCRM object
     client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
         client_id=client.id
     ).first()
     if not client_sync_crm:
         return False, "ClientSyncCRM not found"
 
-    # Check if there is an event handler for the given status
+    # 0b. Get the prospect
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.merge_opportunity_id:
+        return False, "Prospect already synced"
+
+    # 1. Check if there is an event handler for the given status
     event_handler = client_sync_crm.event_handlers.get(overall_status.value)
+    if not event_handler:
+        # Check for a "positive reply" event handler if the status is "ACTIVE_CONVO"
+        positive_reply_event_handler = client_sync_crm.event_handlers.get(
+            "ACTIVE_CONVO_POSITIVE_REPLY"
+        )
+        if (
+            positive_reply_event_handler
+            and overall_status == ProspectOverallStatus.ACTIVE_CONVO
+        ):
+            is_positive = is_prospect_status_active_convo_positive(prospect_id)
+            if is_positive:
+                event_handler = positive_reply_event_handler
+
     if not event_handler:
         return False, "No event handler found for the given status"
 
-    # This is a bit of a hack to handle cases where a user may want us to sync
+    # 1c. This is a bit of a hack to handle cases where a user may want us to sync
     # to non-opportunity models. We still want to sync the prospect to the CRM
     # but don't want to accidentally send to a stage. In theory, we should never
     # even try to create a CAO if we're not syncing opportunities, but this is
@@ -398,14 +447,17 @@ def check_and_use_crm_event_handler(
     if event_handler == "LEAD_ONLY":
         event_handler = None
 
-    # Trigger the event handler
+    print("EVENT HANDLER WOULD TRIGGER")
+    return True
+
+    # 2. Trigger the event handler
     success, message = upload_prospect_to_crm(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         stage_id_override=event_handler,
     )
 
-    # Send slack message
+    # 3. Send slack message
     if success:
         from src.utils.slack import send_slack_message, URL_MAP
 
