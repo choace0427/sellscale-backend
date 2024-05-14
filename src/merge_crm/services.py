@@ -447,9 +447,6 @@ def check_and_use_crm_event_handler(
     if event_handler == "LEAD_ONLY":
         event_handler = None
 
-    print("EVENT HANDLER WOULD TRIGGER")
-    return True
-
     # 2. Trigger the event handler
     success, message = upload_prospect_to_crm(
         client_sdr_id=client_sdr_id,
