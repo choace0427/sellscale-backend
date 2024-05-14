@@ -29,6 +29,9 @@ class DomainSetupTracker(db.Model):
 
     # Optional stage for mailbox setup
     setup_mailboxes = db.Column(db.Boolean, nullable=False, default=False)
+    setup_mailboxes_sdr_id = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=True
+    )
     setup_mailboxes_usernames = db.Column(db.ARRAY(db.String), nullable=True)
     stage_setup_mailboxes = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -41,6 +44,8 @@ class DomainSetupTracker(db.Model):
             "stage_setup_dns_records": self.stage_setup_dns_records,
             "stage_setup_forwarding": self.stage_setup_forwarding,
             "setup_mailboxes": self.setup_mailboxes,
+            "setup_mailboxes_sdr_id": self.setup_mailboxes_sdr_id,
+            "setup_mailboxes_usernames": self.setup_mailboxes_usernames,
             "stage_setup_mailboxes": self.stage_setup_mailboxes,
         }
 

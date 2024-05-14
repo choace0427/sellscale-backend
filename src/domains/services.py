@@ -672,7 +672,9 @@ def handle_domain_setup(domain_setup_tracker_id: int) -> tuple[bool, str]:
         overall_message = ""
         for username in domain_setup_tracker.setup_mailboxes_usernames:
             success, message = workmail_setup_workflow(
-                client_sdr_id=domain.client_id, domain_id=domain.id, username=username
+                client_sdr_id=domain_setup_tracker.setup_mailboxes_sdr_id,
+                domain_id=domain.id,
+                username=username,
             )
             overall_success = overall_success and success
             overall_message += message + "\n"
@@ -1041,6 +1043,7 @@ def create_domain_and_managed_inboxes(
 
     domain_setup_tracker.setup_mailboxes = True
     domain_setup_tracker.setup_mailboxes_usernames = usernames
+    domain_setup_tracker.setup_mailboxes_sdr_id = client_sdr_id
     db.session.commit()
     return (
         True,
