@@ -1721,7 +1721,9 @@ def add_prospect(
         if segment_id and archetype.is_unassigned_contact_archetype:
             # Use the segment's attached archetype if the prospect archetype is unassigned
             segment: Segment = Segment.query.get(segment_id)
-            if segment.client_archetype_id:
+            if segment is None:
+                segment_id = None
+            elif segment.client_archetype_id:
                 archetype_id = segment.client_archetype_id
                 archetype = ClientArchetype.query.get(archetype_id)
 

@@ -141,6 +141,7 @@ def get_champion_detection_changes(
                 join research_payload on prospect.id = research_payload.prospect_id
             where prospect.client_id = 1
                 and prospect.is_champion
+                and research_payload.research_type = 'LINKEDIN_ISCRAPER'
             group by {client_id}
         )
         select 

@@ -115,14 +115,17 @@ def create_prospect_upload_history(
         raw_data_hash=raw_data_hash,
     ).first()
     if exists:
-        return -1
+        return exists.id
 
     # Get the upload name by referencing the Segment and # of uploads under this segment
     segment: Segment = Segment.query.get(client_segment_id)
-    past_uploads: int = ProspectUploadHistory.query.filter_by(
-        client_segment_id=client_segment_id,
-    ).count()
-    upload_name = f"{segment.segment_title} #{past_uploads + 1}"
+    if segment is None:
+        upload_name = ''
+    else:
+        past_uploads: int = ProspectUploadHistory.query.filter_by(
+            client_segment_id=client_segment_id,
+        ).count()
+        upload_name = f"{segment.segment_title} #{past_uploads + 1}"
 
     prospect_upload_history: ProspectUploadHistory = ProspectUploadHistory(
         client_id=client_id,
@@ -590,6 +593,7 @@ def create_prospect_from_linkedin_link(
             employee_count=employee_count,
             full_name=full_name,
             industry=industry,
+            synchronous_research=True,
             linkedin_url=linkedin_url,
             linkedin_bio=linkedin_bio,
             title=title,
@@ -638,7 +642,7 @@ def create_prospect_from_linkedin_link(
             prospect_upload.error_type = ProspectUploadsErrorType.DUPLICATE
             db.session.add(prospect_upload)
             db.session.commit()
-            return False, -1
+            return False, prospect_upload_id
     except Exception as e:
         db.session.rollback()
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
