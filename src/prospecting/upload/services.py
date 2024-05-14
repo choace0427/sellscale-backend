@@ -2,6 +2,7 @@ from src.client.models import ClientArchetype, ClientSDR
 from src.automation.li_searcher import search_for_li
 from app import db, celery
 from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
+from src.prospecting.champions.services import mark_prospects_as_champion
 from src.prospecting.models import (
     ProspectUploadHistory,
     ProspectUploadSource,
@@ -432,6 +433,7 @@ def create_prospect_from_linkedin_link(
     self,
     prospect_upload_id: int,
     allow_duplicates: bool = True,
+    mark_prospect_as_is_champion: bool = False
 ) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
@@ -450,7 +452,6 @@ def create_prospect_from_linkedin_link(
         get_iscraper_payload_error,
         research_corporate_profile_details,
     )
-
     try:
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
@@ -635,6 +636,9 @@ def create_prospect_from_linkedin_link(
             research_point_type_id = create_custom_research_point_type(
                 prospect_id=new_prospect_id, label="CUSTOM", data=custom_data
             )
+
+            if mark_prospect_as_is_champion:
+                mark_prospects_as_champion(client_id=prospect_upload.client_id, prospect_ids=[new_prospect_id], is_champion=mark_prospect_as_is_champion)
 
             return True, new_prospect_id
         else:

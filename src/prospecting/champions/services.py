@@ -53,6 +53,8 @@ def get_champion_detection_stats(client_id: int):
                 from prospect
                     join research_payload on prospect.id = research_payload.prospect_id
                 where prospect.client_id = {client_id}
+                    and prospect.is_champion
+                    and research_payload.research_type = 'LINKEDIN_ISCRAPER'
                 group by 1
             )
             select 

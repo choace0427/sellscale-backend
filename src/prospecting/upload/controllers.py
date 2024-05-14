@@ -2,7 +2,6 @@ from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 from src.client.models import (ClientSDR, ClientArchetype)
 from src.prospecting.models import ProspectUploadSource
-from src.prospecting.champions.services import get_champion_detection_changes, get_champion_detection_stats, mark_prospects_as_champion, refresh_job_data_for_all_champions
 from src.prospecting.upload.services import (
     create_prospect_from_linkedin_link,
     get_prospect_upload_history,
@@ -151,7 +150,7 @@ def post_upload_prospect_from_linkedin_link(client_sdr_id: int):
 def post_upload_prospects_from_linkedin_links(client_sdr_id: int):
     """Uploads multiple Prospects from an array of LinkedIn Links."""
     archetype_id = get_request_parameter("archetype_id", request, json=True, required=True)
-    markAsChampion = get_request_parameter("markAsChampion", request, json=True, required=False)
+    mark_as_champion = get_request_parameter("mark_as_champion", request, json=True, required=False)
     segment_id = get_request_parameter("segment_id", request, json=True, required=False)
     urls = get_request_parameter("urls", request, json=True, required=True)  # Expecting an array of URLs
     live = get_request_parameter("live", request, json=True, required=False) or False
@@ -174,34 +173,35 @@ def post_upload_prospects_from_linkedin_links(client_sdr_id: int):
         else:
             return jsonify({"status": "error", "message": "Unassigned contact archetype not found"}), 404
 
-    def process_url(url):
+    def process_url(url, upload_history_id):
         try:
-            upload_history_id = create_prospect_upload_history(
-                client_id=sdr.client_id,
-                client_sdr_id=client_sdr_id,
-                upload_source=ProspectUploadSource.LINKEDIN_LINK,
-                raw_data=[{"linkedin_url": url, "custom_data": custom_data, "is_lookalike_profile": is_lookalike_profile}],
-                client_segment_id=segment_id,
-                client_archetype_id=archetype_id,
-            )
             upload_id = populate_prospect_uploads_from_linkedin_link(upload_history_id)
             if live:
-                success, prospect_id = create_prospect_from_linkedin_link(prospect_upload_id=upload_id)
+                success, prospect_id = create_prospect_from_linkedin_link(prospect_upload_id=upload_id, mark_prospect_as_is_champion=mark_as_champion)
                 return {"success": success, "prospect_id": prospect_id}
             else:
-                create_prospect_from_linkedin_link.delay(prospect_upload_id=upload_id, segment_id=segment_id)
+                create_prospect_from_linkedin_link.delay(prospect_upload_id=upload_id, mark_prospect_as_is_champion=mark_as_champion)
                 return {"message": "Prospect creation queued"}
         except Exception as e:
             print(f"Failed to process URL {url}: {str(e)}")
             return {"error": "Failed to process URL", "details": str(e)}
+        
+    upload_history_id = create_prospect_upload_history(
+        client_id=sdr.client_id,
+        client_sdr_id=client_sdr_id,
+        upload_source=ProspectUploadSource.LINKEDIN_LINK,
+        raw_data=[
+            {"linkedin_url": url, "custom_data": custom_data, "is_lookalike_profile": is_lookalike_profile}
+            for url in urls
+        ],
+        client_segment_id=segment_id,
+        client_archetype_id=archetype_id,
+    )
 
     results = []
     for url in urls:
-        result = process_url(url)
+        result = process_url(url, upload_history_id)
         results.append(result)
-        prospect_ids = [result['prospect_id'] for result in results if 'prospect_id' in result]
-        if markAsChampion and prospect_ids:
-            mark_prospects_as_champion(client_id=sdr.client_id, prospect_ids=prospect_ids, is_champion=True)
 
     return jsonify({"status": "success", "data": results}), 200
 
