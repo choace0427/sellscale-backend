@@ -833,7 +833,14 @@ def schedule_process_queue_test(size: int, wait: int):
 @celery.task
 def process_queue_test(count: int, time: str):
 
+    import sys
+    import psutil
+
+    imported_packages = list(sys.modules.keys())
+    process = psutil.Process()
+    mem_info = process.memory_info()
+
     send_slack_message(
-        message=f"Testing process queue:\n Count - {count}\n Add Time - {time}\n Current Time - {datetime.utcnow().isoformat()}",
+        message=f"Testing process queue:\n Count - {count}\n Add Time - {time}\n Current Time - {datetime.utcnow().isoformat()}\n Memory Usage - {mem_info.rss / 1024 / 1024} MB\n Imported Packages - {len(imported_packages)}, {', '.join(imported_packages)}",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
