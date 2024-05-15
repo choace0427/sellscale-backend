@@ -1,37 +1,5 @@
 from typing import Optional
 
-from src.smartlead.services import smartlead_reply_to_prospect, sync_prospect_with_lead
-from src.voyager.linkedin import send_scheduled_linkedin_message
-from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
-
-from src.automation.services import process_queue_test
-
-from src.triggers.services import trigger_runner
-
-from src.prospecting.services import generate_prospect_upload_report
-from src.email_scheduling.services import populate_email_messaging_schedule_entries
-
-from src.individual.services import (
-    add_individual_from_iscraper_cache,
-    individual_similar_profile_crawler,
-    upload_job_for_individual,
-    convert_to_prospect,
-)
-from src.voyager.services import withdraw_li_invite
-from src.client.sdr.email.services_email_bank import sync_email_bank_statistics_for_sdr
-from src.campaigns.autopilot.services import (
-    daily_generate_email_campaign_for_sdr,
-)
-from src.campaigns.autopilot.services import (
-    daily_generate_linkedin_campaign_for_sdr,
-)
-from src.prospecting.upload.services import upload_from_apollo
-from src.automation.phantom_buster.services import (
-    delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape,
-)
-from src.email_outbound.email_store.services import find_email_for_prospect_id
-
-from src.utils.datetime.dateutils import get_future_datetime
 from src.automation.models import (
     ProcessQueue,
     ProcessQueueStatus,
@@ -50,115 +18,161 @@ from sqlalchemy import or_, and_
 # - args are passed into the function from meta_data.args
 PROCESS_TYPE_MAP = {
     "process_queue_test": {
-        "function": process_queue_test,
+        "function": lambda: __import__(
+            "src.automation.services", fromlist=["process_queue_test"]
+        ).process_queue_test(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "li_invite_withdraw": {
-        "function": withdraw_li_invite,
+        "function": lambda: __import__(
+            "src.voyager.services", fromlist=["withdraw_li_invite"]
+        ).withdraw_li_invite(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "add_individual_from_iscraper_cache": {
-        "function": add_individual_from_iscraper_cache,
+        "function": lambda: __import__(
+            "src.individual.services", fromlist=["add_individual_from_iscraper_cache"]
+        ).add_individual_from_iscraper_cache(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "run_icrawler": {
-        "function": individual_similar_profile_crawler,
+        "function": lambda: __import__(
+            "src.individual.services", fromlist=["individual_similar_profile_crawler"]
+        ).individual_similar_profile_crawler(),
         "priority": 10,
         "queue": "icrawler",
         "routing_key": "icrawler",
     },
     "upload_job_for_individual": {
-        "function": upload_job_for_individual,
+        "function": lambda: __import__(
+            "src.individual.services", fromlist=["upload_job_for_individual"]
+        ).upload_job_for_individual(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "convert_to_prospect": {
-        "function": convert_to_prospect,
+        "function": lambda: __import__(
+            "src.individual.services", fromlist=["convert_to_prospect"]
+        ).convert_to_prospect(),
         "priority": 10,
         "queue": "prospecting",
         "routing_key": "prospecting",
     },
     "populate_email_messaging_schedule_entries": {
-        "function": populate_email_messaging_schedule_entries,
+        "function": lambda: __import__(
+            "src.email_scheduling.services",
+            fromlist=["populate_email_messaging_schedule_entries"],
+        ).populate_email_messaging_schedule_entries(),
         "priority": 1,
         "queue": "email_scheduler",
         "routing_key": "email_scheduler",
     },
     "generate_prospect_upload_report": {
-        "function": generate_prospect_upload_report,
+        "function": lambda: __import__(
+            "src.prospecting.services", fromlist=["generate_prospect_upload_report"]
+        ).generate_prospect_upload_report(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "set_warmup_snapshot_for_sdr": {
-        "function": set_warmup_snapshot_for_sdr,
+        "function": lambda: __import__(
+            "src.warmup_snapshot.services", fromlist=["set_warmup_snapshot_for_sdr"]
+        ).set_warmup_snapshot_for_sdr(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "sync_email_bank_statistics_for_sdr": {
-        "function": sync_email_bank_statistics_for_sdr,
+        "function": lambda: __import__(
+            "src.client.sdr.email.services_email_bank",
+            fromlist=["sync_email_bank_statistics_for_sdr"],
+        ).sync_email_bank_statistics_for_sdr(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "sync_prospect_with_lead": {
-        "function": sync_prospect_with_lead,
+        "function": lambda: __import__(
+            "src.smartlead.services", fromlist=["sync_prospect_with_lead"]
+        ).sync_prospect_with_lead(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "trigger_runner": {
-        "function": trigger_runner,
+        "function": lambda: __import__(
+            "src.triggers.services", fromlist=["trigger_runner"]
+        ).trigger_runner(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "send_scheduled_linkedin_message": {
-        "function": send_scheduled_linkedin_message,
+        "function": lambda: __import__(
+            "src.voyager.linkedin", fromlist=["send_scheduled_linkedin_message"]
+        ).send_scheduled_linkedin_message(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "smartlead_reply_to_prospect": {
-        "function": smartlead_reply_to_prospect,
+        "function": lambda: __import__(
+            "src.smartlead.services", fromlist=["smartlead_reply_to_prospect"]
+        ).smartlead_reply_to_prospect(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "daily_generate_email_campaign_for_sdr": {
-        "function": daily_generate_email_campaign_for_sdr,
+        "function": lambda: __import__(
+            "src.campaigns.autopilot.services",
+            fromlist=["daily_generate_email_campaign_for_sdr"],
+        ).daily_generate_email_campaign_for_sdr(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "daily_generate_linkedin_campaign_for_sdr": {
-        "function": daily_generate_linkedin_campaign_for_sdr,
+        "function": lambda: __import__(
+            "src.campaigns.autopilot.services",
+            fromlist=["daily_generate_linkedin_campaign_for_sdr"],
+        ).daily_generate_linkedin_campaign_for_sdr(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
     },
     "upload_from_apollo": {
-        "function": upload_from_apollo,
+        "function": lambda: __import__(
+            "src.prospecting.upload.services", fromlist=["upload_from_apollo"]
+        ).upload_from_apollo(),
         "priority": 2,
         "queue": "prospecting",
         "routing_key": "prospecting",
     },
     "delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape": {
-        "function": delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape,
+        "function": lambda: __import__(
+            "src.automation.phantom_buster.services",
+            fromlist=[
+                "delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape"
+            ],
+        ).delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape(),
         "priority": 2,
         "queue": "prospecting",
         "routing_key": "prospecting",
     },
     "find_email_for_prospect_id": {
-        "function": find_email_for_prospect_id,
+        "function": lambda: __import__(
+            "src.email_outbound.email_store.services",
+            fromlist=["find_email_for_prospect_id"],
+        ).find_email_for_prospect_id(),
         "priority": 10,
         "queue": None,
         "routing_key": None,
@@ -381,6 +395,7 @@ def add_process_for_future(
         or
         None, reason (str)
     """
+    from src.utils.datetime.dateutils import get_future_datetime
 
     return add_process_to_queue(
         type=type,
