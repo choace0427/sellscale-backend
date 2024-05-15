@@ -133,7 +133,6 @@ def make_celery(app):
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "secret!!"
-# socketio = SocketIO(app, cors_allowed_origins="*")
 
 app.config.update(
     CELERY_BROKER_URL=os.environ.get("CELERY_REDIS_URL"),
@@ -191,19 +190,6 @@ aws_amplify_client = boto3.client(
 
 db: SQLAlchemy = SQLAlchemy(model_class=TimestampedModel)
 migrate = Migrate(app, db)
-
-
-# @socketio.on("connect")
-# def handle_connect():
-#     print("Client connected")
-#     socketio.emit("message", {"data": "Talking to you"})
-
-
-# @socketio.on("message")
-# def handle_message(msg):
-#     print("Message:", msg)
-#     socketio.emit("message", msg)
-
 
 # chroma_client = chromadb.HttpClient(host='https://vector-db-zakq.onrender.com', port=8000)
 
