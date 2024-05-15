@@ -1,6 +1,10 @@
 from typing import Dict, List, Optional
 from src.email_outbound.models import ProspectEmailOutreachStatus
-from src.ml.openai_wrappers import DEFAULT_TEMPERATURE, OPENAI_CHAT_GPT_4_TURBO_MODEL
+from src.ml.openai_wrappers import (
+    DEFAULT_TEMPERATURE,
+    OPENAI_CHAT_GPT_4_TURBO_MODEL,
+    streamed_chat_completion_to_socket,
+)
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFramework
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
@@ -1105,6 +1109,8 @@ def get_text_generation(
     temperature: Optional[float] = DEFAULT_TEMPERATURE,
     use_cache: bool = False,
     tools: Optional[list] = None,
+    stream_event: Optional[str] = None,
+    stream_room_id: Optional[str] = None,
 ) -> Optional[str]:
     # type = "LI_MSG_INIT" | "LI_MSG_OTHER" | "RESEARCH" | "EMAIL" | "VOICE_MSG" | "ICP_CLASSIFY"
     # | "TEXT_EDITOR" | "MISC_CLASSIFY" | "MISC_SUMMARIZE" | "LI_CTA" | "CLIENT_ASSETS" | "SEQUENCE_GEN_<ID>"
@@ -1126,6 +1132,29 @@ def get_text_generation(
             TextGeneration.prompt == json_msgs,
         ).first()
 
+    # Handle streaming
+    if stream_event:
+        if json_msgs and text_gen:
+            from src.sockets.services import send_socket_message
+
+            send_socket_message(
+                stream_event,
+                {"response_delta": text_gen.completion, "extra_data": None},
+                room_id=stream_room_id,
+            )
+            return text_gen.completion
+        else:
+            completion = streamed_chat_completion_to_socket(
+                event=stream_event,
+                room_id=stream_room_id,
+                messages=messages,
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            return completion
+
+    # Handle normal completion
     if json_msgs and text_gen:
         return text_gen.completion
     else:

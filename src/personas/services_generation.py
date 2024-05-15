@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 from src.client.models import (
     ClientArchetype,
     ClientAssetType,
@@ -20,8 +21,8 @@ from datetime import datetime
 GEN_AMOUNT = 3
 ASSET_AMOUNT = 5
 
-MESSAGE_MODEL = "gpt-4o" # "claude-3-opus-20240229"  # "claude-3-opus-20240229"
-CLEANING_MODEL = "gpt-4-turbo-preview"
+MESSAGE_MODEL = "gpt-4o"  # "claude-3-opus-20240229"  # "claude-3-opus-20240229"
+CLEANING_MODEL = "gpt-4o"  # "gpt-4-turbo-preview"
 
 
 def get_sdr_prompting_context_info(client_sdr_id: int):
@@ -360,6 +361,121 @@ def generate_sequence(
     return output
 
 
+@celery.task
+def generate_sequence_piece(
+    client_id: int,
+    archetype_id: int,
+    gen_type: str,
+    additional_prompting: str,
+    room_gen_id: str,
+):
+    stream_event = "generate_sequence_piece"
+    stream_room_id = room_gen_id
+
+    step_num = 1
+
+    gen_id = create_gen_id(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        sequence_type=gen_type,
+        step_num=step_num,
+        additional_prompting=additional_prompting,
+    )
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    context_info = get_sdr_prompting_context_info(archetype.client_sdr_id)
+
+    raw_assets = get_archetype_assets(archetype_id)
+    all_assets = [
+        {
+            "id": asset.get("id"),
+            "title": asset.get("asset_key"),
+            "value": asset.get("asset_value"),
+            "tag": (
+                asset.get("asset_tags", [])[0]
+                if len(asset.get("asset_tags", [])) > 0
+                else ""
+            ),
+        }
+        for asset in raw_assets
+    ]
+
+    assets = random.sample(
+        all_assets,
+        min(ASSET_AMOUNT, len(all_assets)),
+    )
+    assets_str = "## Assets: \n" + "\n\n".join(
+        [
+            f"Title: {asset.get('title')}\nValue: {asset.get('value')}\nTag: {asset.get('tag')}\nID: {asset.get('id')}"
+            for asset in assets
+        ]
+    )
+
+    if gen_type == "EMAIL-INIT":
+        return generate_email_initial(
+            gen_id=gen_id,
+            client_id=client_id,
+            archetype_id=archetype_id,
+            context_info=context_info,
+            assets_str=assets_str,
+            additional_prompting=additional_prompting,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
+        )
+
+    if gen_type == "EMAIL-FOLLOWUP":
+        return generate_email_follow_up_quick_and_dirty(
+            gen_id=gen_id,
+            client_id=client_id,
+            archetype_id=archetype_id,
+            step_num=step_num,
+            context_info=context_info,
+            assets_str=assets_str,
+            additional_prompting=additional_prompting,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
+        )
+
+    if gen_type == "LINKEDIN-CTA":
+        return generate_linkedin_cta(
+            gen_id=gen_id,
+            client_id=client_id,
+            archetype_id=archetype_id,
+            context_info=context_info,
+            assets_str=assets_str,
+            additional_prompting=additional_prompting,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
+        )
+
+    if gen_type == "LINKEDIN-TEMPLATE":
+        return generate_linkedin_initial(
+            gen_id=gen_id,
+            client_id=client_id,
+            archetype_id=archetype_id,
+            context_info=context_info,
+            assets_str=assets_str,
+            additional_prompting=additional_prompting,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
+        )
+
+    if gen_type == "LINKEDIN-FOLLOWUP":
+        return generate_linkedin_follow_up(
+            gen_id=gen_id,
+            client_id=client_id,
+            archetype_id=archetype_id,
+            step_num=step_num,
+            context_info=context_info,
+            assets_str=assets_str,
+            additional_prompting=additional_prompting,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
+        )
+
+    return "Error: Not found"
+
+
 def generate_email_initial(
     gen_id: str,
     client_id: int,
@@ -367,6 +483,8 @@ def generate_email_initial(
     context_info: str,
     assets_str: str,
     additional_prompting: str,
+    stream_event: Optional[str] = None,
+    stream_room_id: Optional[str] = None,
 ):
     """
 
@@ -464,6 +582,8 @@ Please generate a cold email outline for generative outreach to prospects.
             type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
         )
         or ""
     )
@@ -480,6 +600,8 @@ def generate_email_follow_up_quick_and_dirty(
     context_info: str,
     assets_str: str,
     additional_prompting: str,
+    stream_event: Optional[str] = None,
+    stream_room_id: Optional[str] = None,
 ):
 
     prompt = f"""
@@ -599,6 +721,8 @@ def generate_email_follow_up_quick_and_dirty(
             type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
         )
         or ""
     )
@@ -614,6 +738,8 @@ def generate_linkedin_initial(
     context_info: str,
     assets_str: str,
     additional_prompting: str,
+    stream_event: Optional[str] = None,
+    stream_room_id: Optional[str] = None,
 ):
 
     prompt = f"""
@@ -722,6 +848,8 @@ Please generate a cold outbound LinkedIn message outline for generative outreach
             type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
         )
         or ""
     )
@@ -738,6 +866,8 @@ def generate_linkedin_follow_up(
     context_info: str,
     assets_str: str,
     additional_prompting: str,
+    stream_event: Optional[str] = None,
+    stream_room_id: Optional[str] = None,
 ):
 
     prompt = f"""
@@ -847,6 +977,8 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
             type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
         )
         or ""
     )
@@ -862,6 +994,8 @@ def generate_linkedin_cta(
     context_info: str,
     assets_str: str,
     additional_prompting: str,
+    stream_event: Optional[str] = None,
+    stream_room_id: Optional[str] = None,
 ):
 
     prompt = f"""
@@ -966,6 +1100,8 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
             type=f"SEQUENCE_GEN_{gen_id}",
             temperature=0.85,
             use_cache=False,
+            stream_event=stream_event,
+            stream_room_id=stream_room_id,
         )
         or ""
     )

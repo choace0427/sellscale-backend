@@ -10,6 +10,7 @@ from src.personas.services import (
     unassign_prospects,
 )
 from src.personas.services_generation import (
+    generate_sequence_piece,
     schedule_generate_sequence,
     generate_sequence,
 )
@@ -187,6 +188,41 @@ def post_generate_sequence(client_sdr_id: int):
         sequence_type,
         step_num,
         additional_prompting,
+    )
+
+    return jsonify({"status": "success", "data": result}), 200
+
+
+@PERSONAS_BLUEPRINT.route("/generate_sequence_piece", methods=["POST"])
+@require_user
+def post_generate_sequence_piece(client_sdr_id: int):
+    """Generates a sequence piece for an archetype"""
+    client_id = get_request_parameter(
+        "client_id", request, json=True, required=True, parameter_type=int
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    gen_type = get_request_parameter(
+        "gen_type", request, json=True, required=True, parameter_type=str
+    )
+    room_gen_id = get_request_parameter(
+        "room_gen_id", request, json=True, required=True, parameter_type=str
+    )
+    additional_prompting = get_request_parameter(
+        "additional_prompting",
+        request,
+        json=True,
+        required=True,
+        parameter_type=str,
+    )
+
+    result = generate_sequence_piece(
+        client_id,
+        archetype_id,
+        gen_type,
+        additional_prompting,
+        room_gen_id=room_gen_id,
     )
 
     return jsonify({"status": "success", "data": result}), 200
