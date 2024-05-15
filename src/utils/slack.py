@@ -9,7 +9,7 @@ from src.utils.access import is_production
 URL_MAP = {
     "ops-demo-reminders": "https://hooks.slack.com/services/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",
     "autodetect-scheduling": "https://hooks.slack.com/services/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",
-    "eng-sandbox": "https://hooks.slack.com/services/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",
+    "eng-sandbox": "https://hooks.slack.com/services/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",
     "user-errors": "https://hooks.slack.com/services/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",
     "sellscale_pipeline_all_clients": "https://hooks.slack.com/services/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",
     "operations-ready-campaigns": "https://hooks.slack.com/services/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",
