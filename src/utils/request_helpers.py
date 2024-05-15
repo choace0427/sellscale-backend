@@ -1,5 +1,6 @@
 from decimal import InvalidOperation
 from flask import Request
+from requests.models import Response
 from typing import Optional
 
 
@@ -32,9 +33,9 @@ def get_request_parameter(
             return default_value
 
     if type(value) == str and parameter_type == bool:
-        if value.lower() == 'true':
+        if value.lower() == "true":
             return True
-        elif value.lower() == 'false':
+        elif value.lower() == "false":
             return False
         else:
             message = "Invalid request. Parameter for boolean must be either 'true' or 'false'.".format(
@@ -44,9 +45,9 @@ def get_request_parameter(
 
     if parameter_type == list and not json:
         value = values.getlist(key)
-        if value[0] == '':
+        if value[0] == "":
             return default_value
-        value = value[0].split(',')
+        value = value[0].split(",")
         return value
 
     if parameter_type != None and type(value) != parameter_type:
@@ -68,3 +69,11 @@ def get_auth_token(request: Request) -> str:
         if token:
             return token
     raise Exception("Missing Authorization Token")
+
+
+def is_jsonable(response: Response) -> bool:
+    try:
+        response.json()
+        return True
+    except ValueError:
+        return False
