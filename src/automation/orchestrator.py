@@ -253,7 +253,7 @@ def handle_process(process_id: int, type: str, meta_data: Optional[dict]) -> boo
         args = {}
 
     # Execute the function on the appropriate celery worker queue
-    (process_data.get("function")).apply_async(
+    (process_data.get("function")()).apply_async(
         kwargs=args,
         queue=process_data.get("queue", None),
         routing_key=process_data.get("routing_key", None),
