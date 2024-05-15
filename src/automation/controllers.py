@@ -8,6 +8,7 @@ from src.automation.services import (
     get_all_phantom_busters,
     create_new_auto_connect_phantom,
     process_pb_webhook_payload,
+    schedule_process_queue_test,
     update_phantom_buster_li_at,
     create_pb_linkedin_invite_csv,
     update_pb_linkedin_send_status,
@@ -230,4 +231,14 @@ def send_resend_email():
     html = get_request_parameter("html", request, json=True, required=True)
 
     send_email(html=html)
+    return "OK", 200
+
+
+@AUTOMATION_BLUEPRINT.route("/schedule_process_queue_test", methods=["POST"])
+def post_schedule_process_queue_test():
+    size = get_request_parameter("size", request, json=True, required=True)
+    wait = get_request_parameter("wait", request, json=True, required=True)
+
+    schedule_process_queue_test(size, wait)
+
     return "OK", 200

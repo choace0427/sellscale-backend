@@ -4,6 +4,8 @@ from src.smartlead.services import smartlead_reply_to_prospect, sync_prospect_wi
 from src.voyager.linkedin import send_scheduled_linkedin_message
 from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 
+from src.automation.services import process_queue_test
+
 from src.triggers.services import trigger_runner
 
 from src.prospecting.services import generate_prospect_upload_report
@@ -47,6 +49,12 @@ from sqlalchemy import or_, and_
 # - function must return a boolean for success or failure
 # - args are passed into the function from meta_data.args
 PROCESS_TYPE_MAP = {
+    "process_queue_test": {
+        "function": process_queue_test,
+        "priority": 10,
+        "queue": None,
+        "routing_key": None,
+    },
     "li_invite_withdraw": {
         "function": withdraw_li_invite,
         "priority": 10,

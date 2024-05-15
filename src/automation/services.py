@@ -23,6 +23,7 @@ import requests
 import os
 import io
 import csv
+from datetime import datetime
 
 PHANTOMBUSTER_API_KEY = os.environ.get("PHANTOMBUSTER_API_KEY")
 GET_PHANTOMBUSTER_AGENTS_URL = "https://api.phantombuster.com/api/v2/agents/fetch-all"
@@ -807,3 +808,31 @@ def reset_phantom_buster_scrapes_and_launches(self):
             webhook_urls=[URL_MAP["eng-sandbox"]],
         )
         self.retry(countdown=5)
+
+
+def schedule_process_queue_test(size: int, wait: int):
+
+    from src.automation.orchestrator import add_process_list
+
+    add_process_list(
+        type="process_queue_test",
+        args_list=[
+            {"count": count, "time": datetime.utcnow()} for count in range(size)
+        ],
+        buffer_wait_minutes=wait,
+        init_wait_minutes=1,
+    )
+
+    send_slack_message(
+        message=f"Started process queue test!\n Current Time - {datetime.utcnow().isoformat()}",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+
+@celery.task
+def process_queue_test(count: int, time: datetime):
+
+    send_slack_message(
+        message=f"Testing process queue:\n Count - {count}\n Add Time - {time.isoformat()}\n Current Time - {datetime.utcnow().isoformat()}",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
