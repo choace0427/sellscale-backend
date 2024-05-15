@@ -1218,7 +1218,7 @@ def create_workmail_inbox(
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"[{domain_name}]\n🙏 New Inbox Created on Smartlead: {username}@{domain_name}",
+                    "text": f"[{domain_name}]\n🙏 New Inbox Created on Workmail: {username}@{domain_name}",
                 },
             }
         ],
