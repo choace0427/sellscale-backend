@@ -393,7 +393,7 @@ def add_process_for_future(
 def add_process_list(
     type: str,
     args_list: list[dict] = [],
-    chunk_size: int = 10,
+    chunk_size: int = 1,
     init_wait_days: int = 0,
     init_wait_minutes: int = 0,
     chunk_wait_days: int = 0,
