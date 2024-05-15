@@ -672,7 +672,9 @@ def handle_domain_setup(domain_setup_tracker_id: int) -> tuple[bool, str]:
         overall_message = ""
         for username in domain_setup_tracker.setup_mailboxes_usernames:
             success, message = workmail_setup_workflow(
-                client_sdr_id=domain.client_id, domain_id=domain.id, username=username
+                client_sdr_id=domain_setup_tracker.setup_mailboxes_sdr_id,
+                domain_id=domain.id,
+                username=username,
             )
             overall_success = overall_success and success
             overall_message += message + "\n"
@@ -1041,6 +1043,7 @@ def create_domain_and_managed_inboxes(
 
     domain_setup_tracker.setup_mailboxes = True
     domain_setup_tracker.setup_mailboxes_usernames = usernames
+    domain_setup_tracker.setup_mailboxes_sdr_id = client_sdr_id
     db.session.commit()
     return (
         True,
@@ -1181,7 +1184,7 @@ def create_workmail_inbox(
     # Create a user and mailbox
     user = aws_workmail_client.create_user(
         OrganizationId=organization_id,
-        DisplayName=f"{username}@{domain_name}",
+        DisplayName=f"{first_name} {last_name}",
         Name=f"{username}@{domain_name}",
         Password=password,
         FirstName=first_name,
@@ -1353,14 +1356,14 @@ def domain_setup_workflow(
     db.session.commit()
 
     # Add DNS records
-    success, _ = add_email_dns_records(domain_id=domain_id, domain_name=domain_name)
+    success, _ = add_domain_dns_records(domain_id=domain_id, domain_name=domain_name)
     if not success:
         return False, "Failed to add email DNS records"
 
     return True, "Domain DNS setup workflow completed successfully"
 
 
-def add_email_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
+def add_domain_dns_records(domain_id: int, domain_name: str) -> tuple[bool, str]:
     """Adds DNS records for a domain. Namely DKIM, DMARC, SPF, MX, and verification records
 
     Args:

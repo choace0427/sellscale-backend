@@ -237,7 +237,17 @@ def get_all_individuals_request(client_sdr_id: int):
 
 @INDIVIDUAL_BLUEPRINT.route("/single", methods=["GET"])
 def get_individual_request():
+    """
+    Endpoint to retrieve an individual's details either by LinkedIn public ID or email.
 
+    Parameters:
+    - li_public_id (str): LinkedIn public ID of the individual (optional).
+    - email (str): Email address of the individual (optional).
+
+    Returns:
+    - JSON response containing the status and the individual's data if found.
+    - HTTP status code 200 on success, or appropriate error code on failure.
+    """
     li_public_id = get_request_parameter(
         "li_public_id", request, json=False, required=False, parameter_type=str
     )

@@ -1,4 +1,5 @@
 from src.client.models import ClientSDR, Client
+from src.ml.campaign_curator import curate_campaigns
 from src.ml.openai_wrappers import (
     NEWEST_CHAT_GP_MODEL,
     wrapped_chat_gpt_completion,
@@ -345,3 +346,15 @@ def post_email_body_spam_score(client_sdr_id: int):
     score = run_algorithmic_spam_detection(email_body)
 
     return jsonify({"score": score}), 200
+
+@ML_BLUEPRINT.route("/campaigns/campaign_curator", methods=['POST'])
+@require_user
+def post_campaign_curator(client_sdr_id: int):
+    """
+    Enable user to get a curated list of campaigns based on news, past campaigns, and more information
+    """
+    additional_instructions = get_request_parameter(
+        "additional_instructions", request, json=True, required=False, parameter_type=str
+    )
+    data = curate_campaigns(client_sdr_id, additional_instructions)
+    return jsonify(data), 200

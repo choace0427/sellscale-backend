@@ -836,20 +836,6 @@ def update_prospect_status_linkedin(
             engagement_type=EngagementFeedType.SET_TIME_TO_DEMO.value,
             engagement_metadata=message,
         )
-
-        # Check if the client has a CRM sync and if the event handler is set to create a lead
-        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
-            client_id=p.client_id
-        ).first()
-        if (
-            client_sync_crm
-            and client_sync_crm.event_handlers
-            and client_sync_crm.event_handlers.get("on_demo_set", "") == "create_lead"
-        ):
-            from src.merge_crm.services import create_contact
-
-            create_contact(client_sdr_id=p.client_sdr_id, prospect_id=p.id)
-
         if p.meta_data and p.meta_data.get("demo_set", {}).get("type", {}) == "HANDOFF":
             # Send the handoff notification
             success = create_and_send_slack_notification_class_message(
@@ -1357,19 +1343,6 @@ def update_prospect_status_email(
                 },
             )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
-        # Check if the client has a CRM sync and if the event handler is set to create a lead
-        client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
-            client_id=p.client_id
-        ).first()
-        if (
-            client_sync_crm
-            and client_sync_crm.event_handlers
-            and client_sync_crm.event_handlers.get("on_demo_set", "") == "create_lead"
-        ):
-            from src.merge_crm.services import create_contact
-
-            create_contact(client_sdr_id=p.client_sdr_id, prospect_id=p.id)
-
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
             prospect_id=p.id,
@@ -1721,7 +1694,9 @@ def add_prospect(
         if segment_id and archetype.is_unassigned_contact_archetype:
             # Use the segment's attached archetype if the prospect archetype is unassigned
             segment: Segment = Segment.query.get(segment_id)
-            if segment.client_archetype_id:
+            if segment is None:
+                segment_id = None
+            elif segment.client_archetype_id:
                 archetype_id = segment.client_archetype_id
                 archetype = ClientArchetype.query.get(archetype_id)
 
@@ -2846,9 +2821,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2924,11 +2899,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[ProspectEmailStatusRecords] = (
-        ProspectEmailStatusRecords.query.filter(
-            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-        ).all()
-    )
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
 
     return {
         "emails": email_history_parsed,

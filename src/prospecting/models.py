@@ -1198,6 +1198,13 @@ class ProspectUploads(db.Model):
         }
 
 
+LINKEDIN_ACTIVE_CONVO_POSITIVE_STATUSES = [
+    ProspectStatus.ACTIVE_CONVO_NEXT_STEPS,
+    ProspectStatus.ACTIVE_CONVO_QUESTION,
+    ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+]
+
+
 VALID_NEXT_LINKEDIN_STATUSES = {
     ProspectStatus.PROSPECTED: [
         ProspectStatus.NOT_QUALIFIED,

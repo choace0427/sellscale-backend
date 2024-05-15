@@ -2,6 +2,7 @@ from src.client.models import ClientArchetype, ClientSDR
 from src.automation.li_searcher import search_for_li
 from app import db, celery
 from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task
+from src.prospecting.champions.services import mark_prospects_as_champion
 from src.prospecting.models import (
     ProspectUploadHistory,
     ProspectUploadSource,
@@ -115,14 +116,17 @@ def create_prospect_upload_history(
         raw_data_hash=raw_data_hash,
     ).first()
     if exists:
-        return -1
+        return exists.id
 
     # Get the upload name by referencing the Segment and # of uploads under this segment
     segment: Segment = Segment.query.get(client_segment_id)
-    past_uploads: int = ProspectUploadHistory.query.filter_by(
-        client_segment_id=client_segment_id,
-    ).count()
-    upload_name = f"{segment.segment_title} #{past_uploads + 1}"
+    if segment is None:
+        upload_name = ''
+    else:
+        past_uploads: int = ProspectUploadHistory.query.filter_by(
+            client_segment_id=client_segment_id,
+        ).count()
+        upload_name = f"{segment.segment_title} #{past_uploads + 1}"
 
     prospect_upload_history: ProspectUploadHistory = ProspectUploadHistory(
         client_id=client_id,
@@ -429,6 +433,7 @@ def create_prospect_from_linkedin_link(
     self,
     prospect_upload_id: int,
     allow_duplicates: bool = True,
+    mark_prospect_as_is_champion: bool = False
 ) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
@@ -447,7 +452,6 @@ def create_prospect_from_linkedin_link(
         get_iscraper_payload_error,
         research_corporate_profile_details,
     )
-
     try:
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
@@ -590,6 +594,7 @@ def create_prospect_from_linkedin_link(
             employee_count=employee_count,
             full_name=full_name,
             industry=industry,
+            synchronous_research=True,
             linkedin_url=linkedin_url,
             linkedin_bio=linkedin_bio,
             title=title,
@@ -632,13 +637,16 @@ def create_prospect_from_linkedin_link(
                 prospect_id=new_prospect_id, label="CUSTOM", data=custom_data
             )
 
+            if mark_prospect_as_is_champion:
+                mark_prospects_as_champion(client_id=prospect_upload.client_id, prospect_ids=[new_prospect_id], is_champion=mark_prospect_as_is_champion)
+
             return True, new_prospect_id
         else:
             prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
             prospect_upload.error_type = ProspectUploadsErrorType.DUPLICATE
             db.session.add(prospect_upload)
             db.session.commit()
-            return False, -1
+            return False, prospect_upload_id
     except Exception as e:
         db.session.rollback()
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
