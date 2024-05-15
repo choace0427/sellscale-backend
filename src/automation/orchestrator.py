@@ -408,7 +408,7 @@ def add_process_for_future(
 def add_process_list(
     type: str,
     args_list: list[dict] = [],
-    chunk_size: int = 1,
+    chunk_size: int = 0,
     init_wait_days: int = 0,
     init_wait_minutes: int = 0,
     chunk_wait_days: int = 0,
@@ -449,28 +449,30 @@ def add_process_list(
     processes = []
 
     chunks = [
-        args_list[i : i + chunk_size] for i in range(0, len(args_list), chunk_size)
+        args_list[i : i + chunk_size]
+        for i in range(0, len(args_list), chunk_size or len(args_list))
     ]
 
     total_wait_days = init_wait_days
     total_wait_minutes = init_wait_minutes
-    for chunk in chunks:
-        for i, args in enumerate(chunk):
+    for i, chunk in enumerate(chunks):
+        for j, args in enumerate(chunk):
 
             print(
                 "minutes",
                 i,
+                j,
                 buffer_wait_minutes,
                 total_wait_minutes,
-                total_wait_minutes + (buffer_wait_minutes * i),
+                total_wait_minutes + (buffer_wait_minutes * j),
             )
 
             process = add_process_for_future(
                 type=type,
                 args=args,
                 months=0,
-                days=total_wait_days + (buffer_wait_days * i),
-                minutes=total_wait_minutes + (buffer_wait_minutes * i),
+                days=total_wait_days + (buffer_wait_days * j),
+                minutes=total_wait_minutes + (buffer_wait_minutes * j),
                 relative_time=start_time,
                 commit=False,
             )
