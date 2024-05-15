@@ -457,7 +457,13 @@ def add_process_list(
     for chunk in chunks:
         for i, args in enumerate(chunk):
 
-            print("minutes", total_wait_minutes + (buffer_wait_minutes * i))
+            print(
+                "minutes",
+                i,
+                buffer_wait_minutes,
+                total_wait_minutes,
+                total_wait_minutes + (buffer_wait_minutes * i),
+            )
 
             process = add_process_for_future(
                 type=type,
