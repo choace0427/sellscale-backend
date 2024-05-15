@@ -37,11 +37,9 @@ from src.bump_framework.services import (
 def add_sequence(
     client_id, archetype_id, sequence_type, subject_lines, steps, override=False
 ):
-
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
 
     if sequence_type == "EMAIL":
-
         # Wipe the existing sequence steps
         if override:
             sequence_steps = EmailSequenceStep.query.filter_by(
@@ -59,7 +57,6 @@ def add_sequence(
 
         # Add the new sequence steps
         for i, step in enumerate(steps):
-
             template = step["text"]
             # replace all \n with <br> for the email template
             template = template.replace("\n", "<br>")
@@ -80,8 +77,8 @@ def add_sequence(
                 ),
                 bumped_count=(
                     0
-                    if step["step_num"] == 1
-                    else (1 if step["step_num"] == 2 else step["step_num"] - 2)
+                    if (step["step_num"] == 1 or step["step_num"] == 2)
+                    else step["step_num"] - 2
                 ),
                 mapped_asset_ids=step["assets"],
                 sellscale_default_generated=False,
@@ -107,7 +104,6 @@ def add_sequence(
             )
 
     elif sequence_type == "LINKEDIN-CTA":
-
         # Wipe the existing CTAs
         if override:
             ctas = GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id).all()
@@ -130,7 +126,6 @@ def add_sequence(
             )
 
     elif sequence_type == "LINKEDIN-TEMPLATE":
-
         # Wipe the existing initial messages
         if override:
             linkedin_initial_messages = LinkedinInitialMessageTemplate.query.filter_by(
@@ -161,7 +156,6 @@ def add_sequence(
             )
 
     if sequence_type.startswith("LINKEDIN-"):
-
         # Update the archetype template mode
         archetype.template_mode = (
             True if sequence_type == "LINKEDIN-TEMPLATE" else False
