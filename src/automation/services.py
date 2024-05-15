@@ -817,7 +817,8 @@ def schedule_process_queue_test(size: int, wait: int):
     add_process_list(
         type="process_queue_test",
         args_list=[
-            {"count": count, "time": datetime.utcnow()} for count in range(size)
+            {"count": count, "time": datetime.utcnow().isoformat()}
+            for count in range(size)
         ],
         buffer_wait_minutes=wait,
         init_wait_minutes=1,
@@ -830,9 +831,9 @@ def schedule_process_queue_test(size: int, wait: int):
 
 
 @celery.task
-def process_queue_test(count: int, time: datetime):
+def process_queue_test(count: int, time: str):
 
     send_slack_message(
-        message=f"Testing process queue:\n Count - {count}\n Add Time - {time.isoformat()}\n Current Time - {datetime.utcnow().isoformat()}",
+        message=f"Testing process queue:\n Count - {count}\n Add Time - {time}\n Current Time - {datetime.utcnow().isoformat()}",
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
