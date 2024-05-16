@@ -1103,6 +1103,7 @@ def add_prospect_from_csv_payload(
             }
         },
         minutes=15,  # 2 hours from now
+        relative_time=datetime.utcnow(),
     )
 
     # Check for duplicates is always enabled if client is not SellScale
