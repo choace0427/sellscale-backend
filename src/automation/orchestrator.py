@@ -434,7 +434,7 @@ def add_process_list(
     processes = []
 
     chunks = [
-        args_list[i : i + chunk_size]
+        args_list[i : i + chunk_size or len(args_list)]
         for i in range(0, len(args_list), chunk_size or len(args_list))
     ]
 
