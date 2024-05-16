@@ -1,13 +1,22 @@
 
 from app import db
+import os
 from flask import Blueprint, request, jsonify
 from model_import import ClientSDR, Client
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.utils.slack import send_slack_message
 from src.utils.slack import URL_MAP
+from src.retell.services import initiate_retell_call
 
 INTEGRATION_BLUEPRINT = Blueprint("integration", __name__)
+
+# This endpoint handles the initiation of a call using the Retell service.
+@INTEGRATION_BLUEPRINT.route("/retell/sendCall", methods=["POST"])
+def post_retell_send_call():
+    phone_number = get_request_parameter("phone_number", request, json=True, required=True)
+    response_message, status_code = initiate_retell_call(phone_number)
+    return jsonify(response_message), status_code
 
 
 @INTEGRATION_BLUEPRINT.route("/linkedin/send-credentials", methods=["POST"])
