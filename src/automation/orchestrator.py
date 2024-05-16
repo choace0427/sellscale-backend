@@ -381,7 +381,6 @@ def add_process_for_future(
         or
         None, reason (str)
     """
-
     return add_process_to_queue(
         type=type,
         meta_data={"args": args},
