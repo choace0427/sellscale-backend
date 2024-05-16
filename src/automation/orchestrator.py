@@ -362,7 +362,7 @@ def add_process_for_future(
     months: int = 0,
     days: int = 0,
     minutes: int = 0,
-    relative_time=datetime.utcnow(),
+    relative_time: Optional[datetime] = None,
     commit: bool = True,
 ):
     """Adds an instance to the process queue
@@ -381,6 +381,8 @@ def add_process_for_future(
         or
         None, reason (str)
     """
+    if not relative_time:
+        relative_time = datetime.utcnow()
 
     return add_process_to_queue(
         type=type,
