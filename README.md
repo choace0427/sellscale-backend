@@ -69,7 +69,7 @@ This structure keeps our code clean and ensures we know where to find unit tests
 
 If setting up from a fresh machine, make sure you have the following installed before continuing:
 
-- Python3 <= 3.11 (For OSX `xcode-select --install`)
+- Python3 == 3.9.6 (For OSX `xcode-select --install`)
 - Pip (For OSX `xcode-select --install`)
 - [Brew](https://brew.sh/)
 - [Postgres](https://www.postgresql.org/) (For OSX `brew install postgresql@14`)
