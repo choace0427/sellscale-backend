@@ -2698,7 +2698,6 @@ def send_upcoming_demo_reminder():
                 ),
                 "ai_generated": True,
             },
-            relative_time=datetime.utcnow(),
         )
 
 

@@ -4,7 +4,12 @@ from typing import Optional
 
 from src.automation.orchestrator import add_process_for_future
 from src.email_outbound.email_store.services import find_emails_for_archetype
-from src.prospecting.champions.services import get_champion_detection_changes, get_champion_detection_stats, mark_prospects_as_champion, refresh_job_data_for_all_champions
+from src.prospecting.champions.services import (
+    get_champion_detection_changes,
+    get_champion_detection_stats,
+    mark_prospects_as_champion,
+    refresh_job_data_for_all_champions,
+)
 from src.prospecting.models import ExistingContact, ProspectUploadSource
 from src.segment.services import (
     get_base_segment_for_archetype,
@@ -1072,7 +1077,7 @@ def add_prospect_from_csv_payload(
     validated, reason = validate_prospect_json_payload(payload=csv_payload)
     if not validated:
         return reason, 400
-    
+
     # Get client ID from client archetype ID.
     archetype: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.id == archetype_id,
@@ -1103,7 +1108,6 @@ def add_prospect_from_csv_payload(
             }
         },
         minutes=15,  # 2 hours from now
-        relative_time=datetime.utcnow(),
     )
 
     # Check for duplicates is always enabled if client is not SellScale
@@ -1697,9 +1701,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[
-        LinkedinConversationEntry
-    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    convo: List[LinkedinConversationEntry] = (
+        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
+    )
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 
@@ -1865,19 +1869,25 @@ def patch_apollo_scrape(client_sdr_id: int):
 
     return jsonify({"message": "Success", "data": result}), 200
 
+
 @PROSPECTING_BLUEPRINT.route("/champion/get_champion_changes", methods=["GET"])
 @require_user
 def get_champion_changes(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
     client_id = client_sdr.client_id
     results = get_champion_detection_changes(client_id)
 
     return jsonify({"message": "Success", "data": results}), 200
 
+
 @PROSPECTING_BLUEPRINT.route("/champion/refresh_job_data", methods=["POST"])
 @require_user
 def post_refresh_champion_job_data(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
     client_id = client_sdr.client_id
     success = refresh_job_data_for_all_champions(client_id)
 
@@ -1885,14 +1895,18 @@ def post_refresh_champion_job_data(client_sdr_id: int):
         return jsonify({"message": "Success"}), 200
     return jsonify({"message": "Failed to refresh job data"}), 400
 
+
 @PROSPECTING_BLUEPRINT.route("/champion/get_stats", methods=["GET"])
 @require_user
 def get_champion_stats(client_sdr_id: int):
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
     client_id = client_sdr.client_id
     results = get_champion_detection_stats(client_id)
 
     return jsonify({"message": "Success", "data": results}), 200
+
 
 @PROSPECTING_BLUEPRINT.route("/champion/mark_champions", methods=["POST"])
 @require_user
@@ -1904,12 +1918,12 @@ def post_mark_champions(client_sdr_id: int):
         "is_champion", request, json=True, required=True, parameter_type=bool
     )
 
-    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(
+        ClientSDR.id == client_sdr_id
+    ).first()
     client_id = client_sdr.client_id
     success = mark_prospects_as_champion(
-        client_id=client_id,
-        prospect_ids=prospect_ids,
-        is_champion=is_champion
+        client_id=client_id, prospect_ids=prospect_ids, is_champion=is_champion
     )
 
     if success:
