@@ -42,6 +42,10 @@ import yaml
 from src.company.services import find_company_for_prospect
 from src.utils.abstract.attr_utils import deep_get
 
+import os
+
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY", '')
+
 
 DEFAULT_MONTHLY_ML_FETCHING_CREDITS = 5000
 
@@ -1247,3 +1251,50 @@ Output:
         return []
 
     return hallucinations
+
+def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
+    import requests
+    import json
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    if prospect.client_sdr_id != client_sdr_id:
+        return "Error: Prospect does not belong to the client SDR."
+
+    full_name = prospect.full_name
+    title = prospect.title
+    company = prospect.company
+    linkedin_url = prospect.linkedin_url
+
+    url = "https://api.perplexity.ai/chat/completions"
+
+    payload = {
+        "model": "llama-3-sonar-large-32k-online",
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are an AI researcher that will give me correct and factual information based on the linkedin link provided."
+            },
+            {
+                "role": "user",
+                "content": "Tell me more about {full_name}, who is a {title} at {company}. Here is the linkedin link: {linkedin_url} but please look at various other sources on the internet for information about them as well".format(
+                    full_name=full_name,
+                    title=title,
+                    company=company,
+                    linkedin_url=linkedin_url
+                )
+            }
+        ]
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "authorization": "Bearer " + PERPLEXITY_API_KEY
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    x = json.loads(response.text)
+    response = x['choices'][0]['message']['content']
+
+    return response

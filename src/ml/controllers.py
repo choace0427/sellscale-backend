@@ -15,6 +15,7 @@ from src.ml.models import GNLPModelType
 from model_import import ClientArchetype
 from src.ml.services import (
     get_fine_tune_timeline,
+    get_perplexity_research,
     initiate_fine_tune_job,
     get_aree_fix_basic,
     get_sequence_value_props,
@@ -358,3 +359,17 @@ def post_campaign_curator(client_sdr_id: int):
     )
     data = curate_campaigns(client_sdr_id, additional_instructions)
     return jsonify(data), 200
+
+@ML_BLUEPRINT.route("/deep_internet_research", methods=["POST"])
+@require_user
+def post_deep_internet_research(client_sdr_id: int):
+    """
+    Enable user to get deep internet research on a prospect
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    research = get_perplexity_research(prospect_id=prospect_id, client_sdr_id=client_sdr_id)
+
+    return jsonify(research), 200

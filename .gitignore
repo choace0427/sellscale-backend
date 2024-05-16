@@ -1,4 +1,9 @@
 venv/
+.env.production
+.envstaging
+.envprod
+.env.local
+.envcelery
 *.env
 .envstaging
 .envprod
