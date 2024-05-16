@@ -433,9 +433,9 @@ def add_process_list(
 
     processes = []
 
+    chunk_size = chunk_size if chunk_size > 0 else len(args_list)
     chunks = [
-        args_list[i : i + (chunk_size or len(args_list))]
-        for i in range(0, len(args_list), chunk_size or len(args_list))
+        args_list[i : i + chunk_size] for i in range(0, len(args_list), chunk_size)
     ]
 
     total_wait_days = init_wait_days
