@@ -24,11 +24,11 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
         prospect_id: Optional[int] = None,
-        message: LinkedinConversationEntry = None,
+        linkedin_conversation_entry_id: Optional[int]= None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
-        self.message = message
+        self.linkedin_conversation_entry_id = linkedin_conversation_entry_id
 
         return
 
@@ -64,6 +64,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             prospect: Prospect = Prospect.query.get(self.prospect_id)
+            linkedin_message: LinkedinConversationEntry = LinkedinConversationEntry.query.get(self.linkedin_conversation_entry_id)
             client_archetype: ClientArchetype = ClientArchetype.query.get(
                 prospect.archetype_id
             )
@@ -74,8 +75,8 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                 "prospect_title": prospect.title,
                 "prospect_company": prospect.company,
                 "archetype_name": client_archetype.archetype,
-                "initial_send_date": self.message.date.strftime("%B %d, %Y"),
-                "message": self.message.message,
+                "initial_send_date": linkedin_message.date.strftime("%B %d, %Y"),
+                "message": linkedin_message.message,
                 "archetype_emoji": (
                     client_archetype.emoji if client_archetype.emoji else "-"
                 ),
@@ -101,7 +102,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
         archetype_name = fields.get("archetype_name")
         archetype_emoji = fields.get("archetype_emoji")
         direct_link = fields.get("direct_link")
-        message = fields.get("message")
+        linkedin_message = fields.get("linkedin_message")
         initial_send_date = fields.get("initial_send_date")
         if (
             not prospect_name
@@ -110,7 +111,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
             or not archetype_name
             or not archetype_emoji
             or not direct_link
-            or not message
+            or not linkedin_message
             or not initial_send_date
         ):
             return False
@@ -166,7 +167,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                         "type": "mrkdwn",
                         "text": "*{name}:* {message}".format(
                             name=prospect_name,
-                            message=message,
+                            message=linkedin_message.message,
                         ),
                     },
                 },
@@ -175,7 +176,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": "*Initial Send Date:* {initial_send_date}".format(
-                            initial_send_date=initial_send_date
+                            initial_send_date=linkedin_message.date.strftime("%B %d, %Y")
                         ),
                     },
                 },
