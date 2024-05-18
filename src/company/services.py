@@ -12,6 +12,7 @@ from src.client.models import ClientSDR, Client
 from app import db, celery
 from src.utils.math import get_unique_int
 from src.utils.slack import send_slack_message, URL_MAP
+from src.voyager.linkedin import LinkedIn
 
 
 def company_backfill(c_min: int, c_max: int):
@@ -88,15 +89,61 @@ def add_company_cache_to_db(json_data) -> bool:
 
     career_page_url = (details.get("call_to_action") or {}).get("url", None)
 
+    return add_company(
+        name=name,
+        universal_name=universal_name,
+        type=type,
+        img_cover_url=img_cover_url,
+        img_logo_url=img_logo_url,
+        li_followers=li_followers,
+        li_company_id=li_company_id,
+        phone=phone,
+        websites=websites,
+        employees=employees,
+        founded_year=founded_year,
+        description=description,
+        specialities=specialities,
+        industries=industries,
+        locations=locations,
+        career_page_url=career_page_url,
+        related_companies=json_data.get("related_companies"),
+    )
+
+
+def add_company(
+    name: Optional[str] = None,
+    universal_name: Optional[str] = None,
+    apollo_uuid: Optional[str] = None,
+    type: Optional[str] = None,
+    img_cover_url: Optional[str] = None,
+    img_logo_url: Optional[str] = None,
+    li_followers: Optional[int] = None,
+    li_company_id: Optional[str] = None,
+    phone: Optional[str] = None,
+    websites: Optional[list] = None,
+    employees: Optional[int] = None,
+    founded_year: Optional[int] = None,
+    description: Optional[str] = None,
+    specialities: Optional[list] = None,
+    industries: Optional[list] = None,
+    locations: Optional[list] = None,
+    career_page_url: Optional[str] = None,
+    related_companies: Optional[list] = None,
+) -> bool:
+
     company: Company = Company.query.filter(
-        Company.universal_name == universal_name
+        or_(
+            Company.universal_name == universal_name,
+            Company.apollo_uuid == apollo_uuid,
+        ),
     ).first()
     if company:
-        print(f"Skipping existing company: {universal_name}")
+        print(f"Skipping existing company: {universal_name}/{apollo_uuid}")
     else:
         company = Company(
             name=name,
             universal_name=universal_name,
+            apollo_uuid=apollo_uuid,
             type=type,
             img_cover_url=img_cover_url,
             img_logo_url=img_logo_url,
@@ -119,7 +166,7 @@ def add_company_cache_to_db(json_data) -> bool:
 
     # Add company relations
     if company:
-        relations = json_data.get("related_companies") or []
+        relations = related_companies or []
         if len(relations) > 0:
             print(f"Found {len(relations)} company relations...")
         for relation in relations:
@@ -197,16 +244,80 @@ def find_company_for_prospect(prospect_id: int) -> Company:
         return None
 
 
-def find_company(company_name: str, company_url: str = "") -> Optional[int]:
+def find_company(
+    company_name: str = "", company_url: str = "", apollo_uuid: str = ""
+) -> Optional[int]:
     company: Company = Company.query.filter(
         or_(
             Company.name == company_name,
-            Company.universal_name == company_name,
+            Company.universal_name == convert_name_to_universal_name(company_name),
+            Company.apollo_uuid == apollo_uuid,
             Company.websites.any(company_url),
         ),
     ).first()
 
     return company.id if company else None
+
+
+def search_for_company(
+    client_sdr_id: int,
+    company_name: str = "",
+    company_url: str = "",
+    apollo_uuid: str = "",
+) -> Optional[int]:
+
+    api = LinkedIn(client_sdr_id)
+    linkedin_company = api.get_company(convert_name_to_universal_name(company_name))
+
+    if linkedin_company:
+        success = add_company(
+            name=linkedin_company.get("name"),
+            universal_name=linkedin_company.get("universalName"),
+            type=linkedin_company.get("companyType", {}).get("localizedName"),
+            img_cover_url=None,  # TODO
+            img_logo_url=None,  # TODO
+            li_followers=linkedin_company.get("followingInfo", {}).get("followerCount"),
+            li_company_id=linkedin_company.get("entityUrn"),
+            phone=None,
+            websites=(
+                [linkedin_company.get("companyPageUrl")]
+                if linkedin_company.get("companyPageUrl")
+                else []
+            ),
+            employees=linkedin_company.get("staffCount"),
+            founded_year=linkedin_company.get("foundedOn", {}).get("year"),
+            description=linkedin_company.get("description"),
+            specialities=linkedin_company.get("specialities", []),
+            industries=[
+                industry.get("localizedName", "")
+                for industry in linkedin_company.get("companyIndustries", [])
+            ],
+            locations=linkedin_company.get("confirmedLocations", []),
+            career_page_url=linkedin_company.get("url"),
+            related_companies=None,
+        )
+
+    from src.contacts.services import apollo_get_organizations_from_company_names
+
+    apollo_companies = apollo_get_organizations_from_company_names(
+        client_sdr_id, [company_name]
+    )
+
+    print(apollo_companies)
+
+    return None
+
+
+def convert_name_to_universal_name(input_string: str):
+    import re
+
+    # Convert to lowercase
+    result = input_string.lower()
+    # Replace spaces and ampersand with hyphens
+    result = re.sub(r"[ &,]+", "-", result)
+    # Remove any other non-alphanumeric characters (excluding hyphens)
+    result = re.sub(r"[^a-z0-9-]", "", result)
+    return result
 
 
 def find_sdr_from_slack(user_name: str, user_id: str, team_domain: str):
@@ -316,8 +427,7 @@ def get_timeline(company_id: int, client_sdr_id: int):
             ) subtitle
         from d;
     """.format(
-        COMPANY_ID = company_id,
-        CLIENT_ID= client_id
+        COMPANY_ID=company_id, CLIENT_ID=client_id
     )
 
     result = db.session.execute(query).fetchall()
@@ -347,8 +457,7 @@ def prospect_engagement(company_id: int, client_sdr_id: int):
             prospect.company_id = {COMPANY_ID}
             and prospect.client_id = {CLIENT_ID}
     """.format(
-        COMPANY_ID = company_id,
-        CLIENT_ID = client_id
+        COMPANY_ID=company_id, CLIENT_ID=client_id
     )
 
     result = db.session.execute(query).fetchall()

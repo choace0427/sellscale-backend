@@ -1,4 +1,3 @@
-
 from app import db
 
 
@@ -8,8 +7,9 @@ class Company(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     name = db.Column(db.String)
-    universal_name = db.Column(db.String, index=True, unique=True)
-    
+    universal_name = db.Column(db.String, nullable=True, index=True, unique=True)
+    apollo_uuid = db.Column(db.String, nullable=True, index=True, unique=True)
+
     type = db.Column(db.String, nullable=True)
 
     img_cover_url = db.Column(db.String, nullable=True)
@@ -37,6 +37,7 @@ class Company(db.Model):
             "id": self.id,
             "name": self.name,
             "universal_name": self.universal_name,
+            "apollo_uuid": self.apollo_uuid,
             "type": self.type,
             "img_cover_url": self.img_cover_url,
             "img_logo_url": self.img_logo_url,
@@ -54,15 +55,11 @@ class Company(db.Model):
         }
 
 
-
 class CompanyRelation(db.Model):
     __tablename__ = "company_relation"
 
     id_pair = db.Column(db.Integer, primary_key=True)
     company_id_1 = db.Column(db.Integer, db.ForeignKey("company.id"))
     company_id_2 = db.Column(db.Integer, db.ForeignKey("company.id"))
-    
+
     # Other relation data to go here
-
-
-

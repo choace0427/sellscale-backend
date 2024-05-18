@@ -888,7 +888,7 @@ class LinkedIn(object):
             max_results=max_results,
         )
 
-    def get_company(self, public_id):
+    def get_company(self, universal_name):
         """Fetch data about a given LinkedIn company.
 
         :param public_id: LinkedIn public ID for a company
@@ -900,7 +900,7 @@ class LinkedIn(object):
         params = {
             "decorationId": "com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-12",
             "q": "universalName",
-            "universalName": public_id,
+            "universalName": universal_name,
         }
 
         res = self._fetch(f"/organization/companies", params=params)
