@@ -245,7 +245,10 @@ def find_company_for_prospect(prospect_id: int) -> Company:
 
 
 def find_company(
-    company_name: str = "", company_url: str = "", apollo_uuid: str = ""
+    client_sdr_id: int,
+    company_name: str = "",
+    company_url: str = "",
+    apollo_uuid: str = "",
 ) -> Optional[int]:
     company: Company = Company.query.filter(
         or_(
@@ -256,10 +259,13 @@ def find_company(
         ),
     ).first()
 
-    return company.id if company else None
+    if company:
+        return company.id
+
+    return add_company_via_search(client_sdr_id, company_name, company_url, apollo_uuid)
 
 
-def search_for_company(
+def add_company_via_search(
     client_sdr_id: int,
     company_name: str = "",
     company_url: str = "",
