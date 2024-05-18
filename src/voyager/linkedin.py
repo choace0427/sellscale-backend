@@ -908,8 +908,8 @@ class LinkedIn(object):
         data = res.json()
 
         if data and "status" in data and data["status"] != 200:
-            self.logger.info("request failed: {}".format(data["message"]))
-            return {}
+            # self.logger.info("request failed: {}".format(data["message"]))
+            return None
 
         company = data["elements"][0]
 

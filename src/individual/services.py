@@ -303,7 +303,7 @@ def add_individual_from_iscraper_cache(li_url: str, upload_id: Optional[int] = N
 
     # Try and find company
     company_name = deep_get(cache, "position_groups.0.company.name")
-    company_id = find_company(company_name) if company_name else None
+    company_id = find_company(company_name=company_name) if company_name else None
 
     individual_id, created = add_individual(
         full_name=cache.get("first_name") + " " + cache.get("last_name"),
@@ -594,7 +594,7 @@ def add_individual(
 
     if company_name and not company_id:
         # Try and find company
-        company_id = find_company(company_name)
+        company_id = find_company(company_name=company_name)
 
     if not full_name:
         full_name = f"{first_name} {last_name}"

@@ -173,7 +173,8 @@ def prospect_engagements(client_sdr_id: int):
 
 
 @COMPANY_BLUEPRINT.route("/single", methods=["GET"])
-def get_company_request():
+@require_user
+def get_company_request(client_sdr_id: int):
 
     company_name = get_request_parameter(
         "company_name", request, json=False, required=False, parameter_type=str
@@ -182,7 +183,9 @@ def get_company_request():
         "company_url", request, json=False, required=False, parameter_type=str
     )
 
-    company_id = find_company(company_name=company_name, company_url=company_url)
+    company_id = find_company(
+        client_sdr_id=client_sdr_id, company_name=company_name, company_url=company_url
+    )
     result = Company.query.get(company_id).to_dict() if company_id else None
 
     return (

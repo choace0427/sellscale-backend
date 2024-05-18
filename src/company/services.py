@@ -5,6 +5,7 @@ from typing import Optional
 from psycopg2 import IntegrityError
 from src.prospecting.models import Prospect
 from sqlalchemy import or_
+from sqlalchemy.sql import func
 
 from src.company.models import Company, CompanyRelation
 from src.research.models import IScraperPayloadCache
@@ -131,12 +132,17 @@ def add_company(
     related_companies: Optional[list] = None,
 ) -> bool:
 
-    company: Company = Company.query.filter(
-        or_(
-            Company.universal_name == universal_name,
+    company = None
+    if apollo_uuid:
+        company: Company = Company.query.filter(
             Company.apollo_uuid == apollo_uuid,
-        ),
-    ).first()
+        ).first()
+
+    if universal_name:
+        company: Company = Company.query.filter(
+            Company.universal_name == universal_name,
+        ).first()
+
     if company:
         print(f"Skipping existing company: {universal_name}/{apollo_uuid}")
     else:
@@ -245,31 +251,38 @@ def find_company_for_prospect(prospect_id: int) -> Company:
 
 
 def find_company(
-    client_sdr_id: int,
-    company_name: str = "",
-    company_url: str = "",
-    apollo_uuid: str = "",
+    client_sdr_id: Optional[int] = None,
+    company_name: Optional[str] = None,
+    company_url: Optional[str] = None,
+    apollo_uuid: Optional[str] = None,
 ) -> Optional[int]:
-    company: Company = Company.query.filter(
-        or_(
-            Company.name == company_name,
+
+    company = None
+    if company_name:
+        company: Company = Company.query.filter(
             Company.universal_name == convert_name_to_universal_name(company_name),
+        ).first()
+    if company_url:
+        company: Company = Company.query.filter(
+            func.array_to_string(Company.websites, ",").ilike(f"%{company_url}%"),
+        ).first()
+    if apollo_uuid:
+        company: Company = Company.query.filter(
             Company.apollo_uuid == apollo_uuid,
-            Company.websites.any(company_url),
-        ),
-    ).first()
+        ).first()
 
     if company:
         return company.id
 
-    return add_company_via_search(client_sdr_id, company_name, company_url, apollo_uuid)
+    if not client_sdr_id or not company_name:
+        return None
+
+    return add_company_via_search(client_sdr_id, company_name)
 
 
 def add_company_via_search(
     client_sdr_id: int,
-    company_name: str = "",
-    company_url: str = "",
-    apollo_uuid: str = "",
+    company_name: str,
 ) -> Optional[int]:
 
     api = LinkedIn(client_sdr_id)
@@ -303,13 +316,72 @@ def add_company_via_search(
             related_companies=None,
         )
 
+        company: Company = Company.query.filter(
+            Company.universal_name == linkedin_company.get("universalName"),
+        ).first()
+        return company.id if company else None
+
     from src.contacts.services import apollo_get_organizations_from_company_names
 
     apollo_companies = apollo_get_organizations_from_company_names(
         client_sdr_id, [company_name]
     )
 
-    print(apollo_companies)
+    if apollo_companies and len(apollo_companies) > 0:
+        apollo_company = apollo_companies[0]
+        if not apollo_company:
+            return None
+
+        # Update existing company
+        if apollo_company.get("name"):
+            company: Company = Company.query.filter(
+                Company.universal_name
+                == convert_name_to_universal_name(apollo_company.get("name")),
+            ).first()
+            if company:
+                print(f"Updating existing company: {company.id} - {company.name}")
+
+                company.apollo_uuid = apollo_company.get("id")
+                company.img_logo_url = apollo_company.get("logo_url")
+                company.websites = (
+                    [apollo_company.get("website_url")]
+                    if apollo_company.get("website_url")
+                    else []
+                )
+                db.session.add(company)
+                db.session.commit()
+
+                return company.id
+
+        success = add_company(
+            name=apollo_company.get("name"),
+            universal_name=convert_name_to_universal_name(apollo_company.get("name")),
+            apollo_uuid=apollo_company.get("id"),
+            type=None,
+            img_cover_url=None,
+            img_logo_url=apollo_company.get("logo_url"),
+            li_followers=None,
+            li_company_id=None,
+            phone=None,
+            websites=(
+                [apollo_company.get("website_url")]
+                if apollo_company.get("website_url")
+                else []
+            ),
+            employees=None,
+            founded_year=None,
+            description=None,
+            specialities=[],
+            industries=[],
+            locations=[],
+            career_page_url=None,
+            related_companies=None,
+        )
+
+        company: Company = Company.query.filter(
+            Company.apollo_uuid == apollo_company.get("id"),
+        ).first()
+        return company.id if company else None
 
     return None
 

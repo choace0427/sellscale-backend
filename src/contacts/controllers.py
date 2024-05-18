@@ -8,9 +8,11 @@ from src.contacts.services import (
     get_territories,
     predict_filters_needed,
 )
+from src.company.services import find_company
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
-
+from sqlalchemy import or_
+from src.company.models import Company, CompanyRelation
 
 CONTACTS_BLUEPRINT = Blueprint("contacts", __name__)
 
@@ -191,12 +193,18 @@ def get_company(client_sdr_id: int):
         data.extend(orgs)
 
     if company_urls:
-        converted_names = get_company_name_using_urllib(
-            urls=company_urls,
-        )
+
+        company_ids = [
+            find_company(client_sdr_id=client_sdr_id, company_url=url)
+            for url in company_urls
+        ]
+        companies: list[Company] = Company.query.filter(
+            Company.id.in_([id for id in company_ids if id is not None]),
+        ).all()
+
         orgs = apollo_get_organizations_from_company_names(
             client_sdr_id=client_sdr_id,
-            company_names=converted_names,
+            company_names=[company.name for company in companies],
         )
         data.extend(orgs)
 
