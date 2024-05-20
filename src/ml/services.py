@@ -1253,9 +1253,6 @@ Output:
     return hallucinations
 
 def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
-    import requests
-    import json
-
     prospect: Prospect = Prospect.query.get(prospect_id)
 
     if prospect.client_sdr_id != client_sdr_id:
@@ -1266,25 +1263,33 @@ def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
     company = prospect.company
     linkedin_url = prospect.linkedin_url
 
-    url = "https://api.perplexity.ai/chat/completions"
+    messages = [
+        {
+            "role": "system",
+            "content": "You are an AI researcher that will give me correct and factual information based on the linkedin link provided."
+        },
+        {
+            "role": "user",
+            "content": "Tell me more about {full_name}, who is a {title} at {company}. Here is the linkedin link: {linkedin_url} but please look at various other sources on the internet for information about them as well".format(
+                full_name=full_name,
+                title=title,
+                company=company,
+                linkedin_url=linkedin_url
+            )
+        }
+    ]
 
+    response = get_perplexity_response("pplx-70b-online", messages)
+    return response
+
+def get_perplexity_response(model: str, messages: list) -> str:
+    import requests
+    import json
+
+    url = "https://api.perplexity.ai/chat/completions"
     payload = {
-        "model": "llama-3-sonar-large-32k-online",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an AI researcher that will give me correct and factual information based on the linkedin link provided."
-            },
-            {
-                "role": "user",
-                "content": "Tell me more about {full_name}, who is a {title} at {company}. Here is the linkedin link: {linkedin_url} but please look at various other sources on the internet for information about them as well".format(
-                    full_name=full_name,
-                    title=title,
-                    company=company,
-                    linkedin_url=linkedin_url
-                )
-            }
-        ]
+        "model": model,
+        "messages": messages
     }
     headers = {
         "accept": "application/json",
@@ -1293,8 +1298,65 @@ def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
     }
 
     response = requests.post(url, json=payload, headers=headers)
-
     x = json.loads(response.text)
     response = x['choices'][0]['message']['content']
 
     return response
+
+def simple_perplexity_response(model: str, prompt: str):
+    """
+    Creates a basic set of messages and sends them to the perplexity API to get a response
+    """
+    messages = [
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+
+    response = get_perplexity_response(model, messages)
+    return response
+
+def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, question: str, how_its_relevant: str):
+    """
+    Answer a question about a prospect based on the question number
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    if prospect.client_sdr_id != client_sdr_id:
+        return False, "Prospect does not belong to the client SDR.", {}
+
+    prospect_name = prospect.full_name
+    prospect_title = prospect.title
+    prospect_company = prospect.company
+    prospect_company_url = prospect.company_url
+
+    prompt = f"Answer the following question about {prospect_name} who is a {prospect_title} at {prospect_company} ({prospect_company_url})\nQuestion: {question}"
+    print("Step 1: Answering question")
+    print(prompt)
+
+    response = simple_perplexity_response("pplx-70b-online", prompt)
+    print("\nStep 2: Raw response")
+    print(response)
+
+    validate_with_gpt = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                'role': 'system',
+                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_this_valid (bool) a simple true or false if the response is valid\nexplanation (str): a short 1 sentence response on why the response is valid or invalid\nresponse_summary (str) in 1-2 sentences, summarize the response\nhow_its_relevant_summary (str) in 1-2 sentences, summarize how it's relevant"
+            },
+            {
+                'role': 'user',
+                'content': f"Here is the response to the question: {response}\n\nHow it's relevant: {how_its_relevant}\noutput:"
+            }
+        ],
+        model='gpt-4o',
+        max_tokens=400
+    )
+    validate_with_gpt = json.loads(
+        validate_with_gpt.replace("json", "").replace("`", "")
+    )
+    print("\nStep 3: Validating response")
+    print(validate_with_gpt)
+
+    return True, response, validate_with_gpt

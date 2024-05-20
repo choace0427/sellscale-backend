@@ -1,3 +1,4 @@
+from numpy import require
 from src.client.models import ClientSDR, Client
 from src.ml.campaign_curator import curate_campaigns
 from src.ml.openai_wrappers import (
@@ -14,6 +15,7 @@ from flask import Blueprint, jsonify, request
 from src.ml.models import GNLPModelType
 from model_import import ClientArchetype
 from src.ml.services import (
+    answer_question_about_prospect,
     get_fine_tune_timeline,
     get_perplexity_research,
     initiate_fine_tune_job,
@@ -373,3 +375,35 @@ def post_deep_internet_research(client_sdr_id: int):
     research = get_perplexity_research(prospect_id=prospect_id, client_sdr_id=client_sdr_id)
 
     return jsonify(research), 200
+
+@ML_BLUEPRINT.route("/answer_perplexity_questions", methods=["POST"])
+@require_user
+def post_answer_perplexity_question(client_sdr_id: int):
+    """
+    Enable user to answer a list of up to 3 perplexity questions
+    """
+    question = get_request_parameter(
+        "question", request, json=True, required=True, parameter_type=str
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    how_its_relevant = get_request_parameter(
+        "how_its_relevant", request, json=True, required=True, parameter_type=str
+    )
+
+    success, answer, reasoning = answer_question_about_prospect(
+        client_sdr_id=client_sdr_id,
+        prospect_id=prospect_id,
+        question=question,
+        how_its_relevant=how_its_relevant
+    )
+
+    if not success:
+        return 'Error answering question', 400
+
+    return jsonify({
+        'answer': answer,
+        "reasoning": reasoning
+    }), 200
+    
