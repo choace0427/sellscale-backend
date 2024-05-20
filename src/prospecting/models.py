@@ -1118,14 +1118,14 @@ class ProspectUploadHistory(db.Model):
             )
 
         if self.status == ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
-            return
+            return self.status
 
         # Get the number of uploads created by this history
         uploads: list[ProspectUploads] = ProspectUploads.query.filter(
             ProspectUploads.prospect_upload_history_id == self.id
         ).all()
         if not uploads:
-            return
+            return ProspectUploadHistoryStatus.UPLOAD_NOT_STARTED
 
         # COMPLETE
         complete = [
@@ -1169,8 +1169,12 @@ class ProspectUploadHistory(db.Model):
         self.uploads_failed = len(failed)
         self.uploads_in_progress = len(in_progress)
 
+        print(
+            f"Uploads: {len(uploads)} | Complete: {len(complete)} | Not Started: {len(not_started)} | Failed: {len(failed)} | In Progress: {len(in_progress)}"
+        )
+
         # If all uploads are complete, set status to COMPLETE
-        if in_progress:
+        if len(in_progress) > 0 or len(not_started) == len(uploads):
             self.status = ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
         else:
             send_upload_complete_slack_notification()

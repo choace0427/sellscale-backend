@@ -140,7 +140,7 @@ def create_prospect_upload_history(
         uploads_failed=0,
         uploads_other=0,
         upload_source=upload_source,
-        status=ProspectUploadHistory.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS,
+        status=ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS,
         client_archetype_id=client_archetype_id,
         client_segment_id=client_segment_id,
         raw_data=raw_data,
