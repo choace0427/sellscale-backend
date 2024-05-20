@@ -4,6 +4,7 @@ from src.authentication.decorators import require_user
 from src.contacts.services import (
     apollo_get_contacts,
     apollo_get_organizations_from_company_names,
+    apollo_get_pre_filters,
     get_company_name_using_urllib,
     get_territories,
     predict_filters_needed,
@@ -237,3 +238,28 @@ def get_territories_request(client_sdr_id: int):
     territories = get_territories(client_sdr_id=client_sdr_id)
 
     return jsonify({"territories": territories})
+
+
+@CONTACTS_BLUEPRINT.route("/get_pre_filters", methods=["GET"])
+@require_user
+def get_apollo_get_pre_filters(client_sdr_id: int):
+
+    persona_id = get_request_parameter(
+        "persona_id", request, json=False, required=False
+    )
+    segment_id = get_request_parameter(
+        "segment_id", request, json=False, required=False
+    )
+
+    data = apollo_get_pre_filters(
+        client_sdr_id=client_sdr_id,
+        persona_id=persona_id,
+        segment_id=segment_id,
+    )
+
+    return jsonify(
+        {
+            "status": "success",
+            "data": data,
+        }
+    )

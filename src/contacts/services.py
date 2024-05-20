@@ -542,6 +542,70 @@ def apollo_get_organizations_from_company_names(
     return results
 
 
+def apollo_get_pre_filters(
+    client_sdr_id: int,
+    persona_id: Optional[int] = None,
+    segment_id: Optional[int] = None,
+):
+
+    query = f"""
+        select data, results, persona.id "persona", saved_apollo_query.id
+from saved_apollo_query
+  join client_sdr on client_sdr.id = saved_apollo_query.client_sdr_id
+  left join persona on persona.saved_apollo_query_id = saved_apollo_query.id
+  left join segment on segment.saved_apollo_query_id = saved_apollo_query.id
+where client_sdr.id = {client_sdr_id}
+  and (
+    ({persona_id != None} and persona.id = {persona_id or 'null'})
+    or ({segment_id != None} and segment.id = {segment_id or 'null'})
+    or (
+      saved_apollo_query.is_prefilter
+    )
+  )
+order by saved_apollo_query.created_at desc
+limit 1
+    """
+
+    d_results = []
+    results = db.engine.execute(query).fetchall()
+    for row in results:
+        (
+            data,
+            results,
+            persona_id,
+            query_id,
+        ) = row
+        d_results.append(
+            {
+                "data": data,
+                # "results": results,
+                "persona_id": persona_id,
+                "query_id": query_id,
+            }
+        )
+    query_data = d_results[0] if d_results and len(d_results) > 0 else None
+
+    org_ids = query_data.get("data", {}).get("organization_ids", [])
+
+    from src.company.services import find_company
+    from src.company.models import Company
+
+    company_ids = []
+    for org_id in org_ids:
+        company_id = find_company(client_sdr_id=client_sdr_id, apollo_uuid=org_id)
+        if company_id:
+            company_ids.append(company_id)
+
+    companies: list[Company] = Company.query.filter(
+        Company.id.in_([id for id in company_ids if id is not None]),
+    ).all()
+
+    return {
+        # "data": query_data,
+        "companies": [company.to_dict() for company in companies],
+    }
+
+
 def predict_filters_types_needed(query: str) -> list:
     prompt = """
     Referring to the query provided, return a list of which filters will be needed to get the results from the query.
