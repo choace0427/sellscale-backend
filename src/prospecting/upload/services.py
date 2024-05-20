@@ -170,7 +170,7 @@ def refresh_prospect_upload_history(
         prospect_upload_history_id
     )
     if not prospect_upload_history:
-        return False, "ProspectUploadHistory entry not found."
+        return True, "ProspectUploadHistory entry not found."
 
     # Update the status
     status: ProspectUploadHistoryStatus = prospect_upload_history.update_status()
@@ -190,7 +190,7 @@ def refresh_prospect_upload_history(
                 },
                 minutes=1,  # 1 minute from now
             )
-        return False, "ProspectUploadHistory entry still in progress."
+        return True, "ProspectUploadHistory entry still in progress."
 
 
 def create_raw_csv_entry_from_json_payload(
