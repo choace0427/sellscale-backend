@@ -96,3 +96,23 @@ class TextGeneration(db.Model):
         "client_sdr_id": self.client_sdr_id,
       }
 
+
+class AIResearcher(db.Model):
+    __tablename__ = "ai_researcher"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    client_sdr_id_created_by = db.Column(
+        db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
+    )
+
+
+class AIResearcherQuestion(db.Model):
+    __tablename__ = "ai_researcher_question"
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String, nullable=False) # "QUESTION or "LINKEDIN"
+    key = db.Column(db.String, nullable=False)
+    relevancy = db.Column(db.String, nullable=False)
+    researcher_id = db.Column(db.Integer, db.ForeignKey("ai_researcher.id"), nullable=False)

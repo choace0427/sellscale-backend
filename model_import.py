@@ -45,7 +45,7 @@ from src.message_generation.models import (
     GeneratedMessageAutoBump,
 )
 
-from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs
+from src.ml.models import GNLPModel, GNLPModelType, ProfaneWords, GNLPModelFineTuneJobs, AIResearcher
 from src.automation.models import (
     PhantomBusterConfig,
     PhantomBusterType,

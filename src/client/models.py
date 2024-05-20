@@ -211,6 +211,8 @@ class ClientArchetype(db.Model):
 
     cycle = db.Column(db.Integer, nullable=True)
 
+    ai_researcher_id = db.Column(db.Integer, db.ForeignKey("ai_researcher.id"), nullable=True)
+
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
