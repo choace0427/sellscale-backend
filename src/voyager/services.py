@@ -597,7 +597,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             messages.append(f"{message.author} ({timestamp}): {message.message}")
         messages.reverse()
 
-        if prospect.status not in [ProspectStatus.ACTIVE_CONVO_SCHEDULING]:
+        if prospect.status not in [ProspectStatus.ACTIVE_CONVO_SCHEDULING, ProspectStatus.DEMO_SET]:
             classify_active_convo(prospect.id, messages)
 
     latest_convo_entry: LinkedinConversationEntry = (
@@ -1008,7 +1008,7 @@ def classify_active_convo(prospect_id: int, messages):
     if prospect.status == ProspectStatus.ACTIVE_CONVO_REVIVAL:
         return
 
-    status = get_prospect_status_from_convo(messages, prospect.client_sdr_id)
+    status = get_prospect_status_from_convo(messages, prospect.client_sdr_id, prospect.status)
 
     # Make sure the prospect's status has changed before sending messages
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -1090,7 +1090,7 @@ def classify_active_convo(prospect_id: int, messages):
 
 
 def get_prospect_status_from_convo(
-    messages: list[str], client_sdr_id: int
+    messages: list[str], client_sdr_id: int, current_status: str
 ) -> ProspectStatus:
     """Determines what a prospect status should be based on the state of their convo
 
@@ -1140,7 +1140,7 @@ def get_prospect_status_from_convo(
     heuristic_status = get_prospect_status_from_convo_heuristics(messages)
     if heuristic_status:
         # Run a ChatGPT verifier to make sure the status is doubly-correct
-        correct = chat_ai_verify_scheduling_convo(messages, clientSDR.name)
+        correct = chat_ai_verify_scheduling_convo(messages, clientSDR.name, current_status)
         if correct:
             return heuristic_status
 
