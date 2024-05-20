@@ -1343,7 +1343,7 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
         messages=[
             {
                 'role': 'system',
-                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_this_valid (bool) a simple true or false if the response is valid\nexplanation (str): a short 1 sentence response on why the response is valid or invalid\nresponse_summary (str) in 1-2 sentences, summarize the response\nhow_its_relevant_summary (str) in 1-2 sentences, summarize how it's relevant"
+                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_this_valid (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\nexplanation (str): a short 1 sentence response on why the response is valid or invalid\nresponse_summary (str) in 1-2 sentences, summarize the response\nhow_its_relevant_summary (str) in 1-2 sentences, summarize how it's relevant"
             },
             {
                 'role': 'user',
