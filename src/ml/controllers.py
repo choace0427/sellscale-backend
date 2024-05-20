@@ -1,5 +1,6 @@
 from numpy import require
 from src.client.models import ClientSDR, Client
+from src.ml.ai_researcher_services import connect_researcher_to_client_archetype, create_ai_researcher, create_ai_researcher_question, delete_question, edit_question, get_ai_researcher_answers_for_prospect, get_ai_researcher_questions_for_researcher, get_ai_researchers_for_client, run_all_ai_researcher_questions_for_prospect
 from src.ml.campaign_curator import curate_campaigns
 from src.ml.openai_wrappers import (
     NEWEST_CHAT_GP_MODEL,
@@ -407,3 +408,167 @@ def post_answer_perplexity_question(client_sdr_id: int):
         "reasoning": reasoning
     }), 200
     
+# AI RESEARCHERS 
+@ML_BLUEPRINT.route("/researchers", methods=["GET"])
+@require_user
+def get_ai_researchers(client_sdr_id: int):
+    """
+    Get all AI Researchers for a client where client SDR works
+    """
+    researchers: list = get_ai_researchers_for_client(client_sdr_id=client_sdr_id)
+    return jsonify({
+        'researchers': researchers
+    }), 200
+
+@ML_BLUEPRINT.route("/researchers/create", methods=["POST"])
+@require_user
+def post_create_ai_researcher(client_sdr_id: int):
+    """
+    Create an AI Researcher for a client where client SDR works
+    """
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+
+    success = create_ai_researcher(name=name, client_sdr_id=client_sdr_id)
+
+    if not success:
+        return 'Error creating AI Researcher', 400
+
+    return 'AI Researcher created successfully', 200
+
+@ML_BLUEPRINT.route("/researchers/<int:researcher_id>/questions", methods=["GET"])
+@require_user
+def get_ai_researcher_questions(client_sdr_id: int, researcher_id: int):
+    """
+    Get all questions for an AI Researcher
+    """
+    questions: list = get_ai_researcher_questions_for_researcher(researcher_id=researcher_id)
+    return jsonify({
+        'questions': questions
+    }), 200
+
+@ML_BLUEPRINT.route("/researchers/questions/<int:question_id>", methods=["DELETE"])
+@require_user
+def delete_ai_researcher_question(client_sdr_id: int, question_id: int):
+    """
+    Delete a question for an AI Researcher
+    """
+    success = delete_question(
+        question_id=question_id
+    )
+    if not success:
+        return 'Error deleting AI Researcher Question', 400
+    
+    return 'AI Researcher Question deleted successfully', 200
+
+@ML_BLUEPRINT.route("/researchers/questions/<int:question_id>", methods=["PATCH"])
+@require_user
+def patch_ai_researcher_question(client_sdr_id: int, question_id: int):
+    """
+    Update a question for an AI Researcher
+    """
+    key = get_request_parameter(
+        "key", request, json=True, required=True, parameter_type=str
+    )
+    relevancy = get_request_parameter(
+        "relevancy", request, json=True, required=True, parameter_type=str
+    )
+
+    success = edit_question(
+        question_id=question_id,
+        key=key,
+        relevancy=relevancy
+    )
+
+    if not success:
+        return 'Error updating AI Researcher Question', 400
+
+    return 'AI Researcher Question updated successfully', 200
+
+@ML_BLUEPRINT.route("/researchers/questions/create", methods=["POST"])
+@require_user
+def post_create_ai_researcher_question(client_sdr_id: int):
+    """
+    Create a question for an AI Researcher
+    """
+    type = get_request_parameter(
+        "type", request, json=True, required=True, parameter_type=str
+    )
+    key = get_request_parameter(
+        "key", request, json=True, required=True, parameter_type=str
+    )
+    relevancy = get_request_parameter(
+        "relevancy", request, json=True, required=True, parameter_type=str
+    )
+    researcher_id = get_request_parameter(
+        "researcher_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = create_ai_researcher_question(
+        type=type,
+        key=key,
+        relevancy=relevancy,
+        researcher_id=researcher_id
+    )
+
+    if not success:
+        return 'Error creating AI Researcher Question', 400
+
+    return 'AI Researcher Question created successfully', 200
+
+@ML_BLUEPRINT.route("/researchers/answers", methods=["GET"])
+@require_user
+def get_ai_researcher_answers(client_sdr_id: int):
+    """
+    Get all AI Researcher answers for a prospect
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    answers: list = get_ai_researcher_answers_for_prospect(prospect_id=prospect_id)
+    return jsonify({
+        'answers': answers
+    }), 200
+
+@ML_BLUEPRINT.route("/researchers/answers/create", methods=["POST"])
+@require_user
+def post_run_all_ai_researcher_questions_for_prospect(client_sdr_id: int):
+    """
+    Run all AI Researcher questions for a prospect
+    """
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = run_all_ai_researcher_questions_for_prospect(client_sdr_id=client_sdr_id, prospect_id=prospect_id)
+   
+    if not success:
+        return 'Error running all AI Researcher questions for a prospect', 400
+    
+    return 'All AI Researcher questions for a prospect ran successfully', 200
+
+@ML_BLUEPRINT.route("/researcher/connect", methods=["POST"])
+@require_user
+def post_connect_researchers(client_sdr_id: int):
+    """
+    Connect AI Researcher to an archetype
+    """
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    researcher_id = get_request_parameter(
+        "researcher_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = connect_researcher_to_client_archetype(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=client_archetype_id,
+        ai_researcher_id=researcher_id
+    )
+
+    if not success:
+        return 'Error connecting AI Researchers to a prospect', 400
+
+    return 'AI Researchers connected to a prospect successfully', 200

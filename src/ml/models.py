@@ -107,6 +107,13 @@ class AIResearcher(db.Model):
         db.Integer, db.ForeignKey("client_sdr.id"), nullable=False
     )
 
+    def to_dict(self):
+      return {
+        "id": self.id,
+        "name": self.name,
+        "client_id": self.client_id,
+        "client_sdr_id_created_by": self.client_sdr_id_created_by,
+      }
 
 class AIResearcherQuestion(db.Model):
     __tablename__ = "ai_researcher_question"
@@ -117,6 +124,15 @@ class AIResearcherQuestion(db.Model):
     relevancy = db.Column(db.String, nullable=False)
     researcher_id = db.Column(db.Integer, db.ForeignKey("ai_researcher.id"), nullable=False)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "key": self.key,
+            "relevancy": self.relevancy,
+            "researcher_id": self.researcher_id,
+        }
+
 class AIResearcherAnswer(db.Model):
     __tablename__ = "ai_researcher_answer"
 
@@ -126,3 +142,17 @@ class AIResearcherAnswer(db.Model):
     is_yes_response = db.Column(db.Boolean, nullable=False)
     short_summary = db.Column(db.String, nullable=False)
     raw_response = db.Column(db.String, nullable=False)
+
+    def to_dict(self, deep_get: bool = False):
+
+        question: AIResearcherQuestion = AIResearcherQuestion.query.get(self.question_id)
+
+        return {
+            "id": self.id,
+            "prospect_id": self.prospect_id,
+            "question_id": self.question_id,
+            "is_yes_response": self.is_yes_response,
+            "short_summary": self.short_summary,
+            "raw_response": self.raw_response,
+            "question": question.to_dict() if deep_get else None,
+        }

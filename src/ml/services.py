@@ -1284,7 +1284,7 @@ def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
         }
     ]
 
-    response = get_perplexity_response("pplx-70b-online", messages)
+    response = get_perplexity_response("llama-3-sonar-large-32k-online", messages)
     return response
 
 def get_perplexity_response(model: str, messages: list) -> str:
@@ -1331,12 +1331,17 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
     if prospect.client_sdr_id != client_sdr_id:
         return False, "Prospect does not belong to the client SDR.", {}
 
-    prospect_name = prospect.full_name
-    prospect_title = prospect.title
-    prospect_company = prospect.company
-    prospect_company_url = prospect.company_url
+    prospect_str = prospect.full_name + (" (" + prospect.title + " @ " + prospect.company + ")")
+    company_str = prospect.company + " (" + prospect.company_url + ")"
 
-    prompt = f"Answer the following question about {prospect_name} who is a {prospect_title} at {prospect_company} ({prospect_company_url})\nQuestion: {question}"
+    prompt = question.replace(
+        "[[prospect]]", prospect_str
+    ).replace(
+        "[[company]]", company_str
+    )
+
+    print("\n### RUNNING PERPLEXITY ###")
+
     print("Step 1: Answering question")
     print(prompt)
 
@@ -1348,7 +1353,7 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
         messages=[
             {
                 'role': 'system',
-                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with three items: \nis_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\nexplanation (str): a short 1 sentence response on why the response is valid or invalid\nresponse_summary (str) in 1-2 sentences, summarize the response\nhow_its_relevant_summary (str) in 1-2 sentences, summarize how it's relevant"
+                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) take the response and only return the most relevant pieces of information. Do as minimal editing as possible to the result."
             },
             {
                 'role': 'user',
