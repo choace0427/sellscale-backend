@@ -813,7 +813,7 @@ def replenish_all_ml_credits_for_all_sdrs() -> bool:
     return True
 
 
-def chat_ai_verify_scheduling_convo(messages: list[str], seller: str) -> bool:
+def chat_ai_verify_scheduling_convo(messages: list[str], seller: str, current_status: str) -> bool:
     """Verifies if the conversation is about scheduling a meeting.
 
     Args:
@@ -832,17 +832,22 @@ def chat_ai_verify_scheduling_convo(messages: list[str], seller: str) -> bool:
 
 Can you confirm, by replying either 0 (for False) or 1 (for True) that this conversation meets the following criteria for "SCHEDULING."
 
-Criteria (one or the other):
-1. Both parties are actively engaged in finding a time to meet.
-2. The customer is showing a willingness to schedule a call.
+Criteria:
+The two parties are showing a willingness to schedule a meeting.
+Note: The scheduling must be unresolved to be true-- be careful. people might be suggesting times and places that work without having confirmed.
+Make sure that both parties have not settled on when and where they will be seeing each other, and that there are hanging questions.
+
+If the CURRENT_STATUS is DEMO_SET, please automatically return 0.
 
 Seller: {seller_name}
+CURRENT_STATUS: {current_status}
 
 --- Start Transcript ---
 {transcript}
 --- End Transcript ---
+
 """.format(
-        seller_name=seller, transcript=transcript
+        seller_name=seller, transcript=transcript, current_status=current_status
     )
 
     response = get_text_generation(
