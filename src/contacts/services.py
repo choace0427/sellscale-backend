@@ -532,6 +532,13 @@ def apollo_get_organizations_from_company_names(
     db.session.add(saved_query)
     db.session.commit()
 
+    if results and len(results) > 0:
+        from src.company.services import populate_company_from_apollo_result
+
+        for result in results:
+            company_id = populate_company_from_apollo_result(result)
+            print("Updated Company ID", company_id)
+
     return results
 
 

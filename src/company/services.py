@@ -329,61 +329,65 @@ def add_company_via_search(
 
     if apollo_companies and len(apollo_companies) > 0:
         apollo_company = apollo_companies[0]
-        if not apollo_company:
-            return None
+        return populate_company_from_apollo_result(apollo_company)
 
-        # Update existing company
-        if apollo_company.get("name"):
-            company: Company = Company.query.filter(
-                Company.universal_name
-                == convert_name_to_universal_name(apollo_company.get("name")),
-            ).first()
-            if company:
-                print(f"Updating existing company: {company.id} - {company.name}")
+    return None
 
-                company.apollo_uuid = apollo_company.get("id")
-                company.img_logo_url = apollo_company.get("logo_url")
-                company.websites = (
-                    [apollo_company.get("website_url")]
-                    if apollo_company.get("website_url")
-                    else []
-                )
-                db.session.add(company)
-                db.session.commit()
 
-                return company.id
+def populate_company_from_apollo_result(apollo_company: dict) -> int:
+    if not apollo_company:
+        return None
 
-        success = add_company(
-            name=apollo_company.get("name"),
-            universal_name=convert_name_to_universal_name(apollo_company.get("name")),
-            apollo_uuid=apollo_company.get("id"),
-            type=None,
-            img_cover_url=None,
-            img_logo_url=apollo_company.get("logo_url"),
-            li_followers=None,
-            li_company_id=None,
-            phone=None,
-            websites=(
+    # Update existing company
+    if apollo_company.get("name"):
+        company: Company = Company.query.filter(
+            Company.universal_name
+            == convert_name_to_universal_name(apollo_company.get("name")),
+        ).first()
+        if company:
+            print(f"Updating existing company: {company.id} - {company.name}")
+
+            company.apollo_uuid = apollo_company.get("id")
+            company.img_logo_url = apollo_company.get("logo_url")
+            company.websites = (
                 [apollo_company.get("website_url")]
                 if apollo_company.get("website_url")
                 else []
-            ),
-            employees=None,
-            founded_year=None,
-            description=None,
-            specialities=[],
-            industries=[],
-            locations=[],
-            career_page_url=None,
-            related_companies=None,
-        )
+            )
+            db.session.add(company)
+            db.session.commit()
 
-        company: Company = Company.query.filter(
-            Company.apollo_uuid == apollo_company.get("id"),
-        ).first()
-        return company.id if company else None
+            return company.id
 
-    return None
+    success = add_company(
+        name=apollo_company.get("name"),
+        universal_name=convert_name_to_universal_name(apollo_company.get("name")),
+        apollo_uuid=apollo_company.get("id"),
+        type=None,
+        img_cover_url=None,
+        img_logo_url=apollo_company.get("logo_url"),
+        li_followers=None,
+        li_company_id=None,
+        phone=None,
+        websites=(
+            [apollo_company.get("website_url")]
+            if apollo_company.get("website_url")
+            else []
+        ),
+        employees=None,
+        founded_year=None,
+        description=None,
+        specialities=[],
+        industries=[],
+        locations=[],
+        career_page_url=None,
+        related_companies=None,
+    )
+
+    company: Company = Company.query.filter(
+        Company.apollo_uuid == apollo_company.get("id"),
+    ).first()
+    return company.id if company else None
 
 
 def convert_name_to_universal_name(input_string: str):
