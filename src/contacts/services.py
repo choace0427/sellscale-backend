@@ -601,7 +601,7 @@ limit 1
     ).all()
 
     return {
-        # "data": query_data,
+        "data": query_data,
         "companies": [company.to_dict() for company in companies],
     }
 
