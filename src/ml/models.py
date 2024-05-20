@@ -116,3 +116,13 @@ class AIResearcherQuestion(db.Model):
     key = db.Column(db.String, nullable=False)
     relevancy = db.Column(db.String, nullable=False)
     researcher_id = db.Column(db.Integer, db.ForeignKey("ai_researcher.id"), nullable=False)
+
+class AIResearcherAnswer(db.Model):
+    __tablename__ = "ai_researcher_answer"
+
+    id = db.Column(db.Integer, primary_key=True)
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=True)
+    question_id = db.Column(db.Integer, db.ForeignKey("ai_researcher_question.id"), nullable=False)
+    is_yes_response = db.Column(db.Boolean, nullable=False)
+    short_summary = db.Column(db.String, nullable=False)
+    raw_response = db.Column(db.String, nullable=False)
