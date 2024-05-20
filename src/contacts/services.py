@@ -388,6 +388,7 @@ def apollo_get_contacts_for_page(
     }
 
     response = requests.post("https://api.apollo.io/v1/mixed_people/search", json=data)
+    results = response.json()
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     name = "unknown"
@@ -400,16 +401,17 @@ def apollo_get_contacts_for_page(
     saved_query = SavedApolloQuery(
         name_query=f"[{name}] Query on {formatted_date} [{hash}]",
         data=data,
+        results=results,
         client_sdr_id=client_sdr_id,
         is_prefilter=is_prefilter,
-        num_results=response.json().get("pagination", {}).get("total_entries", 0),
+        num_results=results.get("pagination", {}).get("total_entries", 0),
     )
     db.session.add(saved_query)
     db.session.commit()
 
     saved_query_id = saved_query.id
 
-    return response.json(), data, saved_query_id
+    return results, data, saved_query_id
 
 
 def get_company_name_using_urllib(urls: list[str]) -> list[str]:
@@ -524,6 +526,7 @@ def apollo_get_organizations_from_company_names(
     saved_query = SavedApolloQuery(
         name_query=f"Company Fuzzy Search query on {formatted_date} [{hash}]",
         data={"company_names": company_names},
+        results=results,
         client_sdr_id=client_sdr_id,
     )
     db.session.add(saved_query)
