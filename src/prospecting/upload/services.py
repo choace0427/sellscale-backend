@@ -5,6 +5,7 @@ from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters
 from src.prospecting.champions.services import mark_prospects_as_champion
 from src.prospecting.models import (
     ProspectUploadHistory,
+    ProspectUploadHistoryStatus,
     ProspectUploadSource,
     ProspectUploadsRawCSV,
     ProspectUploads,
@@ -121,7 +122,7 @@ def create_prospect_upload_history(
     # Get the upload name by referencing the Segment and # of uploads under this segment
     segment: Segment = Segment.query.get(client_segment_id)
     if segment is None:
-        upload_name = ''
+        upload_name = ""
     else:
         past_uploads: int = ProspectUploadHistory.query.filter_by(
             client_segment_id=client_segment_id,
@@ -139,7 +140,7 @@ def create_prospect_upload_history(
         uploads_failed=0,
         uploads_other=0,
         upload_source=upload_source,
-        status=ProspectUploadHistory.ProspectUploadHistoryStatus.UPLOAD_NOT_STARTED,
+        status=ProspectUploadHistory.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS,
         client_archetype_id=client_archetype_id,
         client_segment_id=client_segment_id,
         raw_data=raw_data,
@@ -149,6 +150,47 @@ def create_prospect_upload_history(
     db.session.commit()
 
     return prospect_upload_history.id
+
+
+@celery.task
+def refresh_prospect_upload_history(
+    prospect_upload_history_id: int,
+    retry: bool = False,
+) -> tuple[bool, str]:
+    """Refreshes the ProspectUploadHistory entry.
+
+    Args:
+        prospect_upload_history_id (int): The ID of the ProspectUploadHistory entry.
+        retry (bool): Whether or not to retry the refresh. Defaults to False.
+
+    Returns:
+        tuple[bool, str]: True if the refresh was successful, error message otherwise.
+    """
+    prospect_upload_history: ProspectUploadHistory = ProspectUploadHistory.query.get(
+        prospect_upload_history_id
+    )
+    if not prospect_upload_history:
+        return False, "ProspectUploadHistory entry not found."
+
+    # Update the status
+    status: ProspectUploadHistoryStatus = prospect_upload_history.update_status()
+
+    # If the status is UPLOAD_COMPLETE, then we are done!
+    if status == ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
+        return True, "ProspectUploadHistory entry updated successfully."
+    else:  # Otherwise we need to wait another minute to check again
+        if retry:
+            from src.automation.orchestrator import add_process_for_future
+
+            add_process_for_future(
+                type="refresh_prospect_upload_history",
+                args={
+                    "prospect_upload_history_id": prospect_upload_history_id,
+                    "retry": True,
+                },
+                minutes=1,  # 1 minute from now
+            )
+        return False, "ProspectUploadHistory entry still in progress."
 
 
 def create_raw_csv_entry_from_json_payload(
@@ -433,7 +475,7 @@ def create_prospect_from_linkedin_link(
     self,
     prospect_upload_id: int,
     allow_duplicates: bool = True,
-    mark_prospect_as_is_champion: bool = False
+    mark_prospect_as_is_champion: bool = False,
 ) -> bool:
     """Celery task for creating a prospect from a LinkedIn URL.
 
@@ -452,6 +494,7 @@ def create_prospect_from_linkedin_link(
         get_iscraper_payload_error,
         research_corporate_profile_details,
     )
+
     try:
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
         if not prospect_upload:
@@ -589,6 +632,7 @@ def create_prospect_from_linkedin_link(
             client_id=prospect_upload.client_id,
             archetype_id=prospect_upload.client_archetype_id,
             client_sdr_id=prospect_upload.client_sdr_id,
+            prospect_upload_id=prospect_upload.id,
             company=company_name,
             company_url=company_url,
             employee_count=employee_count,
@@ -638,7 +682,11 @@ def create_prospect_from_linkedin_link(
             )
 
             if mark_prospect_as_is_champion:
-                mark_prospects_as_champion(client_id=prospect_upload.client_id, prospect_ids=[new_prospect_id], is_champion=mark_prospect_as_is_champion)
+                mark_prospects_as_champion(
+                    client_id=prospect_upload.client_id,
+                    prospect_ids=[new_prospect_id],
+                    is_champion=mark_prospect_as_is_champion,
+                )
 
             return True, new_prospect_id
         else:

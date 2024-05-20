@@ -130,13 +130,13 @@ class ProspectAddedNotification(SlackNotificationClass):
                     },
                 },
                 {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"🤑 SellScale just helped save `${estimated_savings}` of finding contacts.",
-                    },
-                },
+                # {
+                #     "type": "section",
+                #     "text": {
+                #         "type": "mrkdwn",
+                #         "text": f"🤑 SellScale just helped save `${estimated_savings}` of finding contacts.",
+                #     },
+                # },
                 {
                     "type": "context",
                     "elements": [

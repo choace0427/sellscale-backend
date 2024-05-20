@@ -527,6 +527,11 @@ class Prospect(db.Model):
 
     is_champion = db.Column(db.Boolean, nullable=True)
 
+    # Upload information
+    prospect_upload_id = db.Column(
+        db.Integer, db.ForeignKey("prospect_uploads.id"), nullable=True
+    )
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
@@ -968,28 +973,29 @@ class ProspectUploadSource(enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
+class ProspectUploadHistoryStatus(enum.Enum):
+    """Enumeration of the statuses of a ProspectUploadHistory.
+
+    Attributes:
+        UPLOAD_COMPLETE: The upload has completed successfully.
+        UPLOAD_QUEUED: The upload is queued for processing.
+        UPLOAD_FAILED: The upload has failed completely. Rarely used.
+        UPLOAD_IN_PROGRESS: The upload is in progress (worker is attempting to create Prospect records).
+        UPLOAD_NOT_STARTED: The upload has not started (this row has not been picked up by a worker).
+    """
+
+    UPLOAD_COMPLETE = "UPLOAD_COMPLETE"
+    UPLOAD_QUEUED = "UPLOAD_QUEUED"
+    UPLOAD_IN_PROGRESS = "UPLOAD_IN_PROGRESS"
+    UPLOAD_FAILED = "UPLOAD_FAILED"
+    UPLOAD_NOT_STARTED = "UPLOAD_NOT_STARTED"
+
+
 class ProspectUploadHistory(db.Model):
     """Stores the high level data for and the type of an upload.
 
     Designed to be used with the ProspectUploads model and inspired by the design of ProspectUploadsRawCSV.
     """
-
-    class ProspectUploadHistoryStatus(enum.Enum):
-        """Enumeration of the statuses of a ProspectUploadHistory.
-
-        Attributes:
-            UPLOAD_COMPLETE: The upload has completed successfully.
-            UPLOAD_QUEUED: The upload is queued for processing.
-            UPLOAD_FAILED: The upload has failed completely. Rarely used.
-            UPLOAD_IN_PROGRESS: The upload is in progress (worker is attempting to create Prospect records).
-            UPLOAD_NOT_STARTED: The upload has not started (this row has not been picked up by a worker).
-        """
-
-        UPLOAD_COMPLETE = "UPLOAD_COMPLETE"
-        UPLOAD_QUEUED = "UPLOAD_QUEUED"
-        UPLOAD_IN_PROGRESS = "UPLOAD_IN_PROGRESS"
-        UPLOAD_FAILED = "UPLOAD_FAILED"
-        UPLOAD_NOT_STARTED = "UPLOAD_NOT_STARTED"
 
     __tablename__ = "prospect_upload_history"
 
@@ -1049,9 +1055,69 @@ class ProspectUploadHistory(db.Model):
             "created_at": str(self.created_at),
         }
 
-    def update_status(self):
+    def update_status(self) -> ProspectUploadHistoryStatus:
         """Updates own status and uploads_completed by querying ProspectUploads table."""
-        if self.status == self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
+
+        def send_upload_complete_slack_notification():
+            # Since we are complete, we send a slack notification
+            from src.slack.slack_notification_center import (
+                create_and_send_slack_notification_class_message,
+            )
+            from src.slack.models import SlackNotificationType
+            from src.client.models import ClientArchetype
+            from src.segment.models import Segment
+            from collections import Counter
+            import random
+
+            # Get the estimated savings
+            estimated_savings = round(
+                self.uploads_completed * random.uniform(0.83, 1.17), 2
+            )
+
+            # Get the Persona or Segment string
+            archetype: ClientArchetype = ClientArchetype.query.get(
+                self.client_archetype_id
+            )
+            persona_or_segment_string = ""
+            if (
+                not self.client_segment_id
+                or not archetype.is_unassigned_contact_archetype
+            ):
+                persona_or_segment_string = "Persona: {persona}".format(
+                    persona=archetype.archetype
+                )
+            else:
+                segment: Segment = Segment.query.get(self.client_segment_id)
+                segment_title = segment.segment_title
+                persona_or_segment_string = "Segment: {segment_title}".format(
+                    segment_title=segment_title
+                )
+
+            # Get the top titles
+            prospect_uploads: list[ProspectUploads] = ProspectUploads.query.filter(
+                ProspectUploads.prospect_upload_history_id == self.id
+            ).all()
+            prospects: list[Prospect] = Prospect.query.filter(
+                Prospect.client_sdr_id == self.client_sdr_id,
+                Prospect.archetype_id == self.client_archetype_id,
+                Prospect.id.in_(
+                    [prospect_upload.id for prospect_upload in prospect_uploads]
+                ),
+            ).all()
+            title_counts = Counter([prospect.title for prospect in prospects])
+
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.PROSPECT_ADDED,
+                arguments={
+                    "client_sdr_id": self.client_sdr_id,
+                    "num_new_prospects": self.uploads_completed,
+                    "estimated_savings": estimated_savings,
+                    "persona_or_segment_string": persona_or_segment_string,
+                    "top_titles": title_counts.most_common(3),
+                },
+            )
+
+        if self.status == ProspectUploadHistoryStatus.UPLOAD_COMPLETE:
             return
 
         # Get the number of uploads created by this history
@@ -1103,13 +1169,15 @@ class ProspectUploadHistory(db.Model):
         self.uploads_failed = len(failed)
         self.uploads_in_progress = len(in_progress)
 
+        # If all uploads are complete, set status to COMPLETE
         if in_progress:
-            self.status = self.ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
+            self.status = ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
         else:
-            self.status = self.ProspectUploadHistoryStatus.UPLOAD_COMPLETE
+            send_upload_complete_slack_notification()
+            self.status = ProspectUploadHistoryStatus.UPLOAD_COMPLETE
 
         db.session.commit()
-        return
+        return self.status
 
 
 class ProspectUploadsRawCSV(db.Model):

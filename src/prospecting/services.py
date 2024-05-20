@@ -1554,6 +1554,7 @@ def add_prospect(
     client_id: int,
     archetype_id: int,
     client_sdr_id: int,
+    prospect_upload_id: Optional[int] = None,
     company: Optional[str] = None,
     company_url: Optional[str] = None,
     employee_count: Optional[str] = None,
@@ -1703,6 +1704,7 @@ def add_prospect(
         prospect: Prospect = Prospect(
             client_id=client_id,
             archetype_id=archetype_id,
+            prospect_upload_id=prospect_upload_id,
             company=company,
             company_url=company_url,
             employee_count=employee_count,
@@ -2821,9 +2823,9 @@ def get_prospect_li_history(prospect_id: int):
         GeneratedMessage.message_status == GeneratedMessageStatus.SENT,
     ).first()
     prospect_notes: List[ProspectNote] = ProspectNote.get_prospect_notes(prospect_id)
-    convo_history: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo_history: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
     status_history: List[ProspectStatusRecords] = ProspectStatusRecords.query.filter(
         ProspectStatusRecords.prospect_id == prospect_id
     ).all()
@@ -2899,11 +2901,11 @@ def get_prospect_email_history(prospect_id: int):
             }
         )
 
-    email_status_history: List[ProspectEmailStatusRecords] = (
-        ProspectEmailStatusRecords.query.filter(
-            ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
-        ).all()
-    )
+    email_status_history: List[
+        ProspectEmailStatusRecords
+    ] = ProspectEmailStatusRecords.query.filter(
+        ProspectEmailStatusRecords.prospect_email_id == prospect_email.id
+    ).all()
 
     return {
         "emails": email_history_parsed,
@@ -3759,187 +3761,6 @@ def extract_colloquialized_company_name(self, prospect_id: int):
             prospect.original_company = original_company
             db.session.add(prospect)
             db.session.commit()
-
-
-# Process failed: generate_prospect_upload_report. Reason: Process failed: generate_prospect_upload_report. Reason: 'NoneType' object has no attribute 'id'
-
-
-@celery.task
-def generate_prospect_upload_report(archetype_state: dict):
-    archetype_id = archetype_state.get("archetype_id")
-    client_id = archetype_state.get("client_id")
-    client_sdr_id = archetype_state.get("client_sdr_id")
-    current_prospect_ids = archetype_state.get("current_prospect_ids")
-
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_id)
-    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-
-    results: list = (
-        Prospect.query.join(Company, Company.id == Prospect.company_id)
-        .filter(
-            Prospect.client_sdr_id == client_sdr.id,
-            Prospect.archetype_id == archetype.id,
-            Prospect.id.notin_(current_prospect_ids),
-            # Prospect created in last 24 hours
-            Prospect.created_at > datetime.utcnow() - timedelta(days=1),
-        )
-        .add_columns(
-            Prospect.id,
-            Prospect.title,
-            Prospect.full_name,
-            Prospect.company,
-            Prospect.linkedin_url,
-            Company.employees,
-        )
-        .all()
-    )
-
-    # Top 3 titles
-    titles = [result.title for result in results]
-    title_counts = Counter(titles)
-    top_titles_str = ", ".join(title for title, count in title_counts.most_common(3))
-
-    # Stats on company size
-    employee_counts = [result.employees for result in results]
-    # company_size_str = f"{min(employee_counts):,} - {max(employee_counts):,}, median {round(statistics.median(employee_counts)):,}"
-    company_size_str = (
-        f"{round(statistics.median(employee_counts)):,}"
-        if employee_counts
-        else "Unknown"
-    )
-
-    # Pull the example profiles from prospects with a title in the top 10
-    example_profiles = []
-    top_10_titles = title_counts.most_common(10)
-    random.shuffle(results)
-    for result in results:
-        if any(result.title == title for title, count in top_10_titles):
-            example_profiles.append(
-                f"<https://www.{result.linkedin_url}|{result.full_name} ({result.title} @ {result.company})>"
-            )
-    example_profiles_str = ", ".join(example_profiles[:3])
-
-    num_prospects = len(results)
-    estimated_savings = round(num_prospects * random.uniform(0.83, 1.17), 2)
-
-    sample_prospect = results[0] if results else None
-    segment_id = None
-    if sample_prospect:
-        prospect: Prospect = Prospect.query.get(sample_prospect.id)
-        if prospect.segment_id:
-            segment_id = prospect.segment_id
-
-    persona_or_segment_string = ""
-    if not segment_id or not archetype.is_unassigned_contact_archetype:
-        persona_or_segment_string = "Persona: {persona}".format(
-            persona=archetype.archetype
-        )
-    else:
-        segment: Segment = Segment.query.get(segment_id)
-        segment_title = segment.segment_title
-        persona_or_segment_string = "Segment: {segment_title}".format(
-            segment_title=segment_title
-        )
-
-    return create_and_send_slack_notification_class_message(
-        notification_type=SlackNotificationType.PROSPECT_ADDED,
-        arguments={
-            "client_sdr_id": client_sdr_id,
-            "num_new_prospects": len(results),
-            "estimated_savings": estimated_savings,
-            "persona_or_segment_string": persona_or_segment_string,
-            "top_titles": title_counts.most_common(3),
-            "company_size_str": company_size_str,
-        },
-    )
-
-    # try:
-
-    #     send_slack_message(
-    #         message="",
-    #         blocks=[
-    #             {
-    #                 "type": "header",
-    #                 "text": {
-    #                     "type": "plain_text",
-    #                     "text": "🚢 {x} new prospects added to prospect list!".format(
-    #                         x=len(results)
-    #                     ),
-    #                     "emoji": True,
-    #                 },
-    #             },
-    #             {"type": "divider"},
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": f"🤑 SellScale just helped save `${estimated_savings}` of finding contacts.",
-    #                 },
-    #             },
-    #             {
-    #                 "type": "context",
-    #                 "elements": [
-    #                     {
-    #                         "type": "mrkdwn",
-    #                         "text": "User: {user} ({company})".format(
-    #                             user=client_sdr.name, company=client.company
-    #                         ),
-    #                     },
-    #                     {
-    #                         "type": "mrkdwn",
-    #                         "text": persona_or_segment_string,
-    #                     },
-    #                     {
-    #                         "type": "mrkdwn",
-    #                         "text": "Top Titles: {top_titles}".format(
-    #                             top_titles=top_titles_str
-    #                         ),
-    #                     },
-    #                     {
-    #                         "type": "mrkdwn",
-    #                         "text": "Company Median Size: {company_size}".format(
-    #                             company_size=company_size_str
-    #                         ),
-    #                     },
-    #                     # {
-    #                     #     "type": "mrkdwn",
-    #                     #     "text": "Example Profiles: {example_profiles}".format(
-    #                     #         example_profiles=example_profiles_str
-    #                     #     ),
-    #                     # },
-    #                 ],
-    #             },
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": "View contacts on SellScale",
-    #                 },
-    #                 "accessory": {
-    #                     "type": "button",
-    #                     "text": {
-    #                         "type": "plain_text",
-    #                         "text": "View Convo in Sight",
-    #                         "emoji": True,
-    #                     },
-    #                     "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
-    #                         auth_token=client_sdr.auth_token
-    #                     ),
-    #                     "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=contacts/".format(
-    #                         auth_token=client_sdr.auth_token
-    #                     ),
-    #                     "action_id": "button-action",
-    #                 },
-    #             },
-    #         ],
-    #         webhook_urls=[
-    #             URL_MAP["operations-prospect-uploads"],
-    #             client.pipeline_notifications_webhook_url,
-    #         ],
-    #     )
-    # except Exception as e:
-    #     print("Failed to send slack notification: {}".format(e))
 
 
 def global_prospected_contacts(client_id: int):

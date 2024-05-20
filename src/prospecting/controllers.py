@@ -1086,30 +1086,6 @@ def add_prospect_from_csv_payload(
     if not archetype:
         return "Archetype with given ID not found", 400
 
-    client_sdr: ClientSDR = ClientSDR.query.filter(
-        ClientSDR.id == client_sdr_id
-    ).first()
-    client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
-
-    prospects: list[Prospect] = Prospect.query.filter(
-        Prospect.client_sdr_id == client_sdr.id,
-        Prospect.archetype_id == archetype.id,
-    ).all()
-
-    # Schedule a job to generate a report for the prospect upload
-    add_process_for_future(
-        type="generate_prospect_upload_report",
-        args={
-            "archetype_state": {
-                "archetype_id": archetype.id,
-                "client_id": client.id,
-                "client_sdr_id": client_sdr.id,
-                "current_prospect_ids": [p.id for p in prospects],
-            }
-        },
-        minutes=15,  # 2 hours from now
-    )
-
     # Check for duplicates is always enabled if client is not SellScale
     if archetype.client_id != 1:
         allow_duplicates = True
@@ -1164,6 +1140,13 @@ def add_prospect_from_csv_payload(
         queue="prospecting",
         routing_key="prospecting",
         priority=1,
+    )
+
+    # Schedule a job to check on the Prospect Upload History
+    add_process_for_future(
+        type="refresh_prospect_upload_history",
+        args={"prospect_upload_history_id": prospect_upload_history_id, "retry": True},
+        minutes=1,  # 1 minute from now
     )
 
     return "Upload job scheduled.", 200
@@ -1701,9 +1684,9 @@ def post_determine_li_msg_from_content(client_sdr_id: int, prospect_id: int):
 def get_li_msgs_for_prospect(client_sdr_id: int, prospect_id: int):
     from model_import import LinkedinConversationEntry
 
-    convo: List[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
-    )
+    convo: List[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(prospect_id)
 
     return jsonify({"message": "Success", "data": [c.to_dict() for c in convo]}), 200
 

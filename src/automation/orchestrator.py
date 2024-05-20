@@ -7,8 +7,6 @@ from src.warmup_snapshot.services import set_warmup_snapshot_for_sdr
 from src.automation.services import process_queue_test
 
 from src.triggers.services import trigger_runner
-
-from src.prospecting.services import generate_prospect_upload_report
 from src.email_scheduling.services import populate_email_messaging_schedule_entries
 
 from src.individual.services import (
@@ -25,7 +23,10 @@ from src.campaigns.autopilot.services import (
 from src.campaigns.autopilot.services import (
     daily_generate_linkedin_campaign_for_sdr,
 )
-from src.prospecting.upload.services import upload_from_apollo
+from src.prospecting.upload.services import (
+    refresh_prospect_upload_history,
+    upload_from_apollo,
+)
 from src.automation.phantom_buster.services import (
     delayed_trigger_upload_prospects_job_from_linkedin_sales_nav_scrape,
 )
@@ -91,8 +92,8 @@ PROCESS_TYPE_MAP = {
         "queue": "email_scheduler",
         "routing_key": "email_scheduler",
     },
-    "generate_prospect_upload_report": {
-        "function": generate_prospect_upload_report,
+    "refresh_prospect_upload_history": {
+        "function": refresh_prospect_upload_history,
         "priority": 10,
         "queue": None,
         "routing_key": None,
