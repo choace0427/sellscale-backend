@@ -103,8 +103,6 @@ def run_ai_researcher_question(
     """Run an AI Researcher question on a prospect."""
     question: AIResearcherQuestion = AIResearcherQuestion.query.get(question_id)
 
-    import pdb; pdb.set_trace()
-
     if question.type == "QUESTION":
         success, raw_response, data = answer_question_about_prospect(
             client_sdr_id=client_sdr_id,
