@@ -162,9 +162,9 @@ def run_ai_researcher_question(
             )
 
             is_yes_response = validate_with_gpt["is_yes_response"]
-            short_summary = validate_with_gpt["cleaned_research"]
+            short_summary = raw_value
             relevancy_explanation = validate_with_gpt["relevancy_explanation"]
-            raw_response = raw_value
+            raw_response = validate_with_gpt["cleaned_research"]
     else:
         return False
 
