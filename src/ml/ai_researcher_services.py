@@ -177,16 +177,16 @@ def run_ai_researcher_question(
             relevancy_explanation = validate_with_gpt["relevancy_explanation"]
             raw_response = validate_with_gpt["cleaned_research"]
 
-            ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
-                prospect_id=prospect_id,
-                question_id=question_id,
-                is_yes_response=is_yes_response,
-                short_summary=short_summary,
-                raw_response=raw_response,
-                relevancy_explanation=relevancy_explanation
-            )
-            db.session.add(ai_researcher_answer)
-            db.session.commit()
+        ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
+            prospect_id=prospect_id,
+            question_id=question_id,
+            is_yes_response=is_yes_response,
+            short_summary=short_summary,
+            raw_response=raw_response,
+            relevancy_explanation=relevancy_explanation
+        )
+        db.session.add(ai_researcher_answer)
+        db.session.commit()
     elif question.type == "GENERAL":
         # Step 1: Ask perplexity for general information
         # Step 2: extract key points from the response using GPT-4o
