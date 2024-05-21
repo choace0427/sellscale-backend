@@ -1332,7 +1332,9 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
         return False, "Prospect does not belong to the client SDR.", {}
 
     prospect_str = prospect.full_name + (" (" + prospect.title + " @ " + prospect.company + ")")
-    company_str = prospect.company + " (" + prospect.company_url + ")"
+    company_str = prospect.company
+    if prospect.company_url:
+        company_str += " (" + prospect.company_url + ")"
 
     prompt = question.replace(
         "[[prospect]]", prospect_str

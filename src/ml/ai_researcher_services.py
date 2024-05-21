@@ -103,6 +103,8 @@ def run_ai_researcher_question(
     """Run an AI Researcher question on a prospect."""
     question: AIResearcherQuestion = AIResearcherQuestion.query.get(question_id)
 
+    import pdb; pdb.set_trace()
+
     if question.type == "QUESTION":
         success, raw_response, data = answer_question_about_prospect(
             client_sdr_id=client_sdr_id,
@@ -112,11 +114,13 @@ def run_ai_researcher_question(
         )
 
         if not success:
-            return False
-            
-        is_yes_response = data["is_yes_response"]
-        short_summary = data["cleaned_research"]
-        raw_response = raw_response
+            is_yes_response = False
+            short_summary = "Could not find the information related to this query."
+            raw_response = "None."
+        else:
+            is_yes_response = data["is_yes_response"]
+            short_summary = data["cleaned_research"]
+            raw_response = raw_response
     elif question.type == "LINKEDIN":
         research_payloads: list[ResearchPayload] = ResearchPayload.query.filter_by(
             prospect_id=prospect_id
