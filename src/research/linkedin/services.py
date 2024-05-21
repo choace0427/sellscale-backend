@@ -2,9 +2,9 @@ from typing import Optional
 from src.company.services import add_company_cache_to_db
 from app import celery, db
 
-from src.client.models import Client, ClientArchetype
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.ml.models import TextGeneration
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
 from src.research.models import (
     AccountResearchPoints,
     ResearchPayload,
@@ -231,6 +231,60 @@ def get_research_and_bullet_points_new(prospect_id: int, test_mode: bool):
     from src.research.generate_research import generate_research_points
 
     return generate_research_points(prospect_id=prospect_id, test_mode=test_mode)
+
+@celery.task
+def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    def is_on_dnc_list(prospect, client, client_sdr):
+        # Check against Client's DNC lists
+        def is_on_dnc_list_helper(dnc_list, prospect_attr, exact_match=False):
+            # lowercase everything for case-insensitive matching
+            prospect_attr_lower = prospect_attr.lower()
+            if not dnc_list or not prospect_attr:
+                return False
+            if exact_match:
+                return prospect_attr_lower in (item.lower() for item in dnc_list)
+            
+            return any(item.lower() in prospect_attr_lower for item in dnc_list)
+
+        if (
+            is_on_dnc_list_helper(client.do_not_contact_company_names, prospect.company, exact_match=True) or
+            is_on_dnc_list_helper(client.do_not_contact_keywords_in_company_names, prospect.company) or
+            is_on_dnc_list_helper(client.do_not_contact_industries, prospect.industry) or
+            is_on_dnc_list_helper(client.do_not_contact_location_keywords, prospect.company_location) or
+            is_on_dnc_list_helper(client.do_not_contact_titles, prospect.title, exact_match=True) or
+            is_on_dnc_list_helper(client.do_not_contact_prospect_location_keywords, prospect.prospect_location, exact_match=True) or
+            is_on_dnc_list_helper(client.do_not_contact_people_names, prospect.full_name, exact_match=True) or
+            is_on_dnc_list_helper(client.do_not_contact_emails, prospect.email, exact_match=True)
+        ):
+            return True
+
+        if (
+            is_on_dnc_list_helper(client_sdr.do_not_contact_company_names, prospect.company, exact_match=True) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_keywords_in_company_names, prospect.company) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_industries, prospect.industry, exact_match=True) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_location_keywords, prospect.company_location) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_titles, prospect.title, exact_match=True) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_prospect_location_keywords, prospect.prospect_location) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_people_names, prospect.full_name, exact_match=True) or
+            is_on_dnc_list_helper(client_sdr.do_not_contact_emails, prospect.email, exact_match=True)
+        ):
+            return True
+        return False
+
+    if is_on_dnc_list(prospect, client, client_sdr):
+        prospect.status = ProspectStatus.NOT_QUALIFIED
+        prospect.overall_status = ProspectOverallStatus.REMOVED
+        db.session.add(prospect)
+        db.session.commit()
+    else:
+        prospect.status = ProspectStatus.PROSPECTED
+        db.session.add(prospect)
+        db.session.commit()
 
 
 def reset_prospect_approved_status(prospect_id: int):

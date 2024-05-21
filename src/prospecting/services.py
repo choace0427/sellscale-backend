@@ -46,6 +46,7 @@ from src.research.linkedin.services import (
     get_research_and_bullet_points_new,
     get_research_payload_new,
     research_corporate_profile_details,
+    check_and_apply_do_not_contact,
 )
 from src.research.services import create_iscraper_payload_cache
 from src.prospecting.models import (
@@ -1655,39 +1656,6 @@ def add_prospect(
     first_name = get_first_name_from_full_name(full_name=full_name)
     last_name = get_last_name_from_full_name(full_name=full_name)
 
-    client: Client = Client.query.get(client_id)
-    if company:
-        do_not_contact_titles = client.do_not_contact_titles or []
-        do_not_contact_industries = client.do_not_contact_industries or []
-        if (
-            (
-                client.do_not_contact_company_names
-                and company.lower()
-                in [x.lower() for x in client.do_not_contact_company_names]
-            )
-            or (
-                client.do_not_contact_keywords_in_company_names
-                and company.lower()
-                in [x.lower() for x in client.do_not_contact_keywords_in_company_names]
-            )
-            or (
-                client.do_not_contact_industries
-                and not industry
-                or (
-                    industry
-                    and industry.lower()
-                    in [x.lower() for x in do_not_contact_industries]
-                )
-            )
-            or (
-                client.do_not_contact_titles
-                and title
-                and title.lower() in [x.lower() for x in do_not_contact_titles]
-            )
-        ):
-            status = ProspectStatus.NOT_QUALIFIED
-            overall_status = ProspectOverallStatus.REMOVED
-
     can_create_prospect = not prospect_exists or allow_duplicates
     if can_create_prospect:
         archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
@@ -1743,6 +1711,9 @@ def add_prospect(
             get_research_and_bullet_points_new(prospect_id=p_id, test_mode=False)
         else:
             get_research_and_bullet_points_new.delay(prospect_id=p_id, test_mode=False)
+
+        #celery will check do not contact based on client & sdr list.
+        check_and_apply_do_not_contact(client_sdr_id, prospect.id)
 
         # from src.client.services import remove_prospects_caught_by_filters
         # remove_prospects_caught_by_filters.delay(client_sdr_id=client_sdr_id)

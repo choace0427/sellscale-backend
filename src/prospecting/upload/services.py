@@ -121,13 +121,15 @@ def create_prospect_upload_history(
 
     # Get the upload name by referencing the Segment and # of uploads under this segment
     segment: Segment = Segment.query.get(client_segment_id)
-    if segment is None:
-        upload_name = ""
-    else:
-        past_uploads: int = ProspectUploadHistory.query.filter_by(
-            client_segment_id=client_segment_id,
-        ).count()
+    
+    past_uploads: int = ProspectUploadHistory.query.filter_by(
+        client_segment_id=client_segment_id,
+    ).count()
+    
+    if segment:
         upload_name = f"{segment.segment_title} #{past_uploads + 1}"
+    else:
+        upload_name = f"Segment {client_segment_id} #{past_uploads + 1}"
 
     prospect_upload_history: ProspectUploadHistory = ProspectUploadHistory(
         client_id=client_id,

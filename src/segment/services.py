@@ -128,6 +128,11 @@ def get_base_segment_for_archetype(archetype_id: int) -> Segment:
         client_archetype.base_segment_id = segment.id
         db.session.commit()
 
+    #check to see if the base segment id exists in the segment table. It could have been deleted!
+    segment: Segment = Segment.query.get(client_archetype.base_segment_id)
+    if (segment is None):
+        return None
+    
     return client_archetype.base_segment_id
 
 

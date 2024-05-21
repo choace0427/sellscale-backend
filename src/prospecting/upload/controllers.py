@@ -158,20 +158,18 @@ def post_upload_prospects_from_linkedin_links(client_sdr_id: int):
     custom_data = get_request_parameter("custom_data", request, json=True, required=False) or {}
 
     sdr = ClientSDR.query.get(client_sdr_id)
-    if archetype_id == -1:
+    
+    if archetype_id == -1 or archetype_id is None:
         segment_id = None
-    elif not segment_id:
-        segment_id = get_base_segment_for_archetype(archetype_id=archetype_id)
-
-    if archetype_id == -1:
         client_archetype = ClientArchetype.query.filter(
             ClientArchetype.is_unassigned_contact_archetype == True,
             ClientArchetype.client_sdr_id == client_sdr_id
         ).first()
-        if client_archetype:
-            archetype_id = client_archetype.id
-        else:
+        if not client_archetype:
             return jsonify({"status": "error", "message": "Unassigned contact archetype not found"}), 404
+        archetype_id = client_archetype.id
+    if not segment_id:
+        segment_id = get_base_segment_for_archetype(archetype_id=archetype_id)
 
     def process_url(url, upload_history_id):
         try:
