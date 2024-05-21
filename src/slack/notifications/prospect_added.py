@@ -105,7 +105,6 @@ class ProspectAddedNotification(SlackNotificationClass):
             or not estimated_savings
             or not persona_or_segment_string
             or not top_titles
-            or not company_size_str
             or not direct_link
         ):
             return False
@@ -165,12 +164,12 @@ class ProspectAddedNotification(SlackNotificationClass):
                                 )
                             ),
                         },
-                        {
-                            "type": "mrkdwn",
-                            "text": "Company Median Size: {company_size_str}".format(
-                                company_size_str=company_size_str
-                            ),
-                        },
+                        # {
+                        #     "type": "mrkdwn",
+                        #     "text": "Company Median Size: {company_size_str}".format(
+                        #         company_size_str=company_size_str
+                        #     ),
+                        # },
                     ],
                 },
                 {

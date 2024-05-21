@@ -1100,7 +1100,7 @@ class ProspectUploadHistory(db.Model):
             prospects: list[Prospect] = Prospect.query.filter(
                 Prospect.client_sdr_id == self.client_sdr_id,
                 Prospect.archetype_id == self.client_archetype_id,
-                Prospect.id.in_(
+                Prospect.prospect_upload_id.in_(
                     [prospect_upload.id for prospect_upload in prospect_uploads]
                 ),
             ).all()
