@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import math
+from urllib.parse import urlparse
 import random
 import string
 from typing import Optional
@@ -1921,3 +1922,9 @@ def backfill_warmup_snapshots_into_domains():
             db.session.commit()
 
     return True
+
+
+def extract_domain(url: str):
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+    return domain

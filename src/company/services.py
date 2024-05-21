@@ -256,6 +256,7 @@ def find_company(
     company_url: Optional[str] = None,
     apollo_uuid: Optional[str] = None,
 ) -> Optional[int]:
+    from src.domains.services import extract_domain
 
     company = None
     if company_name:
@@ -264,7 +265,9 @@ def find_company(
         ).first()
     if company_url:
         company: Company = Company.query.filter(
-            func.array_to_string(Company.websites, ",").ilike(f"%{company_url}%"),
+            func.array_to_string(Company.websites, ",").ilike(
+                f"%{extract_domain(company_url)}%"
+            ),
         ).first()
     if apollo_uuid:
         company: Company = Company.query.filter(
