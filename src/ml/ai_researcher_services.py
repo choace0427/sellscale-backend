@@ -121,6 +121,17 @@ def run_ai_researcher_question(
             short_summary = data["cleaned_research"]
             relevancy_explanation = data["relevancy_explanation"]
             raw_response = raw_response
+
+        ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
+            prospect_id=prospect_id,
+            question_id=question_id,
+            is_yes_response=is_yes_response,
+            short_summary=short_summary,
+            raw_response=raw_response,
+            relevancy_explanation=relevancy_explanation
+        )
+        db.session.add(ai_researcher_answer)
+        db.session.commit()
     elif question.type == "LINKEDIN":
         research_payloads: list[ResearchPayload] = ResearchPayload.query.filter_by(
             prospect_id=prospect_id
@@ -165,19 +176,82 @@ def run_ai_researcher_question(
             short_summary = raw_value
             relevancy_explanation = validate_with_gpt["relevancy_explanation"]
             raw_response = validate_with_gpt["cleaned_research"]
+
+            ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
+                prospect_id=prospect_id,
+                question_id=question_id,
+                is_yes_response=is_yes_response,
+                short_summary=short_summary,
+                raw_response=raw_response,
+                relevancy_explanation=relevancy_explanation
+            )
+            db.session.add(ai_researcher_answer)
+            db.session.commit()
+    elif question.type == "GENERAL":
+        # Step 1: Ask perplexity for general information
+        # Step 2: extract key points from the response using GPT-4o
+        # step 3: for each key point, generate a short summary and relevancy explanation and save it as an answer
+
+        success, raw_response, data = answer_question_about_prospect(
+            client_sdr_id=client_sdr_id,
+            prospect_id=prospect_id,
+            question=question.key,
+            how_its_relevant=question.relevancy
+        )
+
+        if not success:
+            is_yes_response = False
+            short_summary = "Could not find the information related to this query."
+            relevancy_explanation = "Could not find the information related to this query."
+            raw_response = "None."
+
+            ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
+                prospect_id=prospect_id,
+                question_id=question_id,
+                is_yes_response=is_yes_response,
+                short_summary=short_summary,
+                raw_response=raw_response,
+                relevancy_explanation=relevancy_explanation
+            )
+            db.session.add(ai_researcher_answer)
+            db.session.commit()
+        
+        # step 2
+        key_points = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    'role': 'system',
+                    'content': "You are an AI data extractor that, given some raw research information and relevancy explanation, will extract the relevant and key information from the research. I need you to respond with a JSON object. Make a list called `data` which contains a list of objects representing the relevant extracted information with the following two items: key_point_summary (str) a single key points extracted from the research (grab the contents verbatim), and relevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why.\n\nIMPORTANT: Only respond with the JSON, nothing else.\n\nIMPORTANT: Extract 2-4 key points from the research and provide a relevancy explanations for each key point."
+                },
+                {
+                    'role': 'user',
+                    'content': f"Raw Research Data: {raw_response}\nRelevancy Explanation: {question.relevancy}\nOutput:"
+                }
+            ],
+            max_tokens=1000,
+            model='gpt-4o'
+        )
+
+        data = json.loads(
+            key_points.replace("json", "").replace("`", "")
+        )
+
+
+        for key_point in data["data"]:
+            ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
+                prospect_id=prospect_id,
+                question_id=question_id,
+                is_yes_response=True,
+                short_summary=key_point["key_point_summary"],
+                raw_response=raw_response,
+                relevancy_explanation=key_point["relevancy_explanation"]
+            )
+            db.session.add(ai_researcher_answer)
+            db.session.commit()
     else:
         return False
 
-    ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
-        prospect_id=prospect_id,
-        question_id=question_id,
-        is_yes_response=is_yes_response,
-        short_summary=short_summary,
-        raw_response=raw_response,
-        relevancy_explanation=relevancy_explanation
-    )
-    db.session.add(ai_researcher_answer)
-    db.session.commit()
+    
 
     return True
 
