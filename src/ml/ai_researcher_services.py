@@ -114,10 +114,12 @@ def run_ai_researcher_question(
         if not success:
             is_yes_response = False
             short_summary = "Could not find the information related to this query."
+            relevancy_explanation = "Could not find the information related to this query."
             raw_response = "None."
         else:
             is_yes_response = data["is_yes_response"]
             short_summary = data["cleaned_research"]
+            relevancy_explanation = data["relevancy_explanation"]
             raw_response = raw_response
     elif question.type == "LINKEDIN":
         research_payloads: list[ResearchPayload] = ResearchPayload.query.filter_by(
@@ -135,6 +137,7 @@ def run_ai_researcher_question(
         if not research_point:
             is_yes_response = False
             short_summary = "Could not find the information related to this query."
+            relevancy_explanation = "Could not find the information related to this query."
             raw_response = "None."
         else:
             raw_value = research_point.value
@@ -144,7 +147,7 @@ def run_ai_researcher_question(
                 messages=[
                     {
                         'role': 'system',
-                        'content': "You are an AI sales researcher that is taking a snippet from a Linkedin profile, a qualifying relevancy criteria, and responding with a short summary and raw response. I need you to respond with a JSON with three items: is_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) Simply explain why the response is a yes or no response. This should be a short summary of the response that explains simply"
+                        'content': "You are an AI sales researcher that is taking a snippet from a Linkedin profile, a qualifying relevancy criteria, and responding with a short summary and raw response. I need you to respond with a JSON with three items: is_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) Simply explain why the response is a yes or no response. This should be a short summary of the response that explains simply\nrelevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why."
                     },
                     {
                     'role': 'user',
@@ -160,6 +163,7 @@ def run_ai_researcher_question(
 
             is_yes_response = validate_with_gpt["is_yes_response"]
             short_summary = validate_with_gpt["cleaned_research"]
+            relevancy_explanation = validate_with_gpt["relevancy_explanation"]
             raw_response = raw_value
     else:
         return False
@@ -169,7 +173,8 @@ def run_ai_researcher_question(
         question_id=question_id,
         is_yes_response=is_yes_response,
         short_summary=short_summary,
-        raw_response=raw_response
+        raw_response=raw_response,
+        relevancy_explanation=relevancy_explanation
     )
     db.session.add(ai_researcher_answer)
     db.session.commit()

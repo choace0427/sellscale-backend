@@ -142,6 +142,7 @@ class AIResearcherAnswer(db.Model):
     is_yes_response = db.Column(db.Boolean, nullable=False)
     short_summary = db.Column(db.String, nullable=False)
     raw_response = db.Column(db.String, nullable=False)
+    relevancy_explanation = db.Column(db.String, nullable=True)
 
     def to_dict(self, deep_get: bool = False):
 
@@ -155,4 +156,5 @@ class AIResearcherAnswer(db.Model):
             "short_summary": self.short_summary,
             "raw_response": self.raw_response,
             "question": question.to_dict() if deep_get else None,
+            "relevancy_explanation": self.relevancy_explanation
         }
