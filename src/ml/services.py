@@ -1355,7 +1355,7 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
         messages=[
             {
                 'role': 'system',
-                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) take the response and only return the most relevant pieces of information. Do as minimal editing as possible to the result."
+                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) take the response and only return the most relevant pieces of information. Do as minimal editing as possible to the result.\nrelevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why."
             },
             {
                 'role': 'user',

@@ -1079,10 +1079,10 @@ def get_client_archetype_stats(client_archetype_id):
     ]
 
     # Linkedin sequence
-    success, records = generate_entire_simulated_conversation(
-        archetype_id=client_archetype_id,
-    )
-    # success = False
+    # success, records = generate_entire_simulated_conversation(
+    #     archetype_id=client_archetype_id,
+    # )
+    success = False
     if success:
         simulation_records: list[SimulationRecord] = records
         linkedin_sequence = []
