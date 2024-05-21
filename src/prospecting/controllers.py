@@ -1856,11 +1856,12 @@ def patch_apollo_scrape(client_sdr_id: int):
 @PROSPECTING_BLUEPRINT.route("/champion/get_champion_changes", methods=["GET"])
 @require_user
 def get_champion_changes(client_sdr_id: int):
+    search_term = request.args.get("search", default=None, type=str)
     client_sdr: ClientSDR = ClientSDR.query.filter(
         ClientSDR.id == client_sdr_id
     ).first()
     client_id = client_sdr.client_id
-    results = get_champion_detection_changes(client_id)
+    results = get_champion_detection_changes(client_id, search_term=search_term)
 
     return jsonify({"message": "Success", "data": results}), 200
 

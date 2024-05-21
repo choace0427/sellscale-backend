@@ -127,6 +127,7 @@ def refresh_job_data_for_all_champions(
 
 def get_champion_detection_changes(
     client_id: int,
+    search_term: str = ''
 ):
     last_three_months = []
     for i in range(3):
@@ -185,6 +186,7 @@ def get_champion_detection_changes(
             join t on t.max_rp_id = research_payload.id and t.prospect_id = prospect.id
         where prospect.client_id = {client_id}
             and prospect.is_champion = True
+            {search_filter}
     )
     select 
         case when
@@ -193,8 +195,15 @@ def get_champion_detection_changes(
         end "change_detected",
         *
     from d
-    where new_company_name is not null;
+    where new_company_name is not null
+    order by change_detected desc, new_company_start_date desc;
     """
+
+    search_filter = ""
+    if search_term:
+        search_filter = f"and (prospect.company ilike '%{search_term}%' or prospect.full_name ilike '%{search_term}%')"
+
+    query = query.format(client_id=client_id, last_three_months_str=last_three_months_str, search_filter=search_filter)
 
     result = db.session.execute(query.format(client_id=client_id, last_three_months_str=last_three_months_str)).fetchall()
 
