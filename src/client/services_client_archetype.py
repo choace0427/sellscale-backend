@@ -1171,6 +1171,135 @@ def get_client_archetype_stats(client_archetype_id):
     }
 
 
+def get_client_archetype_overview(client_archetype_id):
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
+    client_id = archetype.client_id
+
+    analytics = get_all_campaign_analytics_for_client(
+        client_id=client_id,
+        client_archetype_id=int(client_archetype_id),
+    )
+
+    emoji = archetype.emoji
+    archetype_name = archetype.archetype
+    sdr_name = client_sdr.name
+    created_at = archetype.created_at
+    email_active = archetype.email_active
+    linkedin_active = archetype.linkedin_active
+
+    num_sent, num_opens, num_replies, num_demos = 0, 0, 0, 0
+
+    if analytics and len(analytics) > 0:
+        num_sent = analytics[0]["num_sent"]
+        num_opens = analytics[0]["num_opens"]
+        num_replies = analytics[0]["num_replies"]
+        num_demos = analytics[0]["num_demos"]
+        num_pos_replies = analytics[0]["num_pos_replies"]
+
+    num_prospects: int = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id
+    ).count()
+    num_prospects_with_emails: int = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.email.isnot(None),
+    ).count()
+
+    return {
+        "emoji": emoji,
+        "archetype_name": archetype_name,
+        "sdr_name": sdr_name,
+        "created_at": created_at,
+        "email_active": email_active,
+        "linkedin_active": linkedin_active,
+        "num_sent": num_sent,
+        "num_opens": num_opens,
+        "num_replies": num_replies,
+        "num_demos": num_demos,
+        "num_pos_replies": num_pos_replies,
+        "num_prospects": num_prospects,
+        "num_prospects_with_emails": num_prospects_with_emails,
+    }
+
+def get_client_archetype_contacts(client_archetype_id):
+    sample_prospects = (
+        Prospect.query.filter(
+            Prospect.archetype_id == client_archetype_id,
+            Prospect.overall_status.notin_(
+                [
+                    ProspectOverallStatus.ACTIVE_CONVO,
+                    ProspectOverallStatus.DEMO,
+                    ProspectOverallStatus.REMOVED,
+                    ProspectOverallStatus.NURTURE,
+                ]
+            ),
+            Prospect.icp_fit_score > 0,
+        )
+        .order_by(Prospect.icp_fit_score.desc())
+        .limit(20)
+    )
+
+    analytics = get_all_campaign_analytics_for_client(
+        client_id=ClientArchetype.query.get(client_archetype_id).client_id,
+        client_archetype_id=int(client_archetype_id),
+    )
+
+    included_individual_title_keywords = []
+    included_individual_seniority_keywords = []
+    included_individual_locations_keywords = []
+    included_individual_industry_keywords = []
+    included_individual_generalized_keywords = []
+    included_individual_skills_keywords = []
+    included_company_name_keywords = []
+    included_company_locations_keywords = []
+    included_company_generalized_keywords = []
+    included_company_industries_keywords = []
+
+    if analytics and len(analytics) > 0:
+        included_individual_title_keywords = analytics[0][
+            "included_individual_title_keywords"
+        ]
+        included_individual_seniority_keywords = analytics[0][
+            "included_individual_seniority_keywords"
+        ]
+        included_individual_locations_keywords = analytics[0][
+            "included_individual_locations_keywords"
+        ]
+        included_individual_industry_keywords = analytics[0][
+            "included_individual_industry_keywords"
+        ]
+        included_individual_generalized_keywords = analytics[0][
+            "included_individual_generalized_keywords"
+        ]
+        included_individual_skills_keywords = analytics[0][
+            "included_individual_skills_keywords"
+        ]
+        included_company_name_keywords = analytics[0]["included_company_name_keywords"]
+        included_company_locations_keywords = analytics[0][
+            "included_company_locations_keywords"
+        ]
+        included_company_generalized_keywords = analytics[0][
+            "included_company_generalized_keywords"
+        ]
+        included_company_industries_keywords = analytics[0][
+            "included_company_industries_keywords"
+        ]
+
+    return {
+        "included_individual_title_keywords": included_individual_title_keywords,
+        "included_individual_locations_keywords": included_individual_locations_keywords,
+        "included_individual_seniority_keywords": included_individual_seniority_keywords,
+        "included_individual_industry_keywords": included_individual_industry_keywords,
+        "included_individual_generalized_keywords": included_individual_generalized_keywords,
+        "included_individual_skills_keywords": included_individual_skills_keywords,
+        "included_company_name_keywords": included_company_name_keywords,
+        "included_company_locations_keywords": included_company_locations_keywords,
+        "included_company_generalized_keywords": included_company_generalized_keywords,
+        "included_company_industries_keywords": included_company_industries_keywords,
+        "sample_contacts": [p.to_dict() for p in sample_prospects],
+    }
+
+
 def fetch_all_assets_in_client(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id: int = client_sdr.client_id
@@ -1178,6 +1307,118 @@ def fetch_all_assets_in_client(client_sdr_id: int):
     return ClientAssets.query.filter(
         ClientAssets.client_id == client_id,
     ).all()
+
+def get_client_archetype_sequences(client_archetype_id):
+    client_sdr: ClientSDR = ClientSDR.query.get(ClientArchetype.query.get(client_archetype_id).client_sdr_id)
+
+    email_sequence = get_email_sequence_step_for_sdr(
+        client_sdr_id=client_sdr.id,
+        overall_statuses=[
+            ProspectOverallStatus.PROSPECTED,
+            ProspectOverallStatus.SENT_OUTREACH,
+            ProspectOverallStatus.ACCEPTED,
+            ProspectOverallStatus.BUMPED,
+        ],
+        client_archetype_ids=[client_archetype_id],
+        activeOnly=True,
+    )
+
+    def sort_func(x):
+        bumped_count = x["step"]["bumped_count"]
+        overall_status = x["step"]["overall_status"]
+
+        if overall_status == "PROSPECTED":
+            return 0
+        elif overall_status == "ACCEPTED":
+            return 1
+        elif overall_status == "BUMPED":
+            return bumped_count + 2
+        else:
+            return 20
+
+    email_sequence = sorted(email_sequence, key=sort_func)
+
+    unique_bump_count_overall_status = set()
+    filtered_email_sequence = []
+    for step_data in email_sequence:
+        bumped_count = step_data["step"]["bumped_count"]
+        overall_status = step_data["step"]["overall_status"]
+        if (bumped_count, overall_status) not in unique_bump_count_overall_status:
+            unique_bump_count_overall_status.add((bumped_count, overall_status))
+            filtered_email_sequence.append(step_data)
+
+    email_sequence = [
+        {
+            "title": step_data["step"]["title"],
+            "description": step_data["step"]["template"],
+            "bumped_count": step_data["step"]["bumped_count"],
+            "overall_status": step_data["step"]["overall_status"],
+            "assets": step_data["assets"],
+        }
+        for step_data in filtered_email_sequence
+    ]
+
+    success = False
+    records = None
+    # success, records = generate_entire_simulated_conversation(
+    #     archetype_id=client_archetype_id,
+    # )
+
+    if success:
+        simulation_records: list[SimulationRecord] = records
+        linkedin_sequence = []
+        for i, record in enumerate(simulation_records):
+            entry = {
+                "title": (
+                    record.meta_data.get("bump_framework_title")
+                    if i > 0
+                    else "Invite Message"
+                ),
+                "description": record.data.get("message"),
+                "bumped_count": i - 1,
+                "bump_framework_delay": record.meta_data
+                and record.meta_data.get("bump_framework_delay")
+                or 0,
+                "bump_framework_id": record.meta_data.get("bump_framework_id"),
+            }
+            linkedin_sequence.append(entry)
+    else:
+        query = """
+            select
+                id,
+                title,
+                description,
+                bumped_count
+            from
+                bump_framework
+            where client_archetype_id = {client_archetype_id}
+                and overall_status in ('ACCEPTED', 'BUMPED')
+                and bump_framework.active
+            order by
+                bumped_count asc;
+        """.format(
+            client_archetype_id=client_archetype_id
+        )
+        data = db.session.execute(query).fetchall()
+        linkedin_sequence = [
+            {
+                "bump_framework_id": row[0],
+                "title": row[1],
+                "description": "Instruction: " + str(row[2]),
+                "bumped_count": row[3],
+            }
+            for row in data
+        ]
+
+    for i, entry in enumerate(linkedin_sequence):
+        bf_id = entry.get("bump_framework_id")
+        if bf_id:
+            entry["assets"] = get_all_bump_framework_assets(bf_id)
+
+    return {
+        "email_sequence": email_sequence,
+        "linkedin_sequence": linkedin_sequence,
+    }
 
 
 def fetch_archetype_assets(client_archetype_id: int):

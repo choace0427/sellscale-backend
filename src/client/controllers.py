@@ -148,6 +148,9 @@ from src.client.services_client_archetype import (
     get_archetype_activity,
     get_archetype_conversion_rates,
     get_client_archetype_stats,
+    get_client_archetype_overview,
+    get_client_archetype_sequences,
+    get_client_archetype_contacts,
     get_email_blocks_configuration,
     hard_deactivate_client_archetype,
     modify_archetype_prospect_filters,
@@ -3076,6 +3079,51 @@ def get_campaign_overview(client_sdr_id: int):
     )
 
     return jsonify(overview), 200
+
+@CLIENT_BLUEPRINT.route("/campaign_stats", methods=["GET"])
+@require_user
+def get_campaign_stats(client_sdr_id: int):
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    overview = get_client_archetype_overview(
+        client_archetype_id=client_archetype_id,
+    )
+
+    return jsonify(overview), 200
+
+@CLIENT_BLUEPRINT.route("/campaign_contacts", methods=["GET"])
+@require_user
+def get_campaign_contacts(client_sdr_id: int):
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    contacts = get_client_archetype_contacts(client_archetype_id)
+    return jsonify(contacts), 200
+
+@CLIENT_BLUEPRINT.route("/campaign_sequences", methods=["GET"])
+@require_user
+def get_campaign_sequences(client_sdr_id: int):
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    sequences = get_client_archetype_sequences(client_archetype_id)
+    return jsonify(sequences), 200
 
 
 @CLIENT_BLUEPRINT.route("/send_generic_email", methods=["POST"])
