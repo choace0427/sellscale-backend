@@ -394,6 +394,9 @@ def get_email_warmings(client_sdr_id: Optional[int] = None) -> list[dict]:
             warming = sl.get_emails(username=email_bank.email_address)
             if warming:
                 warmings.extend(warming)
+
+        # Deduplicate the warmings
+        warmings = list({v["id"]: v for v in warmings}.values())
     else:
         warmings = sl.get_emails()
 
