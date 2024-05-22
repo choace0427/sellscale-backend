@@ -215,30 +215,39 @@ def get_sdrs(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
 
-    sdrs = ClientSDR.query.filter_by(client_id=client_id).filter_by(active=True).all()
+    sdrs: list[ClientSDR] = (
+        ClientSDR.query.filter_by(client_id=client_id).filter_by(active=True).all()
+    )
 
-    inbox_stats_query = """
-    select 
-        client_sdr.id,
-        client_sdr.name,
-        count(distinct prospect.id) unread_inbox_messages
-    from prospect
-        join client_sdr on client_sdr.id = prospect.client_sdr_id
-    where prospect.overall_status = 'ACTIVE_CONVO'
-        and (
-            prospect.hidden_until is null or 
-            prospect.hidden_until < NOW()
-        )
-        and client_sdr.client_id = {client_id}
-    group by 1;
-    """
-    inbox_stats = db.engine.execute(inbox_stats_query.format(client_id=client_id)).fetchall()
+    # inbox_stats_query = """
+    # select
+    #     client_sdr.id,
+    #     client_sdr.name,
+    #     count(distinct prospect.id) unread_inbox_messages
+    # from prospect
+    #     join client_sdr on client_sdr.id = prospect.client_sdr_id
+    # where prospect.overall_status = 'ACTIVE_CONVO'
+    #     and (
+    #         prospect.hidden_until is null or
+    #         prospect.hidden_until < NOW()
+    #     )
+    #     and client_sdr.client_id = {client_id}
+    # group by 1;
+    # """
+    # inbox_stats = db.engine.execute(inbox_stats_query.format(client_id=client_id)).fetchall()
+
+    # data = [sdr.to_dict() for sdr in sdrs]
+    # for row in inbox_stats:
+    #     for sdr in data:
+    #         if sdr["id"] == row[0]:
+    #             sdr["unread_inbox_messages"] = row[2]
 
     data = [sdr.to_dict() for sdr in sdrs]
-    for row in inbox_stats:
-        for sdr in data:
-            if sdr["id"] == row[0]:
-                sdr["unread_inbox_messages"] = row[2]
+    from src.sight_inbox.services import get_inbox_prospects
+
+    for sdr in data:
+        details = get_inbox_prospects(sdr["id"])
+        sdr["unread_inbox_messages"] = len(details.get("manual_bucket", []))
 
     return jsonify({"message": "Success", "data": data}), 200
 
@@ -524,7 +533,11 @@ def create_archetype(client_sdr_id: int):
 
     return ca
 
-@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/update_email_to_linkedin_connection", methods=["PATCH"])
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<int:archetype_id>/update_email_to_linkedin_connection",
+    methods=["PATCH"],
+)
 @require_user
 def patch_update_email_to_linkedin_connection(client_sdr_id: int, archetype_id: int):
     email_to_linkedin_connection = get_request_parameter(
@@ -532,17 +545,27 @@ def patch_update_email_to_linkedin_connection(client_sdr_id: int, archetype_id: 
     )
 
     set_email_to_linkedin_connection(
-        client_sdr_id=client_sdr_id, client_archetype_id=archetype_id, connection_type=email_to_linkedin_connection
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=archetype_id,
+        connection_type=email_to_linkedin_connection,
     )
     return jsonify({"message": "Success"}), 200
 
-@CLIENT_BLUEPRINT.route("/archetype/<int:archetype_id>/email_to_linkedin_connection_amounts", methods=["GET"])
+
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<int:archetype_id>/email_to_linkedin_connection_amounts",
+    methods=["GET"],
+)
 @require_user
 def email_to_linkedin_connection_amounts(client_sdr_id: int, archetype_id: int):
     email_to_linkedin_connection_amounts = get_email_to_linkedin_connection_amounts(
         client_sdr_id=client_sdr_id, client_archetype_id=archetype_id
     )
-    return jsonify({"message": "Success", "data": email_to_linkedin_connection_amounts}), 200
+    return (
+        jsonify({"message": "Success", "data": email_to_linkedin_connection_amounts}),
+        200,
+    )
+
 
 # toggle template mode active for archetype
 @CLIENT_BLUEPRINT.route(
