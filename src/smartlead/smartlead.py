@@ -209,6 +209,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.create_campaign(campaign_name)
         return response.json()
@@ -233,6 +234,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.update_campaign_settings(campaign_id, settings)
         return response.json()
@@ -243,6 +245,7 @@ class Smartlead:
         )
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.fetch_campaign_sequence(campaign_id)
         return response.json()
@@ -274,6 +277,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.save_campaign_sequence(campaign_id, sequences)
         return response.json()
@@ -287,6 +291,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.add_email_account_to_campaign(campaign_id, email_account_ids)
         return response.json()
@@ -299,6 +304,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.update_email_account(email_account_id, max_email_per_day)
         return response.json()
@@ -318,6 +324,7 @@ class Smartlead:
             headers = {"Content-Type": "application/json"}
             response = requests.post(url, headers=headers, data=json.dumps(data))
             if response.status_code == 429 or not is_jsonable(response):
+                print("Rate limited, retrying...")
                 time.sleep(self.DELAY_SECONDS)
                 return add_campaign_webhook(campaign_id, name, url, event_types)
             return response.json()
@@ -357,6 +364,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.update_campaign_schedule(campaign_id, schedule)
         return response.json()
@@ -368,6 +376,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.post_campaign_status(campaign_id, status)
         return response.json()
@@ -378,6 +387,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.add_leads_to_campaign_by_id(campaign_id, lead_list)
         return response.json()
@@ -406,6 +416,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.reply_to_lead(
                 campaign_id,
@@ -424,6 +435,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/leads/fetch-categories?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_lead_categories()
         return response.json()
@@ -432,6 +444,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/leads/?api_key={self.api_key}&email={email_address}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_lead_by_email_address(email_address)
         return response.json()
@@ -448,6 +461,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.post_update_lead_category(
                 campaign_id, lead_id, category_id, pause_lead
@@ -462,6 +476,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/pause?api_key={self.api_key}"
         response = requests.post(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.pause_lead_by_campaign_id(campaign_id, lead_id)
         return response.json()
@@ -474,6 +489,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/resume?api_key={self.api_key}"
         response = requests.post(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.resume_lead_by_campaign_id(campaign_id, lead_id)
         return response.json()
@@ -482,6 +498,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads/{lead_id}/message-history?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_message_history_using_lead_and_campaign_id(
                 lead_id, campaign_id
@@ -494,6 +511,7 @@ class Smartlead:
         )
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_sequence_by_id(campaign_id)
         return response.json()
@@ -502,6 +520,7 @@ class Smartlead:
         url = f"https://server.smartlead.ai/api/v1/campaigns/{campaign_id}/statistics?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_statistics_by_id(campaign_id)
         return response.json()
@@ -512,8 +531,9 @@ class Smartlead:
             url += f"&username={username}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
-            return self.get_emails(offset, limit)
+            return self.get_emails(offset, limit, username)
         return response.json()
 
     def get_campaign_sequences(self, campaign_id):
@@ -522,6 +542,7 @@ class Smartlead:
         )
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_sequences(campaign_id)
         return response.json()
@@ -530,6 +551,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign(campaign_id)
         return response.json()
@@ -540,6 +562,7 @@ class Smartlead:
         )
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_analytics(campaign_id)
         return response.json()
@@ -548,6 +571,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/email-accounts?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_email_accounts(campaign_id)
         return response.json()
@@ -556,6 +580,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads?api_key={self.api_key}&offset={offset}&limit={limit}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_campaign_leads(campaign_id, offset, limit)
         return response.json()
@@ -572,6 +597,7 @@ class Smartlead:
             },
         )
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.add_campaign_leads(campaign_id, leads)
         return response.json()
@@ -596,6 +622,7 @@ class Smartlead:
             data=json.dumps(warmup_data),
         )
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.add_or_update_warmup(email_account_id, warmup_data)
         return response.json()
@@ -604,6 +631,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/email-accounts/{email_account_id}/warmup-stats?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_warmup_stats(email_account_id)
         return response.json()
@@ -612,6 +640,7 @@ class Smartlead:
         url = f"{self.BASE_URL}/campaigns/{campaign_id}/leads-export?api_key={self.api_key}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.get_leads_export(campaign_id)
 
@@ -687,6 +716,7 @@ class Smartlead:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.post_campaign_leads(campaign_id, lead_list)
         return response.json()
@@ -701,6 +731,7 @@ class Smartlead:
             json=json_data,
         )
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.create_email_account(json_data)
 
@@ -718,6 +749,7 @@ class Smartlead:
             json={"max_email_per_day": 0},
         )
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.deactivate_email_account(email_account_id)
         return response.json()
@@ -734,6 +766,7 @@ class Smartlead:
             json={"email_account_ids": email_account_ids},
         )
         if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.remove_email_account_from_campaign(
                 campaign_id, email_account_ids

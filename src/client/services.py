@@ -21,6 +21,7 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
+from src.ml.ai_researcher_services import auto_assign_ai_researcher_to_client_archetype, create_default_ai_researcher
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
@@ -615,6 +616,8 @@ def create_client_archetype(
         excluded_individual_seniority_keywords=[],
     )
 
+    auto_assign_ai_researcher_to_client_archetype(archetype_id)
+
     # Add an activity log
     add_activity_log(
         client_sdr_id=client_sdr_id,
@@ -742,6 +745,7 @@ def create_client_sdr(
 
     print("Creating unassigned contacts archetype")
     create_unassigned_contacts_archetype(sdr.id)
+    create_default_ai_researcher(sdr.id)
 
     print("Creating the anchor email")
     create_sdr_email_bank(

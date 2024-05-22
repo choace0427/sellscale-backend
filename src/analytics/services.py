@@ -152,6 +152,10 @@ def get_all_campaign_analytics_for_client(
                     where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
                         prospect_email_status_records.to_status = 'ACTIVE_CONVO'
                 ) num_replies,
+                count (distinct prospect.id) filter (
+                    where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
+                        prospect_email_status_records.to_status = 'DEMO_SET'
+                ) positive_reply,
                 count(distinct prospect.id) filter (
                     where prospect_status_records.to_status = 'DEMO_SET' or
                         prospect_email_status_records.to_status = 'DEMO_SET'
@@ -217,26 +221,27 @@ def get_all_campaign_analytics_for_client(
                 "num_sent": row[5],
                 "num_opens": row[6],
                 "num_replies": row[7],
-                "num_demos": row[8],
-                "name": row[9],
-                "img_url": row[10],
-                "included_individual_title_keywords": row[11],
-                "included_individual_seniority_keywords": row[12],
-                "included_individual_locations_keywords": row[13],
-                "included_individual_industry_keywords": row[14],
-                "included_individual_generalized_keywords": row[15],
-                "included_individual_skills_keywords": row[16],
-                "included_company_name_keywords": row[17],
-                "included_company_locations_keywords": row[18],
-                "included_company_generalized_keywords": row[19],
-                "included_company_industries_keywords": row[20],
-                "company_size_start": row[21],
-                "company_size_end": row[22],
-                "sent_percent": row[23],
-                "open_percent": row[24],
-                "reply_percent": row[25],
-                "demo_percent": row[26],
-                "id": row[27],
+                "num_pos_replies": row[8],
+                "num_demos": row[9],
+                "name": row[10],
+                "img_url": row[11],
+                "included_individual_title_keywords": row[12],
+                "included_individual_seniority_keywords": row[13],
+                "included_individual_locations_keywords": row[14],
+                "included_individual_industry_keywords": row[15],
+                "included_individual_generalized_keywords": row[16],
+                "included_individual_skills_keywords": row[17],
+                "included_company_name_keywords": row[18],
+                "included_company_locations_keywords": row[19],
+                "included_company_generalized_keywords": row[20],
+                "included_company_industries_keywords": row[21],
+                "company_size_start": row[22],
+                "company_size_end": row[23],
+                "sent_percent": row[24],
+                "open_percent": row[25],
+                "reply_percent": row[26],
+                "demo_percent": row[27],
+                "id": row[28],
             }
         )
 

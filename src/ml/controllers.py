@@ -437,6 +437,23 @@ def post_create_ai_researcher(client_sdr_id: int):
 
     return 'AI Researcher created successfully', 200
 
+@ML_BLUEPRINT.route("/researchers/archetype/<int:client_archetype_id>/questions", methods=["GET"])
+@require_user
+def get_ai_researcher_questions_for_archetype(client_sdr_id: int, client_archetype_id: int):
+    """
+    Get all questions for an AI Researcher
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if client_archetype is None or client_archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"message": "Archetype not found"}), 404
+    if client_archetype.ai_researcher_id is None:
+        return jsonify({"message": "Archetype does not have an AI Researcher"}), 400
+
+    questions: list = get_ai_researcher_questions_for_researcher(researcher_id=client_archetype.ai_researcher_id)
+    return jsonify({
+        'questions': questions
+    }), 200
+
 @ML_BLUEPRINT.route("/researchers/<int:researcher_id>/questions", methods=["GET"])
 @require_user
 def get_ai_researcher_questions(client_sdr_id: int, researcher_id: int):

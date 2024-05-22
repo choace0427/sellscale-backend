@@ -16,6 +16,62 @@ def get_ai_researchers_for_client(
 
     return [researcher.to_dict() for researcher in researchers]
 
+def create_default_ai_researcher(
+    client_sdr_id: int,
+):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return False
+    client_id = client_sdr.client_id
+    if not client_id:
+        return False
+
+    all_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
+    all_ids = [sdr.id for sdr in all_sdrs]
+    if not all_ids:
+        return False
+
+    all_researchers: list[AIResearcher] = AIResearcher.query.filter(
+        AIResearcher.client_sdr_id_created_by.in_(all_ids)
+    ).all()
+    if len(all_researchers) > 0:
+        return False
+    
+    researcher: AIResearcher = AIResearcher(
+        name="Default AI Researcher",
+        client_id=client_id,
+        client_sdr_id_created_by=client_sdr_id
+    )
+    db.session.add(researcher)
+    db.session.commit()
+
+    return True
+
+def auto_assign_ai_researcher_to_client_archetype(
+    client_archetype_id: int
+):
+    """Auto assigns the most recent AI Researcher to a client archetype."""
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        return False
+    client_id = client_archetype.client_id
+    if not client_id:
+        return False
+
+    all_researchers: list[AIResearcher] = AIResearcher.query.filter(
+        AIResearcher.client_id == client_id
+    ).order_by(AIResearcher.created_at.desc()).all()
+    if len(all_researchers) == 0:
+        return False
+
+    ai_researcher_id = all_researchers[0].id
+
+    client_archetype.ai_researcher_id = ai_researcher_id
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return True
+
 def create_ai_researcher(
     name: str,
     client_sdr_id: int
