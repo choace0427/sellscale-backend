@@ -212,6 +212,7 @@ class ClientArchetype(db.Model):
     cycle = db.Column(db.Integer, nullable=True)
 
     ai_researcher_id = db.Column(db.Integer, db.ForeignKey("ai_researcher.id"), nullable=True)
+    is_ai_research_personalization_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
@@ -270,6 +271,8 @@ class ClientArchetype(db.Model):
             "meta_data": self.meta_data,
             "base_segment_id": self.base_segment_id,
             "cycle": self.cycle,
+            "ai_researcher_id": self.ai_researcher_id,
+            "is_ai_research_personalization_enabled": self.is_ai_research_personalization_enabled,
         }
 
 
