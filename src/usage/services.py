@@ -22,7 +22,7 @@ def get_response_prospecting_service(client_id: int):
                 LEFT JOIN research_payload rp ON rp.prospect_id = prospect.id
                 LEFT JOIN prospect_status_records psr ON psr.prospect_id = prospect.id
             WHERE
-                prospect.client_id = 81
+                prospect.client_id = :client_id
             UNION ALL
             SELECT
                 'email' AS source,
@@ -38,7 +38,7 @@ def get_response_prospecting_service(client_id: int):
                 LEFT JOIN prospect_email pe ON pe.prospect_id = prospect.id
                 LEFT JOIN prospect_email_status_records pesr ON pesr.prospect_email_id = pe.id
             WHERE
-                prospect.client_id = 81
+                prospect.client_id = :client_id
         )
         SELECT
             COUNT(DISTINCT prospect_id) AS prospect_created,
