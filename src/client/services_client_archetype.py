@@ -1184,12 +1184,15 @@ def get_client_archetype_overview(client_archetype_id):
     emoji = archetype.emoji
     archetype_name = archetype.archetype
     sdr_name = client_sdr.name
+    sdr_img_url = client_sdr.img_url
     created_at = archetype.created_at
+    email_to_linkedin_connection = archetype.email_to_linkedin_connection.value if archetype.email_to_linkedin_connection else None
     email_active = archetype.email_active
+    active = archetype.active
     linkedin_active = archetype.linkedin_active
     testing_volume = archetype.testing_volume
 
-    num_sent, num_opens, num_replies, num_demos = 0, 0, 0, 0
+    num_sent, num_opens, num_replies, num_demos, num_pos_replies = 0, 0, 0, 0, 0
 
     if analytics and len(analytics) > 0:
         num_sent = analytics[0]["num_sent"]
@@ -1210,8 +1213,11 @@ def get_client_archetype_overview(client_archetype_id):
         "emoji": emoji,
         "archetype_name": archetype_name,
         "sdr_name": sdr_name,
+        "sdr_img_url": sdr_img_url,
         "created_at": created_at,
         "email_active": email_active,
+        "active": active,
+        "email_to_linkedin_connection": email_to_linkedin_connection,
         "linkedin_active": linkedin_active,
         "num_sent": num_sent,
         "testing_volume": testing_volume,
