@@ -7,6 +7,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from bs4 import BeautifulSoup
 import pytz
+from src.email_outbound.email_store.services import find_email_for_prospect_id
 from src.email_scheduling.models import EmailMessagingSchedule, EmailMessagingType
 from src.email_sequencing.models import EmailSequenceStep
 from src.message_generation.email.services import create_email_automated_reply_entry
@@ -1222,6 +1223,24 @@ def upload_prospect_to_campaign(
         )
         flag_modified(log, "log")
         db.session.commit()
+
+    # Check for the "Block" case
+    if result.get("block_count") > 0:
+        # Update the Prospect Email status
+        prospect_email: ProspectEmail = ProspectEmail.query.get(
+            prospect.approved_prospect_email_id
+        )
+        prospect_email.email_status = ProspectEmailStatus.BLOCKED
+
+        # Clear the email from the Prospect and remove the prospect_email
+        prospect.email = None
+        prospect.approved_prospect_email_id = None
+
+        # Remove the log entry
+        db.session.delete(log)
+        db.session.commit()
+
+        return False, "Prospect blocked"
 
     exists = prospect_exists_in_smartlead(prospect_id=prospect.id)
 
