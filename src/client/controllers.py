@@ -3128,12 +3128,22 @@ def get_campaign_contacts(client_sdr_id: int):
     client_archetype_id: int = get_request_parameter(
         "client_archetype_id", request, json=False, required=True
     )
+    offset: int = get_request_parameter(
+        "offset", request, json=False, required=False, parameter_type=str
+    )
+    limit: int = get_request_parameter(
+        "limit", request, json=False, required=False, parameter_type=str
+    )
+    text: str = get_request_parameter(
+        "text", request, json=False, required=False, parameter_type=str
+    )
+    
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
 
     if not ca or ca.client_sdr_id != client_sdr_id:
         return "Unauthorized or persona not found", 403
 
-    contacts = get_client_archetype_contacts(client_archetype_id)
+    contacts = get_client_archetype_contacts(client_archetype_id, int(offset), int(limit), text)
     return jsonify(contacts), 200
 
 @CLIENT_BLUEPRINT.route("/campaign_sequences", methods=["GET"])

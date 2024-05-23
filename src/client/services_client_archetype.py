@@ -1229,24 +1229,27 @@ def get_client_archetype_overview(client_archetype_id):
         "num_prospects_with_emails": num_prospects_with_emails,
     }
 
-def get_client_archetype_contacts(client_archetype_id):
-    sample_prospects = (
-        Prospect.query.filter(
-            Prospect.archetype_id == client_archetype_id,
-            Prospect.overall_status.notin_(
-                [
-                    ProspectOverallStatus.ACTIVE_CONVO,
-                    ProspectOverallStatus.DEMO,
-                    ProspectOverallStatus.REMOVED,
-                    ProspectOverallStatus.NURTURE,
-                ]
-            ),
-            Prospect.icp_fit_score > 0,
-        )
-        .order_by(Prospect.icp_fit_score.desc())
-        .limit(20)
-    )
+def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text=""):
+    filters = [
+        Prospect.archetype_id == client_archetype_id,
+        Prospect.overall_status.notin_([
+            ProspectOverallStatus.ACTIVE_CONVO,
+            ProspectOverallStatus.DEMO,
+            ProspectOverallStatus.REMOVED,
+            ProspectOverallStatus.NURTURE,
+        ]),
+        Prospect.icp_fit_score > 0,
+    ]
 
+    if text:
+        filters.append(Prospect.full_name.ilike(f"%{text}%"))
+
+    sample_prospects = (
+        Prospect.query.filter(*filters)
+        .order_by(Prospect.icp_fit_score.desc())
+        .offset(offset)
+        .limit(limit)
+    )
     analytics = get_all_campaign_analytics_for_client(
         client_id=ClientArchetype.query.get(client_archetype_id).client_id,
         client_archetype_id=int(client_archetype_id),
@@ -1306,8 +1309,6 @@ def get_client_archetype_contacts(client_archetype_id):
         "included_company_industries_keywords": included_company_industries_keywords,
         "sample_contacts": [p.to_dict() for p in sample_prospects],
     }
-
-
 def fetch_all_assets_in_client(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id: int = client_sdr.client_id
