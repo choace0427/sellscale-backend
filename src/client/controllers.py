@@ -25,6 +25,8 @@ from src.client.services import (
     get_tam_data,
     modify_client_archetype_reason_mapping,
     msg_analytics_report,
+    get_testing_volume,
+    modify_testing_volume,
     remove_prospects_caught_by_filters,
     toggle_client_sdr_auto_send_email_campaign,
     update_asset,
@@ -3453,6 +3455,27 @@ def patch_reason_for_asset(client_sdr_id: int, reason_id: int):
     )
 
     return jsonify({"status": "success"}), 200
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:client_archetype_id>/testing_volume", methods=["PATCH"])
+@require_user
+def patch_testing_volume(client_sdr_id: int, client_archetype_id: int):
+    testing_volume = get_request_parameter(
+        "testing_volume", request, json=True, required=True, parameter_type=int
+    )
+    success, message = modify_testing_volume(client_archetype_id, testing_volume)
+    if not success:
+        return jsonify({"status": "error", "message": message}), 400
+    return jsonify({"status": "success", "message": message}), 200
+
+@CLIENT_BLUEPRINT.route("/archetype/<int:client_archetype_id>/testing_volume", methods=["GET"])
+@require_user
+def get_testing_volume_endpoint(client_sdr_id: int):
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True, parameter_type=int
+    )
+    testing_volume = get_testing_volume(client_archetype_id)
+    return jsonify({"status": "success", "testing_volume": testing_volume}), 200
+
 
 
 @CLIENT_BLUEPRINT.route("/update_asset", methods=["POST"])

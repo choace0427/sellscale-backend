@@ -1187,6 +1187,7 @@ def get_client_archetype_overview(client_archetype_id):
     created_at = archetype.created_at
     email_active = archetype.email_active
     linkedin_active = archetype.linkedin_active
+    testing_volume = archetype.testing_volume
 
     num_sent, num_opens, num_replies, num_demos = 0, 0, 0, 0
 
@@ -1213,6 +1214,7 @@ def get_client_archetype_overview(client_archetype_id):
         "email_active": email_active,
         "linkedin_active": linkedin_active,
         "num_sent": num_sent,
+        "testing_volume": testing_volume,
         "num_opens": num_opens,
         "num_replies": num_replies,
         "num_demos": num_demos,
