@@ -591,10 +591,11 @@ limit 1
     from src.company.models import Company
 
     company_ids = []
-    for org_id in org_ids:
-        company_id = find_company(client_sdr_id=client_sdr_id, apollo_uuid=org_id)
-        if company_id:
-            company_ids.append(company_id)
+    if org_ids:
+        for org_id in org_ids:
+            company_id = find_company(client_sdr_id=client_sdr_id, apollo_uuid=org_id)
+            if company_id:
+                company_ids.append(company_id)
 
     companies: list[Company] = Company.query.filter(
         Company.id.in_([id for id in company_ids if id is not None]),
