@@ -1936,10 +1936,10 @@ def mark_prospects_as_queued_for_outreach(
         GeneratedMessage.prospect_id.in_(prospect_ids),
         GeneratedMessage.message_status == GeneratedMessageStatus.APPROVED,
     ).all()
-    if not messages:
-        return False, {
-            "error": "No messages in APPROVED found. May have already been queued."
-        }
+    # if not messages:
+    #     return False, {
+    #         "error": "No messages in APPROVED found. May have already been queued."
+    #     }
     campaign_id = messages[0].outbound_campaign_id
     messages_ids = [message.id for message in messages]
 

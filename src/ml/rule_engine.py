@@ -225,7 +225,7 @@ def run_message_rule_engine(message_id: int):
         blocking_problems=blocking_problems,
         highlighted_words=highlighted_words,
     )
-    rule_no_url(completion, problems, highlighted_words)
+    # rule_no_url(completion, problems, highlighted_words)
     rule_linkedin_length(
         message_type=message.message_type,
         completion=completion,
