@@ -415,7 +415,7 @@ class Smartlead:
         }
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, headers=headers, data=json.dumps(data))
-        if response.status_code == 429 or not is_jsonable(response):
+        if response.status_code == 429:
             print("Rate limited, retrying...")
             time.sleep(self.DELAY_SECONDS)
             return self.reply_to_lead(
