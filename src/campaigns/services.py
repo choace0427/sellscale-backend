@@ -722,6 +722,8 @@ def smart_get_prospects_for_campaign(
                         email_opened_prospects["prospects_sent_outreach"]
                     )
                 )
+            else:
+                prospect_ids = []
         elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.OPENED_EMAIL_PROSPECTS_ONLY:
             # Filter prospect ids for prospects that have opened emails
             if email_opened_prospects["prospects_email_opened"] is not None:
@@ -730,12 +732,16 @@ def smart_get_prospects_for_campaign(
                         email_opened_prospects["prospects_email_opened"]
                     )
                 )
+            else:
+                prospect_ids = []
         elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.CLICKED_LINK_PROSPECTS_ONLY:
             # Filter prospect ids for prospects that have clicked emails
             if email_opened_prospects["prospects_clicked"] is not None:
                 prospect_ids = list(
                     set(prospect_ids).intersection(email_opened_prospects["prospects_clicked"])
                 )
+            else:
+                prospect_ids = []
 
     return prospect_ids
 
