@@ -200,7 +200,6 @@ def process_email_opened_webhook(payload_id: int):
             prospect_id=prospect.id,
             channel_type=ProspectChannels.EMAIL.value,
             engagement_type=EngagementFeedType.EMAIL_OPENED.value,
-            viewed=False,
             engagement_metadata={},
         )
 

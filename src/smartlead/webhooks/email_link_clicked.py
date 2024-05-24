@@ -162,7 +162,6 @@ def process_email_link_clicked_webhook(payload_id: int):
                 prospect_id=prospect.id,
                 channel_type=ProspectChannels.EMAIL.value,
                 engagement_type=EngagementFeedType.EMAIL_LINK_CLICKED.value,
-                viewed=False,
                 engagement_metadata={},
             )
         except:
