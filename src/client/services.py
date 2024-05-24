@@ -2940,7 +2940,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
             or_(
                 *(
                     [
-                        Prospect.company.ilike(f"%{company}%")
+                        Prospect.company == company
                         for company in client.do_not_contact_company_names
                     ]
                     + [
@@ -2994,7 +2994,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
                 if (
                     prospect_dict["company"]
                     and company
-                    and company.lower() in prospect_dict["company"].lower()
+                    and prospect_dict["company"].lower() == company.lower()
                 ):
                     matched_filters.append("Company Name")
                     matched_filter_words.append("Company: " + company)
@@ -3066,7 +3066,6 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
 
     return prospect_dicts
 
-
 @celery.task
 def remove_prospects_caught_by_filters(client_sdr_id: int):
     remove_prospects_caught_by_client_filters(client_sdr_id)
@@ -3128,7 +3127,7 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         or_(
             *(
                 [
-                    Prospect.company.ilike(f"%{company}%")
+                    Prospect.company == company
                     for company in client_sdr.do_not_contact_company_names
                 ]
                 + [
@@ -3174,7 +3173,7 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         matched_filter_words = []
         if client_sdr.do_not_contact_company_names:
             for company in client_sdr.do_not_contact_company_names:
-                if company.lower() in prospect_dict["company"].lower():
+                if company.lower() == prospect_dict["company"].lower():
                     matched_filters.append("Company Name")
                     matched_filter_words.append(company)
         if client_sdr.do_not_contact_keywords_in_company_names:
@@ -3224,7 +3223,6 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         prospect_dicts.append(prospect_dict)
 
     return prospect_dicts
-
 
 def remove_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     """Remove the prospects caught by the do not contact filters for a Client SDR.
