@@ -855,12 +855,20 @@ class MergeClient:
             message = event.get("message")
             subject = event.get("subject")
             email_body = event.get("email_body")
+            engagement = event.get("engagement")
             date = event.get("date")
             formatted_date = date.strftime("%Y-%m-%d")
             if event.get("type") == "EMAIL":
                 subject = f"Subject: {subject}</br>" if not subject_line_used else ""
                 subject_line_used = True
-                content += f"<br/>{formatted_date} - <strong>{author} (Email)</strong><br/>{subject}{email_body}<br/>"
+                if (
+                    engagement
+                ):  # Engagement type for, say, "LINK CLICKED" or "EMAIL_OPENED"
+                    content += (
+                        f"<br/>{formatted_date} - <strong>{engagement}</strong><br/>"
+                    )
+                else:
+                    content += f"<br/>{formatted_date} - <strong>{author} (Email)</strong><br/>{subject}{email_body}<br/>"
             elif event.get("type") == "LINKEDIN":
                 content += f"<br/>{formatted_date} - <strong>{author} (LinkedIn)</strong><br/>{message}<br/>"
             elif event.get("type") == "STATUS_CHANGE":

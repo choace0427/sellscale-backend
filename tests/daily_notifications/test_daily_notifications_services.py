@@ -6,13 +6,13 @@ from tests.test_utils.test_utils import (
     basic_client_sdr,
     basic_archetype,
     basic_prospect,
-    basic_engagement_feed_item
+    basic_engagement_feed_item,
 )
 from src.daily_notifications.services import (
     fill_in_daily_notifications,
     clear_daily_notifications,
     create_engagement_feed_item,
-    get_engagement_feed_items
+    get_engagement_feed_items_for_sdr,
 )
 from src.li_conversation.models import LinkedinConversationEntry
 from src.daily_notifications.models import DailyNotification, EngagementFeedItem
@@ -23,7 +23,6 @@ from freezegun import freeze_time
 
 @use_app_context
 def test_fill_in_daily_notifications():
-
     populate_db()
     fill_in_daily_notifications()
 
@@ -56,57 +55,64 @@ def populate_db():
         client,
         archetype,
         client_sdr,
-        email='test@email.com',
-        li_conversation_thread_id='https://www.linkedin.com/messaging/thread/1',
+        email="test@email.com",
+        li_conversation_thread_id="https://www.linkedin.com/messaging/thread/1",
         status=ProspectStatus.ACTIVE_CONVO,
     )
     basic_prospect(
         client,
         archetype,
         client_sdr,
-        email='test@email.com',
-        li_conversation_thread_id='https://www.linkedin.com/messaging/thread/2',
+        email="test@email.com",
+        li_conversation_thread_id="https://www.linkedin.com/messaging/thread/2",
         status=ProspectStatus.ACTIVE_CONVO,
     )
 
     add_linkedin_conversation_entry(
         15,
-        'Person 1',
-        'Last',
-        '1st',
-        'Hello',
-        'https://www.linkedin.com/messaging/thread/1',
+        "Person 1",
+        "Last",
+        "1st",
+        "Hello",
+        "https://www.linkedin.com/messaging/thread/1",
     )
     add_linkedin_conversation_entry(
         13,
-        'Person 2',
-        'Last',
-        'You',
-        'Hello',
-        'https://www.linkedin.com/messaging/thread/1',
+        "Person 2",
+        "Last",
+        "You",
+        "Hello",
+        "https://www.linkedin.com/messaging/thread/1",
     )
 
     add_linkedin_conversation_entry(
         12,
-        'Person 3',
-        'Last',
-        '2nd',
-        'Hello',
-        'https://www.linkedin.com/messaging/thread/2',
+        "Person 3",
+        "Last",
+        "2nd",
+        "Hello",
+        "https://www.linkedin.com/messaging/thread/2",
     )
     add_linkedin_conversation_entry(
         15,
-        'Person 4',
-        'Last',
-        'You',
-        'Hello',
-        'https://www.linkedin.com/messaging/thread/2',
+        "Person 4",
+        "Last",
+        "You",
+        "Hello",
+        "https://www.linkedin.com/messaging/thread/2",
     )
 
 
-def add_linkedin_conversation_entry(day_offset: int, first_name: str, last_name: str, connection_degree: str, message: str, conversation_url: str):
+def add_linkedin_conversation_entry(
+    day_offset: int,
+    first_name: str,
+    last_name: str,
+    connection_degree: str,
+    message: str,
+    conversation_url: str,
+):
     """Test create_linkedin_conversation_entry"""
-    author = first_name+" "+last_name
+    author = first_name + " " + last_name
     date = datetime.now() - timedelta(days=day_offset)
     profile_url = "https://www.linkedin.com/in/johndoe"
     headline = "Software Engineer"
@@ -140,9 +146,9 @@ def test_create_engagement_feed_item():
     ef_id = create_engagement_feed_item(
         client_sdr_id=client_sdr.id,
         prospect_id=prospect.id,
-        channel_type='LINKEDIN',
+        channel_type="LINKEDIN",
         engagement_type="SCHEDULING",
-        engagement_metadata={"message": "test"}
+        engagement_metadata={"message": "test"},
     )
     efs: list[EngagementFeedItem] = EngagementFeedItem.query.all()
     assert len(efs) == 1
@@ -150,14 +156,16 @@ def test_create_engagement_feed_item():
 
 
 @use_app_context
-def test_get_engagement_feed_items():
+def test_get_engagement_feed_items_for_sdr():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, client_sdr)
 
     prospect = basic_prospect(client, archetype, client_sdr)
-    ef_id = basic_engagement_feed_item(client_sdr.id, prospect.id, "LINKEDIN", "SCHEDULING")
-    total_count, efs = get_engagement_feed_items(client_sdr.id)
+    ef_id = basic_engagement_feed_item(
+        client_sdr.id, prospect.id, "LINKEDIN", "SCHEDULING"
+    )
+    total_count, efs = get_engagement_feed_items_for_sdr(client_sdr.id)
     assert total_count == 1
     assert len(efs) == 1
     assert efs[0]["id"] == ef_id

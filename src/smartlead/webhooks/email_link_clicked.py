@@ -150,6 +150,21 @@ def process_email_link_clicked_webhook(payload_id: int):
                     "link_clicked": payload.get("link_details")[0],
                 },
             )
+            # Add engagement feed item
+            from src.daily_notifications.services import (
+                EngagementFeedType,
+                create_engagement_feed_item,
+            )
+            from src.prospecting.models import ProspectChannels
+
+            create_engagement_feed_item(
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect.id,
+                channel_type=ProspectChannels.EMAIL.value,
+                engagement_type=EngagementFeedType.EMAIL_LINK_CLICKED.value,
+                viewed=False,
+                engagement_metadata={},
+            )
         except:
             # If the update fails, then something had gone wrong earlier. We skip for now
             pass

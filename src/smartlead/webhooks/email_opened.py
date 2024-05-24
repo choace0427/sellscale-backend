@@ -188,6 +188,22 @@ def process_email_opened_webhook(payload_id: int):
             description=f"{prospect.full_name} ({prospect.email}) opened your email.",
         )
 
+        # Add engagement feed item
+        from src.daily_notifications.services import (
+            EngagementFeedType,
+            create_engagement_feed_item,
+        )
+        from src.prospecting.models import ProspectChannels
+
+        create_engagement_feed_item(
+            client_sdr_id=prospect.client_sdr_id,
+            prospect_id=prospect.id,
+            channel_type=ProspectChannels.EMAIL.value,
+            engagement_type=EngagementFeedType.EMAIL_OPENED.value,
+            viewed=False,
+            engagement_metadata={},
+        )
+
         # Set the payload to "SUCCEEDED"
         print(f"Processed EMAIL_OPENED payload (#{smartlead_payload.id}) successfully")
         smartlead_payload.processing_status = SmartleadWebhookProcessingStatus.SUCCEEDED

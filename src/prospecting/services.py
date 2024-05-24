@@ -5,6 +5,7 @@ from regex import P
 from src.client.sdr.services_client_sdr import load_sla_schedules
 from src.company.models import Company
 from sqlalchemy import nullslast
+from src.daily_notifications.services import get_engagement_feed_items_for_prospect
 from src.email_outbound.email_store.hunter import find_hunter_email_from_prospect_id
 from src.email_outbound.email_store.services import (
     create_email_store,
@@ -1712,7 +1713,7 @@ def add_prospect(
         else:
             get_research_and_bullet_points_new.delay(prospect_id=p_id, test_mode=False)
 
-        #celery will check do not contact based on client & sdr list.
+        # celery will check do not contact based on client & sdr list.
         check_and_apply_do_not_contact(client_sdr_id, prospect.id)
 
         # from src.client.services import remove_prospects_caught_by_filters
@@ -2900,6 +2901,8 @@ def get_prospect_email_history(prospect_id: int):
 def get_prospect_overall_history(prospect_id: int) -> list[dict]:
     """Gets the overall history by combining histories of other channels, sorted by date.
 
+    TODO: The combination of li_history, email_history, and engagement_feed_item is inefficient. Specifically the deduplication of engagement_feed_items.
+
     Args:
         prospect_id (int): ID of the Prospect
 
@@ -2912,6 +2915,9 @@ def get_prospect_overall_history(prospect_id: int) -> list[dict]:
     # Get the histories
     li_history = get_prospect_li_history(prospect_id=prospect_id)
     email_history = get_prospect_email_history(prospect_id=prospect_id)
+
+    # Get the engagement feed items
+    engagement_feed = get_engagement_feed_items_for_prospect(prospect_id=prospect_id)
 
     overall_history = []
 
@@ -2999,6 +3005,36 @@ def get_prospect_overall_history(prospect_id: int) -> list[dict]:
                 item["date"] = datetime.fromisoformat(nonz)
 
     # Sort the overall_history based on the date
+    overall_history = sorted(overall_history, key=lambda x: x["date"])
+
+    # Add Engagement Feed into the overall_history
+    # Note: We will deduplicate against li_history and email_history (times within 30 seconds)
+    if engagement_feed:
+        for item in engagement_feed:
+            engagement_feed_date = item["created_at"]
+            if not isinstance(engagement_feed_date, datetime):
+                try:
+                    engagement_feed_date = datetime.fromisoformat(engagement_feed_date)
+                except ValueError:
+                    nonz = engagement_feed_date[:-1]
+                    engagement_feed_date = datetime.fromisoformat(nonz)
+
+            # Smart insert into the overall_history
+            if not any(
+                [
+                    abs((engagement_feed_date - oh["date"]).total_seconds()) < 30
+                    for oh in overall_history
+                ]
+            ):
+                overall_history.append(
+                    {
+                        "type": "EMAIL",
+                        "date": engagement_feed_date,
+                        "engagement": item["engagement_type"],
+                    }
+                )
+
+    # Resort the overall_history
     overall_history = sorted(overall_history, key=lambda x: x["date"])
 
     return overall_history
