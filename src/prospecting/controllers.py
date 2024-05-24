@@ -3,6 +3,7 @@ from typing import List
 from typing import Optional
 
 from src.automation.orchestrator import add_process_for_future
+from src.daily_notifications.services import get_engagement_feed_items_for_prospect
 from src.email_outbound.email_store.services import find_emails_for_archetype
 from src.prospecting.champions.services import (
     get_champion_detection_changes,
@@ -19,6 +20,7 @@ from src.prospecting.services import (
     bulk_mark_not_qualified,
     get_prospect_email_history,
     get_prospect_li_history,
+    get_prospect_overall_history,
     get_prospects_for_icp_table,
     global_prospected_contacts,
     inbox_restructure_fetch_prospects,
@@ -1405,12 +1407,17 @@ def get_history(client_sdr_id: int, prospect_id: int):
 
     li_history = get_prospect_li_history(prospect_id=prospect_id)
     email_history = get_prospect_email_history(prospect_id=prospect_id)
+    engagements = get_engagement_feed_items_for_prospect(prospect_id=prospect_id)
 
     return (
         jsonify(
             {
                 "message": "Success",
-                "data": {"linkedin": li_history, "email": email_history},
+                "data": {
+                    "linkedin": li_history,
+                    "email": email_history,
+                    "engagements": engagements,
+                },
             }
         ),
         200,
