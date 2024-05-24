@@ -55,53 +55,78 @@ def get_segments_for_sdr(
 ) -> list[dict]:
     client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     client_id: int = client_sdr.client_id
-    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_id).all()
 
-    if not include_all_in_client:
-        all_segments: list[Segment] = Segment.query.filter_by(
-            client_sdr_id=sdr_id
-        ).all()
-    else:
-        all_segments: list[Segment] = Segment.query.filter(
-            Segment.client_sdr_id.in_([sdr.id for sdr in client_sdrs])
-        ).all()
+    sdr_ids = [sdr_id] if not include_all_in_client else [
+        sdr.id for sdr in ClientSDR.query.filter_by(client_id=client_id).all()
+    ]
 
-    num_contacted_prospected_for_segments_query = """
+    segments_query = """
         select
-            segment_id,
-            count(distinct prospect.id) num_prospected,
-            count(distinct prospect.id) filter (where prospect.approved_prospect_email_id is not null or prospect.approved_outreach_message_id is not null) num_contacted,
-            count(distinct prospect.company) unique_Companies
-        from prospect
-        where prospect.segment_id is not null
-            and prospect.client_id = {client_id}
-        group by 1;
+            s.id,
+            s.client_sdr_id,
+            csdr.client_id,
+            csdr.name as client_sdr_name,
+            csdr.img_url as client_sdr_img_url,
+            archetype.archetype as client_archetype,
+            archetype.emoji as client_archetype_emoji,
+            saq.num_results,
+            s.segment_title,
+            s.filters,
+            s.parent_segment_id,
+            s.saved_apollo_query_id,
+            count(distinct p.id) as num_prospected,
+            count(distinct p.id) filter (where p.approved_prospect_email_id is not null or p.approved_outreach_message_id is not null) as num_contacted,
+            count(distinct p.company) as unique_companies,
+            s.attached_segment_tag_ids
+        from segment s
+        left join client_sdr csdr on s.client_sdr_id = csdr.id
+        left join client_archetype archetype on s.client_archetype_id = archetype.id
+        left join saved_apollo_query saq on s.saved_apollo_query_id = saq.id
+        left join prospect p on s.id = p.segment_id and p.client_id = :client_id
+        where s.client_sdr_id in :sdr_ids
+        group by s.id, csdr.client_id, csdr.name, csdr.img_url, saq.num_results, archetype.archetype, archetype.emoji
     """
 
-    num_prospected_for_segments = db.session.execute(
-        num_contacted_prospected_for_segments_query.format(client_id=client_id)
+    segments_data = db.session.execute(
+        segments_query, {"client_id": client_id, "sdr_ids": tuple(sdr_ids)}
     ).fetchall()
-    retval = [segment.to_dict() for segment in all_segments]
 
-    for segment_dict in retval:
-        segment_id = segment_dict["id"]
-        for row in num_prospected_for_segments:
-            if row[0] == segment_id:
-                segment_dict["num_prospected"] = row[1]
-                segment_dict["num_contacted"] = row[2]
-                segment_dict["unique_companies"] = row[3]
-        attached_segment_tag_ids = Segment.query.get(
-            segment_id
-        ).attached_segment_tag_ids
-        # attached_segment_tag_ids is a list of tag ids or null
+    retval = []
+    for row in segments_data:
+        segment_dict = {
+            "id": row["id"],
+            "segment_title": row["segment_title"],
+            "filters": row["filters"],
+            "parent_segment_id": row["parent_segment_id"],
+            "saved_apollo_query_id": row["saved_apollo_query_id"],
+            "num_prospected": row["num_prospected"],
+            "num_contacted": row["num_contacted"],
+            "unique_companies": row["unique_companies"],
+            "apollo_query": {
+                "num_results": row["num_results"],
+            },
+            "client_sdr": {
+                "id": row["client_sdr_id"],
+                "client_id": row["client_id"],
+                "sdr_name": row["client_sdr_name"],
+                "img_url": row["client_sdr_img_url"],
+            },
+            "client_archetype": {
+                "archetype": row["client_archetype"],
+                "emoji": row["client_archetype_emoji"],
+            },
+            "attached_segments": []
+        }
+
+        attached_segment_tag_ids = row["attached_segment_tag_ids"]
         segment_tags = (
             SegmentTags.query.filter(SegmentTags.id.in_(attached_segment_tag_ids)).all()
             if attached_segment_tag_ids
             else []
         )
         segment_dict["attached_segments"] = [tag.to_dict() for tag in segment_tags]
+        retval.append(segment_dict)
 
-    # Filter segments by tag if tag_filter is not -1
     if tag_filter != "undefined" and tag_filter:
         retval = [
             segment
@@ -109,7 +134,6 @@ def get_segments_for_sdr(
             if any(tag["id"] == int(tag_filter) for tag in segment["attached_segments"])
         ]
 
-    # order by segment ID reverse order
     retval = sorted(retval, key=lambda x: x["id"], reverse=True)
 
     return retval
