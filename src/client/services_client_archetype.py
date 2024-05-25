@@ -739,7 +739,7 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
 
 
 def deactivate_client_archetype(
-    client_sdr_id: int, client_archetype_id: int, autodetected: Optional[bool] = False
+    client_sdr_id: int, client_archetype_id: int, autodetected: Optional[bool] = False, turnOffSmartleadCampaign: Optional[bool] = True
 ) -> bool:
     """Deactivate a client archetype.
 
@@ -768,7 +768,7 @@ def deactivate_client_archetype(
 
     # If this campaign is tied to Smartlead, then we need to PAUSE the campaign
     if autodetected:
-        if archetype.smartlead_campaign_id:
+        if archetype.smartlead_campaign_id and turnOffSmartleadCampaign:
             sl = Smartlead()
             sl.post_campaign_status(
                 campaign_id=archetype.smartlead_campaign_id, status="PAUSED"
@@ -1551,7 +1551,7 @@ def auto_turn_off_finished_archetypes() -> int:
             )
 
             # Turn off the archetype
-            deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True)
+            deactivate_client_archetype(archetype.client_sdr_id, archetype.id, True, False)
 
 def set_email_to_linkedin_connection(
     client_sdr_id: int,
