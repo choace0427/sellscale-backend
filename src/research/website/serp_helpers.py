@@ -62,19 +62,20 @@ def search_google_news(query: str, intext: any = [], exclude: any = []):
     }
 
 
-def search_google_news_raw(query, type: Optional[str] = None):
+def search_google_news_raw(query, type: Optional[str] = None, engine: Optional[str] = "google", start: Optional[int] = 0):
     # https://support.google.com/websearch/answer/2466433?hl=en
     serp_api_key = os.getenv("SERP_API_KEY")
     NUM_GOOGLE_RESULTS_TO_SCRAPE = 10
     
     params = {
         "api_key": serp_api_key,
-        "engine": "google",
+        "engine": engine,
         "q": query,
         "tbm": type,
         "gl": "us",  # US only
         "hl": "en",
         "num": NUM_GOOGLE_RESULTS_TO_SCRAPE,
+        "start": start
     }
     search = GoogleSearch(params)
     results = search.get_dict()

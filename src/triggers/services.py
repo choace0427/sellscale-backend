@@ -884,3 +884,64 @@ def send_finished_slack_message(
             webhook_urls=[client.pipeline_notifications_webhook_url],
             blocks=blocks,
         )
+
+def experiment_athelas_trigger():
+    '''
+    This is an experimental trigger we set up for Athelas.
+
+    Source: Companies that are hiring for 'Clinical Scribe' roles
+    Roles: CIO, CTO, COO, Clinical Director
+    
+    Returns a list of contacts, linkedin profiles, and companies.
+    '''
+    from src.contacts.services import apollo_get_organizations_from_company_names
+    from src.contacts.services import apollo_get_contacts
+
+    # find on Google
+    TITLES = ["CIO", "CTO", "COO", "Clinical Director"]
+    ROLES = ["Clinical Scribe"]
+    CLIENT_SDR_ID = 215 # Nick Jones; Athelas
+
+    PAGES = 1
+    results = []
+    for i in range(PAGES):
+        for role in ROLES:
+            data = search_google_news_raw(role, engine="google_jobs", start=10*i)
+            print("processing page", i*10)
+            job_results = data.get("jobs_results", [])
+            for job in job_results:
+                company = job.get("company_name")
+                description = job.get("description")
+                extensions = job.get("extensions")
+                location = job.get("location","").strip()
+                title = job.get("title")
+                via = job.get("via")
+
+                company_ids = apollo_get_organizations_from_company_names(
+                    client_sdr_id=CLIENT_SDR_ID,
+                    company_names=[company],
+                )
+
+                contacts = apollo_get_contacts(
+                    client_sdr_id=CLIENT_SDR_ID,
+                    num_contacts=100,
+                    person_titles=TITLES,
+                    organization_ids=[company_ids[0]['id']] if company_ids else [],
+                )
+
+                total_people = contacts['contacts'] + contacts['people']
+                for contact in total_people:
+                    results.append({
+                        "company": company,
+                        "title": title,
+                        "location": location,
+                        # "description": description,
+                        "via": via,
+                        "apollo_id": company_ids[0]['id'] if company_ids else None,
+                        "contact": contact,
+                    })
+
+    # return list
+    return {
+        'results': results,
+    }

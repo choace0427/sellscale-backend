@@ -1,6 +1,6 @@
 import datetime
 from flask import Blueprint, request
-from src.triggers.services import createTrigger, runTrigger
+from src.triggers.services import createTrigger, experiment_athelas_trigger, runTrigger
 from src.authentication.decorators import require_user
 from src.triggers.models import (
     Trigger,
@@ -199,3 +199,9 @@ def post_update_trigger(client_sdr_id: int, trigger_id: int):
     db.session.commit()
 
     return trigger.to_dict(), 200
+
+@TRIGGERS_BLUEPRINT.route("/run_athelas_trigger", methods=["POST"])
+def run_athelas_trigger():
+    data = experiment_athelas_trigger()
+
+    return data, 200

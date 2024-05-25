@@ -477,6 +477,11 @@ def apollo_get_organizations_from_company_names(
     Returns:
         list: List of organization objects
     """
+    # Set the headers
+    headers = {
+        "x-csrf-token": APOLLO_XCSRF_TOKEN,
+        "cookie": APOLLO_SESSION_COOKIE,
+    }
 
     def apollo_org_search(company_name: str):
         print("Getting company data for", company_name)
@@ -501,12 +506,6 @@ def apollo_get_organizations_from_company_names(
         except:
             print("ERROR", response.text)
         return None
-
-    # Set the headers
-    headers = {
-        "x-csrf-token": APOLLO_XCSRF_TOKEN,
-        "cookie": APOLLO_SESSION_COOKIE,
-    }
 
     results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
