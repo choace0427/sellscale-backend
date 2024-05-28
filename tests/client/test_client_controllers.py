@@ -21,7 +21,6 @@ from tests.test_utils.test_utils import (
     basic_generated_message_cta_with_text,
     get_login_token,
     basic_prospect,
-    basic_gnlp_model,
 )
 
 import json
@@ -345,11 +344,10 @@ def test_get_cta():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, client_sdr)
-    gnlp = basic_gnlp_model(archetype)
 
     prospect = basic_prospect(client, archetype)
     cta = basic_generated_message_cta_with_text(archetype, "test_cta")
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message = basic_generated_message(prospect, cta)
 
     response = app.test_client().get(
         "client/archetype/{}/get_ctas".format(archetype.id),

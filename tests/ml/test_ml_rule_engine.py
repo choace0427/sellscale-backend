@@ -4,7 +4,6 @@ from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
     basic_generated_message,
-    basic_gnlp_model,
     basic_prospect,
 )
 from tests.test_utils.decorators import use_app_context
@@ -13,7 +12,6 @@ from src.ml.rule_engine import (
     run_message_rule_engine,
     wipe_problems,
     format_entities,
-    rule_catch_no_i_have,
     rule_no_profanity,
     rule_no_cookies,
     rule_catch_has_6_or_more_consecutive_upper_case,
@@ -24,7 +22,6 @@ from src.ml.rule_engine import (
     rule_no_companies,
     rule_catch_strange_titles,
     rule_no_hard_years,
-    rule_catch_im_a,
     rule_no_ampersand,
 )
 from model_import import GeneratedMessage, GeneratedMessageType
@@ -40,9 +37,8 @@ def test_run_message_rule_engine():
 def test_wipe_problems():
     client = basic_client()
     archetype = basic_archetype(client)
-    gnlp_model = basic_gnlp_model(archetype)
     prospect = basic_prospect(client, archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message = basic_generated_message(prospect)
     generated_message.problems = ["test"]
     generated_message.unknown_named_entities = ["test"]
     db.session.add(generated_message)
@@ -160,17 +156,23 @@ def test_rule_linkedin_length():
     rule_linkedin_length(
         GeneratedMessageType.LINKEDIN, big_message, problems, highlighted_words
     )
-    assert problems == ["The message is slightly too long. Reduce the length by a few words."]
+    assert problems == [
+        "The message is slightly too long. Reduce the length by a few words."
+    ]
 
 
 @use_app_context
 def test_rule_address_doctor():
     problems = []
     highlighted_words = []
-    rule_address_doctor("name: David<>title: ", "pass", problems, highlighted_words, "David Wei")
+    rule_address_doctor(
+        "name: David<>title: ", "pass", problems, highlighted_words, "David Wei"
+    )
     assert problems == []
 
-    rule_address_doctor("name: Dr. David<>title:", "pass", problems, highlighted_words, "David Wei")
+    rule_address_doctor(
+        "name: Dr. David<>title:", "pass", problems, highlighted_words, "David Wei"
+    )
     assert problems == []
 
     rule_address_doctor(
@@ -180,8 +182,12 @@ def test_rule_address_doctor():
 
     problems = []
     highlighted_words = []
-    rule_address_doctor("name: David, MD<>title:", "David", problems, highlighted_words, "David Wei")
-    assert problems == ["The subject should be addressed as a Doctor. The subject's name is: David Wei"]
+    rule_address_doctor(
+        "name: David, MD<>title:", "David", problems, highlighted_words, "David Wei"
+    )
+    assert problems == [
+        "The subject should be addressed as a Doctor. The subject's name is: David Wei"
+    ]
     assert highlighted_words == ["name:", "david,", "md"]
 
     problems = []
@@ -220,7 +226,9 @@ def test_rule_address_doctor():
         highlighted_words,
         "David Wei",
     )
-    assert problems == ["The subject should be addressed as a Doctor. The subject's name is: David Wei"]
+    assert problems == [
+        "The subject should be addressed as a Doctor. The subject's name is: David Wei"
+    ]
     assert highlighted_words == ["name:", "david", "wei,", ""]
 
     problems = []
@@ -260,21 +268,6 @@ def test_rule_address_doctor():
     )
     assert problems == []
     assert highlighted_words == []
-
-
-@use_app_context
-def test_no_i_have():
-    problems = []
-    highlighted_words = []
-    rule_catch_no_i_have("pass", "", problems, highlighted_words)
-    assert problems == []
-    assert highlighted_words == []
-
-    rule_catch_no_i_have(
-        "i have a bad feeling about this", "", problems, highlighted_words
-    )
-    assert problems == ["Uses first person 'I have'."]
-    assert highlighted_words == ["i have"]
 
 
 @use_app_context
@@ -332,21 +325,6 @@ def test_rule_catch_has_6_or_more_consecutive_upper_case():
         "Contains long, uppercase word(s): 'KIA CANADA'. Please fix capitalization, if applicable."
     ]
     assert highlighted_words == ["KIA CANADA"]
-
-
-@use_app_context
-def test_should_not_catch_have():
-    problems = []
-    highlighted_words = []
-    rule_catch_no_i_have("pass", "", problems, highlighted_words)
-    assert problems == []
-    assert highlighted_words == []
-
-    rule_catch_no_i_have(
-        "mahendra modi have a bad feeling about this", "", problems, highlighted_words
-    )
-    assert problems == []
-    assert highlighted_words == []
 
 
 @use_app_context
@@ -527,9 +505,11 @@ def test_rule_no_hard_years():
         "I see you've been at SellScale for eight years",
         "anything",
         problems,
-        highlighted_words
+        highlighted_words,
     )
-    assert problems == ["'eight years' is non-colloquial. Please use 'nearly a decade' instead."]
+    assert problems == [
+        "'eight years' is non-colloquial. Please use 'nearly a decade' instead."
+    ]
     assert highlighted_words == ["eight years"]
 
     problems = []
@@ -538,9 +518,11 @@ def test_rule_no_hard_years():
         "I see you've been at SellScale for nine years",
         "anything",
         problems,
-        highlighted_words
+        highlighted_words,
     )
-    assert problems == ["'nine years' is non-colloquial. Please use 'nearly a decade' instead."]
+    assert problems == [
+        "'nine years' is non-colloquial. Please use 'nearly a decade' instead."
+    ]
     assert highlighted_words == ["nine years"]
 
     problems = []
@@ -549,20 +531,21 @@ def test_rule_no_hard_years():
         "I see you've been at SellScale for 6 months",
         "anything",
         problems,
-        highlighted_words
+        highlighted_words,
     )
-    assert problems == ["'6 months' is non-colloquial. Please use 'half a year' instead."]
+    assert problems == [
+        "'6 months' is non-colloquial. Please use 'half a year' instead."
+    ]
     assert highlighted_words == ["6 months"]
 
     problems = []
     highlighted_words = []
     rule_no_hard_years(
-        "I've been there for 3 years",
-        "anything",
-        problems,
-        highlighted_words
+        "I've been there for 3 years", "anything", problems, highlighted_words
     )
-    assert problems == ["A hard number year may appear non-colloquial. Reference the number without using a digit."]
+    assert problems == [
+        "A hard number year may appear non-colloquial. Reference the number without using a digit."
+    ]
     assert highlighted_words == ["3 years"]
 
     # SHOULDN'T TRIGGER
@@ -571,55 +554,6 @@ def test_rule_no_hard_years():
     rule_no_hard_years(
         "I see you've been at SellScale for a few years",
         "anything",
-        problems,
-        highlighted_words
-    )
-    assert problems == []
-    assert highlighted_words == []
-
-
-@use_app_context
-def test_rule_no_im_a():
-    problems = []
-    highlighted_words = []
-    rule_catch_im_a(
-        "I'm a physician recruiter and this is a lie!",
-        "pass",
-        problems,
-        highlighted_words,
-    )
-    assert problems == [
-        'Found "I\'m a" in the completion. Ensure that the completion is not making false claims.'
-    ]
-    assert highlighted_words == ["I'm a"]
-
-    problems = []
-    highlighted_words = []
-    rule_catch_im_a(
-        "I'm a physician recruiter and that's for real!",
-        "I'm a physician recruiter",
-        problems,
-        highlighted_words,
-    )
-    assert problems == []
-    assert highlighted_words == []
-
-    problems = []
-    highlighted_words = []
-    rule_catch_im_a(
-        "I'm a huge fan of your work!",
-        "pass",
-        problems,
-        highlighted_words,
-    )
-    assert problems == []
-    assert highlighted_words == []
-
-    problems = []
-    highlighted_words = []
-    rule_catch_im_a(
-        "I'm amazed by your work!",
-        "pass",
         problems,
         highlighted_words,
     )
@@ -636,13 +570,17 @@ def test_rule_no_ampersand():
     assert highlighted_words == []
 
     rule_no_ampersand("I'm a & recruiter", problems, highlighted_words)
-    assert problems == ["Contains an ampersand (&). Please double check that this is correct."]
+    assert problems == [
+        "Contains an ampersand (&). Please double check that this is correct."
+    ]
     assert highlighted_words == ["&"]
 
     problems = []
     highlighted_words = []
     rule_no_ampersand("McKinsey & Company", problems, highlighted_words)
-    assert problems == ["Contains an ampersand (&). Please double check that this is correct."]
+    assert problems == [
+        "Contains an ampersand (&). Please double check that this is correct."
+    ]
     assert highlighted_words == ["&"]
 
 

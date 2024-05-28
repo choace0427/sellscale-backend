@@ -4,10 +4,11 @@ from model_import import (
     Client,
     ClientArchetype,
     ClientSDR,
-    GNLPModel,
     ProspectOverallStatus,
 )
-from src.client.archetype.services_client_archetype import bulk_action_move_prospects_to_archetype
+from src.client.archetype.services_client_archetype import (
+    bulk_action_move_prospects_to_archetype,
+)
 from src.client.services_client_archetype import hard_deactivate_client_archetype
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
@@ -20,7 +21,6 @@ from tests.test_utils.test_utils import (
     basic_prospect,
     basic_prospect_email,
     basic_archetype,
-    basic_gnlp_model,
     basic_generated_message_cta_with_text,
     basic_generated_message,
     basic_generated_message_cta,
@@ -135,7 +135,10 @@ def test_hard_deactivate_client_archetype():
 
 
 @use_app_context
-@mock.patch("src.client.services_client_archetype.mark_queued_and_classify.apply_async", return_value=True)
+@mock.patch(
+    "src.client.services_client_archetype.mark_queued_and_classify.apply_async",
+    return_value=True,
+)
 def test_bulk_action_move_prospects_to_archetype(mock_mark_queued_and_classify):
     client = basic_client()
     sdr = basic_client_sdr(client)
@@ -162,7 +165,9 @@ def test_bulk_action_move_prospects_to_archetype(mock_mark_queued_and_classify):
     assert mock_mark_queued_and_classify.call_count == 2
 
     # Move prospect to archetype
-    result = bulk_action_move_prospects_to_archetype(sdr.id, archetype_id, [prospect_id])
+    result = bulk_action_move_prospects_to_archetype(
+        sdr.id, archetype_id, [prospect_id]
+    )
     assert result == True
     prospect: Prospect = Prospect.query.get(prospect_id)
     prospect_2: Prospect = Prospect.query.get(prospect_2_id)

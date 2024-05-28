@@ -10,7 +10,6 @@ from model_import import (
     Prospect,
     ProspectUploadsRawCSV,
     ProspectUploads,
-    GNLPModel,
     ClientSDR,
     EmailSchema,
     GeneratedMessage,
@@ -21,7 +20,6 @@ from model_import import (
     ResearchPoints,
     ProspectStatus,
     ProspectOverallStatus,
-    GNLPModelFineTuneJobs,
     ProspectStatusRecords,
     PhantomBusterConfig,
     DemoFeedback,
@@ -148,8 +146,6 @@ def test_app():
         clear_all_entities(ProspectUploadsRawCSV)
         clear_all_entities(DemoFeedback)
         clear_all_entities(Prospect)
-        clear_all_entities(GNLPModel)
-        clear_all_entities(GNLPModelFineTuneJobs)
         clear_all_entities(StackRankedMessageGenerationConfiguration)
         clear_all_entities(ICPScoringRuleset)
         clear_all_entities(ClientArchetype)
@@ -270,21 +266,6 @@ def basic_daily_notification(
     return dnot
 
 
-def basic_gnlp_model(archetype: ClientArchetype):
-    from src.ml.models import ModelProvider, GNLPModelType
-
-    g = GNLPModel(
-        model_provider=ModelProvider.OPENAI_GPT3,
-        model_type=GNLPModelType.OUTREACH,
-        model_description="test_model",
-        model_uuid="1234567890",
-        archetype_id=archetype.id,
-    )
-    db.session.add(g)
-    db.session.commit()
-    return g
-
-
 def basic_outbound_campaign(
     prospect_ids: list[int],
     campaign_type: GeneratedMessageType,
@@ -328,7 +309,6 @@ def basic_generated_message_cta(archetype: ClientArchetype):
 
 def basic_generated_message(
     prospect: Prospect,
-    gnlp_model: Optional[GNLPModel] = None,
     message_cta: Optional[GeneratedMessageCTA] = None,
     campaign: Optional[OutboundCampaign] = None,
 ):
@@ -341,7 +321,6 @@ def basic_generated_message(
     message_cta_id = None if message_cta is None else message_cta.id
     g = GeneratedMessage(
         prospect_id=prospect.id,
-        gnlp_model_id=gnlp_model.id if gnlp_model else None,
         outbound_campaign_id=campaign.id if campaign else None,
         research_points=[],
         prompt="",

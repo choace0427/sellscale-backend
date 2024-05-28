@@ -5,11 +5,12 @@ from model_import import (
     Client,
     ClientArchetype,
     ClientSDR,
-    GNLPModel,
     ProspectOverallStatus,
 )
 from src.client.models import DemoFeedback
-from src.client.sdr.email.services_email_bank import nylas_exchange_for_authorization_code
+from src.client.sdr.email.services_email_bank import (
+    nylas_exchange_for_authorization_code,
+)
 from tests.test_utils.test_utils import (
     test_app,
     basic_client,
@@ -17,11 +18,10 @@ from tests.test_utils.test_utils import (
     basic_client_sdr,
     basic_prospect,
     basic_archetype,
-    basic_gnlp_model,
     basic_generated_message_cta_with_text,
     basic_generated_message,
     basic_generated_message_cta,
-    basic_demo_feedback
+    basic_demo_feedback,
 )
 from src.client.services import (
     create_client,
@@ -169,14 +169,6 @@ def test_add_client_and_archetype():
     archetype = ClientArchetype.query.get(archetype_id)
     assert archetype.active == False
 
-    gnlp_models: list = GNLPModel.query.all()
-    assert len(gnlp_models) == 1
-
-    gnlp_model: GNLPModel = gnlp_models[0]
-    gnlp_model.model_uuid = "TESTING_NEW_UUID"
-    db.session.add(gnlp_model)
-    db.session.commit()
-
     response = app.test_client().patch(
         "client/archetype",
         headers={"Content-Type": "application/json"},
@@ -210,12 +202,6 @@ def test_add_client_and_archetype():
     assert response.status_code == 200
     new_archetype_id = json.loads(response.data)["client_archetype_id"]
 
-    new_archetype_gnlp_model: GNLPModel = GNLPModel.query.filter(
-        GNLPModel.archetype_id == new_archetype_id
-    ).first()
-    assert new_archetype_gnlp_model is not None
-    assert new_archetype_gnlp_model.model_uuid == "TESTING_NEW_UUID"
-
     client_archetypes: list = ClientArchetype.query.all()
     assert len(client_archetypes) == 2
     archetype_ai_not_disabled = client_archetypes[1]
@@ -225,7 +211,6 @@ def test_add_client_and_archetype():
 
 @use_app_context
 def test_add_client_and_archetype_and_sdr():
-
     create_client(
         company="testing",
         contact_name="testing",
@@ -255,7 +240,7 @@ def test_add_client_and_archetype_and_sdr():
     )
     client_archetypes: list = ClientArchetype.query.all()
     assert len(client_archetypes) == 3
-    #assert client_archetypes[2].client_sdr_id == c_sdr.id
+    # assert client_archetypes[2].client_sdr_id == c_sdr.id
 
     response = app.test_client().post(
         "client/sdr",
@@ -432,11 +417,10 @@ def test_get_cta_by_archetype_id():
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, client_sdr)
-    gnlp = basic_gnlp_model(archetype)
 
     prospect = basic_prospect(client, archetype)
     cta = basic_generated_message_cta_with_text(archetype, "test_cta")
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message = basic_generated_message(prospect, cta)
 
     ctas = get_cta_by_archetype_id(client_sdr.id, archetype.id)
     assert len(ctas.get("ctas")) == 1
@@ -446,11 +430,10 @@ def test_get_cta_by_archetype_id():
 def test_get_cta_stats():
     client = basic_client()
     archetype = basic_archetype(client)
-    gnlp = basic_gnlp_model(archetype)
     client_sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype)
     cta = basic_generated_message_cta_with_text(archetype, "test_cta")
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message = basic_generated_message(prospect, cta)
     generated_message.message_status = "SENT"
 
     stats = get_cta_stats(cta.id)
@@ -569,7 +552,7 @@ def test_edit_demo_feedback():
         status="edited_status",
         rating="edited_rating",
         feedback="edited_feedback",
-        next_demo_date=no_effect_date
+        next_demo_date=no_effect_date,
     )
     assert result == True
     demo_feedback: DemoFeedback = DemoFeedback.query.get(df.id)
@@ -587,7 +570,7 @@ def test_edit_demo_feedback():
         status="edited_status",
         rating="edited_rating",
         feedback="edited_feedback",
-        next_demo_date=new_demo_date
+        next_demo_date=new_demo_date,
     )
     assert result == True
     demo_feedback: DemoFeedback = DemoFeedback.query.get(df_2.id)

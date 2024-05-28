@@ -5,7 +5,6 @@ from tests.test_utils.test_utils import (
     basic_client_sdr,
     basic_archetype,
     basic_generated_message,
-    basic_gnlp_model,
     basic_outbound_campaign,
     basic_prospect,
     basic_generated_message_cta,
@@ -20,7 +19,6 @@ from model_import import (
     GeneratedMessageJobStatus,
     StackRankedMessageGenerationConfiguration,
 )
-, ResearchType
 from src.client.services import create_client
 from model_import import Client, ProspectStatus
 from app import db
@@ -33,8 +31,7 @@ def test_create_feedback():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message = basic_generated_message(prospect)
     message_id = generated_message.id
 
     response = app.test_client().post(
@@ -107,10 +104,7 @@ def test_post_clear_all_good_messages_by_archetype_id():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client=client, archetype=archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+    generated_message = basic_generated_message(prospect=prospect)
     generated_message.good_message = True
     db.session.add(generated_message)
     db.session.commit()
@@ -140,10 +134,8 @@ def test_post_toggle_message_as_good_message():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client=client, archetype=archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+
+    generated_message = basic_generated_message(prospect=prospect)
     generated_message.good_message = None
     db.session.add(generated_message)
     db.session.commit()
@@ -173,10 +165,8 @@ def test_post_mark_messages_as_good_message():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client=client, archetype=archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+
+    generated_message = basic_generated_message(prospect=prospect)
     generated_message.good_message = None
     db.session.add(generated_message)
     db.session.commit()
@@ -206,10 +196,8 @@ def test_post_mass_update():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client=client, archetype=archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+
+    generated_message = basic_generated_message(prospect=prospect)
     generated_message.completion = "123123"
     db.session.add(generated_message)
     db.session.commit()
@@ -405,11 +393,10 @@ def test_post_pick_new_approved_message(rule_engine_mock):
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
     prospect_id = prospect.id
-    gnlp_model = basic_gnlp_model(archetype)
 
-    generated_message1 = basic_generated_message(prospect, gnlp_model)
+    generated_message1 = basic_generated_message(prospect)
     gm_1_id = generated_message1.id
-    generated_message2 = basic_generated_message(prospect, gnlp_model)
+    generated_message2 = basic_generated_message(prospect)
     gm_2_id = generated_message2.id
 
     prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
@@ -429,6 +416,7 @@ def test_post_pick_new_approved_message(rule_engine_mock):
 
     assert rule_engine_mock.call_count == 1
 
+
 @use_app_context
 def test_manual_mark_ai_approve_endpoint():
     client = basic_client()
@@ -436,14 +424,13 @@ def test_manual_mark_ai_approve_endpoint():
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
     cta = basic_generated_message_cta(archetype)
-    gnlp = basic_gnlp_model(archetype)
     campaign = basic_outbound_campaign(
         [prospect.id],
         GeneratedMessageType.EMAIL,
         client_archetype=archetype,
-        client_sdr=sdr
+        client_sdr=sdr,
     )
-    gm = basic_generated_message(prospect, gnlp, cta)
+    gm = basic_generated_message(prospect, cta)
 
     # Approve
     assert gm.ai_approved == None

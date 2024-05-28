@@ -12,7 +12,6 @@ from tests.test_utils.test_utils import (
     basic_archetype,
     basic_generated_message,
     basic_generated_message_cta,
-    basic_gnlp_model,
 )
 from src.automation.services import *
 
@@ -53,19 +52,18 @@ def test_create_pb_linkedin_invite_csv():
     prospect = basic_prospect(client, archetype, sdr)
     prospect.status = "QUEUED_FOR_OUTREACH"
     prospect_id = prospect.id
-    gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     campaign = basic_outbound_campaign([prospect_id], "LINKEDIN", archetype, sdr)
-    generated_message = basic_generated_message(prospect, gnlp, cta, campaign)
+    generated_message = basic_generated_message(prospect, cta, campaign)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     generated_message.priority_rating = 1
-    generated_message_2 = basic_generated_message(prospect, gnlp, cta, campaign)
+    generated_message_2 = basic_generated_message(prospect, cta, campaign)
     generated_message_2_id = generated_message_2.id
     generated_message_2.completion = "This is a higher priority message"
     generated_message_2.message_status = "QUEUED_FOR_OUTREACH"
     generated_message_2.priority_rating = 10
-    generated_message_3 = basic_generated_message(prospect, gnlp, cta, campaign)
+    generated_message_3 = basic_generated_message(prospect, cta, campaign)
     generated_message_3_id = generated_message_3.id
     generated_message_3.completion = "This is low priority, should not appear"
     generated_message_3.message_status = "QUEUED_FOR_OUTREACH"
@@ -82,7 +80,7 @@ def test_create_pb_linkedin_invite_csv():
         {
             "Linkedin": "https://www.linkedin.com/in/davidmwei",
             "Message": "this is a test",
-        }
+        },
     ]
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.pb_csv_count == 1
@@ -96,7 +94,7 @@ def test_create_pb_linkedin_invite_csv():
         {
             "Linkedin": "https://www.linkedin.com/in/davidmwei",
             "Message": "this is a test",
-        }
+        },
     ]
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.pb_csv_count == 2
@@ -110,7 +108,7 @@ def test_create_pb_linkedin_invite_csv():
         {
             "Linkedin": "https://www.linkedin.com/in/davidmwei",
             "Message": "this is a test",
-        }
+        },
     ]
     gm: GeneratedMessage = GeneratedMessage.query.get(generated_message_id)
     assert gm.pb_csv_count == 3
@@ -147,9 +145,8 @@ def test_update_pb_linkedin_send_status():
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
     p_id = prospect.id
-    gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message = basic_generated_message(prospect, cta)
     gm_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     prospect.approved_outreach_message_id = generated_message.id

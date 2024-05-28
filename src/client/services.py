@@ -21,7 +21,10 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
-from src.ml.ai_researcher_services import auto_assign_ai_researcher_to_client_archetype, create_default_ai_researcher
+from src.ml.ai_researcher_services import (
+    auto_assign_ai_researcher_to_client_archetype,
+    create_default_ai_researcher,
+)
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
@@ -70,7 +73,6 @@ from src.ml.openai_wrappers import (
     wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
-from src.ml.models import GNLPModel, GNLPModelType, ModelProvider
 from src.prospecting.models import (
     ProspectOverallStatus,
     ProspectUploadsRawCSV,
@@ -504,76 +506,6 @@ def create_client_archetype(
         + client_sdr.auth_token
         + "&redirect=campaigns"
     )
-    # send_slack_message(
-    #     message="New campaign created",
-    #     blocks=[
-    #         {
-    #             "type": "header",
-    #             "text": {
-    #                 "type": "plain_text",
-    #                 "text": "⭐️ New Campaign Created",
-    #                 "emoji": True,
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": "SellScale AI just created a new campaign for *{}*.\n".format(
-    #                     archetype
-    #                 ),
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": "> User: *{}*\n_Finding new prospects shortly_.".format(
-    #                     client_sdr.name
-    #                 ),
-    #             },
-    #         },
-    #         {
-    #             "type": "section",
-    #             "text": {"type": "mrkdwn", "text": " "},
-    #             "accessory": {
-    #                 "type": "button",
-    #                 "text": {
-    #                     "type": "plain_text",
-    #                     "text": "View Campaign →",
-    #                     "emoji": True,
-    #                 },
-    #                 "url": campaign_url,
-    #                 "action_id": "button-action",
-    #             },
-    #         },
-    #         {"type": "divider"},
-    #     ],
-    #     webhook_urls=[webhook_url] if webhook_url else [],
-    # )
-
-    # if base_archetype_id:
-    #     _, model_id = get_latest_custom_model(base_archetype_id, GNLPModelType.OUTREACH)
-    #     base_model: GNLPModel = GNLPModel.query.get(model_id)
-    #     model = GNLPModel(
-    #         model_provider=base_model.model_provider,
-    #         model_type=base_model.model_type,
-    #         model_description="baseline_model_{}".format(archetype),
-    #         model_uuid=base_model.model_uuid,
-    #         archetype_id=archetype_id,
-    #     )
-    #     db.session.add(model)
-    #     db.session.commit()
-    # else:
-    #     model: GNLPModel = GNLPModel(
-    #         model_provider=ModelProvider.OPENAI_GPT3,
-    #         model_type=GNLPModelType.OUTREACH,
-    #         model_description="baseline_model_{}".format(archetype),
-    #         model_uuid="davinci:ft-personal-2022-07-23-19-55-19",
-    #         archetype_id=archetype_id,
-    #     )
-    #     db.session.add(model)
-    #     db.session.commit()
 
     # Create default bump frameworks for this Archetype
     create_default_bump_frameworks(
@@ -3066,6 +2998,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
 
     return prospect_dicts
 
+
 @celery.task
 def remove_prospects_caught_by_filters(client_sdr_id: int):
     remove_prospects_caught_by_client_filters(client_sdr_id)
@@ -3223,6 +3156,7 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         prospect_dicts.append(prospect_dict)
 
     return prospect_dicts
+
 
 def remove_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     """Remove the prospects caught by the do not contact filters for a Client SDR.
@@ -5084,7 +5018,8 @@ def modify_client_archetype_reason_mapping(
     db.session.commit()
     return True
 
-#endpoint to modify the attribute 'testing_volume' on the client archetype
+
+# endpoint to modify the attribute 'testing_volume' on the client archetype
 def modify_testing_volume(client_archetype_id: int, testing_volume: int):
     if not (0 <= testing_volume <= 500):
         return False, "testing_volume must be between 0 and 500"
@@ -5094,7 +5029,8 @@ def modify_testing_volume(client_archetype_id: int, testing_volume: int):
     db.session.commit()
     return True, "Successfully modified testing volume"
 
-#get the testing volume for a client archetype
+
+# get the testing volume for a client archetype
 def get_testing_volume(client_archetype_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     return client_archetype.testing_volume

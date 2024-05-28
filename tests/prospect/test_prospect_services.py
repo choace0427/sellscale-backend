@@ -8,7 +8,6 @@ from tests.test_utils.test_utils import (
     basic_prospect_email,
     get_login_token,
     basic_generated_message,
-    basic_gnlp_model,
     basic_generated_message_cta,
     basic_outbound_campaign,
 )
@@ -180,13 +179,12 @@ def test_get_prospect_generated_message():
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client, client_sdr)
     prospect = basic_prospect(client, archetype, client_sdr)
-    gnlp_model = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
-    li_message = basic_generated_message(prospect, gnlp_model, cta)
+    li_message = basic_generated_message(prospect, cta)
     li_message_id = li_message.id
     li_message.message_type = "LINKEDIN"
     li_message.message_status = "APPROVED"
-    email_message = basic_generated_message(prospect, gnlp_model, cta)
+    email_message = basic_generated_message(prospect, cta)
     email_message_id = email_message.id
     email_message.message_type = "EMAIL"
     email_message.message_status = "APPROVED"
@@ -975,9 +973,8 @@ def test_mark_prospects_as_queued_for_outreach():
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
     prospect_id = prospect.id
-    gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
-    generated_message = basic_generated_message(prospect, gnlp, cta)
+    generated_message = basic_generated_message(prospect, cta)
     oc = basic_outbound_campaign(
         [prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr
     )

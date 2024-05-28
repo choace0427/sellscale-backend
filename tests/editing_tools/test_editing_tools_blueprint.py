@@ -8,7 +8,6 @@ from tests.test_utils.test_utils import (
     basic_archetype,
     basic_prospect,
     basic_generated_message,
-    basic_gnlp_model,
     basic_research_payload,
     basic_research_point,
     basic_generated_message_cta,
@@ -41,7 +40,6 @@ def test_get_editing_details():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     cta_id = cta.id
 
@@ -59,7 +57,7 @@ def test_get_editing_details():
     serp_point = basic_research_point(serp_payload)
     serp_point_id = serp_point.id
 
-    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message = basic_generated_message(prospect)
     generated_message.message_cta = cta_id
     generated_message.research_points = [li_point_id, serp_point_id]
     db.session.add(generated_message)

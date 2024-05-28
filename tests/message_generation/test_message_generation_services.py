@@ -1,6 +1,7 @@
 import json
 
 import mock
+from src.research.models import ResearchType
 from tests.test_utils.decorators import use_app_context
 from tests.test_utils.test_utils import (
     basic_archetype,
@@ -9,7 +10,6 @@ from tests.test_utils.test_utils import (
     basic_generated_message,
     basic_generated_message_cta,
     basic_generated_message_cta_with_text,
-    basic_gnlp_model,
     basic_prospect,
     basic_prospect_email,
     basic_research_payload,
@@ -47,12 +47,9 @@ from src.message_generation.services import (
     delete_message_generation_by_prospect_id,
     generate_linkedin_outreaches,
     generate_prospect_email,
-    get_named_entities,
-    get_named_entities_for_generated_message,
     mark_prospect_email_approved,
     mark_prospect_email_sent,
     research_and_generate_outreaches_for_prospect,
-    run_check_message_has_bad_entities,
     toggle_cta_active,
     wipe_prospect_email_and_generations_and_research,
     get_generation_statuses,
@@ -63,7 +60,6 @@ from src.message_generation.services import (
 from src.message_generation.services_few_shot_generations import (
     can_generate_with_patterns,
 )
-, ResearchType
 
 
 @use_app_context
@@ -76,12 +72,11 @@ def test_get_messages_queued_for_outreach():
     prospect.company = "Test Company"
     prospect.status = "QUEUED_FOR_OUTREACH"
     prospect_id = prospect.id
-    gnlp = basic_gnlp_model(archetype)
     cta = basic_generated_message_cta(archetype)
     outbound_campaign = basic_outbound_campaign(
         [prospect_id], "LINKEDIN", archetype, sdr
     )
-    generated_message = basic_generated_message(prospect, gnlp, cta, outbound_campaign)
+    generated_message = basic_generated_message(prospect, cta, outbound_campaign)
     generated_message_id = generated_message.id
     generated_message.message_status = "QUEUED_FOR_OUTREACH"
     prospect.approved_outreach_message_id = generated_message.id
@@ -182,14 +177,11 @@ def test_delete_cta_with_generated_message():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
     cta = create_cta(text_value="test", archetype_id=archetype.id, expiration_date=None)
     all_ctas: list = GeneratedMessageCTA.query.all()
     assert len(all_ctas) == 1
 
-    message: GeneratedMessage = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+    message: GeneratedMessage = basic_generated_message(prospect=prospect)
     message.message_cta = cta.id
     db.session.add(message)
     db.session.commit()
@@ -232,10 +224,6 @@ def test_generate_linkedin_outreaches(
         [prospect_id], GeneratedMessageType.LINKEDIN, archetype, sdr
     )
     cta = create_cta(text_value="test", archetype_id=archetype.id, expiration_date=None)
-    gnlp_model = basic_gnlp_model(archetype)
-    gnlp_model.id = 5
-    db.session.add(gnlp_model)
-    db.session.commit()
 
     research_payload: ResearchPayload = ResearchPayload(
         prospect_id=prospect.id,
@@ -284,10 +272,7 @@ def test_update_message(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    message: GeneratedMessage = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+    message: GeneratedMessage = basic_generated_message(prospect=prospect)
     db.session.add(message)
     db.session.commit()
 
@@ -360,10 +345,8 @@ def test_approve_message(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    message: GeneratedMessage = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+
+    message: GeneratedMessage = basic_generated_message(prospect=prospect)
     db.session.add(message)
     db.session.commit()
 
@@ -390,9 +373,9 @@ def test_delete_message_generation_by_prospect_id():
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
+
     for i in range(10):
-        basic_generated_message(prospect=prospect, gnlp_model=gnlp_model)
+        basic_generated_message(prospect=prospect)
 
     messages: list = GeneratedMessage.query.all()
     assert len(messages) == 10
@@ -420,15 +403,14 @@ def test_generate_prospect_email(
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype, client_sdr)
     prospect_id = prospect.id
-    gnlp_model = basic_gnlp_model(archetype)
-    gnlp_model.id = 5
+
     campaign = basic_outbound_campaign(
         [prospect_id], GeneratedMessageType.EMAIL, archetype, client_sdr
     )
     gen_message_job = basic_generated_message_job_queue(
         prospect, campaign, GeneratedMessageJobStatus.PENDING
     )
-    db.session.add(gnlp_model)
+
     db.session.commit()
 
     payload = basic_research_payload(prospect=prospect)
@@ -442,7 +424,6 @@ def test_generate_prospect_email(
     assert len(messages) == 2
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
-        assert message.gnlp_model_id == None
         # assert message.completion == "completion"
 
     prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
@@ -489,9 +470,7 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     sdr = basic_client_sdr(client)
     prospect = basic_prospect(client, archetype, sdr)
     prospect_id = prospect.id
-    gnlp_model = basic_gnlp_model(archetype)
-    gnlp_model.id = 5
-    db.session.add(gnlp_model)
+
     db.session.commit()
     payload = basic_research_payload(prospect=prospect)
     point = basic_research_point(research_payload=payload)
@@ -519,7 +498,6 @@ def test_research_and_generate_emails_for_prospect_and_wipe(
     assert len(messages) == 2
     for message in messages:
         assert message.message_type == GeneratedMessageType.EMAIL
-        assert message.gnlp_model_id == None
         # assert message.completion == "completion"
 
     prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
@@ -605,8 +583,8 @@ def test_change_prospect_email_status_sent(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     prospect_email: ProspectEmail = basic_prospect_email(prospect)
     prospect_email.personalized_first_line = generated_message_id
@@ -657,8 +635,8 @@ def test_clearing_approved_emails(run_message_rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     prospect_email: ProspectEmail = basic_prospect_email(prospect)
     prospect_email.personalized_first_line = generated_message_id
@@ -729,10 +707,8 @@ def test_batch_approve_message_generations_by_heuristic(
     for i in range(10):
         prospect = basic_prospect(client, archetype)
         prospect_ids.append(prospect.id)
-        gnlp_model = basic_gnlp_model(archetype)
-        message: GeneratedMessage = basic_generated_message(
-            prospect=prospect, gnlp_model=gnlp_model
-        )
+
+        message: GeneratedMessage = basic_generated_message(prospect=prospect)
         db.session.add(message)
         db.session.commit()
 
@@ -792,8 +768,7 @@ def test_get_named_entities_for_generated_message(get_named_entities_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message = basic_generated_message(prospect)
     generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     db.session.add(generated_message)
     db.session.commit()
@@ -811,8 +786,8 @@ def test_run_check_message_has_bad_entities(get_named_entities_patch):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     generated_message.prompt = "Oh no."
@@ -842,8 +817,8 @@ def test_run_check_message_has_bad_entities_with_exceptions(get_named_entities_p
     client = Client.query.get(client_id)
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     generated_message.prompt = "Dan Drozd, MD"
     generated_message.completion = "Hi Dr. Drozd!"
@@ -882,8 +857,8 @@ def test_run_check_message_has_bad_entities_with_sanitization(get_named_entities
     client = Client.query.get(client_id)
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     generated_message.prompt = "Uses ad-hoc SQL sometimes."
     generated_message.completion = "I see you enjoy using ad-hoc SQL sometimes."
@@ -910,8 +885,8 @@ def test_run_check_message_has_bad_entities_with_no_ner_cta(get_named_entities_p
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     generated_message.prompt = "Oh no."
@@ -943,8 +918,8 @@ def test_run_check_message_has_bad_entities_with_ner_cta(get_named_entities_patc
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     generated_message.completion = "Hey Marla! I read the recommendation Megan left for you (seriously, looks like you're a phenomenal teacher and an excellent marketer). Would love to chat about how Zuma can help turn leads into leases faster."
     generated_message.prompt = "Oh no."
@@ -976,8 +951,8 @@ def test_run_check_message_has_bad_entities_with_ner_cta(get_named_entities_patc
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     generated_message.completion = "Hey Jim, love what you're doing as CEO."
     generated_message.prompt = "Chief Executive Officer"
@@ -1130,14 +1105,14 @@ def test_manually_mark_ai_approve():
     archetype = basic_archetype(client, sdr)
     prospect = basic_prospect(client, archetype, sdr)
     cta = basic_generated_message_cta(archetype)
-    gnlp = basic_gnlp_model(archetype)
+
     campaign = basic_outbound_campaign(
         [prospect.id],
         GeneratedMessageType.EMAIL,
         client_archetype=archetype,
         client_sdr=sdr,
     )
-    gm = basic_generated_message(prospect, gnlp, cta)
+    gm = basic_generated_message(prospect, cta)
 
     assert gm.ai_approved is None
     manually_mark_ai_approve(gm.id, True)
@@ -1151,10 +1126,8 @@ def test_update_message_service(rule_engine_mock):
     client = basic_client()
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
-    gnlp_model = basic_gnlp_model(archetype)
-    message: GeneratedMessage = basic_generated_message(
-        prospect=prospect, gnlp_model=gnlp_model
-    )
+
+    message: GeneratedMessage = basic_generated_message(prospect=prospect)
     message_id = message.id
 
     # No change

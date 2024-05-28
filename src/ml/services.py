@@ -19,9 +19,6 @@ from src.message_generation.models import (
     GeneratedMessageType,
 )
 from src.ml.models import (
-    GNLPFinetuneJobStatuses,
-    GNLPModelFineTuneJobs,
-    GNLPModelType,
     TextGeneration,
 )
 import traceback
@@ -44,7 +41,7 @@ from src.utils.abstract.attr_utils import deep_get
 
 import os
 
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY", '')
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY", "")
 
 
 DEFAULT_MONTHLY_ML_FETCHING_CREDITS = 5000
@@ -81,118 +78,6 @@ def create_upload_jsonl_file(prompt_completion_dict: any):
         file=open("training_set_temp.jsonl"), purpose="fine-tune"
     )
     return jsonl_file_upload
-
-
-def initiate_fine_tune_job(
-    archetype_id: int, message_ids: list, model_type: GNLPModelType
-):
-    # create new fine tune job in db
-    job: GNLPModelFineTuneJobs = GNLPModelFineTuneJobs(
-        archetype_id=archetype_id,
-        message_ids=message_ids,
-        status=GNLPFinetuneJobStatuses.INITIATED,
-        model_type=model_type,
-    )
-    db.session.add(job)
-    db.session.commit()
-    try:
-        # upload jsonl file
-        messages: list[GeneratedMessage] = GeneratedMessage.query.filter(
-            GeneratedMessage.id.in_(message_ids)
-        ).all()
-        prompt_completion_dict = {m.prompt: m.completion for m in messages}
-        jsonl_file_upload_resp = create_upload_jsonl_file(
-            prompt_completion_dict=prompt_completion_dict
-        )
-        file_id = jsonl_file_upload_resp["id"]
-        job.jsonl_file_id = file_id
-        job.jsonl_file_response = jsonl_file_upload_resp
-        job.status = GNLPFinetuneJobStatuses.UPLOADED_JSONL_FILE
-        db.session.add(job)
-        db.session.commit()
-
-        # create new finetune job
-        fine_tune_create_job_resp = openai.FineTune.create(
-            training_file=file_id, model="davinci"
-        )
-        fine_tune_job_id = fine_tune_create_job_resp["id"]
-        job.finetune_job_id = fine_tune_job_id
-        job.finetune_job_response = fine_tune_create_job_resp
-        job.status = GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
-        db.session.add(job)
-        db.session.commit()
-
-        return True, "OK"
-    except Exception as e:
-        # if failed update status
-        job.status = GNLPFinetuneJobStatuses.FAILED
-        job.error = str(e)
-        db.session.add(job)
-        db.session.commit()
-
-        return False, str(e)
-
-
-# Deprecated
-# @celery.task
-# def check_statuses_of_fine_tune_jobs():
-#     jobs: list = GNLPModelFineTuneJobs.query.filter(
-#         GNLPModelFineTuneJobs.status == GNLPFinetuneJobStatuses.STARTED_FINE_TUNE_JOB
-#     ).all()
-
-#     updated_job_ids = []
-#     for j in jobs:
-#         job: GNLPModelFineTuneJobs = j
-#         archetype: ClientArchetype = ClientArchetype.query.get(job.archetype_id)
-#         archetype_id = archetype.id
-#         archetype_name = archetype.archetype
-
-#         fine_tune_status = get_fine_tune_timeline(fine_tune_id=job.finetune_job_id)
-#         model_uuid = fine_tune_status.get("fine_tuned_model")
-
-#         client: Client = Client.query.get(archetype.client_id)
-
-#         if model_uuid:
-#             gnlp_model: GNLPModel = GNLPModel(
-#                 model_provider=ModelProvider.OPENAI_GPT3,
-#                 model_type=job.model_type,
-#                 model_description="{client}-{archetype_name}-{date}".format(
-#                     client=client.company,
-#                     archetype_name=archetype_name,
-#                     date=str(datetime.utcnow())[0:10],
-#                 ),
-#                 model_uuid=model_uuid,
-#                 archetype_id=archetype_id,
-#             )
-#             db.session.add(gnlp_model)
-#             db.session.commit()
-
-#             gnlp_model_id = gnlp_model.id
-
-#             job.gnlp_model_id = gnlp_model_id
-#             job.status = GNLPFinetuneJobStatuses.COMPLETED
-#             db.session.add(job)
-#             db.session.commit()
-
-#             updated_job_ids.append(job.id)
-
-#     print("checked fine tuned job statuses.")
-
-#     return updated_job_ids
-
-
-def get_fine_tune_timeline(fine_tune_id: str):
-    from model_import import GNLPModelFineTuneJobs
-
-    response = openai.FineTune.retrieve(id=fine_tune_id)
-    job: GNLPModelFineTuneJobs = GNLPModelFineTuneJobs.query.filter(
-        GNLPModelFineTuneJobs.finetune_job_id == fine_tune_id
-    ).first()
-    job.finetune_job_response = response
-    db.session.add(job)
-    db.session.commit()
-
-    return response
 
 
 def create_profane_word(words: str):
@@ -813,7 +698,9 @@ def replenish_all_ml_credits_for_all_sdrs() -> bool:
     return True
 
 
-def chat_ai_verify_scheduling_convo(messages: list[str], seller: str, current_status: str) -> bool:
+def chat_ai_verify_scheduling_convo(
+    messages: list[str], seller: str, current_status: str
+) -> bool:
     """Verifies if the conversation is about scheduling a meeting.
 
     Args:
@@ -1257,6 +1144,7 @@ Output:
 
     return hallucinations
 
+
 def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
     prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -1271,7 +1159,7 @@ def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
     messages = [
         {
             "role": "system",
-            "content": "You are an AI researcher that will give me correct and factual information based on the linkedin link provided."
+            "content": "You are an AI researcher that will give me correct and factual information based on the linkedin link provided.",
         },
         {
             "role": "user",
@@ -1279,50 +1167,47 @@ def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
                 full_name=full_name,
                 title=title,
                 company=company,
-                linkedin_url=linkedin_url
-            )
-        }
+                linkedin_url=linkedin_url,
+            ),
+        },
     ]
 
     response = get_perplexity_response("llama-3-sonar-large-32k-online", messages)
     return response
+
 
 def get_perplexity_response(model: str, messages: list) -> str:
     import requests
     import json
 
     url = "https://api.perplexity.ai/chat/completions"
-    payload = {
-        "model": model,
-        "messages": messages
-    }
+    payload = {"model": model, "messages": messages}
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "authorization": "Bearer " + PERPLEXITY_API_KEY
+        "authorization": "Bearer " + PERPLEXITY_API_KEY,
     }
 
     response = requests.post(url, json=payload, headers=headers)
     x = json.loads(response.text)
-    response = x['choices'][0]['message']['content']
+    response = x["choices"][0]["message"]["content"]
 
     return response
+
 
 def simple_perplexity_response(model: str, prompt: str):
     """
     Creates a basic set of messages and sends them to the perplexity API to get a response
     """
-    messages = [
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
+    messages = [{"role": "user", "content": prompt}]
 
     response = get_perplexity_response(model, messages)
     return response
 
-def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, question: str, how_its_relevant: str):
+
+def answer_question_about_prospect(
+    client_sdr_id: int, prospect_id: int, question: str, how_its_relevant: str
+):
     """
     Answer a question about a prospect based on the question number
     """
@@ -1331,14 +1216,14 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
     if prospect.client_sdr_id != client_sdr_id:
         return False, "Prospect does not belong to the client SDR.", {}
 
-    prospect_str = prospect.full_name + (" (" + prospect.title + " @ " + prospect.company + ")")
+    prospect_str = prospect.full_name + (
+        " (" + prospect.title + " @ " + prospect.company + ")"
+    )
     company_str = prospect.company
     if prospect.company_url:
         company_str += " (" + prospect.company_url + ")"
 
-    prompt = question.replace(
-        "[[prospect]]", prospect_str
-    ).replace(
+    prompt = question.replace("[[prospect]]", prospect_str).replace(
         "[[company]]", company_str
     )
 
@@ -1354,16 +1239,16 @@ def answer_question_about_prospect(client_sdr_id: int, prospect_id: int, questio
     validate_with_gpt = wrapped_chat_gpt_completion(
         messages=[
             {
-                'role': 'system',
-                'content': "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) take the response and only return the most relevant pieces of information. Do as minimal editing as possible to the result.\nrelevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why."
+                "role": "system",
+                "content": "You are an AI verifier. I am going to provide a response to a question about a prospect and a 'how it works'. I need you to respond with a JSON with two items: \nis_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) take the response and only return the most relevant pieces of information. Do as minimal editing as possible to the result.\nrelevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why.",
             },
             {
-                'role': 'user',
-                'content': f"Here is the response to the question: {response}\n\nHow it's relevant: {how_its_relevant}\noutput:"
-            }
+                "role": "user",
+                "content": f"Here is the response to the question: {response}\n\nHow it's relevant: {how_its_relevant}\noutput:",
+            },
         ],
-        model='gpt-4o',
-        max_tokens=400
+        model="gpt-4o",
+        max_tokens=400,
     )
     validate_with_gpt = json.loads(
         validate_with_gpt.replace("json", "").replace("`", "")

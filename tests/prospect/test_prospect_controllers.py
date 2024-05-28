@@ -7,7 +7,6 @@ from tests.test_utils.test_utils import (
     basic_client_sdr,
     basic_generated_message,
     basic_generated_message_cta,
-    basic_gnlp_model,
     basic_prospect_email,
     basic_research_payload,
     get_login_token,
@@ -56,12 +55,9 @@ def test_get_prospects():
     c = basic_client()
     a = basic_archetype(c)
     c_sdr = basic_client_sdr(c)
-    prospect = basic_prospect(
-        c, a, c_sdr, full_name="david", company="SellScale")
-    prospect_2 = basic_prospect(
-        c, a, c_sdr, full_name="adam", company="SellScale")
-    prospect_3 = basic_prospect(
-        c, a, c_sdr, full_name="ben", company="SellScale")
+    prospect = basic_prospect(c, a, c_sdr, full_name="david", company="SellScale")
+    prospect_2 = basic_prospect(c, a, c_sdr, full_name="adam", company="SellScale")
+    prospect_3 = basic_prospect(c, a, c_sdr, full_name="ben", company="SellScale")
 
     unauthenticated_response = app.test_client().post(
         "prospect/get_prospects",
@@ -143,8 +139,7 @@ def test_get_prospects():
         ),
     )
     assert bad_filters_response.status_code == 400
-    assert bad_filters_response.json.get(
-        "message") == "Invalid filters supplied to API"
+    assert bad_filters_response.json.get("message") == "Invalid filters supplied to API"
 
 
 @use_app_context
@@ -243,10 +238,9 @@ def test_post_prospect_from_link(create_prospect_from_linkedin_link_patch):
         "prospect/from_link",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer {}".format(get_login_token())
+            "Authorization": "Bearer {}".format(get_login_token()),
         },
-        data=json.dumps({"archetype_id": archetype.id,
-                        "url": "some_linkedin_url"}),
+        data=json.dumps({"archetype_id": archetype.id, "url": "some_linkedin_url"}),
     )
     assert response.status_code == 200
     create_prospect_from_linkedin_link_patch.call_count == 1
@@ -316,8 +310,7 @@ def test_post_add_note():
         ),
     )
     assert response.status_code == 200
-    notes: ProspectNote = ProspectNote.query.filter_by(
-        prospect_id=prospect_id).all()
+    notes: ProspectNote = ProspectNote.query.filter_by(prospect_id=prospect_id).all()
     assert len(notes) == 1
 
     nonexistent_response = app.test_client().post(
@@ -356,8 +349,7 @@ def test_post_add_note():
     )
     assert nonauthorized_response.status_code == 403
     assert (
-        nonauthorized_response.json.get(
-            "message") == "Prospect does not belong to user"
+        nonauthorized_response.json.get("message") == "Prospect does not belong to user"
     )
 
 
@@ -460,7 +452,6 @@ def test_get_valid_channel_types():
     client_sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype, client_sdr)
-    gnlp_model = basic_gnlp_model(archetype)
 
     prospect_id = prospect.id
 
@@ -476,7 +467,7 @@ def test_get_valid_channel_types():
     assert response.status_code == 200
     assert response.json == {"choices": []}
 
-    gm = basic_generated_message(prospect, gnlp_model)
+    gm = basic_generated_message(prospect)
     gm_id = gm.id
 
     prospect = Prospect.query.get(prospect_id)
@@ -494,8 +485,7 @@ def test_get_valid_channel_types():
         },
     )
     assert response.status_code == 200
-    assert response.json == {"choices": [
-        {"label": "Linkedin", "value": "LINKEDIN"}]}
+    assert response.json == {"choices": [{"label": "Linkedin", "value": "LINKEDIN"}]}
 
     email = basic_prospect_email(prospect)
     email_id = email.id

@@ -6,7 +6,6 @@ from tests.test_utils.test_utils import (
     basic_client_sdr,
     basic_archetype,
     basic_prospect,
-    basic_gnlp_model,
     basic_generated_message,
 )
 from tests.test_utils.decorators import use_app_context
@@ -14,17 +13,11 @@ import json
 import mock
 
 
-fake_openai_response = {
-    "choices": [
-        {
-            "text": "test completion    "
-        }
-    ]
-}
+fake_openai_response = {"choices": [{"text": "test completion    "}]}
 
 
 def setup_generated_message():
-    """ Helper method to setup a generated message for testing. Removes redundant code.
+    """Helper method to setup a generated message for testing. Removes redundant code.
 
     Returns:
         GeneratedMessage: A generated message object
@@ -32,8 +25,7 @@ def setup_generated_message():
     c = basic_client()
     archetype = basic_archetype(client=c)
     prospect = basic_prospect(client=c, archetype=archetype)
-    gnlp_model = basic_gnlp_model(archetype=archetype)
-    generated_message = basic_generated_message(prospect=prospect, gnlp_model=gnlp_model)
+    generated_message = basic_generated_message(prospect=prospect)
     return generated_message
 
 
@@ -71,7 +63,9 @@ def test_create_adversary():
     )
     assert response.status_code == 200
 
-    training_point = AdversaryTrainingPoint.query.filter_by(generated_message_id=generated_message.id).first()
+    training_point = AdversaryTrainingPoint.query.filter_by(
+        generated_message_id=generated_message.id
+    ).first()
     assert training_point is not None
     assert training_point.mistake_description == "test-mistake"
     assert training_point.fix_instuctions == "test-fix"

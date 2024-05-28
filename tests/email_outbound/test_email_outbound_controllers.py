@@ -1,17 +1,15 @@
 from app import db
 from src.email_outbound.models import EmailCustomizedFieldTypes
 from model_import import GeneratedMessage, GeneratedMessageType
-from src.ml.models import GNLPModelType
 from src.email_outbound.services import create_prospect_email
 from tests.test_utils.test_utils import (
     basic_client,
     basic_client_sdr,
     basic_archetype,
-    basic_gnlp_model,
     basic_prospect,
     basic_generated_message,
     basic_prospect_email,
-    basic_outbound_campaign
+    basic_outbound_campaign,
 )
 from tests.test_utils.decorators import use_app_context
 from tests.test_utils.test_utils import test_app
@@ -26,24 +24,17 @@ import json
 import mock
 
 
-def test_email_field_types():
-    email_customized_values = [e.value for e in EmailCustomizedFieldTypes]
-    gnlp_values = [e.value for e in GNLPModelType]
-
-    for e in email_customized_values:
-        assert e in gnlp_values
-
-
 @use_app_context
 def test_post_batch_update_emails():
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    gnlp_model = basic_gnlp_model(archetype)
     prospect = basic_prospect(client, archetype, sdr)
     prospect_id: int = prospect.id
-    outbound_campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
-    personalized_first_line = basic_generated_message(prospect, gnlp_model)
+    outbound_campaign = basic_outbound_campaign(
+        [prospect_id], GeneratedMessageType.EMAIL, archetype, sdr
+    )
+    personalized_first_line = basic_generated_message(prospect)
     personalized_first_line.completion = "original"
     db.session.add(personalized_first_line)
     db.session.commit()
@@ -51,7 +42,7 @@ def test_post_batch_update_emails():
     prospect_email = ProspectEmail(
         prospect_id=prospect_id,
         personalized_first_line=personalized_first_line.id,
-        outbound_campaign_id=outbound_campaign.id
+        outbound_campaign_id=outbound_campaign.id,
     )
     db.session.add(prospect_email)
     db.session.commit()
@@ -86,11 +77,12 @@ def test_post_batch_update_emails_failed():
     client = basic_client()
     sdr = basic_client_sdr(client)
     archetype = basic_archetype(client)
-    gnlp_model = basic_gnlp_model(archetype)
     prospect = basic_prospect(client, archetype, sdr)
     prospect_id: int = prospect.id
-    outbound_campaign = basic_outbound_campaign([prospect_id], GeneratedMessageType.EMAIL, archetype, sdr)
-    personalized_first_line = basic_generated_message(prospect, gnlp_model)
+    outbound_campaign = basic_outbound_campaign(
+        [prospect_id], GeneratedMessageType.EMAIL, archetype, sdr
+    )
+    personalized_first_line = basic_generated_message(prospect)
     personalized_first_line.completion = "original"
     db.session.add(personalized_first_line)
     db.session.commit()
@@ -98,7 +90,7 @@ def test_post_batch_update_emails_failed():
     prospect_email = create_prospect_email(
         prospect_id=prospect_id,
         personalized_first_line_id=personalized_first_line.id,
-        outbound_campaign_id=outbound_campaign.id
+        outbound_campaign_id=outbound_campaign.id,
     )
     prospect.approved_prospect_email_id = prospect_email.id
     db.session.add(prospect)
@@ -126,7 +118,7 @@ def test_post_batch_update_emails_failed():
     all_prospect_emails: list[ProspectEmail] = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     personalized_first_line_id = all_prospect_emails[0].personalized_first_line
-    assert(personalized_first_line_id is None)
+    assert personalized_first_line_id is None
 
     response = app.test_client().post(
         "/email_generation/batch_update_emails",
@@ -147,7 +139,7 @@ def test_post_batch_update_emails_failed():
     all_prospect_emails = ProspectEmail.query.all()
     assert len(all_prospect_emails) == 1
     personalized_first_line_id = all_prospect_emails[0].personalized_first_line
-    assert(personalized_first_line_id is None)
+    assert personalized_first_line_id is None
 
 
 @use_app_context

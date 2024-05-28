@@ -6,7 +6,7 @@ from model_import import (
     ClientSDR,
 )
 from src.research.models import ResearchPayload, ResearchPoints
-from model_import import Prospect, GNLPModelType
+from model_import import Prospect
 from app import db, celery
 
 from app import db
@@ -117,13 +117,6 @@ def generate_few_shot_generation_completion(prospect_id, notes):
     """
     instruction_id = 1
 
-    p: Prospect = Prospect.query.get(prospect_id)
-    archetype_id = p.archetype_id
-
-    _, model_id = get_latest_custom_model(
-        archetype_id=archetype_id, model_type=GNLPModelType.OUTREACH
-    )
-
     prompt, prospect_data = generate_prompt_with_instruction(
         prospect_id, instruction_id, incomplete=True, notes=notes
     )
@@ -148,7 +141,7 @@ def generate_few_shot_generation_completion(prospect_id, notes):
 
     completions = [text]
 
-    return completions, model_id, prospect_data, instruction_id, few_shot_prompt
+    return completions, prospect_data, instruction_id, few_shot_prompt
 
 
 def can_generate_with_few_shot(prospect_id: int):

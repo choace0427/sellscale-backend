@@ -7,7 +7,6 @@ from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
     basic_generated_message,
-    basic_gnlp_model,
     basic_research_payload,
     basic_research_point,
 )

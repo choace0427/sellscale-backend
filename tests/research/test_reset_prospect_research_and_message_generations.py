@@ -7,7 +7,6 @@ from tests.test_utils.test_utils import (
     basic_client,
     basic_archetype,
     basic_generated_message,
-    basic_gnlp_model,
     basic_research_payload,
     basic_research_point,
 )
@@ -21,8 +20,7 @@ def test_reset_prospect_research_and_messages():
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
     prospect_id = prospect.id
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
     research = basic_research_payload(prospect)
     research_point = basic_research_point(research)
@@ -58,8 +56,7 @@ def test_reset_prospect_approved_status():
     archetype = basic_archetype(client)
     prospect = basic_prospect(client, archetype)
     prospect_id = prospect.id
-    gnlp_model = basic_gnlp_model(archetype)
-    generated_message = basic_generated_message(prospect, gnlp_model)
+    generated_message = basic_generated_message(prospect)
     generated_message_id = generated_message.id
 
     prospect.approved_outreach_message_id = generated_message_id
