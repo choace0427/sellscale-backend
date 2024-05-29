@@ -1189,6 +1189,7 @@ def get_perplexity_response(model: str, messages: list) -> str:
     }
 
     response = requests.post(url, json=payload, headers=headers)
+    print(response.text)
     x = json.loads(response.text)
     response = x["choices"][0]["message"]["content"]
 
@@ -1232,7 +1233,7 @@ def answer_question_about_prospect(
     print("Step 1: Answering question")
     print(prompt)
 
-    response = simple_perplexity_response("pplx-70b-online", prompt)
+    response = simple_perplexity_response("llama-3-sonar-large-32k-online", prompt)
     print("\nStep 2: Raw response")
     print(response)
 
