@@ -10,6 +10,7 @@ from src.ml.ai_researcher_services import (
     get_ai_researcher_questions_for_researcher,
     get_ai_researchers_for_client,
     run_all_ai_researcher_questions_for_prospect,
+    get_generated_email,
 )
 from src.ml.campaign_curator import curate_campaigns
 from src.ml.openai_wrappers import (
@@ -456,11 +457,14 @@ def patch_ai_researcher_question(client_sdr_id: int, question_id: int):
     key = get_request_parameter(
         "key", request, json=True, required=True, parameter_type=str
     )
+    type = get_request_parameter(
+        "type", request, json=True, required=True, parameter_type=str
+    )
     relevancy = get_request_parameter(
         "relevancy", request, json=True, required=True, parameter_type=str
     )
 
-    success = edit_question(question_id=question_id, key=key, relevancy=relevancy)
+    success = edit_question(question_id=question_id, key=key, relevancy=relevancy, question_type=type)
 
     if not success:
         return "Error updating AI Researcher Question", 400
@@ -497,7 +501,7 @@ def post_create_ai_researcher_question(client_sdr_id: int):
     return "AI Researcher Question created successfully", 200
 
 
-@ML_BLUEPRINT.route("/researchers/answers", methods=["GET"])
+@ML_BLUEPRINT.route("/researchers/answers", methods=["POST"])
 @require_user
 def get_ai_researcher_answers(client_sdr_id: int):
     """
@@ -554,3 +558,26 @@ def post_connect_researchers(client_sdr_id: int):
         return "Error connecting AI Researchers to a prospect", 400
 
     return "AI Researchers connected to a prospect successfully", 200
+
+@ML_BLUEPRINT.route("/researcher/email-personalize", methods=["POST"])
+@require_user
+def post_personalize_email(client_sdr_id: int):
+    """
+    Personalize an email body using AI Researcher
+    """
+    email_body = get_request_parameter(
+        "email_body", request, json=True, required=True, parameter_type=str
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    personalized_email = get_generated_email(
+        email_body=email_body,
+        prospectId=prospect_id,
+    )
+
+    if not personalized_email:
+        return "Error personalizing email body", 400
+
+    return jsonify({"personalized_email": personalized_email}), 200

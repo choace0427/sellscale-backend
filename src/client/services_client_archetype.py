@@ -1183,6 +1183,7 @@ def get_client_archetype_overview(client_archetype_id):
 
     emoji = archetype.emoji
     archetype_name = archetype.archetype
+    ai_researcher_id = archetype.ai_researcher_id
     sdr_name = client_sdr.name
     sdr_img_url = client_sdr.img_url
     created_at = archetype.created_at
@@ -1215,6 +1216,7 @@ def get_client_archetype_overview(client_archetype_id):
         "sdr_name": sdr_name,
         "sdr_img_url": sdr_img_url,
         "created_at": created_at,
+        "ai_researcher_id": ai_researcher_id,
         "email_active": email_active,
         "active": active,
         "email_to_linkedin_connection": email_to_linkedin_connection,
