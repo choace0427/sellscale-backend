@@ -1231,7 +1231,7 @@ def get_client_archetype_overview(client_archetype_id):
         "num_prospects_with_emails": num_prospects_with_emails,
     }
 
-def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text=""):
+def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text="", include_analytics=True):
     filters = [
         Prospect.archetype_id == client_archetype_id,
         Prospect.overall_status.notin_([
@@ -1252,10 +1252,12 @@ def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text=
         .offset(offset)
         .limit(limit)
     )
-    analytics = get_all_campaign_analytics_for_client(
-        client_id=ClientArchetype.query.get(client_archetype_id).client_id,
-        client_archetype_id=int(client_archetype_id),
-    )
+    analytics = [{}]
+    if (include_analytics):
+        analytics = get_all_campaign_analytics_for_client(
+            client_id=ClientArchetype.query.get(client_archetype_id).client_id,
+            client_archetype_id=int(client_archetype_id),
+        )
 
     included_individual_title_keywords = []
     included_individual_seniority_keywords = []
@@ -1309,7 +1311,7 @@ def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text=
         "included_company_locations_keywords": included_company_locations_keywords,
         "included_company_generalized_keywords": included_company_generalized_keywords,
         "included_company_industries_keywords": included_company_industries_keywords,
-        "sample_contacts": [p.to_dict() for p in sample_prospects],
+        "sample_contacts": [p.simple_to_dict() for p in sample_prospects],
     }
 def fetch_all_assets_in_client(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
