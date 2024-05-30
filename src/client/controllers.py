@@ -514,6 +514,16 @@ def create_archetype(client_sdr_id: int):
     template_mode = get_request_parameter(
         "template_mode", request, json=True, required=False
     )
+    linkedin_active = get_request_parameter(
+        "linkedin_active", request, json=True, required=False
+    )
+    email_active = get_request_parameter(
+        "email_active", request, json=True, required=False
+    )
+    email_to_linkedin_connection = get_request_parameter(
+        "email_to_linkedin_connection", request, json=True, required=False
+    )
+    
 
     # Get client ID from client SDR ID.
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
@@ -532,6 +542,9 @@ def create_archetype(client_sdr_id: int):
         persona_contact_objective=persona_contact_objective,
         persona_contract_size=persona_contract_size,
         template_mode=template_mode,
+        linkedin_active=linkedin_active,
+        email_active=email_active,
+        connection_type=email_to_linkedin_connection
     )
     if not ca:
         return "Client not found", 404

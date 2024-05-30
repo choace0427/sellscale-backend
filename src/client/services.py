@@ -49,6 +49,7 @@ from src.client.models import (
     ClientAssets,
     ClientProduct,
     ClientAssetArchetypeReasonMapping,
+    EmailToLinkedInConnection,
 )
 from sqlalchemy import or_
 from click import Option
@@ -435,7 +436,7 @@ def create_client_archetype(
     icp_matching_prompt: str = "",
     persona_contact_objective: str = "",
     is_unassigned_contact_archetype: bool = False,
-    active: bool = True,
+    active: bool = False, #campaigns default inactive
     persona_contract_size: Optional[int] = None,
     cta_blanks_company: Optional[str] = None,
     cta_blanks_persona: Optional[str] = None,
@@ -449,6 +450,9 @@ def create_client_archetype(
     lookalike_5: Optional[str] = None,
     template_mode: Optional[bool] = False,
     li_bump_amount: Optional[int] = 0,
+    linkedin_active: Optional[bool] = False,
+    email_active: Optional[bool] = False,
+    connection_type: Optional[EmailToLinkedInConnection] = None,
 ):
     c: Client = get_client(client_id=client_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -470,6 +474,10 @@ def create_client_archetype(
         persona_contact_objective=persona_contact_objective,
         is_unassigned_contact_archetype=is_unassigned_contact_archetype,
         active=active,
+        linkedin_active=linkedin_active,
+        email_active=email_active,
+        email_to_linkedin_connection=connection_type,
+
         email_blocks_configuration=[
             "Personalize the title to their company and or the prospect",
             "Include a greeting with Hi, Hello, or Hey with their first name",
