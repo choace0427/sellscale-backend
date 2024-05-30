@@ -1192,6 +1192,7 @@ def get_client_archetype_overview(client_archetype_id):
     active = archetype.active
     linkedin_active = archetype.linkedin_active
     testing_volume = archetype.testing_volume
+    id = archetype.id
 
     num_sent, num_opens, num_replies, num_demos, num_pos_replies = 0, 0, 0, 0, 0
 
@@ -1211,6 +1212,7 @@ def get_client_archetype_overview(client_archetype_id):
     ).count()
 
     return {
+        "id": id,
         "emoji": emoji,
         "archetype_name": archetype_name,
         "sdr_name": sdr_name,

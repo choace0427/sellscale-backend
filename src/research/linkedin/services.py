@@ -243,9 +243,9 @@ def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
         # Check against Client's DNC lists
         def is_on_dnc_list_helper(dnc_list, prospect_attr, exact_match=False):
             # lowercase everything for case-insensitive matching
-            prospect_attr_lower = prospect_attr.lower()
             if not dnc_list or not prospect_attr:
                 return False
+            prospect_attr_lower = prospect_attr.lower()
             if exact_match:
                 return prospect_attr_lower in (item.lower() for item in dnc_list)
             

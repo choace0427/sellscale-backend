@@ -407,6 +407,8 @@ def collect_and_run_celery_jobs_for_upload(
         )
 
         eligible_rows = not_started_rows + failed_rows
+
+        isFirstUpload = True
         for row in eligible_rows:
             row: ProspectUploads = row
             prospect_row_id = row.id
@@ -417,13 +419,14 @@ def collect_and_run_celery_jobs_for_upload(
                 prospect_upload.status = ProspectUploadsStatus.UPLOAD_QUEUED
                 db.session.add(prospect_upload)
                 db.session.commit()
+                priority = 1 if isFirstUpload else 2
                 create_prospect_from_prospect_upload_row.apply_async(
                     args=[prospect_upload.id, allow_duplicates],
                     queue="prospecting",
                     routing_key="prospecting",
-                    priority=2,
+                    priority=priority,
                 )
-
+                isFirstUpload = False
         return True
     except Exception as e:
         db.session.rollback()
