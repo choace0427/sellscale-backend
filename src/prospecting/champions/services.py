@@ -142,10 +142,10 @@ def get_champion_detection_changes(
                 max(research_payload.id) max_rp_id
             from prospect
                 join research_payload on prospect.id = research_payload.prospect_id
-            where prospect.client_id = 1
+            where prospect.client_id = {client_id}
                 and prospect.is_champion
                 and research_payload.research_type = 'LINKEDIN_ISCRAPER'
-            group by {client_id}
+            group by 1
         )
         select 
             prospect.id prospect_id,
