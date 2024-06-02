@@ -13,6 +13,7 @@ from src.message_generation.models import (
     GeneratedMessageEmailType,
     SendStatus,
 )
+from src.ml.ai_researcher_services import run_ai_personalizer_on_prospect_email
 from src.ml.services import (
     determine_best_bump_framework_from_convo,
     get_text_generation,
@@ -1135,6 +1136,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
         # 3. Check if the prospect exists
         prospect: Prospect = Prospect.query.get(prospect_id)
+        client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+        ai_personalization_enabled = client_archetype.is_ai_research_personalization_enabled
         client_sdr_id = prospect.client_sdr_id
         if not prospect:
             update_generated_message_job_queue_status(
@@ -1280,6 +1283,10 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             personalized_body_id=ai_generated_body.id,
             outbound_campaign_id=campaign_id,
         )
+
+        if ai_personalization_enabled:
+            # 10.a. Run AI personalizer on the email body and subject line if enabled
+            run_ai_personalizer_on_prospect_email(prospect_email.id)
 
         # 11. Save the prospect_email_id to the prospect and mark the prospect_email as approved
         # This also runs rule_engine on the email body and first line

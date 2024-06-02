@@ -13,6 +13,7 @@ from src.prospecting.models import (
     ProspectStatusRecords,
     ProspectUploadsRawCSV,
     ProspectUploads,
+    ProspectUploadHistory,
     ProspectUploadsStatus,
     ProspectUploadsErrorType,
     ProspectNote,

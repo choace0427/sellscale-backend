@@ -1,6 +1,8 @@
 import json
 from app import db
 from model_import import ClientSDR, AIResearcher, AIResearcherQuestion, AIResearcherAnswer, ClientArchetype, Prospect
+from src.email_outbound.models import ProspectEmail
+from src.message_generation.models import GeneratedMessage
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import answer_question_about_prospect
 from src.research.models import ResearchPayload, ResearchPoints, ResearchType
@@ -395,3 +397,77 @@ def get_generated_email(email_body, prospectId):
     )
     return answer
 
+def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
+    prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
+    prospect_id: int = prospect_email.prospect_id
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    run_all_ai_researcher_questions_for_prospect(
+        client_sdr_id=prospect.client_sdr_id,
+        prospect_id=prospect_id
+    )
+
+    email_body_id = prospect_email.personalized_body
+    generated_message: GeneratedMessage = GeneratedMessage.query.get(email_body_id)
+    origina_email_body = generated_message.completion
+
+    positive_research_points = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id, is_yes_response=True).all()
+
+    personalizations = ""
+    for point in positive_research_points:
+        point: AIResearcherAnswer = point
+        question: AIResearcherQuestion = AIResearcherQuestion.query.get(point.question_id)
+
+        raw_data = point.raw_response
+        relevancy_reason = question.relevancy
+        relevancy_explanation = point.relevancy_explanation
+
+        personalizations += f"Raw Data: {raw_data}\nQuestion: {relevancy_reason}\nRelevancy Explanation: {relevancy_explanation}\n\n"
+
+    prompt = """
+You are an emailer personalizer. Combine the sequence provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to spread the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
+
+Original Email:
+{original_email_body}
+
+### Personalization
+{personalizations}
+
+Prospect Information:
+- name: {name}
+- title: {title}
+- company: {company}
+
+Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
+
+Example
+Hi Dr Xyz..
+
+Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
+NOTE: Try not to increase the length of the email - seamlessly incorproate personalization to make it same or shorter length.
+NOTE: Include the personalization at the beginning since that makes for a better hook and helps open rates.
+NOTE: Only respond with the personalized email, nothing else.
+NOTE: When adding personalization, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
+
+Personalized email:"""
+
+    prompt = prompt.format(
+        original_email_body=origina_email_body,
+        personalizations=personalizations,
+        name=prospect.first_name,
+        title=prospect.title,
+        company=prospect.company
+    )
+
+    answer = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        model='gpt-4o',
+        max_tokens=1000
+    )
+
+    return prompt, answer
