@@ -217,7 +217,7 @@ def run_ai_researcher_question(
                 messages=[
                     {
                         'role': 'system',
-                        'content': "You are an AI sales researcher that is taking a snippet from a Linkedin profile, a qualifying relevancy criteria, and responding with a short summary and raw response. I need you to respond with a JSON with three items: is_yes_response (bool) a simple true or false if the response is a positive response or not. 'No' responses are false, 'Yes' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) Simply explain why the response is a yes or no response. This should be a short summary of the response that explains simply\nrelevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why."
+                        'content': "You are an AI sales researcher that is taking a snippet from a Linkedin profile, a qualifying relevancy criteria, and responding with a short summary and raw response. I need you to respond with a JSON with three items: is_yes_response (bool) a simple true or false if the response is a relevant response or not. 'Irrelevant' responses are false, 'Relevant' responses are true, and 'Unknown' responses are false too.\ncleaned_research(str) Simply explain why the response is a yes or no response. This should be a short summary of the response that explains simply\nrelevancy_explanation (str): A simple sentence that should indicate if the research is relevant or nor irrelevant, with a short 1 sentence justification why."
                     },
                     {
                     'role': 'user',
@@ -471,8 +471,8 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
             max_tokens=1000
         )
 
-        prospect_email.personalized_body = answer
-        db.session.add(prospect_email)
+        generated_message.completion = answer
+        db.session.add(generated_message)
         db.session.commit()
 
         return True
