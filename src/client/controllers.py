@@ -38,6 +38,7 @@ from src.client.services_client_archetype import (
     fetch_all_assets_in_client,
     get_email_to_linkedin_connection_amounts,
     set_email_to_linkedin_connection,
+    set_personalizers_enabled,
 )
 from src.personas.services_persona import link_asset_to_persona
 from src.prospecting.services import create_note
@@ -584,6 +585,21 @@ def email_to_linkedin_connection_amounts(client_sdr_id: int, archetype_id: int):
         200,
     )
 
+@CLIENT_BLUEPRINT.route(
+    "/archetype/<int:archetype_id>/update_personalizers_enabled", methods=["PATCH"]
+)
+@require_user
+def patch_update_personalizers_enabled(client_sdr_id: int, archetype_id: int):
+    personalizers_enabled = get_request_parameter(
+        "personalizers_enabled", request, json=True, required=True
+    )
+
+    set_personalizers_enabled(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=archetype_id,
+        personalizers_enabled=personalizers_enabled,
+    )
+    return jsonify({"message": "Success"}), 200
 
 # toggle template mode active for archetype
 @CLIENT_BLUEPRINT.route(

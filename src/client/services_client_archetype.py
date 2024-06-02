@@ -1611,3 +1611,23 @@ def get_email_to_linkedin_connection_amounts(
         "prospects_email_opened": data[1],
         "prospects_clicked": data[2],
     }
+
+def set_personalizers_enabled(
+    client_sdr_id: int,
+    client_archetype_id: int,
+    personalizers_enabled: bool,
+):
+    """
+    Set the personalizers enabled for a given archetype
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        return False
+    if client_archetype.client_sdr_id != client_sdr_id:
+        return False
+
+    client_archetype.is_ai_research_personalization_enabled = personalizers_enabled
+    db.session.add(client_archetype)
+    db.session.commit()
+
+    return True

@@ -3262,6 +3262,7 @@ def get_personas_page_details(client_sdr_id: int):
             ClientArchetype.email_link_tracking_enabled,
             ClientArchetype.email_open_tracking_enabled,
             ClientArchetype.linkedin_active,
+            ClientArchetype.is_ai_research_personalization_enabled,
         )
         .select_from(ClientArchetype)
         .join(Prospect, Prospect.archetype_id == ClientArchetype.id, isouter=True)
