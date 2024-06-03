@@ -1193,6 +1193,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             template_id=template_id,
+            ai_personalization_enabled=ai_personalization_enabled,
         )
         # 7b. Generate the email body
         email_body = generate_email(prompt=initial_email_prompt)

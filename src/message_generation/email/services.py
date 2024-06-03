@@ -39,6 +39,7 @@ def ai_initial_email_prompt(
     prospect_id: int,
     test_template: Optional[str] = None,
     template_id: Optional[int] = None,
+    ai_personalization_enabled: Optional[bool] = False,
 ) -> str:
     """Generate an AI Email Prompt given a prospect. Uses the prospect's sequence step template, otherwise uses a default SellScale template.
 
@@ -117,6 +118,9 @@ def ai_initial_email_prompt(
     # If we are testing a template, use that instead
     if test_template is not None:
         template = test_template
+
+    if ai_personalization_enabled:
+        research_points = ""
 
     prompt = """You are a sales development representative writing on behalf of the salesperson.
 
