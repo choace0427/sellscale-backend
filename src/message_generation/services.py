@@ -846,12 +846,26 @@ def pick_new_approved_message_for_prospect(prospect_id: int, message_id: int):
 def delete_message_generation_by_prospect_id(prospect_id: int):
     from model_import import GeneratedMessage
 
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    prospect.approved_outreach_message_id = None
+    db.session.add(prospect)
+    db.session.commit()
+
     messages: list = GeneratedMessage.query.filter(
         GeneratedMessage.prospect_id == prospect_id,
         GeneratedMessage.message_type == GeneratedMessageType.LINKEDIN,
     ).all()
 
     for message in messages:
+        linkedin_conversation_entries: list[LinkedinConversationEntry] = (
+            LinkedinConversationEntry.query.filter(
+                LinkedinConversationEntry.initial_message_id == message.id
+            ).all()
+        )
+        for entry in linkedin_conversation_entries:
+            db.session.delete(entry)
+            db.session.commit()
+
         edits = GeneratedMessageEditRecord.query.filter(
             GeneratedMessageEditRecord.generated_message_id == message.id
         ).all()

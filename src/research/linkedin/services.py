@@ -4,7 +4,7 @@ from app import celery, db
 
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.ml.models import TextGeneration
-from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
+from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus, ProspectStatusRecords
 from src.research.models import (
     AccountResearchPoints,
     ResearchPayload,
@@ -289,12 +289,19 @@ def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
 
 def reset_prospect_approved_status(prospect_id: int):
     p: Prospect = Prospect.query.get(prospect_id)
-    if not p or not p.approved_outreach_message_id:
-        return False
 
     p.approved_outreach_message_id = None
+    p.overall_status = ProspectOverallStatus.PROSPECTED
+    p.status = ProspectStatus.PROSPECTED
     db.session.add(p)
     db.session.commit()
+
+    prospect_status_records: ProspectStatusRecords = ProspectStatusRecords.query.filter(
+        ProspectStatusRecords.prospect_id == prospect_id
+    ).all()
+    for psr in prospect_status_records:
+        db.session.delete(psr)
+        db.session.commit()
 
     return True
 
