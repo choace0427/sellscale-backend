@@ -414,6 +414,9 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
 
         positive_research_points = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id, is_yes_response=True).all()
 
+        if len(positive_research_points) == 0:
+            return False
+
         personalizations = ""
         for point in positive_research_points:
             point: AIResearcherAnswer = point
