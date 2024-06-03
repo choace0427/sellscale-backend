@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from http import client
 import math
 from urllib.parse import urlparse
 import random
@@ -1123,11 +1122,9 @@ def workmail_setup_workflow(
     time.sleep(10)
 
     # Sync the workmail inbox to smartlead
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client_sdr_name = client_sdr.name
     success, _, smartlead_account_id = sync_workmail_to_smartlead(
         client_sdr_id=client_sdr_id,
-        username=client_sdr_name,
+        username=f"{username}@{domain_name}",
         email=f"{username}@{domain_name}",
         password=password,
     )
