@@ -352,33 +352,38 @@ def request_domain_inboxes(client_sdr_id: int, number_inboxes: int) -> bool:
     Returns:
         bool: True if successful, else False
     """
-    # Send the Slack Message
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    send_slack_message(
-        message=f"""
+    try:
+        # Send the Slack Message
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        send_slack_message(
+            message=f"""
         *📥 {client_sdr.name} has requested {number_inboxes} new inboxes*
 
         Please review and create through <https://sellscale.retool.com/apps/dca632e6-a4fb-11ee-bcd9-93e0dbe5a2b6/Customer%20Success%20Tools/Domain%20Management%20Dashboard|Domain Management Dashboard>
         Once completed, please notify {client_sdr.name} and clear from <https://sellscale.retool.com/apps/a4bb4756-bedf-11ee-9cda-df11270e65c1/AI%20request%20task%20repository|AI Request Task Repository>
         """,
-        webhook_urls=[URL_MAP["csm-urgent-alerts"]],
-    )
+            webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+        )
 
-    # Create the AI Request
-    from src.ai_requests.services import create_ai_requests
+        # Create the AI Request
+        from src.ai_requests.services import create_ai_requests
 
-    create_ai_requests(
-        client_sdr_id=client_sdr_id,
-        description=f"""
-{client_sdr.name} has requested {number_inboxes} new inboxes
+        create_ai_requests(
+            client_sdr_id=client_sdr_id,
+            description=f"""
+    {client_sdr.name} has requested {number_inboxes} new inboxes
 
-Please review and create through Domain Management Dashboard (https://sellscale.retool.com/apps/dca632e6-a4fb-11ee-bcd9-93e0dbe5a2b6/Customer%20Success%20Tools/Domain%20Management%20Dashboard)
+    Please review and create through Domain Management Dashboard (https://sellscale.retool.com/apps/dca632e6-a4fb-11ee-bcd9-93e0dbe5a2b6/Customer%20Success%20Tools/Domain%20Management%20Dashboard)
 
-Notify {client_sdr.name} once completed
-""",
-        title=f"{client_sdr.name} has requested {number_inboxes} new inboxes",
-        days_till_due=1,
-    )
+    Notify {client_sdr.name} once completed
+    """,
+            title=f"{client_sdr.name} has requested {number_inboxes} new inboxes",
+            days_till_due=1,
+        )
+    except:
+        return False
+
+    return True
 
 
 def list_aws_domains() -> tuple[list, dict, str]:
