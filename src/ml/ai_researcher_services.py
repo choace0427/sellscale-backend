@@ -450,8 +450,8 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
     Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
     NOTE: Try not to increase the length of the email - seamlessly incorproate personalization to make it same or shorter length.
     NOTE: Only respond with the personalized email, nothing else.
-    NOTE: When adding personalization, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
-    NOTE: Include the personalization immediately after the greeting ("Hi Bob,"). Reason: Only the first few words show up in the valuable email preview in inbox - we want to make sure the personalization is captured in the preview.
+    NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
+    NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
 
     Personalized email:"""
 
