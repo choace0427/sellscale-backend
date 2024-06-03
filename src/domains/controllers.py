@@ -11,6 +11,7 @@ from src.domains.services import (
     find_similar_domains,
     get_domain_details,
     patch_domain_entry,
+    request_domain_inboxes,
     validate_domain_configuration,
     workmail_setup_workflow,
 )
@@ -187,6 +188,38 @@ def get_find_domain(client_sdr_id: int):
             {
                 "status": "success",
                 "data": result,
+            }
+        ),
+        200,
+    )
+
+
+@DOMAINS_BLUEPRINT.route("inboxes/request", methods=["POST"])
+@require_user
+def post_request_domain_inboxes(client_sdr_id: int):
+    number_inboxes = get_request_parameter(
+        "number_inboxes", request, json=True, required=True, parameter_type=int
+    )
+
+    result = request_domain_inboxes(
+        client_sdr_id=client_sdr_id, number_inboxes=number_inboxes
+    )
+    if not result:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Failed to request inboxes",
+                }
+            ),
+            400,
+        )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "message": "Inboxes requested successfully",
             }
         ),
         200,
