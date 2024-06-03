@@ -179,7 +179,7 @@ def get_all_campaign_analytics_for_client(
                 join client_sdr on client_sdr.id = client_archetype.client_sdr_id
                 join prospect on prospect.client_sdr_id = client_sdr.id
                 left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
-                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
                 left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
                 left join icp_scoring_ruleset on icp_scoring_ruleset.client_archetype_id = client_archetype.id
             where client_archetype.client_id = {client_id}
