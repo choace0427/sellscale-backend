@@ -1358,12 +1358,14 @@ def get_client_archetype_sequences(client_archetype_id):
     for step_data in email_sequence:
         bumped_count = step_data["step"]["bumped_count"]
         overall_status = step_data["step"]["overall_status"]
-        if (bumped_count, overall_status) not in unique_bump_count_overall_status:
-            unique_bump_count_overall_status.add((bumped_count, overall_status))
-            filtered_email_sequence.append(step_data)
+        # if (bumped_count, overall_status) not in unique_bump_count_overall_status:
+        #will give every variant
+        unique_bump_count_overall_status.add((bumped_count, overall_status))
+        filtered_email_sequence.append(step_data)
 
     email_sequence = [
         {
+            "active": step_data["step"]["active"],
             "title": step_data["step"]["title"],
             "description": step_data["step"]["template"],
             "bumped_count": step_data["step"]["bumped_count"],
@@ -1373,62 +1375,36 @@ def get_client_archetype_sequences(client_archetype_id):
         for step_data in filtered_email_sequence
     ]
 
-    success = False
-    records = None
-    # success, records = generate_entire_simulated_conversation(
-    #     archetype_id=client_archetype_id,
-    # )
-
-    if success:
-        simulation_records: list[SimulationRecord] = records
-        linkedin_sequence = []
-        for i, record in enumerate(simulation_records):
-            entry = {
-                "title": (
-                    record.meta_data.get("bump_framework_title")
-                    if i > 0
-                    else "Invite Message"
-                ),
-                "description": record.data.get("message"),
-                "bumped_count": i - 1,
-                "bump_framework_delay": record.meta_data
-                and record.meta_data.get("bump_framework_delay")
-                or 0,
-                "bump_framework_id": record.meta_data.get("bump_framework_id"),
-            }
-            linkedin_sequence.append(entry)
-    else:
-        query = """
-            select
-                id,
-                title,
-                description,
-                bumped_count
-            from
-                bump_framework
-            where client_archetype_id = {client_archetype_id}
-                and overall_status in ('ACCEPTED', 'BUMPED')
-                and bump_framework.active
-            order by
-                bumped_count asc;
-        """.format(
-            client_archetype_id=client_archetype_id
-        )
-        data = db.session.execute(query).fetchall()
-        linkedin_sequence = [
-            {
-                "bump_framework_id": row[0],
-                "title": row[1],
-                "description": "Instruction: " + str(row[2]),
-                "bumped_count": row[3],
-            }
-            for row in data
-        ]
-
-    for i, entry in enumerate(linkedin_sequence):
-        bf_id = entry.get("bump_framework_id")
-        if bf_id:
-            entry["assets"] = get_all_bump_framework_assets(bf_id)
+    query = """
+        select
+            id,
+            title,
+            description,
+            bumped_count,
+            active
+        from
+            bump_framework
+        where client_archetype_id = {client_archetype_id}
+            and overall_status in ('ACCEPTED', 'BUMPED')
+            and active = true
+        order by
+            bumped_count asc;
+    """.format(
+        client_archetype_id=client_archetype_id
+    )
+    data = db.session.execute(query).fetchall()
+    print('data', data)
+    linkedin_sequence = [
+        {
+            "bump_framework_id": row[0],
+            "title": row[1],
+            "description": "Instruction: " + str(row[2]),
+            "bumped_count": row[3],
+            "assets": get_all_bump_framework_assets(row[0]),
+            "active": row[4],
+        }
+        for row in data
+    ]
 
     return {
         "email_sequence": email_sequence,

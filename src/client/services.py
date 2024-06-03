@@ -4830,7 +4830,7 @@ def create_archetype_asset(
     client_sdr_id: Optional[int],
     client_id: int,
     client_archetype_ids: list[int],
-    asset_key: str,
+    asset_key: str, #deprecated
     asset_value: str,
     asset_type: ClientAssetType,
     asset_tags: list[str],
@@ -4840,10 +4840,20 @@ def create_archetype_asset(
     """
     Creates an asset for a client archetype
     """
+
+    #chat completion for title
+    messages = [
+        {"role": "user", "content": "You are an assistant to help me with my work. I need help with creating a short title that summarizes a message"},
+        {"role": "assistant", "content": 'Here is the text: "The content of the template is: {asset_value}. Give me a 4-5 word output for a good short title for it. Title:'.format(asset_value=asset_value)}
+    ]
+    response = wrapped_chat_gpt_completion(messages=messages, max_tokens=10)
+    title = response.replace('"', '')
+    print("Title: ", title)
+
     asset: ClientAssets = ClientAssets(
         client_id=client_id,
         client_archetype_ids=client_archetype_ids,
-        asset_key=asset_key,
+        asset_key=title,
         asset_value=asset_value,
         asset_type=asset_type,
         asset_tags=asset_tags,
@@ -4858,7 +4868,7 @@ def create_archetype_asset(
             arguments={
                 "client_sdr_id": client_sdr_id,
                 "client_archetype_ids": client_archetype_ids,
-                "asset_name": asset_key,
+                "asset_name": title,
                 "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
                 "ai_summary": asset_value,
             },

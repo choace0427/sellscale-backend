@@ -152,6 +152,8 @@ class ClientArchetype(db.Model):
     linkedin_active = db.Column(db.Boolean, nullable=True, default=False)
     email_active = db.Column(db.Boolean, nullable=True, default=False)
 
+    is_setting_up = db.Column(db.Boolean, nullable=True, default=True)
+
     email_to_linkedin_connection = db.Column(
         sa.Enum(EmailToLinkedInConnection, create_constraint=False), nullable=True
     )
@@ -229,6 +231,7 @@ class ClientArchetype(db.Model):
             "archetype": self.archetype,
             "filters": self.filters,
             "active": self.active,
+            "is_setting_up": self.is_setting_up,
             "linkedin_active": self.linkedin_active,
             "email_active": self.email_active,
             "email_to_linkedin_connection": self.email_to_linkedin_connection.value if self.email_to_linkedin_connection else None,
