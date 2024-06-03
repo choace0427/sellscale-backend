@@ -470,7 +470,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
                     "content": prompt
                 }
             ],
-            model='gpt-4o',
+            model='claude-3-opus-20240229',
             max_tokens=1000
         )
 
