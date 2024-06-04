@@ -136,6 +136,12 @@ def batch_mark_prospects_in_email_campaign_queued(campaign_id: int):
         prospect_email: ProspectEmail = ProspectEmail.query.get(
             prospect.approved_prospect_email_id
         )
+        if not prospect_email:
+            continue
+        elif (
+            prospect_email.email_status == ProspectEmailStatus.SENT
+        ):  # Make sure the prospect_email has not already been sent
+            continue
 
         subject_line: GeneratedMessage = GeneratedMessage.query.get(
             prospect_email.personalized_subject_line

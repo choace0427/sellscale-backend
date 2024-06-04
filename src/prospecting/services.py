@@ -1700,6 +1700,9 @@ def add_prospect(
             segment_id=segment_id,
             prospect_location=prospect_location,
             company_location=company_location,
+            smartlead_campaign_id=archetype.smartlead_campaign_id
+            if archetype
+            else None,
         )
         db.session.add(prospect)
         db.session.commit()

@@ -377,6 +377,13 @@ def populate_email_messaging_schedule_entries(
             )
             flag_modified(log, "log")
             db.session.commit()
+        else:
+            log = ProspectInSmartlead(prospect_id=prospect.id)
+            log.log.append(
+                f"populate_email_messaging_schedule_entries ({datetime.utcnow()}): Starting to populate"
+            )
+            db.session.add(log)
+            db.session.commit()
 
     # Track all the scheduled email ids
     email_ids = []
