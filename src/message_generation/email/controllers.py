@@ -10,7 +10,7 @@ from src.message_generation.email.services import (
     generate_email,
     generate_subject_line,
 )
-from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4o_MODEL
+from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL
 from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
 from src.utils.request_helpers import get_request_parameter
@@ -57,7 +57,7 @@ def post_generate_initial_email(client_sdr_id: int):
         test_template=test_template,
         template_id=template_id,
     )
-    email_body = generate_email(prompt=body_prompt, model=OPENAI_CHAT_GPT_4o_MODEL)
+    email_body = generate_email(prompt=body_prompt, model=OPENAI_CHAT_GPT_4_MODEL)
     email_body = email_body.get("body")
 
     # Get the initial email subject prompt and generate the subject line
@@ -146,7 +146,7 @@ def post_generate_followup_email(client_sdr_id: int):
         return None
     email_body = generate_email(
         prompt=prompt,
-        model=OPENAI_CHAT_GPT_4o_MODEL,
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
     email_body = email_body.get("body")
 
@@ -186,7 +186,7 @@ def post_generate_multichannel_email(client_sdr_id: int):
         return None
     email_body = generate_email(
         prompt=prompt,
-        model=OPENAI_CHAT_GPT_4o_MODEL,
+        model=OPENAI_CHAT_GPT_4_MODEL,
     )
     email_body = email_body.get("body")
     email_body.replace("\n", "")
