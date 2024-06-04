@@ -11,6 +11,7 @@ from src.prospecting.upload.services import (
     create_prospect_from_prospect_upload_row,
     create_prospect_upload_history,
     populate_prospect_uploads_from_linkedin_link,
+    upload_n_rows_from_prospect_upload_row
 )
 from src.segment.services import get_base_segment_for_archetype
 from src.utils.request_helpers import get_request_parameter

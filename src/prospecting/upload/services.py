@@ -420,6 +420,7 @@ def collect_and_run_celery_jobs_for_upload(
                 db.session.add(prospect_upload)
                 db.session.commit()
                 priority = 1 if isFirstUpload else 2
+                # todo(Aakash) move this to a per minute worker that fetches 10 and runs em
                 create_prospect_from_prospect_upload_row.apply_async(
                     args=[prospect_upload.id, allow_duplicates],
                     queue="prospecting",
@@ -432,6 +433,30 @@ def collect_and_run_celery_jobs_for_upload(
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
+@celery.task
+def upload_n_rows_from_prospect_upload_row():
+    query = """
+    select prospect_uploads.id 
+    from prospect_uploads
+        join client_sdr on client_sdr.id = prospect_uploads.client_sdr_id
+        join client on client.id = prospect_uploads.client_id
+    where prospect_uploads.status in ('UPLOAD_QUEUED', 'UPLOAD_NOT_STARTED', 'UPLOAD_IN_PROGRESS', 'UPLOAD_FAILED')	
+        and client.active 
+        and client_sdr.active
+        and prospect_uploads.upload_attempts < 3
+        and prospect_uploads.created_at > NOW() - '1 days'::INTERVAL
+    order by random()
+    limit 5;
+    """
+
+    rows = db.session.execute(query).fetchall()
+    for row in rows:
+        create_prospect_from_prospect_upload_row.apply_async(
+            args=[row[0], False],
+            queue="prospecting",
+            routing_key="prospecting",
+            priority=2,
+        )
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_prospect_upload_row(

@@ -141,6 +141,12 @@ def reset_phantom_buster_scrapes_and_launches_job():
 #     ):
 #         generate_email_bumps.delay()
 
+def minutely_upload_prospect_upload_rows():
+    from src.prospecting.upload.services import upload_n_rows_from_prospect_upload_row
+
+    if is_scheduling_instance():
+        upload_n_rows_from_prospect_upload_row.delay()
+
 
 def auto_mark_uninterested_bumped_prospects_job():
     from src.prospecting.services import auto_mark_uninterested_bumped_prospects
@@ -538,6 +544,7 @@ scheduler.add_job(
 )
 
 # Minute triggers
+scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", minutes=1)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(run_auto_resolve_linkedin_tasks, trigger="interval", minutes=1)
