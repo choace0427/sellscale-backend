@@ -1020,6 +1020,35 @@ def create_sdr():
     return resp
 
 
+@CLIENT_BLUEPRINT.route("/sdr/add_seat", methods=["POST"])
+@require_user
+def post_add_seat(client_sdr_id: int):
+    name = get_request_parameter("name", request, json=True, required=True)
+    linkedin_url = get_request_parameter(
+        "linkedin_url", request, json=True, required=True
+    )
+    email = get_request_parameter("email", request, json=True, required=True)
+
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    resp = create_client_sdr(
+        client_id=sdr.client_id,
+        name=name,
+        email=email,
+        create_managed_inboxes=True,
+        include_connect_li_card=True,
+        include_connect_slack_card=True,
+        include_input_pre_filters_card=True,
+        include_add_dnc_filters_card=True,
+        include_add_calendar_link_card=True,
+        linkedin_url=linkedin_url,
+    )
+    if not resp:
+        return "Client not found", 404
+
+    return resp
+
+
 @CLIENT_BLUEPRINT.route("/sdr/activate_seat", methods=["POST"])
 @require_user
 def post_activate_seat(client_sdr_id: int):
@@ -3135,6 +3164,7 @@ def get_campaign_overview(client_sdr_id: int):
 
     return jsonify(overview), 200
 
+
 @CLIENT_BLUEPRINT.route("/campaign_stats", methods=["GET"])
 @require_user
 def get_campaign_stats(client_sdr_id: int):
@@ -3151,6 +3181,7 @@ def get_campaign_stats(client_sdr_id: int):
     )
 
     return jsonify(overview), 200
+
 
 @CLIENT_BLUEPRINT.route("/campaign_contacts", methods=["GET"])
 @require_user

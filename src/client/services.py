@@ -617,6 +617,7 @@ def create_client_sdr(
     include_input_pre_filters_card: bool = False,
     include_add_dnc_filters_card: bool = False,
     include_add_calendar_link_card: bool = False,
+    linkedin_url: Optional[str] = None,
 ):
     from src.client.services_unassigned_contacts_archetype import (
         create_unassigned_contacts_archetype,
@@ -631,6 +632,7 @@ def create_client_sdr(
         client_id=client_id,
         name=name,
         email=email,
+        linkedin_url=linkedin_url,
         weekly_li_outbound_target=LINKEDIN_WARM_THRESHOLD,
         weekly_email_outbound_target=0,
         notification_allowlist=[
