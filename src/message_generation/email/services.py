@@ -22,7 +22,11 @@ from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTempl
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
 
-from src.ml.openai_wrappers import OPENAI_CHAT_GPT_4_MODEL, wrapped_chat_gpt_completion
+from src.ml.openai_wrappers import (
+    OPENAI_CHAT_GPT_4_MODEL,
+    OPENAI_CHAT_GPT_4o_MODEL,
+    wrapped_chat_gpt_completion,
+)
 
 
 DEFAULT_INITIAL_EMAIL_TEMPLATE = """<p>Hi [[First name]]</p><p></p><p>[[Personalized first line related to them or their company]]</p><p></p><p>[[Mention what we do and offer, and how it can help them based on their background, company, and key details]]</p><p></p><p>[[Include a brief call to action]]</p><p></p><p>Best,</p><p>[[My name]]</p><p>[[My title]]</p>"""
@@ -438,11 +442,14 @@ USE HTML FORMATTING. For example: <p>Hey there!</p>.
     return prompt
 
 
-def generate_email(prompt: str) -> dict[str, str]:
+def generate_email(
+    prompt: str, model: Optional[str] = OPENAI_CHAT_GPT_4_MODEL
+) -> dict[str, str]:
     """Generate an email for a prospect.
 
     Args:
         prompt (str): The prompt to generate the email with
+        model (Optional[str], optional): The model to use. Defaults to OPENAI_CHAT_GPT_4_MODEL.
 
     Returns:
         dict[str, str]: The subject and body of the email
@@ -453,7 +460,7 @@ def generate_email(prompt: str) -> dict[str, str]:
         ],
         max_tokens=400,
         temperature=0.3,
-        model=OPENAI_CHAT_GPT_4_MODEL,
+        model=model,
         type="EMAIL",
     )
 
