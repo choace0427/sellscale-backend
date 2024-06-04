@@ -12,6 +12,9 @@ from src.message_generation.models import GeneratedMessage, GeneratedMessageStat
 from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from src.simulation.models import SimulationRecord
+from src.li_conversation.models import (
+    LinkedinInitialMessageTemplate,
+)
 from src.simulation.services import generate_entire_simulated_conversation
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
@@ -1382,7 +1385,8 @@ def get_client_archetype_sequences(client_archetype_id):
             title,
             description,
             bumped_count,
-            active
+            active,
+            overall_status
         from
             bump_framework
         where client_archetype_id = {client_archetype_id}
@@ -1403,13 +1407,21 @@ def get_client_archetype_sequences(client_archetype_id):
             "bumped_count": row[3],
             "assets": get_all_bump_framework_assets(row[0]),
             "active": row[4],
+            "overall_status": row[5],
         }
         for row in data
     ]
 
+    initialMessageTemplates: list[LinkedinInitialMessageTemplate] = (
+        LinkedinInitialMessageTemplate.query.filter(
+            LinkedinInitialMessageTemplate.client_archetype_id == client_archetype_id,
+        ).all()
+    )
+
     return {
         "email_sequence": email_sequence,
         "linkedin_sequence": linkedin_sequence,
+        "initial_message_templates": [template.to_dict() for template in initialMessageTemplates],
     }
 
 
