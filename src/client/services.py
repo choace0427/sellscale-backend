@@ -501,6 +501,7 @@ def create_client_archetype(
         template_mode=template_mode,
         transformer_blocklist=transformer_blocklist,
         transformer_blocklist_initial=transformer_blocklist,
+        testing_volume= 2**31 - 1 #max int
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -5040,8 +5041,6 @@ def modify_client_archetype_reason_mapping(
 
 # endpoint to modify the attribute 'testing_volume' on the client archetype
 def modify_testing_volume(client_archetype_id: int, testing_volume: int):
-    if not (0 <= testing_volume <= 500):
-        return False, "testing_volume must be between 0 and 500"
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_archetype.testing_volume = testing_volume
     db.session.add(client_archetype)

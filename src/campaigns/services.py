@@ -544,6 +544,30 @@ def create_outbound_campaign(
     # If number of prospects is over 500, do not generate
     if num_prospects > 500:
         raise Exception("Number of prospects must not be greater than 500")
+    
+    # check if the client has reached their weekly cap
+    archetype = ClientArchetype.query.get(client_archetype_id)
+    num_messages_sent_this_week = db.session.execute(
+        """
+        select 
+            count(distinct prospect.id)
+        from
+            prospect
+            left join generated_message on generated_message.id = prospect.approved_outreach_message_id
+            left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+        where
+            prospect.archetype_id = :archetype_id and
+            (
+                # Check if the generated message or prospect email was created this week
+                generated_message.created_at >= date_trunc('week', NOW()) or
+                prospect_email.created_at >= date_trunc('week', NOW())
+            );
+        """,
+        {"archetype_id": client_archetype_id}
+    ).scalar()
+    
+    if (num_messages_sent_this_week > 0 and archetype.testing_volume > num_messages_sent_this_week):
+        raise Exception("This client has reached their weekly cap for outreach")
 
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
@@ -743,8 +767,24 @@ def smart_get_prospects_for_campaign(
             else:
                 prospect_ids = []
 
-    return prospect_ids
+    # check against the daily limit, if we want to send more than, we need to cut down
+    weekday = datetime.today().weekday()
+    if weekday == 0:  # Monday
+        days_until_friday = 5
+    elif weekday == 1:  # Tuesday
+        days_until_friday = 4
+    elif weekday == 2:  # Wednesday
+        days_until_friday = 3
+    elif weekday == 3:  # Thursday
+        days_until_friday = 2
+    elif weekday == 4:  # Friday
+        days_until_friday = 1
+    else:  # Saturday or Sunday
+        days_until_friday = 7 - weekday + 4
 
+    if len(prospect_ids) > client_archetype.testing_volume / days_until_friday:
+        prospect_ids = prospect_ids[:client_archetype.testing_volume / days_until_friday]
+    return prospect_ids
 
 def get_warmed_prospects(
     client_archetype_id: int,

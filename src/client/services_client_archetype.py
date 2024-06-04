@@ -1237,6 +1237,15 @@ def get_client_archetype_overview(client_archetype_id):
         "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,
     }
 
+def get_total_contacts_for_archetype(client_archetype_id):
+    num_prospects: int = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id
+    ).count()
+
+    return {
+        "num_prospects": num_prospects,
+    }
+
 def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text="", include_analytics=True):
     filters = [
         Prospect.archetype_id == client_archetype_id,
