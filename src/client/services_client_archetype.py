@@ -1231,6 +1231,7 @@ def get_client_archetype_overview(client_archetype_id):
         "num_pos_replies": num_pos_replies,
         "num_prospects": num_prospects,
         "num_prospects_with_emails": num_prospects_with_emails,
+        "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,
     }
 
 def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text="", include_analytics=True):
