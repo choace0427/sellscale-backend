@@ -446,7 +446,7 @@ def upload_n_rows_from_prospect_upload_row():
         and prospect_uploads.upload_attempts < 3
         and prospect_uploads.created_at > NOW() - '1 days'::INTERVAL
     order by random()
-    limit 5;
+    limit 1;
     """
 
     rows = db.session.execute(query).fetchall()
