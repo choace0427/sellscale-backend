@@ -604,6 +604,10 @@ def create_prospect_from_linkedin_link(
             )
             prospect_upload.error_type = ProspectUploadsErrorType.ISCRAPER_FAILED
             prospect_upload.error_message = error
+
+            if "Service temporarily unavailable due" in prospect_upload.error_message:
+                prospect_upload.upload_attempts = 0
+
             db.session.add(prospect_upload)
             db.session.commit()
             return False
