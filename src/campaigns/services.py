@@ -558,7 +558,6 @@ def create_outbound_campaign(
         where
             prospect.archetype_id = :archetype_id and
             (
-                # Check if the generated message or prospect email was created this week
                 generated_message.created_at >= date_trunc('week', NOW()) or
                 prospect_email.created_at >= date_trunc('week', NOW())
             );
@@ -566,7 +565,7 @@ def create_outbound_campaign(
         {"archetype_id": client_archetype_id}
     ).scalar()
     
-    if (num_messages_sent_this_week > 0 and archetype.testing_volume > num_messages_sent_this_week):
+    if (num_messages_sent_this_week > 0 and archetype.testing_volume < num_messages_sent_this_week):
         raise Exception("This client has reached their weekly cap for outreach")
 
     # Smart get prospects to use
@@ -768,7 +767,7 @@ def smart_get_prospects_for_campaign(
                 prospect_ids = []
 
     # check against the daily limit, if we want to send more than, we need to cut down
-    weekday = datetime.today().weekday()
+    weekday = datetime.datetime.now().weekday()
     if weekday == 0:  # Monday
         days_until_friday = 5
     elif weekday == 1:  # Tuesday
