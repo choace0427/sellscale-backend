@@ -23,7 +23,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 
 def create_new_segment(
-    client_sdr_id: int, segment_title: str, filters: dict, parent_segment_id: int = None
+    client_sdr_id: int, segment_title: str, filters: dict, parent_segment_id: int = None, campaign_id: int = None, saved_apollo_query_id: Optional[int] = None
 ) -> Segment or None:
     existing_segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, segment_title=segment_title
@@ -33,7 +33,9 @@ def create_new_segment(
 
     parent_segment: Segment = Segment.query.get(parent_segment_id)
     saved_apollo_query_id = None
-    if parent_segment:
+    if saved_apollo_query_id:
+        saved_apollo_query_id = saved_apollo_query_id
+    elif parent_segment:
         saved_apollo_query_id = parent_segment.saved_apollo_query_id
 
     new_segment = Segment(
@@ -46,6 +48,15 @@ def create_new_segment(
 
     db.session.add(new_segment)
     db.session.commit()
+
+    if campaign_id:
+        update_segment(
+            client_sdr_id=client_sdr_id,
+            segment_id=new_segment.id,
+            segment_title=segment_title,
+            filters=filters,
+            client_archetype_id=campaign_id,
+        )
 
     return new_segment
 
