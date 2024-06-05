@@ -32,7 +32,6 @@ def create_new_segment(
         return None
 
     parent_segment: Segment = Segment.query.get(parent_segment_id)
-    saved_apollo_query_id = None
     if saved_apollo_query_id:
         saved_apollo_query_id = saved_apollo_query_id
     elif parent_segment:
