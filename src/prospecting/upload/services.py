@@ -421,12 +421,12 @@ def collect_and_run_celery_jobs_for_upload(
                 db.session.commit()
                 priority = 1 if isFirstUpload else 2
                 # todo(Aakash) move this to a per minute worker that fetches 10 and runs em
-                create_prospect_from_prospect_upload_row.apply_async(
-                    args=[prospect_upload.id, allow_duplicates],
-                    queue="prospecting",
-                    routing_key="prospecting",
-                    priority=priority,
-                )
+                # create_prospect_from_prospect_upload_row.apply_async(
+                #     args=[prospect_upload.id, allow_duplicates],
+                #     queue="prospecting",
+                #     routing_key="prospecting",
+                #     priority=priority,
+                # )
                 isFirstUpload = False
         return True
     except Exception as e:
@@ -444,9 +444,9 @@ def upload_n_rows_from_prospect_upload_row():
         and client.active 
         and client_sdr.active
         and prospect_uploads.upload_attempts < 3
-        and prospect_uploads.created_at > NOW() - '1 days'::INTERVAL
+        and prospect_uploads.created_at > NOW() - '3 days'::INTERVAL
     order by random()
-    limit 1;
+    limit 5;
     """
 
     rows = db.session.execute(query).fetchall()
