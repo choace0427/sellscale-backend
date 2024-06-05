@@ -1161,7 +1161,7 @@ def add_prospect_from_csv_payload(
                 break
     for url in linkedin_urls:
         create_prospect_from_linkedin_link(
-            None, archetype_id=archetype_id, url=url, segment_id=segment_id
+            archetype_id=archetype_id, url=url, segment_id=segment_id
         )
 
     return "Upload job scheduled.", 200
