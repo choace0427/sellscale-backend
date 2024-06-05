@@ -1173,8 +1173,9 @@ class ProspectUploadHistory(db.Model):
             f"Uploads: {len(uploads)} | Complete: {len(complete)} | Not Started: {len(not_started)} | Failed: {len(failed)} | In Progress: {len(in_progress)}"
         )
 
-        # If all uploads are complete, set status to COMPLETE
-        if len(in_progress) > 0 or len(not_started) == len(uploads):
+        # If all uploads are complete, set status to COMPLETE and if it's at least 90%
+        completion_percent = self.uploads_completed / (len(uploads) + 0.0001)
+        if len(in_progress) > 0 or len(not_started) == len(uploads) and completion_percent < 0.9: 
             self.status = ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
         else:
             send_upload_complete_slack_notification()
