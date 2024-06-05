@@ -1193,6 +1193,7 @@ def get_client_archetype_overview(client_archetype_id):
     email_to_linkedin_connection = archetype.email_to_linkedin_connection.value if archetype.email_to_linkedin_connection else None
     email_active = archetype.email_active
     active = archetype.active
+    is_setting_up = archetype.is_setting_up
     linkedin_active = archetype.linkedin_active
     testing_volume = archetype.testing_volume
     id = archetype.id
@@ -1224,6 +1225,7 @@ def get_client_archetype_overview(client_archetype_id):
         "ai_researcher_id": ai_researcher_id,
         "email_active": email_active,
         "active": active,
+        "is_setting_up": archetype.is_setting_up,
         "email_to_linkedin_connection": email_to_linkedin_connection,
         "linkedin_active": linkedin_active,
         "num_sent": num_sent,
@@ -1406,8 +1408,13 @@ def get_client_archetype_sequences(client_archetype_id):
     """.format(
         client_archetype_id=client_archetype_id
     )
+    from src.email_sequencing.models import EmailSubjectLineTemplate
+
+    email_subject_lines = EmailSubjectLineTemplate.query.filter(
+        EmailSubjectLineTemplate.client_archetype_id == client_archetype_id,
+    ).all()
+
     data = db.session.execute(query).fetchall()
-    print('data', data)
     linkedin_sequence = [
         {
             "bump_framework_id": row[0],
@@ -1428,6 +1435,7 @@ def get_client_archetype_sequences(client_archetype_id):
     )
 
     return {
+        "email_subject_lines": [subject.to_dict() for subject in email_subject_lines],
         "email_sequence": email_sequence,
         "linkedin_sequence": linkedin_sequence,
         "initial_message_templates": [template.to_dict() for template in initialMessageTemplates],
