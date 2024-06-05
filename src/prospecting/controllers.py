@@ -18,6 +18,7 @@ from src.segment.services import (
 )
 from src.prospecting.services import (
     bulk_mark_not_qualified,
+    create_prospect_from_linkedin_link,
     get_prospect_email_history,
     get_prospect_li_history,
     get_prospect_overall_history,
@@ -1150,6 +1151,18 @@ def add_prospect_from_csv_payload(
         args={"prospect_upload_history_id": prospect_upload_history_id, "retry": True},
         minutes=1,  # 1 minute from now
     )
+
+    # extract 3 Linkedin URLs from the payload
+    linkedin_urls = []
+    for row in csv_payload:
+        if "linkedin_url" in row:
+            linkedin_urls.append(row["linkedin_url"])
+            if len(linkedin_urls) == 1:
+                break
+    for url in linkedin_urls:
+        create_prospect_from_linkedin_link(
+            None, archetype_id=archetype_id, url=url, segment_id=segment_id
+        )
 
     return "Upload job scheduled.", 200
 

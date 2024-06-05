@@ -1819,6 +1819,7 @@ def create_prospect_from_linkedin_link(
     allow_duplicates: bool = False,
     set_status: ProspectStatus = ProspectStatus.PROSPECTED,
     set_note: str = None,
+    segment_id: Optional[int] = None,
 ) -> tuple[bool, Union[int, str]]:
     from src.research.linkedin.services import research_personal_profile_details
 
@@ -1901,6 +1902,7 @@ def create_prospect_from_linkedin_link(
             education_2=education_2,
             prospect_location=prospect_location,
             company_location=company_location,
+            segment_id=segment_id,
         )
         if new_prospect_id is not None:
             create_iscraper_payload_cache(
