@@ -360,7 +360,7 @@ def daily_generate_email_campaign_for_sdr(
             for index, archetype in enumerate(email_archetypes):
                 # 5d. Use the sla_count to get the number of prospects to generate
                 # Check that there are enough prospects to generate the campaign
-                num_to_generate = sla_counts[index]
+                num_to_generate = min(sla_counts[index], 500)
                 num_available_prospects = len(
                     smart_get_prospects_for_campaign(
                         archetype.id,

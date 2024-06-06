@@ -765,6 +765,8 @@ def smart_get_prospects_for_campaign(
                 )
             else:
                 prospect_ids = []
+    else:
+        client_archetype = ClientArchetype.query.get(client_archetype_id)
 
     # check against the daily limit, if we want to send more than, we need to cut down
     weekday = datetime.datetime.now().weekday()
@@ -781,8 +783,10 @@ def smart_get_prospects_for_campaign(
     else:  # Saturday or Sunday
         days_until_friday = 7 - weekday + 4
 
+
     if len(prospect_ids) > client_archetype.testing_volume / days_until_friday:
-        prospect_ids = prospect_ids[:client_archetype.testing_volume / days_until_friday]
+        rounded = int(client_archetype.testing_volume / days_until_friday)
+        prospect_ids = prospect_ids[:rounded]
     return prospect_ids
 
 def get_warmed_prospects(
