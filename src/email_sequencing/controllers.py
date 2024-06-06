@@ -143,7 +143,7 @@ def post_create_sequence_step(client_sdr_id: int):
         sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         transformer_blocklist = sdr.default_transformer_blocklist or []
 
-    sequence_step_id = create_email_sequence_step(
+    sequence_step_id, message = create_email_sequence_step(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
         title=title,
@@ -164,7 +164,7 @@ def post_create_sequence_step(client_sdr_id: int):
             ),
             200,
         )
-    return jsonify({"error": "Could not create email sequence step."}), 400
+    return jsonify({"error": message}), 400
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/step", methods=["PATCH"])

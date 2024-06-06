@@ -16,7 +16,7 @@ from src.email_sequencing.models import (
 )
 import yaml
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
-from typing import List, Optional
+from typing import List, Optional, Union
 from src.ml.openai_wrappers import (
     streamed_chat_completion_to_socket,
 )
@@ -178,7 +178,7 @@ def create_email_sequence_step(
     transformer_blocklist: Optional[list] = [],
     sequence_delay_days: Optional[int] = 3,
     mapped_asset_ids: Optional[list[int]] = [],
-) -> int:
+) -> tuple[Union[int, None], str]:
     """Create a new email sequence, if default is True, set all other email sequences to False
 
     Args:
@@ -203,25 +203,26 @@ def create_email_sequence_step(
         ClientArchetype.id == client_archetype_id,
     ).first()
     if not archetype:
-        return None
+        return None, "Client archetype not found"
     if (
         archetype.smartlead_campaign_id
     ):  # Block if the archetype has a smartlead campaign synced (not allowed to create)
-        return None
-
-    # DEPRECATED, No longer need default
-    # if default:
-    #     all_sequence_steps: list[EmailSequenceStep] = EmailSequenceStep.query.filter_by(
-    #         client_sdr_id=client_sdr_id,
-    #         client_archetype_id=client_archetype_id,
-    #         overall_status=overall_status,
-    #     )
-    #     if overall_status == ProspectOverallStatus.BUMPED and bumped_count is not None:
-    #         all_sequence_steps = all_sequence_steps.filter_by(bumped_count=bumped_count)
-    #     all_sequence_steps = all_sequence_steps.all()
-    #     for sequence_step in all_sequence_steps:
-    #         sequence_step.default = False
-    #         db.session.add(sequence_step)
+        # EDGE CASE: We allow the creation of additional templates IFF one already exists for that step
+        # i.e. The user can create a new "variant" for the same step, but can't create a new step (inferred through bump count)
+        existing_sequence_steps: list[EmailSequenceStep] = (
+            EmailSequenceStep.query.filter(
+                EmailSequenceStep.client_sdr_id == client_sdr_id,
+                EmailSequenceStep.client_archetype_id == client_archetype_id,
+                EmailSequenceStep.overall_status == overall_status,
+                EmailSequenceStep.substatus == substatus,
+                EmailSequenceStep.bumped_count == bumped_count,
+            )
+        ).all()
+        if not existing_sequence_steps:
+            return (
+                None,
+                "Campaign already outbounding, you cannot add additional steps. Variants are allowed.",
+            )
 
     # Create the email sequence
     sequence_step = EmailSequenceStep(
@@ -253,7 +254,7 @@ def create_email_sequence_step(
                 db.session.rollback()
                 pass
 
-    return sequence_step_id
+    return sequence_step_id, ""
 
 
 def modify_email_sequence_step(
@@ -772,7 +773,7 @@ def copy_email_template_body_item(
         return False
 
     # Create the email sequence step
-    id = create_email_sequence_step(
+    id, message = create_email_sequence_step(
         client_sdr_id=client_sdr_id,
         client_archetype_id=client_archetype_id,
         title=template_pool_item.name,
@@ -1288,12 +1289,11 @@ def delete_email_sequence_step_asset_mapping(
 
 
 def get_all_email_sequence_step_assets(email_sequence_step_id: int):
-    mappings: list[EmailSequenceStepToAssetMapping] = (
-        EmailSequenceStepToAssetMapping.query.filter(
-            EmailSequenceStepToAssetMapping.email_sequence_step_id
-            == email_sequence_step_id
-        ).all()
-    )
+    mappings: list[
+        EmailSequenceStepToAssetMapping
+    ] = EmailSequenceStepToAssetMapping.query.filter(
+        EmailSequenceStepToAssetMapping.email_sequence_step_id == email_sequence_step_id
+    ).all()
     asset_ids = [mapping.client_assets_id for mapping in mappings]
     assets: ClientAssets = ClientAssets.query.filter(
         ClientAssets.id.in_(asset_ids)
