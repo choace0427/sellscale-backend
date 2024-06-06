@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 import enum
 from typing import Optional
 from src.email_outbound.email_store.models import EmailStore
+from src.segment.models import Segment
 from src.utils.abstract.attr_utils import deep_get
 
 from src.utils.hasher import generate_uuid
@@ -735,6 +736,13 @@ class Prospect(db.Model):
         archetype: ClientArchetype = ClientArchetype.query.get(self.archetype_id)
         if archetype:
             archetype_name = archetype.archetype
+
+        # Get Segment info
+        segment_name = None
+        segment: Segment = Segment.query.get(self.segment_id)
+        if segment:
+            segment_name = segment.segment_title
+
         # Get last 5 messages of their most recent conversation
         recent_messages = {}
         if return_convo:
@@ -787,6 +795,8 @@ class Prospect(db.Model):
             "client_id": self.client_id,
             "archetype_id": self.archetype_id,
             "archetype_name": archetype_name,
+            "segment_id": self.segment_id,
+            "segment_name": segment_name,
             "location": location,
             "company": self.company,
             "company_url": self.company_url,
@@ -1175,7 +1185,11 @@ class ProspectUploadHistory(db.Model):
 
         # If all uploads are complete, set status to COMPLETE and if it's at least 90%
         completion_percent = self.uploads_completed / (len(uploads) + 0.0001)
-        if len(in_progress) > 0 or len(not_started) == len(uploads) and completion_percent < 0.9: 
+        if (
+            len(in_progress) > 0
+            or len(not_started) == len(uploads)
+            and completion_percent < 0.9
+        ):
             self.status = ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS
         else:
             send_upload_complete_slack_notification()

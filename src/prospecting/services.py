@@ -169,6 +169,9 @@ def get_prospects(
             - status: 1 or -1, indicating ascending or descending order
             - last_updated: 1 or -1, indicating ascending or descending order
             - icp_fit_score: 1 or -1, indicating ascending or descending order
+            - email: 1 or -1, indicating ascending or descending order
+            - archetype_id: 1 or -1, indicating ascending or descending order
+            - segment_id: 1 or -1, indicating ascending or descending order
         The query will be ordered by these fields in the order provided
     """
     # Make sure that the provided status is in the channel's status enum
@@ -212,6 +215,21 @@ def get_prospects(
                 ordering_arr.append(nullslast(Prospect.icp_fit_score.asc()))
             elif order_direction == -1:
                 ordering_arr.append(nullslast(Prospect.icp_fit_score.desc()))
+        elif order_name == "email":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.email.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.email.desc())
+        elif order_name == "archetype_id":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.archetype_id.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.archetype_id.desc())
+        elif order_name == "segment_id":
+            if order_direction == 1:
+                ordering_arr.append(Prospect.segment_id.asc())
+            elif order_direction == -1:
+                ordering_arr.append(Prospect.segment_id.desc())
 
     # Pad ordering array with None values, set to number of ordering options: 4
     while len(ordering_arr) < 4:
@@ -269,19 +287,6 @@ def get_prospects(
         prospects = prospects.filter(Prospect.id == prospect_id)
     if icp_fit_score:
         prospects = prospects.filter(Prospect.icp_fit_score == icp_fit_score)
-
-    # if show_purgatory != "ALL":
-    #     if not show_purgatory:
-    #         prospects = prospects.filter(
-    #             or_(
-    #                 Prospect.hidden_until == None,
-    #                 Prospect.hidden_until < datetime.utcnow(),
-    #             )
-    #         )
-    #     else:
-    #         prospects = prospects.filter(
-    #             Prospect.hidden_until >= datetime.utcnow()
-    #         )
 
     total_count = prospects.count()
     prospects = prospects.limit(limit).offset(offset).all()
@@ -1553,13 +1558,14 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
 
     return True
 
+
 def add_prospects_from_saved_apollo_query_id(
     client_sdr_id: int,
     archetype_id: int,
     saved_apollo_query_id: int,
     allow_duplicates: bool = False,
     segment_id: Optional[int] = None,
-    num_contacts: int = 100
+    num_contacts: int = 100,
 ):
     from src.contacts.services import apollo_get_contacts_for_page
 
@@ -1570,28 +1576,30 @@ def add_prospects_from_saved_apollo_query_id(
     ).first()
     if not saved_apollo_query:
         return "Saved Apollo Query not found", 400
-    
-    saved_apollo_query_client_sdr_id =saved_apollo_query.client_sdr_id
-    saved_apollo_query_client_sdr = ClientSDR.query.get(saved_apollo_query_client_sdr_id)
+
+    saved_apollo_query_client_sdr_id = saved_apollo_query.client_sdr_id
+    saved_apollo_query_client_sdr = ClientSDR.query.get(
+        saved_apollo_query_client_sdr_id
+    )
     current_client_sdr = ClientSDR.query.get(client_sdr_id)
     if current_client_sdr.client_id != saved_apollo_query_client_sdr.client_id:
         return "Client SDR mismatch", 400
-    
+
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not client_archetype:
         unassigned_client_archetype = ClientArchetype.query.filter(
             ClientArchetype.client_sdr_id == client_sdr_id,
-            ClientArchetype.is_unassigned_contact_archetype == True
+            ClientArchetype.is_unassigned_contact_archetype == True,
         ).first()
         archetype_id = unassigned_client_archetype.id
-    
+
     if client_archetype and client_archetype.client_sdr_id != client_sdr_id:
         return "Client Archetype does not belong to user", 400
-    
+
     segment: Segment = Segment.query.get(segment_id)
     if segment and segment.client_sdr_id != client_sdr_id:
         return "Segment does not belong to user", 400
-    
+
     payload = saved_apollo_query.data
     num_pages = num_contacts // 100
     all_contacts = []
@@ -1604,7 +1612,9 @@ def add_prospects_from_saved_apollo_query_id(
             person_not_titles=payload.get("person_not_titles", []),
             q_person_title=payload.get("q_person_title", ""),
             q_person_name=payload.get("q_person_name", ""),
-            organization_industry_tag_ids=payload.get("organization_industry_tag_ids", []),
+            organization_industry_tag_ids=payload.get(
+                "organization_industry_tag_ids", []
+            ),
             organization_num_employees_ranges=payload.get(
                 "organization_num_employees_ranges", []
             ),
@@ -1627,7 +1637,9 @@ def add_prospects_from_saved_apollo_query_id(
                 "organization_department_or_subdepartment_counts", None
             ),
             is_prefilter=payload.get("is_prefilter", False),
-            q_organization_keyword_tags=payload.get("q_organization_keyword_tags", None),
+            q_organization_keyword_tags=payload.get(
+                "q_organization_keyword_tags", None
+            ),
         )
 
         # get the contacts and people
@@ -1644,8 +1656,9 @@ def add_prospects_from_saved_apollo_query_id(
                 contact,
                 segment_id,
             )
-            
+
     return True
+
 
 @celery.task
 def add_prospect_from_apollo(
@@ -1670,7 +1683,9 @@ def add_prospect_from_apollo(
     name = deep_get(contact, "name", "")
     title = deep_get(contact, "title", "")
     linkedin_url = deep_get(contact, "linkedin_url", "")
-    stripped_linkedin_url = linkedin_url.replace("https://www.", "").replace("http://www.", "")
+    stripped_linkedin_url = linkedin_url.replace("https://www.", "").replace(
+        "http://www.", ""
+    )
     twitter_url = deep_get(contact, "twitter_url", "")
     current_company = deep_get(contact, "employment_history.0.organization_name", "")
 
@@ -1687,6 +1702,7 @@ def add_prospect_from_apollo(
         twitter_url=twitter_url,
         segment_id=segment_id,
     )
+
 
 def add_prospect(
     client_id: int,
@@ -1839,9 +1855,9 @@ def add_prospect(
             segment_id=segment_id,
             prospect_location=prospect_location,
             company_location=company_location,
-            smartlead_campaign_id=archetype.smartlead_campaign_id
-            if archetype
-            else None,
+            smartlead_campaign_id=(
+                archetype.smartlead_campaign_id if archetype else None
+            ),
         )
         db.session.add(prospect)
         db.session.commit()
