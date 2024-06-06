@@ -17,6 +17,7 @@ from src.segment.services import (
     merge_segment_filters,
 )
 from src.prospecting.services import (
+    add_prospects_from_saved_apollo_query_id,
     bulk_mark_not_qualified,
     create_prospect_from_linkedin_link,
     get_prospect_email_history,
@@ -1010,6 +1011,38 @@ def send_slack_reminder():
 
     return "Failed to update", 400
 
+@PROSPECTING_BLUEPRINT.route("/add_from_apollo_query_id", methods=["POST"])
+@require_user
+def add_prospect_from_apollo_query_id(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    saved_apollo_query_id = get_request_parameter(
+        "saved_apollo_query_id", request, json=True, required=True, parameter_type=int
+    )
+    segment_id = get_request_parameter(
+        "segment_id", request, json=True, required=False, parameter_type=int
+    )
+    num_contacts = get_request_parameter(
+        "num_contacts", request, json=True, required=False, parameter_type=int
+    )
+
+    if client_sdr_id != 34:
+        return "OK (non-SellScale user)", 200
+
+    success = add_prospects_from_saved_apollo_query_id(
+        client_sdr_id=client_sdr_id,
+        archetype_id=archetype_id,
+        saved_apollo_query_id=saved_apollo_query_id,
+        allow_duplicates=False,
+        segment_id=segment_id,
+        num_contacts=num_contacts,
+    )
+
+    if success:
+        return "OK", 200
+
+    return "Failed to create prospect", 400
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 @require_user
