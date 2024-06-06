@@ -139,6 +139,8 @@ from src.client.services import (
     list_prospects_caught_by_sdr_client_filters,
     remove_prospects_caught_by_sdr_client_filters,
     update_archetype_emoji,
+    get_spending,
+    get_all_clients
 )
 from src.client.services_unassigned_contacts_archetype import (
     predict_persona_buckets_from_client_archetype,
@@ -3649,6 +3651,19 @@ def get_archetype_assets(client_sdr_id: int, archetype_id: int):
     assets = fetch_archetype_assets(client_archetype_id=archetype_id)
 
     return jsonify({"message": "Success", "data": assets}), 200
+
+@CLIENT_BLUEPRINT.route("/get_spending/<int:client_id>", methods=["GET"])
+@require_user
+def get_client_spending(client_sdr_id: int, client_id: int):
+    """Gets all assets for a client sdr"""
+    spending = get_spending(client_sdr_id=client_sdr_id, client_id=client_id)
+    return jsonify({"message": "Success", "data": spending}), 200
+
+@CLIENT_BLUEPRINT.route("/clients_list", methods=["GET"])
+@require_user
+def get_clients_list(client_sdr_id: int):
+    clients = get_all_clients(client_sdr_id)
+    return jsonify({"message": "Success", "data": clients}), 200
 
 
 @CLIENT_BLUEPRINT.route("/generate_assets", methods=["POST"])

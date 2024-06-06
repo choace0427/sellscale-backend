@@ -5054,3 +5054,183 @@ def modify_testing_volume(client_archetype_id: int, testing_volume: int):
 def get_testing_volume(client_archetype_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     return client_archetype.testing_volume
+
+def get_spending(client_id, client_sdr_id):
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+    if client_sdr.client_id != 1:
+        return "You are not authorized to view this information"
+    
+    def get_apollo_spending(client_id):
+        query = """
+            select 
+                to_char(saved_apollo_query.created_at, 'YYYY-MM') date,
+                client.id,
+                client.company,
+                count(distinct saved_apollo_query.id) * 0.07 "apollo_cost"
+            from
+                client 
+                left join client_sdr on client_sdr.client_id = client.id
+                left join saved_apollo_query on saved_apollo_query.client_sdr_id = client_sdr.id
+            where
+                client.id = :client_id
+                and saved_apollo_query.created_at is not null
+            group by 1,2,3
+            order by 1 asc;
+        """
+        result = db.session.execute(query, {"client_id": client_id}).fetchall()
+        spending_by_month = {row['date']: row['apollo_cost'] for row in result}
+        return spending_by_month
+
+    def get_phantombuster_spending(client_id):
+        query = """
+            select 
+                to_char(prospect_status_records.created_at, 'YYYY-MM') date,
+                client.id,
+                client.company,
+                count(distinct prospect.client_sdr_id) * 8.33 "phantom_cost"
+            from
+                client 
+                left join client_sdr on client_sdr.client_id = client.id
+                left join prospect on prospect.client_sdr_id = client_sdr.id
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+            where
+                client.id = :client_id
+                and prospect_status_records.created_at is not null
+                and prospect_status_records.to_status = 'SENT_OUTREACH'
+            group by 1,2,3
+            order by 1 asc;
+        """
+        result = db.session.execute(query, {"client_id": client_id}).fetchall()
+        spending_by_month = {row['date']: row['phantom_cost'] for row in result}
+        return spending_by_month
+
+    def get_domains_purchased(client_id):
+        query = """
+            select 
+                to_char(domain.created_at, 'YYYY-MM') date,
+                client.id,
+                client.company,
+                count(distinct domain.id) * 15 "domain_cost"
+            from
+                client 
+                left join client_sdr on client_sdr.client_id = client.id
+                left join domain on domain.client_id = client.id
+                left join sdr_email_bank on sdr_email_bank.client_sdr_id = client_sdr.id
+            where
+                client.id = :client_id
+                and domain.created_at is not null
+            group by 1,2,3
+            order by 1 asc;
+        """
+        result = db.session.execute(query, {"client_id": client_id}).fetchall()
+        domains_by_month = {row['date']: row['domain_cost'] for row in result}
+        return domains_by_month
+
+    def get_email_outbound_spending(client_id):
+        query = """
+            select 
+                to_char(prospect_email_status_records.created_at, 'YYYY-MM') date,
+                client.id,
+                client.company,
+                count(distinct prospect_email_status_records.prospect_email_id) * 0.20 "email_outbound_cost"
+            from
+                client 
+                left join client_sdr on client_sdr.client_id = client.id
+                left join prospect on prospect.client_sdr_id = client_sdr.id
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            where
+                client.id = :client_id
+                and prospect_email_status_records.created_at is not null
+                and prospect_email_status_records.to_status = 'SENT_OUTREACH'
+            group by 1,2,3
+            order by 1 asc;
+        """
+        result = db.session.execute(query, {"client_id": client_id}).fetchall()
+        spending_by_month = {row['date']: row['email_outbound_cost'] for row in result}
+        return spending_by_month
+
+    def get_linkedin_outbound_spending(client_id):
+        query = """
+            select 
+                to_char(prospect_status_records.created_at, 'YYYY-MM') date,
+                client.id,
+                client.company,
+                count(distinct prospect_status_records.prospect_id) * 0.20 "linkedin_outbound_cost"
+            from
+                client 
+                left join client_sdr on client_sdr.client_id = client.id
+                left join prospect on prospect.client_sdr_id = client_sdr.id
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+            where
+                client.id = :client_id
+                and prospect_status_records.created_at is not null
+                and prospect_status_records.to_status = 'SENT_OUTREACH'
+            group by 1,2,3
+            order by 1 asc;
+        """
+        result = db.session.execute(query, {"client_id": client_id}).fetchall()
+        spending_by_month = {row['date']: row['linkedin_outbound_cost'] for row in result}
+        return spending_by_month
+
+    from datetime import datetime, timedelta
+
+    def ensure_data_for_all_months(data_dict, all_months):
+        return {month: data_dict.get(month, 0) for month in all_months}
+
+    # Fetch all spending data first
+    apollo_spending = get_apollo_spending(client_id)
+    phantombuster_spending = get_phantombuster_spending(client_id)
+    domains_purchased = get_domains_purchased(client_id)
+    email_outbound_spending = get_email_outbound_spending(client_id)
+    linkedin_outbound_spending = get_linkedin_outbound_spending(client_id)
+
+    # Combine all dates to find the min and max months
+    all_dates = set(apollo_spending.keys()).union(
+        phantombuster_spending.keys(),
+        domains_purchased.keys(),
+        email_outbound_spending.keys(),
+        linkedin_outbound_spending.keys()
+    )
+
+    if all_dates:
+        dates = [datetime.strptime(date, "%Y-%m") for date in all_dates]
+        min_date = min(dates)
+        max_date = max(dates)
+
+        # Generate all months between min_date and max_date
+        all_months = []
+        current_date = min_date
+        while current_date <= max_date:
+            all_months.append(current_date.strftime("%Y-%m"))
+            current_date += timedelta(days=32)
+            current_date = current_date.replace(day=1)
+    else:
+        all_months = []
+
+    spending = {
+        "apollo": ensure_data_for_all_months(apollo_spending, all_months),
+        "phantombuster": ensure_data_for_all_months(phantombuster_spending, all_months),
+        "domains": ensure_data_for_all_months(domains_purchased, all_months),
+        "email_outbound": ensure_data_for_all_months(email_outbound_spending, all_months),
+        "linkedin_outbound": ensure_data_for_all_months(linkedin_outbound_spending, all_months),
+    }
+
+    return spending
+def get_all_clients(client_sdr_id: int):
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+    if client_sdr.client_id != 1:
+        return "You are not authorized to view this information"
+
+    query = """
+        SELECT 
+            id, 
+            company 
+        FROM 
+            client
+        ORDER BY 
+            id
+    """
+    result = db.session.execute(query).fetchall()
+    clients = [{"id": row["id"], "company": row["company"]} for row in result]
+    return clients
