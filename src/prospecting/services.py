@@ -1762,7 +1762,7 @@ def add_prospect(
     )
     prospect_persona: ClientArchetype = None
     if prospect_exists:
-        print("Prospect already exists: ", prospect_exists)
+        print("Found existing prospect in client: ", prospect_exists)
         prospect_persona = ClientArchetype.query.filter_by(
             id=prospect_exists.archetype_id
         ).first()
