@@ -1207,8 +1207,9 @@ def simple_perplexity_response(model: str, prompt: str):
 
 
 def answer_question_about_prospect(
-    client_sdr_id: int, prospect_id: int, question: str, how_its_relevant: str
+    client_sdr_id: int, prospect_id: int, question: str, how_its_relevant: str, room_id: str, questionType: str
 ):
+    from src.sockets.services import send_socket_message
     """
     Answer a question about a prospect based on the question number
     """
@@ -1256,5 +1257,11 @@ def answer_question_about_prospect(
     )
     print("\nStep 3: Validating response")
     print(validate_with_gpt)
+
+    if (room_id):
+        validate_with_gpt["question"] = question
+        validate_with_gpt["raw_response"] = response
+        validate_with_gpt["type"] = questionType
+        send_socket_message('stream-answers', validate_with_gpt, room_id)
 
     return True, response, validate_with_gpt

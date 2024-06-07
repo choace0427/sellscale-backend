@@ -223,7 +223,8 @@ def get_ai_researcher_answers_for_prospect(
 
 def run_all_ai_researcher_questions_for_prospect(
     client_sdr_id: int,
-    prospect_id: int
+    prospect_id: int,
+    room_id: str
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_archetype_id = prospect.archetype_id
@@ -243,15 +244,21 @@ def run_all_ai_researcher_questions_for_prospect(
         run_ai_researcher_question(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
-            question_id=question.id
+            question_id=question.id,
+            room_id=room_id
         )
+
+    from src.sockets.services import send_socket_message
+    if (room_id):
+        send_socket_message('stream-answers', {"message":"done"}, room_id)
 
     return True
 
 def run_ai_researcher_question(
     client_sdr_id: int,
     prospect_id: int,
-    question_id: int
+    question_id: int,
+    room_id: str
 ):
     """Run an AI Researcher question on a prospect."""
     question: AIResearcherQuestion = AIResearcherQuestion.query.get(question_id)
@@ -262,7 +269,9 @@ def run_ai_researcher_question(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             question=question.key,
-            how_its_relevant=question.relevancy
+            how_its_relevant=question.relevancy,
+            room_id=room_id,
+            questionType=question.type
         )
 
         if not success:
@@ -350,7 +359,8 @@ def run_ai_researcher_question(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             question=question.key,
-            how_its_relevant=question.relevancy
+            how_its_relevant=question.relevancy,
+            questionType=question.type
         )
 
         if not success:

@@ -359,12 +359,17 @@ def post_answer_perplexity_question(client_sdr_id: int):
     how_its_relevant = get_request_parameter(
         "how_its_relevant", request, json=True, required=True, parameter_type=str
     )
+    room_id = get_request_parameter(
+        "room_id", request, json=True, required=False, parameter_type=str
+    )
 
     success, answer, reasoning = answer_question_about_prospect(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         question=question,
         how_its_relevant=how_its_relevant,
+        room_id=room_id,
+        questionType='GENERAL'
     )
 
     if not success:
@@ -542,9 +547,12 @@ def post_run_all_ai_researcher_questions_for_prospect(client_sdr_id: int):
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
+    room_id = get_request_parameter(
+        "room_id", request, json=True, required=True, parameter_type=str
+    )
 
     success = run_all_ai_researcher_questions_for_prospect(
-        client_sdr_id=client_sdr_id, prospect_id=prospect_id
+        client_sdr_id=client_sdr_id, prospect_id=prospect_id, room_id=room_id
     )
 
     if not success:
