@@ -137,6 +137,12 @@ class EmailToLinkedInConnection(enum.Enum):
     ALL_PROSPECTS = "ALL_PROSPECTS"
     OPENED_EMAIL_PROSPECTS_ONLY = "OPENED_EMAIL_PROSPECTS_ONLY"
     CLICKED_LINK_PROSPECTS_ONLY = "CLICKED_LINK_PROSPECTS_ONLY"
+
+class ClientArchetypeSetupEnum(enum.Enum):
+    SETUP = "SETUP"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+
 class ClientArchetype(db.Model):
     __tablename__ = "client_archetype"
 
@@ -218,6 +224,10 @@ class ClientArchetype(db.Model):
 
     testing_volume = db.Column(db.Integer, nullable=False, server_default="0")
 
+    setup_status = db.Column(
+        sa.Enum(ClientArchetypeSetupEnum, create_constraint=False), nullable=True
+    )
+
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
@@ -279,6 +289,7 @@ class ClientArchetype(db.Model):
             "ai_researcher_id": self.ai_researcher_id,
             "is_ai_research_personalization_enabled": self.is_ai_research_personalization_enabled,
             "testing_volume": self.testing_volume,
+            "setup_status": self.setup_status.value if self.setup_status else None,
         }
 
 
