@@ -21,6 +21,7 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
+from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.ml.ai_researcher_services import (
     auto_assign_ai_researcher_to_client_archetype,
     create_default_ai_researcher,
@@ -498,7 +499,7 @@ def create_client_archetype(
         persona_lookalike_profile_3=lookalike_3,
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
-        template_mode=template_mode,
+        template_mode=True,
         transformer_blocklist=transformer_blocklist,
         transformer_blocklist_initial=transformer_blocklist,
         testing_volume= 2**31 - 1 #max int
@@ -568,6 +569,20 @@ def create_client_archetype(
     )
 
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
+    template = LinkedinInitialMessageTemplate(
+        title="Simple Connection",
+        message="Hi [[first name]]! I'd love to connect!",
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=archetype_id,
+        active=True,
+        times_used=0,
+        times_accepted=0,
+        sellscale_generated=True,
+        research_points=[],
+        additional_instructions="",
+    )
+    db.session.add(template)
+    db.session.commit()
 
     return {"client_archetype_id": client_archetype.id}
 
