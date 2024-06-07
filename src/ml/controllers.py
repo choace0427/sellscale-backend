@@ -4,6 +4,7 @@ from src.ml.ai_researcher_services import (
     connect_researcher_to_client_archetype,
     create_ai_researcher,
     create_ai_researcher_question,
+    generate_ai_researcher_questions,
     delete_question,
     edit_question,
     get_ai_researcher_answers_for_prospect,
@@ -499,6 +500,23 @@ def post_create_ai_researcher_question(client_sdr_id: int):
         return "Error creating AI Researcher Question", 400
 
     return "AI Researcher Question created successfully", 200
+
+#endpoint to generate ai researcher questions
+@ML_BLUEPRINT.route("/researchers/questions/generate", methods=["POST"])
+@require_user
+def post_generate_ai_researcher_questions(client_sdr_id: int):
+    """
+    Generate AI Researcher questions for a prospect
+    """
+    researcher_id = get_request_parameter(
+        "researcher_id", request, json=True, required=True, parameter_type=int
+    )
+
+    response = generate_ai_researcher_questions(
+        researcher_id=researcher_id, client_sdr_id=client_sdr_id,
+    )
+
+    return response
 
 
 @ML_BLUEPRINT.route("/researchers/answers", methods=["POST"])

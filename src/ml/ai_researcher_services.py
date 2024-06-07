@@ -1,6 +1,6 @@
 import json
 from app import db
-from model_import import ClientSDR, AIResearcher, AIResearcherQuestion, AIResearcherAnswer, ClientArchetype, Prospect
+from model_import import Client, ClientSDR, AIResearcher, AIResearcherQuestion, AIResearcherAnswer, ClientArchetype, Prospect
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -117,6 +117,101 @@ def create_ai_researcher_question(
     db.session.commit()
 
     return True
+
+def generate_ai_researcher_questions(
+    researcher_id: int, client_sdr_id: int
+):
+    
+    from src.ml.services import get_perplexity_response, get_text_generation
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    messages = [
+        {
+            "role": "system",
+            "content": "You are an AI researcher tasked with providing accurate and factual information about a company and what their main products are.",
+        },
+        {
+            "role": "user",
+            "content": (
+                f"{'The name of the company is: ' + client.company + '. ' if client.company else ''}"
+                f"{'Website: ' + client.domain + '. ' if client.domain else ''}"
+                f"{'Description: ' + client.description + '. ' if client.description else ''}"
+                f"{'Tagline: ' + client.tagline + '.' if client.tagline else ''}"
+            ).strip()
+        }
+    ]
+
+    company_information = get_perplexity_response("llama-3-sonar-large-32k-online", messages)
+
+    print('company information is', company_information)
+
+    prompt = f'''You are an SDR researching a prospective company for cold outreach. 
+        Develop a thought process that a highly intelligent and sophisticated SDR would use. 
+        This thought process should be so insightful and clever that it would earn the SDR a raise.
+        Here is information about my company: 
+          {company_information}.
+          
+        Now, infer information about my prospective customers and generate
+        3-4 questions I would have when researching companies that are prospective buyers. If you are asking about their company
+         specifically please use a placeholder like so, e.g. "what is [[company]]'s ... ?" The data should be in JSON format with the following structure:
+
+        [
+            {{
+                "Question": "[question here]",
+                "Relevant": "[Yes/No]",
+                "RelevanceReason": "[Relevance reason]"
+            }},
+            ...
+        ]
+
+        Only respond with the JSON, nothing else.
+        '''
+
+    def get_response_with_retries(prompt, retries=3):
+        for attempt in range(retries):
+            response = get_text_generation(
+                [{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=600,
+                model='gpt-4o',
+                type="MISC_CLASSIFY",
+            )
+            print('Attempt', attempt + 1, 'response:', response)
+            try:
+                response_json = json.loads(response)
+                return response_json
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON on attempt {attempt + 1}: {e}")
+        return None
+
+    response_json = get_response_with_retries(prompt)
+
+    questions_and_relevancy = []
+    if response_json:
+        for item in response_json:
+            question = item.get("Question", "").strip()
+            relevancy_info = item.get("Relevant", "").strip()
+            relevance_reason = item.get("RelevanceReason", "").strip()
+            questions_and_relevancy.append({
+                "question": question,
+                "relevancy": relevancy_info,
+                "relevance_reason": relevance_reason
+            })
+    else:
+        print("Failed to decode JSON after multiple attempts.")
+
+    # print a bunch of newlines
+    print("\n" * 3)
+
+    print(response_json)
+
+    return response_json
+
+
+
+    
 
 def get_ai_researcher_answers_for_prospect(
     prospect_id: int
