@@ -1021,7 +1021,7 @@ def send_slack_reminder():
 @require_user
 def add_prospect_from_apollo_query_id(client_sdr_id: int):
     archetype_id = get_request_parameter(
-        "archetype_id", request, json=True, required=True, parameter_type=int
+        "archetype_id", request, json=True, required=False, parameter_type=int
     )
     saved_apollo_query_id = get_request_parameter(
         "saved_apollo_query_id", request, json=True, required=True, parameter_type=int
@@ -1101,8 +1101,8 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
 
 def add_prospects_from_saved_apollo_query_id(
     client_sdr_id: int,
-    archetype_id: int,
     saved_apollo_query_id: int,
+    archetype_id: Optional[int] = None,
     allow_duplicates: bool = False,
     segment_id: Optional[int] = None,
     num_contacts: int = 100
@@ -1123,13 +1123,15 @@ def add_prospects_from_saved_apollo_query_id(
     if current_client_sdr.client_id != saved_apollo_query_client_sdr.client_id:
         return "Client SDR mismatch", 400
     
-    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    if not client_archetype:
+    if archetype_id:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    else:
         unassigned_client_archetype = ClientArchetype.query.filter(
             ClientArchetype.client_sdr_id == client_sdr_id,
             ClientArchetype.is_unassigned_contact_archetype == True
         ).first()
         archetype_id = unassigned_client_archetype.id
+        client_archetype = unassigned_client_archetype
     
     if client_archetype and client_archetype.client_sdr_id != client_sdr_id:
         return "Client Archetype does not belong to user", 400
