@@ -437,7 +437,7 @@ def create_client_archetype(
     icp_matching_prompt: str = "",
     persona_contact_objective: str = "",
     is_unassigned_contact_archetype: bool = False,
-    active: bool = False, #campaigns default inactive
+    active: bool = True, #campaigns default active
     persona_contract_size: Optional[int] = None,
     cta_blanks_company: Optional[str] = None,
     cta_blanks_persona: Optional[str] = None,
@@ -502,7 +502,8 @@ def create_client_archetype(
         template_mode=True,
         transformer_blocklist=transformer_blocklist,
         transformer_blocklist_initial=transformer_blocklist,
-        testing_volume= 2**31 - 1 #max int
+        testing_volume= 2**31 - 1, #max int,
+        setup_status="SETUP",
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -3355,7 +3356,8 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status not in ('QUEUED_FOR_OUTREACH') or prospect_email_status_records.to_status is not NULL) "TOTAL-USED",
             client_archetype.smartlead_campaign_id,
             client_archetype.meta_data,
-            client_archetype.first_message_delay_days
+            client_archetype.first_message_delay_days,
+            client_archetype.setup_status
         FROM
             client_archetype
             JOIN client_sdr ON client_sdr.id = client_archetype.client_sdr_id
@@ -3416,6 +3418,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
         39: "smartlead_campaign_id",
         40: "meta_data",
         41: "first_message_delay_days",
+        42: "setup_status"
     }
 
     # Convert and format output

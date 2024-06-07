@@ -720,6 +720,7 @@ def activate_client_archetype(client_sdr_id: int, client_archetype_id: int) -> b
 
     # Mark the archetype as active
     archetype.active = True
+    archetype.setup_status = "ACTIVE"
     db.session.commit()
 
     # Bulk update prospects
@@ -767,6 +768,7 @@ def deactivate_client_archetype(
     archetype.active = False
     archetype.linkedin_active = False
     archetype.email_active = False
+    archetype.setup_status = "INACTIVE"
     db.session.commit()
 
     # If this campaign is tied to Smartlead, then we need to PAUSE the campaign
@@ -804,6 +806,7 @@ def hard_deactivate_client_archetype(
 
     # Set archetype to no longer active
     archetype.active = False
+    archetype.setup_status = "INACTIVE"
     db.session.commit()
 
     # Collect bulk save objects list for efficient update
@@ -1237,6 +1240,7 @@ def get_client_archetype_overview(client_archetype_id):
         "num_prospects": num_prospects,
         "num_prospects_with_emails": num_prospects_with_emails,
         "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,
+        "setup_status": archetype.setup_status.value if archetype.setup_status else None,
     }
 
 def get_total_contacts_for_archetype(client_archetype_id):
