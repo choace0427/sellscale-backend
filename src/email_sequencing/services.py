@@ -214,7 +214,6 @@ def create_email_sequence_step(
                 EmailSequenceStep.client_sdr_id == client_sdr_id,
                 EmailSequenceStep.client_archetype_id == client_archetype_id,
                 EmailSequenceStep.overall_status == overall_status,
-                EmailSequenceStep.substatus == substatus,
                 EmailSequenceStep.bumped_count == bumped_count,
             )
         ).all()
