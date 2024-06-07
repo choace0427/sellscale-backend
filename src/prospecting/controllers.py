@@ -1033,7 +1033,7 @@ def add_prospect_from_apollo_query_id(client_sdr_id: int):
         "num_contacts", request, json=True, required=False, parameter_type=int
     )
 
-    if client_sdr_id not in (34, 83):
+    if client_sdr_id not in (34, 221):
         return "OK (non-SellScale user)", 200
 
     success = add_prospects_from_saved_apollo_query_id(
