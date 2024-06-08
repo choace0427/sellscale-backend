@@ -368,7 +368,35 @@ class SDRQuestionaireColumn(sa.types.TypeDecorator):
         for key in data:
             if key not in self.COLUMN_SCHEMA:
                 raise ValueError(f"Key {key} is not valid.")
+            
 
+class MessageType(enum.Enum):
+    TEXT = "text"
+    IMAGE = "image"
+    FILE = "file"
+
+
+class ClientTeamMessage(db.Model):
+    __tablename__ = "client_team_messages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    message = db.Column(db.String, nullable=False)
+    message_type = db.Column(sa.Enum(MessageType), nullable=False)
+    display_name = db.Column(db.String, default='', nullable=False)
+
+    client = db.relationship("Client", backref="team_messages")
+    client_sdr = db.relationship("ClientSDR", backref="team_messages")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_sdr_id": self.client_sdr_id,
+            "message": self.message,
+            "message_type": self.message_type.value,
+        }
 
 class ClientSDR(db.Model):
     __tablename__ = "client_sdr"
