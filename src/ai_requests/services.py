@@ -4,6 +4,7 @@ from typing import Optional
 from src.ai_requests.models import AIRequest, AIRequestStatus
 from app import db
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.pylon.pylon import Pylon
 from src.slack.models import SlackNotificationType
 from src.slack.notifications.ai_task_completed import AITaskCompletedNotification
 from src.slack.slack_notification_center import (
@@ -28,13 +29,14 @@ def create_ai_requests(
             days_till_due = 1
 
         # Create the new backend object in the AIRequest table
+        due_date = datetime.utcnow() + timedelta(days=days_till_due)
         new_request = AIRequest(
             client_sdr_id=client_sdr_id,
             title=title,
             description=description,
             percent_complete=0,
             creation_date=datetime.utcnow(),
-            due_date=datetime.utcnow() + timedelta(days=days_till_due),
+            due_date=due_date,
             status=AIRequestStatus.QUEUED,
             message="",
         )
@@ -105,6 +107,14 @@ def create_ai_requests(
 
         # Send Slack notification for the new request
         send_slack_notification_for_new_request(client_sdr_id, new_request.id)
+
+        # Create Pylon issue
+        p = Pylon(client_sdr_id=client_sdr_id)
+        formatted_due_date = due_date.strftime("%Y-%m-%d")
+        p.create_issue(
+            title=title,
+            body_html=f"<b>Due Date: {formatted_due_date}</b><br/>" + description,
+        )
 
         return new_request
     except Exception as e:
