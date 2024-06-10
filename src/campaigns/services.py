@@ -586,7 +586,8 @@ def create_outbound_campaign(
 
     # DO NOT create a campaign if there are no Prospect IDs
     if len(prospect_ids) == 0:
-        raise Exception("Cannot generate an empty campaign (no Prospects)")
+        return
+        # raise Exception("Cannot generate an empty campaign (no Prospects)")
 
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     ocs: list[OutboundCampaign] = OutboundCampaign.query.filter(

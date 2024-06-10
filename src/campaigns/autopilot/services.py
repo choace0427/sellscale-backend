@@ -103,12 +103,14 @@ def daily_collect_and_generate_campaigns_for_sdr(self):
     # Generate LI campaigns for SDRs, using another function
     for li_sdr in li_sdrs:
         li_sdr_id = li_sdr.id
-        daily_generate_linkedin_campaign_for_sdr.apply_async(args=[li_sdr_id])
+        print("LinkedIn SDR ID:", li_sdr_id)
+        daily_generate_linkedin_campaign_for_sdr(li_sdr_id)
 
     # Generate Email campaigns for SDRs, using another function
     for email_sdr in email_sdrs:
         email_sdr_id = email_sdr.id
-        daily_generate_email_campaign_for_sdr.apply_async(args=[email_sdr_id])
+        print("Email SDR ID:", email_sdr_id)
+        daily_generate_email_campaign_for_sdr(email_sdr_id)
 
 
 @celery.task(bind=True, max_retries=1)

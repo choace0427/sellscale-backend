@@ -29,9 +29,9 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-LINKEDIN_SEARCH_URL = "https://api.iscraper.io/v2/linkedin-search"
-PROFILE_DETAILS_URL = "https://api.iscraper.io/v2/profile-details"
-DATA_TYPES_URL = "https://api.iscraper.io/v2/data-types"
+LINKEDIN_SEARCH_URL = "https://api.proapis.com/iscraper/v4/linkedin-search"
+PROFILE_DETAILS_URL = "https://api.proapis.com/iscraper/v4/profile-details"
+DATA_TYPES_URL = "https://api.proapis.com/iscraper/v4/data-types"
 ISCRAPER_API_KEY = os.environ.get("ISCRAPER_API_KEY")
 
 
