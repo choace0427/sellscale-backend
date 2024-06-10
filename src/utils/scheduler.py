@@ -593,7 +593,7 @@ scheduler.add_job(auto_run_daily_revival_cleanup_job, trigger="interval", hours=
 scheduler.add_job(
     func=run_collect_and_trigger_email_store_hunter_verify, trigger="interval", hours=1
 )
-scheduler.add_job(func=demo_detector_job, trigger="interval", hours=daily_trigger)
+scheduler.add_job(func=demo_detector_job, trigger="interval", hours=12)
 scheduler.add_job(func=process_sdr_stats_job, trigger="interval", hours=3)
 scheduler.add_job(func=run_hourly_email_finder_job, trigger="interval", hours=1)
 scheduler.add_job(func=run_analytics_backfill_jobs, trigger="interval", hours=1)
