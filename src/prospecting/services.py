@@ -829,6 +829,11 @@ def update_prospect_status_linkedin(
 
         if not quietly:
             # Send the notification
+            import time
+
+            time.sleep(
+                2
+            )  # Sleep for 2 seconds to allow the engagement feed to be created
             success = create_and_send_slack_notification_class_message(
                 notification_type=SlackNotificationType.LINKEDIN_PROSPECT_SCHEDULING,
                 arguments={

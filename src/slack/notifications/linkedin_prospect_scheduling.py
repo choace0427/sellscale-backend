@@ -71,7 +71,7 @@ class LinkedinProspectSchedulingNotification(SlackNotificationClass):
                 LinkedinConversationEntry.query.filter_by(
                     conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
                 )
-                .order_by(LinkedinConversationEntry.created_at.desc())
+                .order_by(LinkedinConversationEntry.date.desc())
                 .limit(5)
                 .all()
             )
