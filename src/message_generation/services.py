@@ -1177,7 +1177,10 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         generate_prospect_research(prospect.id, False, False)
 
         # 6. Create research points and payload for the prospect
-        get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+        try:
+            get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+        except Exception as e:
+            print(e)
 
         # 7a. Get the Email Body prompt
         template_id = None

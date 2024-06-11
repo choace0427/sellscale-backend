@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 from app import db
 from model_import import Client, ClientSDR, AIResearcher, AIResearcherQuestion, AIResearcherAnswer, ClientArchetype, Prospect
 from src.email_outbound.models import ProspectEmail
@@ -224,7 +225,7 @@ def get_ai_researcher_answers_for_prospect(
 def run_all_ai_researcher_questions_for_prospect(
     client_sdr_id: int,
     prospect_id: int,
-    room_id: str
+    room_id: Optional[str] = None
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_archetype_id = prospect.archetype_id
