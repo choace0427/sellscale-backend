@@ -475,33 +475,58 @@ def edit_question(
     return True
 
 def get_generated_email(email_body, prospectId):
-    prospect = Prospect.query.get(prospectId)
-    name = prospect.first_name
-    title = prospect.title
-    company = prospect.company
-    research = ''
+    try:
+        prospect: Prospect = Prospect.query.get(prospectId)
+        if not prospect:
+            return False
 
-    research_list = get_ai_researcher_answers_for_prospect(prospectId)
-    research = ', '.join([str(answer) for answer in research_list]) 
-    answer = wrapped_chat_gpt_completion(
-    messages = [
-    {
-        "role": "user",
-        "content": f"You are an emailer personalizer. Combine the sequence provided with the personalization to create a personalized email.\
-            Keep it as short as possible. Feel free to spread the personalizations across the email to keep length minimal. Try to include \
-                personalization at the beginning since it helps with open rates.\n\nOriginal Email: {email_body} ### Personalization: {research} \n\n\nProspect\
-                Information:\n- name: {name}\n- title: {title} @ {company}\n\nTie in relevant details into the emails so it is compelling for the\
-                    person I am reaching out to.\n\nExample\nHi Dr Xyz..\n\nTie in relevant details into the emails so it is compelling \
-                        for the person I am reaching out to.\nNOTE: Try not to increase the length of the email - seamlessly incorproate\
-                            personalization to make it same or shorter length.\nNOTE: Include the personalization at the beginning since \
-                                that makes for a better hook and helps open rates.\nNOTE: Only respond with the personalized email, \
-                                    nothing else.\n\n\nPersonalized email:"
-    }
-    ],
-        model='gpt-4o',
-        max_tokens=1000,
-    )
-    return answer
+        name = prospect.first_name
+        title = prospect.title
+        company = prospect.company
+
+        research_list = get_ai_researcher_answers_for_prospect(prospectId)
+        if not research_list:
+            return False
+
+        research = ', '.join([str(answer) for answer in research_list])
+
+        prompt = f"""
+        You are an emailer personalizer. Combine the sequence provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to spread the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
+
+        Original Email: {email_body} ### Personalization: {research}
+
+        Prospect Information:
+        - name: {name}
+        - title: {title} @ {company}
+
+        Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
+
+        Example
+        Hi Dr Xyz..
+
+        Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
+        NOTE: Try not to increase the length of the email - seamlessly incorporate personalization to make it same or shorter length.
+        NOTE: Include the personalization at the beginning since that makes for a better hook and helps open rates.
+        NOTE: Only respond with the personalized email, nothing else.
+
+        Personalized email:
+        """
+
+        answer = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model='claude-3-opus-20240229',
+            max_tokens=1000
+        )
+
+        return answer
+    except Exception as e:
+        print(e)
+        return False
 
 def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
     try:
