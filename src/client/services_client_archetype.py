@@ -1176,16 +1176,38 @@ def get_client_archetype_stats(client_archetype_id):
         },
     }
 
+def get_client_archetype_analytics(client_archetype_id):
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_id = client_archetype.client_id
+
+    analytics = get_all_campaign_analytics_for_client(
+        client_id=client_id,
+        client_archetype_id=int(client_archetype_id),
+    )
+
+    num_sent, num_opens, num_replies, num_demos, num_pos_replies = 0, 0, 0, 0, 0
+    if analytics and len(analytics) > 0:
+        num_sent = analytics[0]["num_sent"]
+        num_opens = analytics[0]["num_opens"]
+        num_replies = analytics[0]["num_replies"]
+        num_demos = analytics[0]["num_demos"]
+        num_pos_replies = analytics[0]["num_pos_replies"]
+
+
+    return {
+        "num_sent": num_sent,
+        "num_opens": num_opens,
+        "num_replies": num_replies,
+        "num_demos": num_demos,
+        "num_pos_replies": num_pos_replies,
+    }
+
 
 def get_client_archetype_overview(client_archetype_id):
     archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
     client_id = archetype.client_id
 
-    analytics = get_all_campaign_analytics_for_client(
-        client_id=client_id,
-        client_archetype_id=int(client_archetype_id),
-    )
 
     emoji = archetype.emoji
     archetype_name = archetype.archetype
@@ -1196,19 +1218,9 @@ def get_client_archetype_overview(client_archetype_id):
     email_to_linkedin_connection = archetype.email_to_linkedin_connection.value if archetype.email_to_linkedin_connection else None
     email_active = archetype.email_active
     active = archetype.active
-    is_setting_up = archetype.is_setting_up
     linkedin_active = archetype.linkedin_active
     testing_volume = archetype.testing_volume
     id = archetype.id
-
-    num_sent, num_opens, num_replies, num_demos, num_pos_replies = 0, 0, 0, 0, 0
-
-    if analytics and len(analytics) > 0:
-        num_sent = analytics[0]["num_sent"]
-        num_opens = analytics[0]["num_opens"]
-        num_replies = analytics[0]["num_replies"]
-        num_demos = analytics[0]["num_demos"]
-        num_pos_replies = analytics[0]["num_pos_replies"]
 
     num_prospects: int = Prospect.query.filter(
         Prospect.archetype_id == client_archetype_id
@@ -1231,12 +1243,7 @@ def get_client_archetype_overview(client_archetype_id):
         "is_setting_up": archetype.is_setting_up,
         "email_to_linkedin_connection": email_to_linkedin_connection,
         "linkedin_active": linkedin_active,
-        "num_sent": num_sent,
         "testing_volume": testing_volume,
-        "num_opens": num_opens,
-        "num_replies": num_replies,
-        "num_demos": num_demos,
-        "num_pos_replies": num_pos_replies,
         "num_prospects": num_prospects,
         "num_prospects_with_emails": num_prospects_with_emails,
         "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,

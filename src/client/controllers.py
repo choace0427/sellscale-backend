@@ -155,6 +155,7 @@ from src.client.services_client_archetype import (
     get_client_archetype_stats,
     get_client_archetype_overview,
     get_client_archetype_sequences,
+    get_client_archetype_analytics,
     get_client_archetype_contacts,
     get_total_contacts_for_archetype,
     get_email_blocks_configuration,
@@ -3240,6 +3241,20 @@ def get_campaign_sequences(client_sdr_id: int):
 
     sequences = get_client_archetype_sequences(client_archetype_id)
     return jsonify(sequences), 200
+
+@CLIENT_BLUEPRINT.route("/campaign_analytics", methods=["GET"])
+@require_user
+def get_campaign_analytics(client_sdr_id: int):
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    analytics = get_client_archetype_analytics(client_archetype_id)
+    return jsonify(analytics), 200
 
 
 @CLIENT_BLUEPRINT.route("/send_generic_email", methods=["POST"])
