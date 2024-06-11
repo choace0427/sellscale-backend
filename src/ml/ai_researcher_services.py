@@ -565,8 +565,8 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
             original_email_body=origina_email_body,
             personalizations=personalizations,
             name=prospect.first_name,
-            title=prospect.title,
-            company=prospect.company
+            title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
+            company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company
         )
 
         answer = wrapped_chat_gpt_completion(
