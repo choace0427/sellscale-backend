@@ -517,8 +517,12 @@ def post_generate_ai_researcher_questions(client_sdr_id: int):
         "researcher_id", request, json=True, required=True, parameter_type=int
     )
 
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=True, parameter_type=int
+    )
+
     response = generate_ai_researcher_questions(
-        researcher_id=researcher_id, client_sdr_id=client_sdr_id,
+        researcher_id=researcher_id, client_sdr_id=client_sdr_id, campaign_id=campaign_id
     )
 
     return response

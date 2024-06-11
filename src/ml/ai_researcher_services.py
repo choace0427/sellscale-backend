@@ -120,43 +120,53 @@ def create_ai_researcher_question(
     return True
 
 def generate_ai_researcher_questions(
-    researcher_id: int, client_sdr_id: int
+    researcher_id: int, client_sdr_id: int, campaign_id: int
 ):
     
-    from src.ml.services import get_perplexity_response, get_text_generation
+    from src.ml.services import get_text_generation
+    from src.client.services_client_archetype import get_client_archetype_sequences
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
 
-    messages = [
-        {
-            "role": "system",
-            "content": "You are an AI researcher tasked with providing accurate and factual information about a company and what their main products are.",
-        },
-        {
-            "role": "user",
-            "content": (
-                f"{'The name of the company is: ' + client.company + '. ' if client.company else ''}"
-                f"{'Website: ' + client.domain + '. ' if client.domain else ''}"
-                f"{'Description: ' + client.description + '. ' if client.description else ''}"
-                f"{'Tagline: ' + client.tagline + '.' if client.tagline else ''}"
-            ).strip()
-        }
-    ]
+    sequences = get_client_archetype_sequences(campaign_id)
+    email_sequence = sequences.get("email_sequence", [])
+    linkedin_sequence = sequences.get("linkedin_sequence", [])
 
-    company_information = get_perplexity_response("llama-3-sonar-large-32k-online", messages)
+    # Determine the longest sequence
+    if email_sequence or linkedin_sequence:
+        longest_sequence = max(email_sequence, linkedin_sequence, key=len)
+        # Find the archetype_example_sequence based on the longest sequence
+        archetype_example_sequence = max(
+            (step["description"] for step in longest_sequence),
+            key=len,
+            default=""
+        )
+    else:
+        longest_sequence = []
+        archetype_example_sequence = "N/A."
 
-    print('company information is', company_information)
+    # Print active sequences
+    print("Email Sequence:", email_sequence)
+    print("LinkedIn Sequence:", linkedin_sequence)
 
-    prompt = f'''You are an SDR researching a prospective company for cold outreach. 
-        Develop a thought process that a highly intelligent and sophisticated SDR would use. 
-        This thought process should be so insightful and clever that it would earn the SDR a raise.
-        Here is information about my company: 
-          {company_information}.
+    prompt = f'''We are reaching out to {archetype.archetype}. We are {client.company}, 
+    {client.description}. Angle: The questions we ask 
+    will be specific to this campaign. Here's the first email template to infer what this campaign is about
+    to generate research questions for: 
+    
+    {archetype_example_sequence} 
+    
+    Come up with some research questions I can use to use in my outbound campaign. GOOD RESEARCH: Questions I 
+    can find or search on google, reddit, youtube videos, articles, etc. eg. "Is the company hiring for
+    data engineers Relevance: this is relevant if they are hiring for data engineers, because it could 
+    suggest the CTO is overwhelmed and we can mention this in outreach. BAD RESEARCH: Questions that 
+    are hard to find publicly, super specific, or not relevant Please come up with 3-4 questions for 
+    research. Format: Question: [question here] Relevance: [Yes/no]. [Relevance reason]
           
-        Now, infer information about my prospective customers and generate
-        3-4 questions I would have when researching companies that are prospective buyers. If you are asking about their company
-         specifically please use a placeholder like so, e.g. "what is [[company]]'s ... ?" The data should be in JSON format with the following structure:
+    If you are asking about their company
+    specifically please use a placeholder like so, e.g. "what is [[company]]'s ... ?" The data should be in JSON format with the following structure:
 
         [
             {{
@@ -169,7 +179,7 @@ def generate_ai_researcher_questions(
 
         Only respond with the JSON, nothing else.
         '''
-
+    
     def get_response_with_retries(prompt, retries=3):
         for attempt in range(retries):
             response = get_text_generation(
@@ -202,10 +212,6 @@ def generate_ai_researcher_questions(
             })
     else:
         print("Failed to decode JSON after multiple attempts.")
-
-    # print a bunch of newlines
-    print("\n" * 3)
-
     print(response_json)
 
     return response_json
