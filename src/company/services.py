@@ -131,7 +131,6 @@ def add_company(
     career_page_url: Optional[str] = None,
     related_companies: Optional[list] = None,
 ) -> bool:
-
     company = None
     if apollo_uuid:
         company: Company = Company.query.filter(
@@ -250,6 +249,37 @@ def find_company_for_prospect(prospect_id: int) -> Company:
         return None
 
 
+def find_company_name_from_url(
+    client_sdr_id: int,
+    company_url: str,
+) -> Optional[str]:
+    """Finds a company name from a company URL, if it exists in our Company table. Otherwise will attempt to asynchronously search for the company name using LinkedIn or Apollo.
+
+    Args:
+        client_sdr_id (int): The client SDR ID.
+        company_url (str): The company URL.
+
+    Returns:
+        Optional[str]: The company name.
+    """
+    from src.domains.services import extract_domain
+
+    # Try to get the company name from the Company table
+    company: Company = Company.query.filter(
+        func.array_to_string(Company.websites, ",").ilike(f"%www.{company_url}%"),
+    ).first()
+    if company:
+        print(f"{company.name} - Found Company in DB...")
+        return company.name
+
+    print(f"{company_url} - Company not found in DB...")
+
+    # If the company doesn't exist, then we will attempt to search for it (asynchronously)
+    find_company.delay(client_sdr_id=client_sdr_id, company_url=company_url)
+    return None
+
+
+@celery.task
 def find_company(
     client_sdr_id: Optional[int] = None,
     company_name: Optional[str] = None,
@@ -265,9 +295,7 @@ def find_company(
         ).first()
     if company_url:
         company: Company = Company.query.filter(
-            func.array_to_string(Company.websites, ",").ilike(
-                f"%{extract_domain(company_url)}%"
-            ),
+            Company.websites.any(company_url),
         ).first()
     if apollo_uuid:
         company: Company = Company.query.filter(
@@ -287,7 +315,6 @@ def add_company_via_search(
     client_sdr_id: int,
     company_name: str,
 ) -> Optional[int]:
-
     api = LinkedIn(client_sdr_id)
     linkedin_company = api.get_company(convert_name_to_universal_name(company_name))
 
@@ -332,11 +359,12 @@ def add_company_via_search(
 
     if apollo_companies and len(apollo_companies) > 0:
         apollo_company = apollo_companies[0]
-        return populate_company_from_apollo_result(apollo_company)
+        return populate_company_from_apollo_result.delay(apollo_company)
 
     return None
 
 
+@celery.task
 def populate_company_from_apollo_result(apollo_company: dict) -> int:
     if not apollo_company:
         return None
@@ -459,7 +487,7 @@ def get_timeline(company_id: int, client_sdr_id: int):
 
     query = """
         with d as (
-            select 
+            select
                 prospect.first_name,
                 prospect.full_name,
                 prospect.title,
@@ -485,15 +513,15 @@ def get_timeline(company_id: int, client_sdr_id: int):
                 client_sdr.name "rep"
             from prospect
                 join client_sdr on client_sdr.id = prospect.client_sdr_id
-                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id 
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
                 left join prospect_email on prospect_email.prospect_id = prospect.id
                 left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
-            where 
+            where
                 prospect.client_id = {CLIENT_ID} and
                 (
                     prospect_email_status_records.to_status in ('ACTIVE_CONVO', 'DEMO_SET', 'EMAIL_OPENED')
                     or prospect_status_records.to_status in ('ACCEPTED', 'ACTIVE_CONVO', 'DEMO_SET')
-                ) and 
+                ) and
                 prospect.company_id = {COMPANY_ID}
             group by 1,2,3,4,5,6,7,8
             order by case
@@ -503,7 +531,7 @@ def get_timeline(company_id: int, client_sdr_id: int):
                     prospect_email_status_records.created_at
             end desc
         )
-        select 
+        select
             concat(
                 d.first_name, ' moved to `', lower(replace(d.status, '_', ' ')), '` on ', d.channel, ' - ', to_char(d.created_at, 'MM/DD/YYYY')
             ) title,
@@ -527,18 +555,18 @@ def prospect_engagement(company_id: int, client_sdr_id: int):
     client_id = client_sdr.client_id
 
     query = """
-        select 
+        select
             prospect.full_name "contact",
             prospect.title "title",
             client_sdr.name "rep_name",
-            case 
+            case
                 when prospect.approved_outreach_message_id is not null or prospect.approved_prospect_email_id is not null
                     then 'engaged'
                 else 'sourced'
             end status
         from prospect
             join client_sdr on client_sdr.id = prospect.client_sdr_id
-        where 
+        where
             prospect.company_id = {COMPANY_ID}
             and prospect.client_id = {CLIENT_ID}
     """.format(

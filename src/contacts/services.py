@@ -5,6 +5,7 @@ from typing import Optional
 from app import db
 import requests
 from src.client.models import ClientArchetype, ClientSDR
+from src.company.services import find_company_name_from_url
 from src.contacts.models import SavedApolloQuery
 
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -414,6 +415,61 @@ def apollo_get_contacts_for_page(
     return results, data, saved_query_id
 
 
+def apollo_get_organizations(
+    client_sdr_id: int,
+    company_names: list[str] = [],
+    company_urls: list[str] = [],
+) -> list:
+    """A near-pass-through function which will collect organization objects from Apollo based on the company names provided.
+
+    Args:
+        company_names (list[str]): List of company names to search for
+        company_urls (list[str]): List of company URLs to search for
+
+    Returns:
+        list: List of organization objects
+    """
+    # Get organizations from company names
+    data: list = []
+    if company_names:
+        orgs = apollo_get_organizations_from_company_names(
+            client_sdr_id=client_sdr_id,
+            company_names=company_names,
+        )
+        data.extend(orgs)
+
+    # Get organizations from company urls
+    if company_urls:
+        company_names = []
+        # not_found_urls = []
+
+        # Convert urls to company names using Company model
+        # for company_url in company_urls:
+        #     name = find_company_name_from_url(
+        #         client_sdr_id=client_sdr_id, company_url=company_url
+        #     )
+        #     if name:
+        #         company_names.append(name)
+        #     else:
+        #         not_found_urls.append(company_url)
+
+        # Convert urls to company names using urllib
+        urllib_names = get_company_name_using_urllib(urls=company_urls)
+        company_names.extend(urllib_names)
+
+        # Get organizations from company names
+        orgs = apollo_get_organizations_from_company_names(
+            client_sdr_id=client_sdr_id,
+            company_names=company_names,
+        )
+        data.extend(orgs)
+
+    # Deduplicate
+    data = [dict(t) for t in {tuple(d.items()) for d in data}]
+
+    return data
+
+
 def get_company_name_using_urllib(urls: list[str]) -> list[str]:
     """Get the company name from a list of URLs using urllib. Hacky solution, but it works.
 
@@ -535,7 +591,7 @@ def apollo_get_organizations_from_company_names(
         from src.company.services import populate_company_from_apollo_result
 
         for result in results:
-            company_id = populate_company_from_apollo_result(result)
+            company_id = populate_company_from_apollo_result.delay(result)
             print("Updated Company ID", company_id)
 
     return results
@@ -546,7 +602,6 @@ def apollo_get_pre_filters(
     persona_id: Optional[int] = None,
     segment_id: Optional[int] = None,
 ):
-
     query = f"""
         select data, results, persona.id "persona", saved_apollo_query.id
 from saved_apollo_query

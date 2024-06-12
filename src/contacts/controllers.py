@@ -3,13 +3,12 @@ from src.authentication.decorators import require_user
 
 from src.contacts.services import (
     apollo_get_contacts,
-    apollo_get_organizations_from_company_names,
+    apollo_get_organizations,
     apollo_get_pre_filters,
-    get_company_name_using_urllib,
     get_territories,
     predict_filters_needed,
 )
-from src.company.services import find_company
+from src.company.services import find_company, find_company_name_from_url
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
 from sqlalchemy import or_
@@ -184,33 +183,12 @@ def get_company(client_sdr_id: int):
             }
         )
 
-    # Get organizations from company names
-    data: list = []
-    if company_names:
-        orgs = apollo_get_organizations_from_company_names(
-            client_sdr_id=client_sdr_id,
-            company_names=company_names,
-        )
-        data.extend(orgs)
-
-    if company_urls:
-
-        company_ids = [
-            find_company(client_sdr_id=client_sdr_id, company_url=url)
-            for url in company_urls
-        ]
-        companies: list[Company] = Company.query.filter(
-            Company.id.in_([id for id in company_ids if id is not None]),
-        ).all()
-
-        orgs = apollo_get_organizations_from_company_names(
-            client_sdr_id=client_sdr_id,
-            company_names=[company.name for company in companies],
-        )
-        data.extend(orgs)
-
-    # Deduplicate
-    data = [dict(t) for t in {tuple(d.items()) for d in data}]
+    # Get the organizations
+    data = apollo_get_organizations(
+        client_sdr_id=client_sdr_id,
+        company_names=company_names,
+        company_urls=company_urls,
+    )
 
     return jsonify(
         {
@@ -243,7 +221,6 @@ def get_territories_request(client_sdr_id: int):
 @CONTACTS_BLUEPRINT.route("/get_pre_filters", methods=["GET"])
 @require_user
 def get_apollo_get_pre_filters(client_sdr_id: int):
-
     persona_id = get_request_parameter(
         "persona_id", request, json=False, required=False
     )
