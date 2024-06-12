@@ -979,7 +979,7 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
     prompt = f"""
 You are a sales development representative writing on behalf of the SDR.
 
-Write a personalized follow up message on LinkedIn that's short enough I could read on an iphone easily.
+Write a personalized follow up message on LinkedIn that follows the template below. Use the information provided to personalize the message if necessary.
 Note - you do not need to include all info.
 
 SDR info --
@@ -1008,17 +1008,22 @@ Additional instructions:
 IMPORTANT:
 Stick to the template very strictly. Do not deviate from the template:
 --- START TEMPLATE ---
+--------------------
 {template}
+--------------------
 --- END TEMPLATE ---
 
-Conversation history:
+Here is the conversation history:
 {convo_history}
+
+Important: Only personalize the message where there are [[brackets]] in the template with the double square brackets. Do not deviate from the template.
+Important: Only respond with the message you would send to the prospect. Do not include any additional information in your response.
 
 Output:"""
 
     response = get_text_generation(
         [{"role": "user", "content": prompt}],
-        max_tokens=200,
+        max_tokens=500,
         model="gpt-4",
         type="LI_MSG_OTHER",
         prospect_id=prospect_id,
