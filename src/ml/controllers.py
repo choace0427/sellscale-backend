@@ -398,8 +398,11 @@ def post_create_ai_researcher(client_sdr_id: int):
     name = get_request_parameter(
         "name", request, json=True, required=True, parameter_type=str
     )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=False, parameter_type=int
+    )
 
-    success = create_ai_researcher(name=name, client_sdr_id=client_sdr_id)
+    success = create_ai_researcher(name=name, client_sdr_id=client_sdr_id, archetype_id=archetype_id)
 
     if not success:
         return "Error creating AI Researcher", 400

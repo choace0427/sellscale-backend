@@ -77,7 +77,8 @@ def auto_assign_ai_researcher_to_client_archetype(
 
 def create_ai_researcher(
     name: str,
-    client_sdr_id: int
+    client_sdr_id: int,
+    archetype_id: Optional[int] = None
 ):
     """Create an AI Researcher for a client."""
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -90,6 +91,12 @@ def create_ai_researcher(
     )
     db.session.add(researcher)
     db.session.commit()
+
+    if archetype_id:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+        client_archetype.ai_researcher_id = researcher.id
+        db.session.add(client_archetype)
+        db.session.commit()
 
     return True
 
