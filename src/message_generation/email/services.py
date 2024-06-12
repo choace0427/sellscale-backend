@@ -141,8 +141,7 @@ Title: {client_sdr_title}
 Prospect info --
 Prospect Name: {prospect_name}
 Prospect Title: {prospect_title}
-Prospect Bio:
-"{prospect_bio}"
+
 Prospect Company Name: {prospect_company_name}
 
 More research --
@@ -173,7 +172,6 @@ Output:""".format(
         persona_buy_reason=persona_buy_reason,
         prospect_name=prospect_name,
         prospect_title=prospect_title,
-        prospect_bio=prospect_bio,
         prospect_company_name=prospect_company_name,
         research_points=research_points,
         persona_contact_objective=prospect_contact_objective,
@@ -343,8 +341,7 @@ Title: {client_sdr_title}
 Prospect info --
 Prospect Name: {prospect_name}
 Prospect Title: {prospect_title}
-Prospect Bio:
-"{prospect_bio}"
+
 Prospect Company Name: {prospect_company_name}
 
 More research --
@@ -378,7 +375,6 @@ Output:""".format(
         persona_buy_reason=persona_buy_reason,
         prospect_name=prospect_name,
         prospect_title=prospect_title,
-        prospect_bio=prospect_bio,
         prospect_company_name=prospect_company_name,
         prospect_research=account_points,
         research_points=research_points,
@@ -543,7 +539,6 @@ Here are some facts about the prospect:
 Prospect Name: {prospect_name}
 Prospect Title: {prospect_title}
 Prospect Company: {prospect_company_name}
-Prospect Bio: "{prospect_bio}"
 
 Do not include the word 'Subject:' in the output. Do not include quotations.
 
@@ -560,7 +555,6 @@ Output:""".format(
         prospect_name=prospect_name,
         prospect_title=prospect_title,
         prospect_company_name=prospect_company_name,
-        prospect_bio=prospect_bio,
         template=subject_line,
     )
 
