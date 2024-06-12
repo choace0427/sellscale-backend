@@ -1248,6 +1248,7 @@ def get_client_archetype_overview(client_archetype_id):
         "num_prospects_with_emails": num_prospects_with_emails,
         "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,
         "setup_status": archetype.setup_status.value if archetype.setup_status else None,
+        "ai_researcher_id": archetype.ai_researcher_id,
     }
 
 def get_total_contacts_for_archetype(client_archetype_id):
