@@ -157,6 +157,7 @@ from src.client.services_client_archetype import (
     is_archetype_uploading_contacts,
     get_client_archetype_sequences,
     get_client_archetype_analytics,
+    get_sent_volume_during_time_period,
     get_client_archetype_contacts,
     get_total_contacts_for_archetype,
     get_email_blocks_configuration,
@@ -3270,6 +3271,22 @@ def get_campaign_analytics(client_sdr_id: int):
     analytics = get_client_archetype_analytics(client_archetype_id)
     return jsonify(analytics), 200
 
+@CLIENT_BLUEPRINT.route("/sent_volume_during_period", methods=["POST"])
+@require_user
+def get_sent_volume_during_period(client_sdr_id: int):
+    data = request.get_json()
+    start_date = data.get("start_date")
+    campaign_id = data.get("campaign_id")
+    end_date = data.get("end_date")
+
+    if not start_date or not end_date:
+        return jsonify({"error": "start_date and end_date are required"}), 400
+
+    try:
+        sent_emails_count = get_sent_volume_during_time_period(client_sdr_id, start_date, end_date, campaign_id)
+        return jsonify({"sent_emails_count": sent_emails_count}), 200
+    except Exception as e:
+        return jsonify({"error": "Internal Server Error"}), 500
 
 @CLIENT_BLUEPRINT.route("/send_generic_email", methods=["POST"])
 @require_user

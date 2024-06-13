@@ -1176,6 +1176,44 @@ def get_client_archetype_stats(client_archetype_id):
         },
     }
 
+def get_sent_volume_during_time_period(client_sdr_id, start_date, end_date, campaign_id):
+    """
+    Get the number of emails sent by the client SDR during the time period
+    """
+    try:
+        query = """
+            select
+                count(distinct prospect.id)
+                from
+                    prospect
+                    left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                    left join prospect_email on prospect_email.prospect_id = prospect.id
+                    left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                        where
+                            prospect.archetype_id={campaign_id}
+                            and 
+                            (
+                                (
+                                    prospect_status_records.to_status = 'SENT_OUTREACH'
+                                    and prospect_status_records.created_at >= '{start_date}'::timestamp
+                                    and prospect_status_records.created_at <= '{end_date}'::timestamp
+                                )
+                                or
+                                (
+                                    prospect_email_status_records.to_status = 'SENT_OUTREACH'
+                                    and prospect_email_status_records.created_at >= '{start_date}'::timestamp
+                                    and prospect_email_status_records.created_at <= '{end_date}'::timestamp
+                                )
+	    );""".format(
+            campaign_id=campaign_id, start_date=start_date, end_date=end_date
+        )
+
+        data = db.session.execute(query).fetchone()
+        return data[0]
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return None
+
 def get_client_archetype_analytics(client_archetype_id):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_id = client_archetype.client_id
