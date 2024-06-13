@@ -697,9 +697,67 @@ def replenish_all_ml_credits_for_all_sdrs() -> bool:
 
     return True
 
+def chat_ai_verify_demo_set(
+    messages: list[str], seller: str
+) -> bool:
+    """Verifies if the conversation is about setting a demo for a sale.
+    Args:
+        messages (list[str]): The conversation history.
+        seller (str): The name of the seller.
+        current_status (str): The current status of the conversation.
+    Returns:
+        bool: Whether the conversation is about a demo set.
+    """
+    # Construct the transcript
+    transcript = ""
+    for message in messages:
+        transcript += message + "\n\n"
+
+    prompt = """The following transcript was determined to feature a seller and a potential customer discussing a time to meet. 
+    
+    We would like to verify if they have agreed on the time to meet for a sales demonstration.
+    Can you confirm, by replying either 0 (for False) or 1 (for True) that this conversation meets the following criteria for having a demo set?
+    Criteria:
+    The customer has agreed that they will be available at a time for some kind of meeting or sales demonstration.
+    The customer has provided contact information, such as a phone number or email address.
+    Note: Ensure that the scheduling is definitively confirmed. Be cautious, as participants might propose times and places without finalizing them.
+    Verify that both parties have agreed on the specific time for their meeting, leaving no unresolved details.
+    Consider nuanced language that might indicate a demo is set, such as phrases like "Looking forward to our conversation & potential collaboration," which could imply a confirmed meeting.
+    If the conversation suggests that the customer is likely to attend the call, such as confirming a specific time works for them, then that will qualify as a demo set.
+    Additionally, check for any follow-up actions or confirmations, like calendar invites or reminders, which further solidify the meeting.
+    Be aware of edge cases where the customer might express interest but not commit to a specific time, or where the conversation includes tentative language that does not confirm a demo.
+    If the customer has consented to be sent some kind of link or email to meet, this can also qualify as a demo set.
+    Consider any other edge cases that might indicate a demo is set, such as the seller following up with a confirmation message that the customer acknowledges.
+
+    Important: ONLY respond with a 0 (for False) or 1 (for True). Ensure that you are 100% certain that the demo was scheduled.
+    
+    Seller: {seller_name}
+    --- Start Transcript ---
+    {transcript}
+    --- End Transcript ---
+    """.format(
+            seller_name=seller, transcript=transcript
+        )
+
+    response = get_text_generation(
+        [{"role": "user", "content": prompt}],
+        temperature=0,
+        max_tokens=10,
+        model='gpt-4o',
+        type="MISC_CLASSIFY",
+    )
+
+    match = re.search(r"\d+", response)
+    if match:
+        number = int(match.group(0))
+    else:
+        return False
+
+    return number == 1
+
 
 def chat_ai_verify_scheduling_convo(
-    messages: list[str], seller: str, current_status: str
+    messages: list[str], seller: str, current_status: ProspectStatus
 ) -> bool:
     """Verifies if the conversation is about scheduling a meeting.
 
@@ -734,7 +792,7 @@ CURRENT_STATUS: {current_status}
 --- End Transcript ---
 
 """.format(
-        seller_name=seller, transcript=transcript, current_status=current_status
+        seller_name=seller, transcript=transcript, current_status=current_status.value
     )
 
     response = get_text_generation(

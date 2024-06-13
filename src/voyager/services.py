@@ -40,6 +40,7 @@ from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import (
     chat_ai_classify_active_convo,
     chat_ai_verify_scheduling_convo,
+    chat_ai_verify_demo_set
 )
 
 from src.automation.services import (
@@ -1017,7 +1018,7 @@ def classify_active_convo(prospect_id: int, messages):
     if prospect.status == ProspectStatus.ACTIVE_CONVO_REVIVAL:
         return
 
-    status = get_prospect_status_from_convo(messages, prospect.client_sdr_id, prospect.status)
+    status = get_prospect_status_from_convo(messages, prospect_id, prospect.status)
 
     # Make sure the prospect's status has changed before sending messages
     prospect: Prospect = Prospect.query.get(prospect_id)
@@ -1099,8 +1100,9 @@ def classify_active_convo(prospect_id: int, messages):
 
 
 def get_prospect_status_from_convo(
-    messages: list[str], client_sdr_id: int, current_status: str
+    messages: list[str], prospect_id: int, current_status: ProspectStatus
 ) -> ProspectStatus:
+
     """Determines what a prospect status should be based on the state of their convo
 
     Args:
@@ -1111,42 +1113,74 @@ def get_prospect_status_from_convo(
         ProspectStatus: The new status of the prospect
     """
 
+    if (current_status == ProspectStatus.DEMO_SET):
+        return ProspectStatus.DEMO_SET
+
+    prospect = Prospect.query.get(prospect_id)
+
     # Short circuit by using our own heuristics
-    def get_prospect_status_from_convo_heuristics(messages):
+    def get_prospect_status_from_convo_heuristics(messages, current_status, sdr_name):
+        from src.heuristic_keywords.heuristics import scheduling_key_words, demo_key_words
         most_recent_message = messages[-1] if messages else ""
-        scheduling_key_words = [
-            "today",
-            "tomorrow",
-            "@",
-            "week",
-            "month",
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-            "saturday",
-            "sunday",
-            "hear more",
-        ]
 
         # If the most recent message is from the prospect, run our heuristics
-        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-        is_sdr_message = fuzz.ratio(most_recent_message.split("(")[0], sdr.name) > 80
+        is_sdr_message = fuzz.ratio(most_recent_message.split("(")[0], sdr_name) > 80
         if not is_sdr_message:
             message_lowered = most_recent_message.lower()
 
-            # Detect scheduling
+            if current_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
+                # Detect demo set
+                for key_word in demo_key_words:
+                    if key_word in message_lowered:
+                        return ProspectStatus.DEMO_SET
+
+            # If no demo set keywords, detect scheduling
             for key_word in scheduling_key_words:
                 if key_word in message_lowered:
                     return ProspectStatus.ACTIVE_CONVO_SCHEDULING
 
         return None
-
-    clientSDR: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    clientSDR: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Get heuristic based status (used for Scheduling, mainly)
-    heuristic_status = get_prospect_status_from_convo_heuristics(messages)
+    heuristic_status = get_prospect_status_from_convo_heuristics(messages, current_status, clientSDR.name)
+    if heuristic_status == ProspectStatus.DEMO_SET:
+        correct = chat_ai_verify_demo_set(messages, clientSDR.name)
+        if (correct):
+            send_slack_message(
+            message=f"""
+            🎉🎉🎉 !!!!! DEMO SET !!!!!! 🎉🎉🎉
+            ```
+            {messages[-5:]}
+            ```
+            These are the last 5 messages.
+            ⏰ Current Status: "{current_status.value}"
+
+            > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.full_name}
+
+            🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
+            🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
+            """,
+            webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+        )
+            return current_status #to do: change to DEMO_SET
+        else:
+            send_slack_message(
+            message=f"""
+            🎉🎉🎉 !!!!! DEMO SET, Open AI said not a demo though. !!!!!! 🎉🎉🎉
+            ```
+            {messages[-5:]}
+            ```
+            These are the last 5 messages.
+            ⏰ Current Status: "{current_status.value}"
+
+            > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.name}
+
+            🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
+            🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
+            """,
+            webhook_urls=[URL_MAP["eng-sandbox"]],
+        )
     if heuristic_status:
         # Run a ChatGPT verifier to make sure the status is doubly-correct
         correct = chat_ai_verify_scheduling_convo(messages, clientSDR.name, current_status)

@@ -14,7 +14,6 @@ from src.automation.services import (
     update_pb_linkedin_send_status,
     reset_phantom_buster_scrapes_and_launches,
 )
-from src.automation.inbox_scraper import detect_demo # importing for celery task registration
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_4_MODEL,
     wrapped_chat_gpt_completion,

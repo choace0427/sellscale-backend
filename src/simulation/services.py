@@ -389,7 +389,7 @@ def update_sim_li_convo(simulation_id: int):
             timestamp = msg.date.strftime("%m/%d/%Y, %H:%M:%S") if msg.date else ""
             messages.append(f"{msg.author} ({timestamp}): {msg.message}")
             prospect = Prospect.query.get(simulation.prospect_id)
-        li_status = get_prospect_status_from_convo(messages, simulation.client_sdr_id, current_status=prospect.status)
+        li_status = get_prospect_status_from_convo(messages, prospect.id, current_status=prospect.status)
 
         simulation: Simulation = Simulation.query.get(simulation_id)
         simulation.meta_data = {
