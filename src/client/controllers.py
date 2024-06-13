@@ -154,6 +154,7 @@ from src.client.services_client_archetype import (
     get_archetype_conversion_rates,
     get_client_archetype_stats,
     get_client_archetype_overview,
+    is_archetype_uploading_contacts,
     get_client_archetype_sequences,
     get_client_archetype_analytics,
     get_client_archetype_contacts,
@@ -3185,6 +3186,19 @@ def get_campaign_stats(client_sdr_id: int):
 
     return jsonify(overview), 200
 
+@CLIENT_BLUEPRINT.route("/upload_in_progres", methods=["GET"])
+@require_user
+def get_upload_in_progress(client_sdr_id: int):
+    client_archetype_id: int = get_request_parameter(
+        "client_archetype_id", request, json=False, required=True
+    )
+    ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+    if not ca or ca.client_sdr_id != client_sdr_id:
+        return "Unauthorized or persona not found", 403
+
+    upload_in_progress = is_archetype_uploading_contacts(client_archetype_id=client_archetype_id)
+    return jsonify({"upload_in_progress": bool(upload_in_progress)}), 200
 
 @CLIENT_BLUEPRINT.route("/campaign_contacts", methods=["GET"])
 @require_user

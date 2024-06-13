@@ -10,7 +10,7 @@ from src.email_outbound.models import ProspectEmail, ProspectEmailStatus
 from src.email_sequencing.services import get_email_sequence_step_for_sdr
 from src.message_generation.models import GeneratedMessage, GeneratedMessageStatus
 from src.prospecting.icp_score.services import move_selected_prospects_to_unassigned
-from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
+from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus, ProspectUploadHistoryStatus
 from src.simulation.models import SimulationRecord
 from src.li_conversation.models import (
     LinkedinInitialMessageTemplate,
@@ -1475,6 +1475,27 @@ def fetch_archetype_assets(client_archetype_id: int):
         {"title": row[0], "value": row[1], "reason": row[2], "id": row[3]}
         for row in assets_data
     ]
+
+def is_archetype_uploading_contacts(client_archetype_id: int):
+    upload_history_query = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM prospect_upload_history
+            WHERE client_archetype_id = :client_archetype_id
+            AND status IN (
+                :upload_in_progress,
+                :upload_not_started,
+                :upload_queued
+            )
+        )
+    """
+    result = db.session.execute(upload_history_query, {
+        'client_archetype_id': client_archetype_id,
+        'upload_in_progress': ProspectUploadHistoryStatus.UPLOAD_IN_PROGRESS.value,
+        'upload_not_started': ProspectUploadHistoryStatus.UPLOAD_NOT_STARTED.value,
+        'upload_queued': ProspectUploadHistoryStatus.UPLOAD_QUEUED.value
+    }).scalar()
+    return result
 
 
 def check_archetype_finished(client_archetype_id: int) -> bool:
