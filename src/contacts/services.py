@@ -868,3 +868,34 @@ def upload_prospects_from_apollo_page_to_segment(
     )
 
     return {"msg": msg, "error_code": error_code}
+
+def apollo_org_search(company_name: str):
+    print("Getting company data for", company_name)
+
+    # Set the headers
+    headers = {
+        "x-csrf-token": APOLLO_XCSRF_TOKEN,
+        "cookie": APOLLO_SESSION_COOKIE,
+    }
+
+    # Set the data
+    data = {
+        "q_organization_fuzzy_name": company_name,
+        "display_mode": "fuzzy_select_mode",
+    }
+
+    # Make the request
+    response = requests.post(
+        "https://app.apollo.io/api/v1/organizations/search",
+        headers=headers,
+        json=data,
+    )
+
+    # Get the organizations and append the first one to the objects list
+    try:
+        organizations = response.json().get("organizations")
+        if organizations and len(organizations) > 0:
+            return organizations[0]
+    except:
+        print("ERROR", response.text)
+    return None
