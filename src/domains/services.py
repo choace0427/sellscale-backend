@@ -1908,7 +1908,9 @@ def get_available_domains(client_id: int) -> list[dict]:
     return result
 
 
-def get_domain_details(client_id: int) -> bool:
+def get_domain_details(
+    client_id: int, include_client_email_banks: Optional[bool] = False
+) -> bool:
     """Gets all domain details, including both Domain and SDREmailBank
 
     Args:
@@ -1921,17 +1923,7 @@ def get_domain_details(client_id: int) -> bool:
 
     result = []
     for domain in domains:
-        domain_dict = domain.to_dict()
-        domain_dict["inboxes"] = []
-
-        # Get the inboxes for the domain
-        sdr_email_banks: list[SDREmailBank] = SDREmailBank.query.filter(
-            SDREmailBank.domain_id == domain.id,
-            SDREmailBank.smartlead_account_id != None,
-        ).all()
-        domain_dict["inboxes"] = [
-            sdr_email_bank.to_dict() for sdr_email_bank in sdr_email_banks
-        ]
+        domain_dict = domain.to_dict(include_email_banks=include_client_email_banks)
 
         result.append(domain_dict)
 

@@ -78,11 +78,19 @@ class Domain(db.Model):
         db.Integer, db.ForeignKey("domain_setup_tracker.id"), nullable=True
     )
 
-    def to_dict(self):
+    def to_dict(self, include_email_banks: bool = False):
         # Get the Setup details
         setup_tracker: DomainSetupTracker = DomainSetupTracker.query.filter_by(
             domain_id=self.id
         ).first()
+
+        if include_email_banks:
+            from src.client.sdr.email.models import SDREmailBank
+
+            email_banks: list[SDREmailBank] = SDREmailBank.query.filter_by(
+                domain_id=self.id
+            ).all()
+            email_banks = [email_bank.to_dict() for email_bank in email_banks]
 
         return {
             "id": self.id,
@@ -103,4 +111,5 @@ class Domain(db.Model):
             "forwarding_enabled": self.forwarding_enabled,
             "last_refreshed": self.last_refreshed,
             "domain_setup_tracker": setup_tracker.to_dict() if setup_tracker else None,
+            "email_banks": email_banks if include_email_banks else None,
         }

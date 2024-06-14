@@ -26,10 +26,19 @@ DOMAINS_BLUEPRINT = Blueprint("domains", __name__)
 @require_user
 def get_all_domain_details(client_sdr_id):
     """Gets all domain details for a client"""
+    include_client_email_banks = get_request_parameter(
+        "include_client_email_banks",
+        request,
+        json=False,
+        required=False,
+        parameter_type=bool,
+    )
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     client: Client = Client.query.filter_by(id=client_sdr.client_id).first()
 
-    domain_details = get_domain_details(client_id=client.id)
+    domain_details = get_domain_details(
+        client_id=client.id, include_client_email_banks=include_client_email_banks
+    )
     sdr_inbox_details = get_sdr_email_banks_for_client(client_id=client.id)
 
     return (
