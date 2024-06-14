@@ -1132,7 +1132,9 @@ def get_prospect_status_from_convo(
                 # Detect demo set
                 for key_word in demo_key_words:
                     if key_word in message_lowered:
-                        return ProspectStatus.DEMO_SET
+                        # todo(Hunter): Return Demo Set In the Future
+                        # return ProspectStatus.DEMO_SET
+                        return ProspectStatus.ACTIVE_CONVO_SCHEDULING
 
             # If no demo set keywords, detect scheduling
             for key_word in scheduling_key_words:
@@ -1144,7 +1146,7 @@ def get_prospect_status_from_convo(
 
     # Get heuristic based status (used for Scheduling, mainly)
     heuristic_status = get_prospect_status_from_convo_heuristics(messages, current_status, clientSDR.name)
-    if heuristic_status == ProspectStatus.DEMO_SET:
+    if heuristic_status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
         correct = chat_ai_verify_demo_set(messages, clientSDR.name)
         if (correct):
             send_slack_message(
