@@ -5076,9 +5076,10 @@ def get_testing_volume(client_archetype_id: int):
 
 def get_spending(client_id, client_sdr_id):
     client_sdr = ClientSDR.query.get(client_sdr_id)
-    if client_sdr.client_id != 1:
+
+    if client_sdr.client_id != 1 and client_sdr.client_id != client_id:
         return "You are not authorized to view this information"
-    
+        
     def get_apollo_spending(client_id):
         query = """
             select 
