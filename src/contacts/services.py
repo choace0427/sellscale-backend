@@ -307,6 +307,7 @@ def add_match_reasons(
             if (
                 breadcrumb["signal_field_name"] == "person_titles"
                 and contact["title"]
+                and breadcrumb['value']
                 and breadcrumb["value"] in contact["title"].lower()
             ):
                 match_reasons.append(
@@ -899,3 +900,23 @@ def apollo_org_search(company_name: str):
     except:
         print("ERROR", response.text)
     return None
+
+def save_apollo_query(domain):
+    # https://app.apollo.io/api/v1/organization_search_lists/save_query
+    # {query: "dliagency.com↵apollo.io", cacheKey: 1718407246578}
+
+    url = "https://app.apollo.io/api/v1/organization_search_lists/save_query"
+    payload = {
+        "query": domain,
+        "cacheKey": 1718407246578
+    }
+    
+    headers = {
+        "x-csrf-token": APOLLO_XCSRF_TOKEN,
+        "cookie": APOLLO_SESSION_COOKIE,
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+    print(response.text)
+    
+    return response.json()

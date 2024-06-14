@@ -135,7 +135,7 @@ def get_track_events():
     return track_events
 
 def deanonymize_track_events_for_people_labs(track_event_id):
-    from src.contacts.services import apollo_org_search, apollo_get_contacts_for_page
+    from src.contacts.services import apollo_org_search, save_apollo_query
 
     client_sdr_id = 34
 
@@ -158,18 +158,20 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         company_name, company_website, company_size, employee_count, job_title_role, job_title_levels
     ))
 
-    organization = apollo_org_search(
-        company_name=company_name
-    )
-    if not organization or not organization.get("id"):
-        return "No organizations found"
+    saved_apollo_query = save_apollo_query(domain=company_website)
+
+    # organization = apollo_org_search(
+    #     company_name=company_name
+    # )
+    # if not organization or not organization.get("id"):
+    #     return "No organizations found"
     
-    organization_id = organization['id']
+    # organization_id = organization['id']
 
     # 'owner', 'founder', 'c_suite', 'partner', 'vp', 'head', 'director', 'manager'. 'senior', 'entry', 'intern'",
     job_title_level_to_apollo_map = {
         'Cxo': ['owner', 'founder', 'c_suite'],
-        'Senior': ['manager', 'senior'],
+        'Senior': ['manager', 'senior', 'partner'],
         'Director': ['head', 'director'],
         'Owner': ['owner', 'founder', 'c_suite'],
         'Vp': ['vp', 'head', 'director'],
@@ -202,7 +204,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
                     "5001,10000",
                     "10001",
                 ],
-            organization_ids=[organization_id],
+            organization_ids=None,
             person_locations=[location],
             revenue_range={
                     "min": None,
@@ -211,9 +213,41 @@ def deanonymize_track_events_for_people_labs(track_event_id):
             organization_latest_funding_stage_cd=[],
             person_seniorities=seniorities,
             is_prefilter=False,
+            q_organization_search_list_id=saved_apollo_query['listId']
         )
-    
     contacts = data['contacts'] + data['people']
+
+    if not contacts:
+        data = apollo_get_contacts(
+            client_sdr_id=1,
+            num_contacts=100,
+            person_titles=[job_title_role],
+            person_not_titles=None,
+            organization_num_employees_ranges=[
+                    "1,10",
+                    "11,20",
+                    "21,50",
+                    "51,100",
+                    "101,200",
+                    "201,500",
+                    "501,1000",
+                    "1001,2000",
+                    "2001,5000",
+                    "5001,10000",
+                    "10001",
+                ],
+            organization_ids=None,
+            person_locations=[],
+            revenue_range={
+                    "min": None,
+                    "max": None,
+                },
+            organization_latest_funding_stage_cd=[],
+            person_seniorities=seniorities,
+            is_prefilter=False,
+            q_organization_search_list_id=saved_apollo_query['listId']
+        )
+        contacts = data['contacts'] + data['people']
 
     print("Found {} contacts".format(len(contacts)))
 
@@ -249,8 +283,8 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "*🔗 LinkedIn*: {linkedin_url}\n*🌆 Organization*: {org_name}\n*👾 Website*: {org_website}\n*🌎 Location*: {location}".format(
-                    linkedin_url=linkedin_url, org_name=org_name, org_website=org_website, location=location
+				"text": "*🔗 LinkedIn*: {linkedin_url}\n*♣️ Title:* {title}\n*🌆 Organization*: {org_name}\n*👾 Website*: {org_website}\n*🌎 Location*: {location}".format(
+                    linkedin_url=linkedin_url, org_name=org_name, org_website=org_website, location=location, title=title
                 )
 			},
 			"accessory": {
