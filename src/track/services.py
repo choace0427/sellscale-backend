@@ -143,6 +143,10 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     if not track_event or track_event.company_identify_api != "peopledatalabs" or not track_event.company_identify_payload:
         return "Track event not found or not identified by People Data Labs"
+    
+    # confidence score
+    p_confidence = track_event.company_identify_payload.get("data", {}).get("person", {}).get("confidence")
+    c_confidence = track_event.company_identify_payload.get("data", {}).get("company", {}).get("confidence")
         
     company_payload = track_event.company_identify_payload.get("data", {}).get("company", {})
     location = track_event.company_identify_payload.get("data", {}).get("ip", {}).get("location", {}).get("locality")
@@ -153,6 +157,19 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     person_payload = track_event.company_identify_payload.get("data", {}).get("person", {})
     job_title_role = person_payload.get("job_title_role")
     job_title_levels = person_payload.get("job_title_levels")
+
+    # if low confidence on company return
+    # hen c_company_size in ('1-10', '0-1') then '✅ FINDEABLE'
+	# 		when c_company_size in ('11-50') and p_confidence is not null then '✅ FINDEABLE'
+	# 		when c_company_size in ('51-200', '201-500') and p_confidence not ilike '%low%' then '✅ FINDEABLE'
+    if company_size in ['1-10', '0-1']:
+        pass
+    elif company_size in ['11-50'] and not p_confidence is None:
+        pass
+    elif company_size in ['51-200', '201-500'] and not 'low' in p_confidence:
+        pass
+    else:
+        return "Low confidence"
 
     print("Attempting search for details:\ncompany_name: {}\ncompany_website: {}\ncompany_size: {}\nemployee_count: {}\njob_title_role: {}\njob_title_levels: {}".format(
         company_name, company_website, company_size, employee_count, job_title_role, job_title_levels
@@ -265,6 +282,13 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     country = deep_get(contacts[0], "country")
     location = f"{city}, {state}, {country}"
     website_viewed = track_event.window_location
+    
+    # verify that the org_name or org_website is similar to the company_name or company_website
+    if not(
+        (org_name and company_name and org_name.lower() in company_name.lower()) or
+        (org_website and company_website and org_website.lower() in company_website.lower())
+    ):
+        return "Company name or website do not match"
 
     send_slack_message(
         message="*🔗 LinkedIn*: {}\n*👥 Name*: {}\n*♣ Title*: {}\n*📸 Photo*: {}\n*🌆 Organization*: {}\n*👾 Website*: {}\n*🌎 Location*: {}".format(
