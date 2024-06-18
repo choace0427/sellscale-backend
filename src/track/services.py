@@ -145,28 +145,20 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         return "Track event not found or not identified by People Data Labs"
     
     # confidence score
-    p_confidence = track_event.company_identify_payload.get("data", {}).get("person", {}).get("confidence")
-    c_confidence = track_event.company_identify_payload.get("data", {}).get("company", {}).get("confidence")
+    p_confidence = deep_get(track_event.company_identify_payload, "data.person.confidence")
+    c_confidence = deep_get(track_event.company_identify_payload, "data.company.confidence")
         
-    company_payload = track_event.company_identify_payload.get("data", {}).get("company", {})
-    location = track_event.company_identify_payload.get("data", {}).get("ip", {}).get("location", {}).get("locality")
-    company_name = company_payload.get("display_name")
-    company_website = company_payload.get("website")
-    company_size = company_payload.get("size")
-    employee_count = company_payload.get("employee_count")
-    person_payload = track_event.company_identify_payload.get("data", {}).get("person", {})
-    job_title_role = person_payload.get("job_title_role")
-    job_title_levels = person_payload.get("job_title_levels")
+    company_payload = deep_get(track_event.company_identify_payload, "data.company", {})
+    location = deep_get(track_event.company_identify_payload, "data.ip.location.locality")
+    company_name = deep_get(company_payload, "display_name")
+    company_website = deep_get(company_payload, "website")
+    company_size = deep_get(company_payload, "size")
+    employee_count = deep_get(company_payload, "employee_count")
+    person_payload = deep_get(track_event.company_identify_payload, "data.person", {})
+    job_title_role = deep_get(person_payload, "job_title_role")
+    job_title_levels = deep_get(person_payload, "job_title_levels")
 
-    # if low confidence on company return
-    # hen c_company_size in ('1-10', '0-1') then '✅ FINDEABLE'
-	# 		when c_company_size in ('11-50') and p_confidence is not null then '✅ FINDEABLE'
-	# 		when c_company_size in ('51-200', '201-500') and p_confidence not ilike '%low%' then '✅ FINDEABLE'
-    if company_size in ['1-10', '0-1']:
-        pass
-    elif company_size in ['11-50'] and not p_confidence is None:
-        pass
-    elif company_size in ['51-200', '201-500'] and not 'low' in p_confidence:
+    if p_confidence and c_confidence:
         pass
     else:
         return "Low confidence"
@@ -239,7 +231,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
             client_sdr_id=1,
             num_contacts=100,
             person_titles=[job_title_role],
-            person_not_titles=None,
+            person_not_titles=[],
             organization_num_employees_ranges=[
                     "1,10",
                     "11,20",
@@ -270,6 +262,9 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     if not contacts:
         return "No contacts"
+    
+    if len(contacts) > 5:
+        return "Too many contacts found"
 
     linkedin_url = deep_get(contacts[0], "linkedin_url") 
     name = deep_get(contacts[0], "name")
