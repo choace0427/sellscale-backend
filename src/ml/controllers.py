@@ -36,6 +36,7 @@ from src.ml.services import (
     trigger_icp_classification,
     edit_text,
     trigger_icp_classification_single_prospect,
+    get_template_suggestions
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -614,3 +615,27 @@ def post_personalize_email(client_sdr_id: int):
         return "Error personalizing email body", 400
 
     return jsonify({"personalized_email": personalized_email}), 200
+
+@ML_BLUEPRINT.route("/template_suggestion", methods=["POST"])
+@require_user
+def post_template_suggestion(client_sdr_id: int):
+    """
+    Personalize an email body using AI Researcher
+    """
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=str
+    )
+    template_content = get_request_parameter(
+        "template_content", request, json=True, required=True, parameter_type=str
+    )
+
+    personalized_email = get_template_suggestions(
+        archetype_id=archetype_id,
+        template_content=template_content,
+    )
+
+    if not personalized_email:
+        return "Error personalizing email body", 400
+
+    return jsonify({"personalized_email": personalized_email}), 200
+

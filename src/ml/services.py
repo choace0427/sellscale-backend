@@ -11,7 +11,7 @@ from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTempl
 
 from src.research.models import IScraperPayloadCache
 from app import db, celery
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.prospecting.models import Prospect, ProspectStatus
 from src.message_generation.models import (
     GeneratedMessage,
@@ -1323,3 +1323,65 @@ def answer_question_about_prospect(
         send_socket_message('stream-answers', validate_with_gpt, room_id)
 
     return True, response, validate_with_gpt
+
+def get_template_suggestions(archetype_id: int, template_content: str ):
+    '''
+    get template suggestions from open ai, not perplexity based on the content of the template
+    and the archetype itself
+    '''
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    client: Client = Client.query.get(archetype.client_id)
+    client_description = client.description
+    company_name = client.company
+    
+
+    import json
+
+    def get_validated_response(messages, model, max_tokens, retries=3):
+        for attempt in range(retries):
+            response = wrapped_chat_gpt_completion(
+                messages=messages,
+                model=model,
+                max_tokens=max_tokens,
+            )
+            try:
+                return json.loads(response.replace("json", "").replace("`", ""))
+            except json.JSONDecodeError:
+                if attempt == retries - 1:
+                    raise
+        return None
+
+    messages = [
+        {
+            "role": "system",
+            "content": ''' 
+            You are an email assistant that will help me write smart and effective email
+            templates for a sales email. The company sending an email is called {company_name}. 
+             {company_name} is {client_description}. 
+               You will come up with a few different styles of email templates
+
+            Style: Brevity-based
+            Descriptioin: just be shorter - no one has time to read.
+
+            Style: Offer-based
+            Description: Provide a unique out of this world offer
+
+            Style: Pain-based
+            Description: write a narrative extremely emotionally about a problem
+
+            Please return the style as at least the first three (pain, shorter, offer). You can provide 2 other wildcards.
+            Go!
+            '''.format(company_name=company_name, client_description=client_description),
+        },
+        {
+            "role": "user",
+            "content": '''Here is the template: {template_content}\n\n Please know I am reaching out to {archetype_description}. Please responsd to me only and nothing else but a array of JSONs response, where
+            each object in the array will have a style string and content string. Format it with tabs and newlines as necessary. Put placeholders in double brackets like [[Customer Name]] or others. Encourage more use of placeholders. 
+            Match the style of the template as closely as possible while conforming to the style.
+            '''.format(template_content=template_content, archetype_description=archetype.archetype),
+        },
+    ]
+
+    validate_with_gpt = get_validated_response(messages, "gpt-4o", 600)
+
+    return validate_with_gpt
