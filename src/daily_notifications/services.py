@@ -1,3 +1,5 @@
+import datetime
+from operator import or_
 from app import db, celery
 from src.daily_notifications.models import (
     DailyNotification,
@@ -5,6 +7,7 @@ from src.daily_notifications.models import (
     EngagementFeedItem,
     EngagementFeedType,
 )
+from src.prospecting.models import ProspectStatus
 from src.prospecting.models import Prospect
 from src.client.models import ClientSDR, ClientArchetype
 from src.li_conversation.models import LinkedinConversationEntry
@@ -317,3 +320,69 @@ def get_engagement_feed_items_for_sdr(
         better_ef_item_list.append(item)
 
     return total_count, better_ef_item_list
+def get_positive_responses(client_sdr_id: int) -> list[dict]:
+    """Gets positive message responses for a client SDR within the last month.
+
+    Args:
+        client_sdr_id (int): Client SDR ID
+
+    Returns:
+        list[dict]: Prospects with positive message responses including messages, full name, prospect ID, and date
+    """
+    
+    client_id = ClientSDR.query.get(client_sdr_id).client_id
+    
+    query = """
+    select 
+        prospect.id,
+        prospect.full_name,
+        max(case
+            when prospect_status_records.created_at is not null then prospect_status_records.created_at
+            when prospect_email_status_records.created_at is not null then prospect_email_status_records.created_at
+            else now()
+        end) as date_created,
+        case
+            when prospect_status_records.created_at is not null then cast(prospect_status_records.to_status as varchar)
+            when prospect_email_status_records.created_at is not null then cast(prospect_email_status_records.to_status as varchar)
+            else ''
+        end as to_status,
+        case
+            when prospect_status_records.created_at is not null then prospect.li_last_message_from_prospect
+            when prospect_email_status_records.created_at is not null then prospect.email_last_message_from_prospect
+            else ''
+        end as last_msg,
+        client_sdr.auth_token
+    from prospect
+        join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        left join prospect_email on prospect_email.prospect_id = prospect.id
+        left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+    where
+        (
+            prospect_email_status_records.to_status = 'DEMO_SET'
+            or prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
+        )
+        and prospect.client_id = :client_id
+        and prospect.overall_status in ('ACTIVE_CONVO')
+        and (
+            prospect_email_status_records.created_at > NOW() - interval '1 month'
+            or
+            prospect_status_records.created_at > NOW() - interval '1 month'
+        )
+    group by 1,2,4,5,6;
+    """
+    
+    results = db.session.execute(query, {'client_id': client_id}).fetchall()
+    
+    positive_responses = []
+    for row in results:
+        positive_responses.append({
+            'prospect_id': row['id'],
+            'full_name': row['full_name'],
+            'date': row['date_created'],
+            'to_status': row['to_status'],
+            'last_msg': row['last_msg'],
+            'auth_token': row['auth_token'],
+        })
+    
+    return positive_responses

@@ -6,6 +6,7 @@ from src.daily_notifications.services import (
     update_daily_notification_status,
     fill_in_daily_notifications,
     get_engagement_feed_items_for_sdr,
+    get_positive_responses,
 )
 from src.utils.datetime.dateutils import get_datetime_now
 from datetime import timedelta
@@ -66,6 +67,25 @@ def get_engagement_feed(client_sdr_id: int):
             {
                 "message": "Success",
                 "engagement_feed_items": items,
+                "total_count": total_count,
+            }
+        ),
+        200,
+    )
+
+@DAILY_NOTIFICATIONS_BLUEPRINT.route("/engagement/positive-responses", methods=["GET"])
+@require_user
+def get_responses_positive(client_sdr_id: int):
+    """Gets positive message responses for the client SDR with id client_sdr_id."""
+
+    items = get_positive_responses(client_sdr_id)
+    total_count = len(items)
+
+    return (
+        jsonify(
+            {
+                "message": "Success",
+                "positive_responses": items,
                 "total_count": total_count,
             }
         ),
