@@ -294,6 +294,9 @@ def post_purchase_workflow(client_sdr_id: int):
     )
 
 
+# THIS ENDPOINT NEEDS TO HAVE FURTHER RESTRICTIONS
+# Since we are making it available to the user, we need to have an "Admin" mode which will bypass the
+# inbox limit restrictions.
 @DOMAINS_BLUEPRINT.route("/workflow/domain_and_inbox", methods=["POST"])
 @require_user
 def post_domain_and_inbox_workflow(client_sdr_id: int):
