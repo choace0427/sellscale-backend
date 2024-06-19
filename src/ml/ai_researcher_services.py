@@ -626,3 +626,66 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
     except Exception as e:
         print(e)
         return False
+
+def simulate_voice_message(text, voice_params):
+    # Filter out parameters with a value of 50
+    filtered_params = {
+        "Warmth": voice_params['warmth_confidence']['x'],
+        "Confidence": voice_params['warmth_confidence']['y'],
+        "Humor": voice_params['humor_seriousness']['x'],
+        "Seriousness": voice_params['humor_seriousness']['y'],
+        "Assertiveness": voice_params['assertiveness_empathy']['x'],
+        "Empathy": voice_params['assertiveness_empathy']['y'],
+        "Optimism": voice_params['optimism_professionalism']['x'],
+        "Professionalism": voice_params['optimism_professionalism']['y']
+    }
+
+    # Create the prompt string with only the relevant parameters
+    prompt = "You are a message emotion adjuster. Adjust the text to reflect the following emotional parameters:\n"
+    adjustments_found = False
+    for param, value in filtered_params.items():
+        if not (47 < int(float(value)) < 53):
+            adjustments_found = True
+            prompt += f"- {param}: {value}%\n"
+            if param == "Warmth":
+                prompt += "  (0-10%: Extremely cold, 10-20%: Very cold, 20-30%: Cold, 30-40%: Slightly cold, 40-50%: Neutral, 50-60%: Slightly warm, 60-70%: Warm, 70-80%: Very warm, 80-90%: Extremely warm, 90-100%: Overly warm)\n"
+            elif param == "Confidence":
+                prompt += "  (0-10%: Extremely unconfident, 10-20%: Very unconfident, 20-30%: Unconfident, 30-40%: Slightly unconfident, 40-50%: Neutral, 50-60%: Slightly confident, 60-70%: Confident, 70-80%: Very confident, 80-90%: Extremely confident, 90-100%: Overly confident)\n"
+            elif param == "Humor":
+                prompt += "  (0-10%: Extremely serious, 10-20%: Very serious, 20-30%: Serious, 30-40%: Slightly serious, 40-50%: Neutral, 50-60%: Slightly humorous, 60-70%: Humorous, 70-80%: Very humorous, 80-90%: Extremely humorous, 90-100%: Overly humorous)\n"
+            elif param == "Seriousness":
+                prompt += "  (0-10%: Extremely humorous, 10-20%: Very humorous, 20-30%: Humorous, 30-40%: Slightly humorous, 40-50%: Neutral, 50-60%: Slightly serious, 60-70%: Serious, 70-80%: Very serious, 80-90%: Extremely serious, 90-100%: Overly serious)\n"
+            elif param == "Assertiveness":
+                prompt += "  (0-10%: Extremely passive, 10-20%: Very passive, 20-30%: Passive, 30-40%: Slightly passive, 40-50%: Neutral, 50-60%: Slightly assertive, 60-70%: Assertive, 70-80%: Very assertive, 80-90%: Extremely assertive, 90-100%: Overly assertive)\n"
+            elif param == "Empathy":
+                prompt += "  (0-10%: Extremely unempathetic, 10-20%: Very unempathetic, 20-30%: Unempathetic, 30-40%: Slightly unempathetic, 40-50%: Neutral, 50-60%: Slightly empathetic, 60-70%: Empathetic, 70-80%: Very empathetic, 80-90%: Extremely empathetic, 90-100%: Overly empathetic)\n"
+            elif param == "Optimism":
+                prompt += "  (0-10%: Extremely pessimistic, 10-20%: Very pessimistic, 20-30%: Pessimistic, 30-40%: Slightly pessimistic, 40-50%: Neutral, 50-60%: Slightly optimistic, 60-70%: Optimistic, 70-80%: Very optimistic, 80-90%: Extremely optimistic, 90-100%: Overly optimistic)\n"
+            elif param == "Professionalism":
+                prompt += "  (0-10%: Extremely unprofessional, 10-20%: Very unprofessional, 20-30%: Unprofessional, 30-40%: Slightly unprofessional, 40-50%: Neutral, 50-60%: Slightly professional, 60-70%: Professional, 70-80%: Very professional, 80-90%: Extremely professional, 90-100%: Overly professional)\n"
+
+    if not adjustments_found:
+        return text
+    prompt += """
+    Please make sure that all of these parameters are reflected in the text in some way, but make it natural.
+
+    Original Text: {text}
+
+    Adjusted Text:
+
+    Only respond with the adjusted text, nothing else. Make it sound human and change the text enough to reflect the emotional parameters.
+    """.format(text=text)
+    print('prompt:', prompt)
+
+    adjusted_text = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        model='gpt-4o',
+        max_tokens=500
+    )
+
+    return adjusted_text

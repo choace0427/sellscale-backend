@@ -10,6 +10,7 @@ from src.ml.ai_researcher_services import (
     get_ai_researcher_answers_for_prospect,
     get_ai_researcher_questions_for_researcher,
     get_ai_researchers_for_client,
+    simulate_voice_message,
     run_all_ai_researcher_questions_for_prospect,
     get_generated_email,
 )
@@ -638,4 +639,27 @@ def post_template_suggestion(client_sdr_id: int):
         return "Error personalizing email body", 400
 
     return jsonify({"personalized_email": personalized_email}), 200
+
+@ML_BLUEPRINT.route("/simulate_voice", methods=["POST"])
+@require_user
+def post_simulate_voice(client_sdr_id: int):
+    """
+    Simulate a voice message using AI Researcher
+    """
+    text = get_request_parameter(
+        "text", request, json=True, required=True, parameter_type=str
+    )
+    voice_params = get_request_parameter(
+        "voiceParams", request, json=True, required=True, parameter_type=dict
+    )
+
+    simulated_voice = simulate_voice_message(
+        text=text,
+        voice_params=voice_params,
+    )
+
+    if not simulated_voice:
+        return "Error simulating voice message", 400
+
+    return jsonify({"simulated_voice": simulated_voice}), 200
 
