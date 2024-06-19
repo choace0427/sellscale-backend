@@ -151,6 +151,7 @@ Final instructions
 - Do not put generalized fluff, such as "I hope this email finds you well" or "I couldn't help but notice" or  "I noticed".
 - Preserve the markdown formatting.
 - Feel free to use markdown formatting to make the email look better.
+- Prioritize using the Prospect's first name over their full name, unless the template specifies otherwise.
 
 Generate the email body. Do not include the word 'Subject:' or 'Email:' in the output. Do not wrap your answer in quotation marks.
 
