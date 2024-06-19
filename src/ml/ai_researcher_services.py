@@ -374,6 +374,7 @@ def run_ai_researcher_question(
             prospect_id=prospect_id,
             question=question.key,
             how_its_relevant=question.relevancy,
+            room_id=room_id,
             questionType=question.type
         )
 
