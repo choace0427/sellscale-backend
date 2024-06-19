@@ -1273,9 +1273,6 @@ def answer_question_about_prospect(
     """
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    if prospect.client_sdr_id != client_sdr_id:
-        return False, "Prospect does not belong to the client SDR.", {}
-
     prospect_str = prospect.full_name + (
         " (" + prospect.title + " @ " + prospect.company + ")"
     )
