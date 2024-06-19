@@ -91,10 +91,11 @@ class EmailOOONotification(SlackNotificationClass):
             base_message=f"{prospect_name} is OOO until {snooze_until}",
             blocks=[
                 {
-                    "type": "section",
+                    "type": "header",
                     "text": {
-                        "type": "mrkdwn",
-                        "text": f"{prospect_name} is Out of Office",
+                        "type": "plain_text",
+                        "text": f"🏖️ {prospect_name} is Out of Office",
+                        "emoji": True,
                     },
                 },
                 {
