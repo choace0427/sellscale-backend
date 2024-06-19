@@ -24,6 +24,7 @@ class SlackNotificationType(Enum):
     EMAIL_PROSPECT_REPLIED = "EMAIL_PROSPECT_REPLIED"
     EMAIL_MULTICHANNELED = "EMAIL_MULTICHANNELED"
     EMAIL_NEW_INBOX_CREATED = "EMAIL_NEW_INBOX_CREATED"
+    EMAIL_OOO = "EMAIL_OOO"
 
     # GENERAL
     DEMO_FEEDBACK_COLLECTED = "DEMO_FEEDBACK_COLLECTED"
@@ -118,6 +119,9 @@ def get_slack_notification_type_metadata():
     from src.slack.notifications.pipeline_activity_daily import (
         PipelineActivityDailyNotification,
     )
+    from src.slack.notifications.email_ooo import (
+        EmailOOONotification,
+    )
 
     map_slack_notification_type_to_metadata = {
         SlackNotificationType.LINKEDIN_INVITE_ACCEPTED: {
@@ -196,6 +200,12 @@ def get_slack_notification_type_metadata():
             "name": "Email Prospect Replied",
             "description": "A Slack notification that is sent when a Prospect responds to your email",
             "class": EmailProspectRepliedNotification,
+            "outbound_channel": "email",
+        },
+        SlackNotificationType.EMAIL_OOO: {
+            "name": "Email Out of Office",
+            "description": "A Slack notification that is sent when a Prospect responds with an Out of Office message. Limited to 5 per day.",
+            "class": EmailOOONotification,
             "outbound_channel": "email",
         },
         SlackNotificationType.EMAIL_MULTICHANNELED: {
