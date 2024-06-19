@@ -544,12 +544,12 @@ def create_outbound_campaign(
     # If number of prospects is over 500, do not generate
     if num_prospects > 500:
         raise Exception("Number of prospects must not be greater than 500")
-    
+
     # check if the client has reached their weekly cap
     archetype = ClientArchetype.query.get(client_archetype_id)
     num_messages_sent_this_week = db.session.execute(
         """
-        select 
+        select
             count(distinct prospect.id)
         from
             prospect
@@ -562,10 +562,13 @@ def create_outbound_campaign(
                 prospect_email.created_at >= date_trunc('week', NOW())
             );
         """,
-        {"archetype_id": client_archetype_id}
+        {"archetype_id": client_archetype_id},
     ).scalar()
-    
-    if (num_messages_sent_this_week > 0 and archetype.testing_volume < num_messages_sent_this_week):
+
+    if (
+        num_messages_sent_this_week > 0
+        and archetype.testing_volume < num_messages_sent_this_week
+    ):
         raise Exception("This client has reached their weekly cap for outreach")
 
     # Smart get prospects to use
@@ -719,9 +722,11 @@ def smart_get_prospects_for_campaign(
 
     # Filter Based on Omni Rules for Linkedin
     if campaign_type == GeneratedMessageType.LINKEDIN:
-        client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+        client_archetype: ClientArchetype = ClientArchetype.query.get(
+            client_archetype_id
+        )
         email_opened_prospects_query = """
-        select 
+        select
             array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "prospects_sent_outreach",
             array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') "prospects_email_opened",
             array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'ACCEPTED') "prospects_clicked"
@@ -734,10 +739,17 @@ def smart_get_prospects_for_campaign(
         email_opened_prospects = db.session.execute(
             email_opened_prospects_query.format(client_archetype_id=client_archetype_id)
         ).fetchone()
-        if client_archetype.email_to_linkedin_connection is None or client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.RANDOM:
+        if (
+            client_archetype.email_to_linkedin_connection is None
+            or client_archetype.email_to_linkedin_connection
+            == EmailToLinkedInConnection.RANDOM
+        ):
             # do nothing
             pass
-        elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.ALL_PROSPECTS:
+        elif (
+            client_archetype.email_to_linkedin_connection
+            == EmailToLinkedInConnection.ALL_PROSPECTS
+        ):
             # Filter prospect ids for prospects that have been sent outreach
             if email_opened_prospects["prospects_sent_outreach"] is not None:
                 prospect_ids = list(
@@ -747,7 +759,10 @@ def smart_get_prospects_for_campaign(
                 )
             else:
                 prospect_ids = []
-        elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.OPENED_EMAIL_PROSPECTS_ONLY:
+        elif (
+            client_archetype.email_to_linkedin_connection
+            == EmailToLinkedInConnection.OPENED_EMAIL_PROSPECTS_ONLY
+        ):
             # Filter prospect ids for prospects that have opened emails
             if email_opened_prospects["prospects_email_opened"] is not None:
                 prospect_ids = list(
@@ -757,11 +772,16 @@ def smart_get_prospects_for_campaign(
                 )
             else:
                 prospect_ids = []
-        elif client_archetype.email_to_linkedin_connection == EmailToLinkedInConnection.CLICKED_LINK_PROSPECTS_ONLY:
+        elif (
+            client_archetype.email_to_linkedin_connection
+            == EmailToLinkedInConnection.CLICKED_LINK_PROSPECTS_ONLY
+        ):
             # Filter prospect ids for prospects that have clicked emails
             if email_opened_prospects["prospects_clicked"] is not None:
                 prospect_ids = list(
-                    set(prospect_ids).intersection(email_opened_prospects["prospects_clicked"])
+                    set(prospect_ids).intersection(
+                        email_opened_prospects["prospects_clicked"]
+                    )
                 )
             else:
                 prospect_ids = []
@@ -783,11 +803,11 @@ def smart_get_prospects_for_campaign(
     else:  # Saturday or Sunday
         days_until_friday = 7 - weekday + 4
 
-
     if len(prospect_ids) > client_archetype.testing_volume / days_until_friday:
         rounded = int(client_archetype.testing_volume / days_until_friday)
         prospect_ids = prospect_ids[:rounded]
     return prospect_ids
+
 
 def get_warmed_prospects(
     client_archetype_id: int,
@@ -1278,19 +1298,13 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
     )
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if (
-        client_sdr.auto_send_linkedin_campaign
-        and campaign.campaign_type == GeneratedMessageType.LINKEDIN
-    ):
+    if campaign.campaign_type == GeneratedMessageType.LINKEDIN:
         mark_prospects_as_queued_for_outreach(
             prospect_ids=prospect_ids,
             client_sdr_id=client_sdr_id,
         )
 
-    if (
-        client_sdr.auto_send_email_campaign
-        and campaign.campaign_type == GeneratedMessageType.EMAIL
-    ):
+    if campaign.campaign_type == GeneratedMessageType.EMAIL:
         batch_mark_prospects_in_email_campaign_queued(
             campaign_id=campaign_id,
         )
@@ -1992,7 +2006,7 @@ def create_campaign_ai_request(
     create_ai_requests(
         client_sdr_id=sdr_id,
         description=f"""
-        
+
 Segment: {segment_name}
 
 Title: {name}
@@ -2005,7 +2019,7 @@ What do you want to say?:
 
 Linkedin: {'True' if linkedin else 'False'}
 Email: {'True' if email else 'False'}
-        
+
         """.strip(),
         title=title,
         days_till_due=7,
@@ -2098,12 +2112,12 @@ def get_outbound_data(client_sdr_id: int):
     client_id: int = client_sdr.client_id
     seat_data = db.session.execute(
         f"""
-        select 
+        select
             count(distinct client_sdr.id) "active_seats",
             count(distinct client_archetype.client_sdr_id) filter (where client_archetype.active and (client_archetype.linkedin_active or client_archetype.email_active)) "num_used_seats"
         from client_sdr
             left join client_archetype on client_archetype.client_sdr_id = client_sdr.id
-        where 
+        where
             client_sdr.client_id = {client_id}
             and client_sdr.active;
         """
@@ -2112,17 +2126,17 @@ def get_outbound_data(client_sdr_id: int):
     message_data = db.session.execute(
         f"""
         with d as (
-            select 
+            select
                 sum(client_sdr.weekly_li_outbound_target) + sum(client_sdr.weekly_email_outbound_target) "num_messages",
                 sum(client_sdr.weekly_li_outbound_target) filter (where client_archetype.active and (client_archetype.linkedin_active)) "num_linkedin",
                 sum(client_sdr.weekly_email_outbound_target) filter (where client_archetype.active and (client_archetype.email_active)) "num_email"
             from client_sdr
                 left join client_archetype on client_archetype.client_sdr_id = client_sdr.id
-            where 
+            where
                 client_sdr.client_id = {client_id}
                 and client_sdr.active
         )
-        select 
+        select
             num_messages,
             case when num_linkedin is not null then num_linkedin else 0 end +
                 case when num_email is not null then num_email else 0 end "num_messages_used"
@@ -2147,13 +2161,13 @@ def get_account_based_data(client_sdr_id: int, offset: int):
     count_query = """
         with helper as (
             with company_spark_helper as (
-                select 
+                select
                     prospect.company_id,
                     to_char(
-                        case 
-                            when 
+                        case
+                            when
                                 (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
-                            when 
+                            when
                                 (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
                             else null
                     end, 'YYYY-MM-DD HH:WW') date,
@@ -2170,7 +2184,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
                 group by 1,2
                 order by 2 desc
             )
-            select 
+            select
                 company,
                 prospect.company_id,
                 prospect.company_url,
@@ -2180,14 +2194,14 @@ def get_account_based_data(client_sdr_id: int, offset: int):
                 max(company_spark_helper.num_prospects)	sparkline_max,
                 min(company_spark_helper.num_prospects) sparkline_min,
                 max(
-                    case 
-                        when 
+                    case
+                        when
                             (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
-                        when 
+                        when
                             (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
                         else null
                 end) latest_reply,
-                        
+
                 count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') num_accepted,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied,
@@ -2200,14 +2214,14 @@ def get_account_based_data(client_sdr_id: int, offset: int):
                 join company_spark_helper on company_spark_helper.company_id = prospect.company_id
             where prospect.client_id = 47
             group by 1,2,3
-            having 
-                count(distinct prospect.id) filter 
+            having
+                count(distinct prospect.id) filter
                     (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') > 0
-                
+
             order by 5 desc
             offset 0
         )
-        select 
+        select
             count(*)
         from helper;
     """.format(
@@ -2220,13 +2234,13 @@ def get_account_based_data(client_sdr_id: int, offset: int):
     query = """
         with helper as (
             with company_spark_helper as (
-                select 
+                select
                     prospect.company_id,
                     to_char(
-                        case 
-                            when 
+                        case
+                            when
                                 (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
-                            when 
+                            when
                                 (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
                             else null
                     end, 'YYYY-MM-DD HH:WW') date,
@@ -2243,7 +2257,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
                 group by 1,2
                 order by 2 desc
             )
-            select 
+            select
                 company,
                 prospect.company_id,
                 prospect.company_url,
@@ -2253,14 +2267,14 @@ def get_account_based_data(client_sdr_id: int, offset: int):
                 max(company_spark_helper.num_prospects)	sparkline_max,
                 min(company_spark_helper.num_prospects) sparkline_min,
                 max(
-                    case 
-                        when 
+                    case
+                        when
                             (prospect_status_records.created_at is not null and prospect_status_records.to_status = 'ACCEPTED') then prospect_status_records.created_at
-                        when 
+                        when
                             (prospect_email_status_records.created_at is not null and prospect_email_status_records.to_status = 'ACCEPTED') then prospect_email_status_records.created_at
                         else null
                 end) latest_reply,
-                        
+
                 count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') num_accepted,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied,
@@ -2273,20 +2287,20 @@ def get_account_based_data(client_sdr_id: int, offset: int):
                 join company_spark_helper on company_spark_helper.company_id = prospect.company_id
             where prospect.client_id = {CLIENT_ID}
             group by 1,2,3
-            having 
-                count(distinct prospect.id) filter 
+            having
+                count(distinct prospect.id) filter
                     (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') > 0
-                
+
             order by 5 desc
             limit 25
             offset {OFFSET}
         )
-        select 
+        select
             company,
             company_id,
             company_url,
             sparkline_data,
-            case 
+            case
                 when sparkline_min = sparkline_max then 'LOW'
                 when sparkline_max / cast(sparkline_min as float) < 5 then 'MID'
                 else 'HIGH'
@@ -2297,7 +2311,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
             num_replied,
             num_positive_reply,
             num_demo
-                
+
         from helper
         order by latest_reply desc;
     """.format(
