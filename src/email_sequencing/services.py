@@ -471,6 +471,7 @@ def create_email_subject_line_template(
     subject_line: str,
     active: bool = True,
     sellscale_generated: bool = False,
+    is_magic_subject_line: Optional[bool] = False,
 ) -> int:
     """Create a new email subject line template
 
@@ -491,6 +492,7 @@ def create_email_subject_line_template(
         subject_line=subject_line,
         active=active,
         sellscale_generated=sellscale_generated,
+        is_magic_subject_line=is_magic_subject_line,
     )
     db.session.add(template)
     db.session.commit()

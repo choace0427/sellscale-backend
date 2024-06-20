@@ -177,6 +177,7 @@ def test_create_email_subject_line_template():
         subject_line="Test Subject Line",
         active=True,
         sellscale_generated=False,
+        is_magic_subject_line=False,
     )
     assert id is not None
     email_subject_line_template: EmailSubjectLineTemplate = db.session.query(

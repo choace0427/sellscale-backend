@@ -335,11 +335,15 @@ def post_create_email_subject_line_template(client_sdr_id: int):
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=True, parameter_type=int
     )
+    is_magic_subject_line = get_request_parameter(
+        "is_magic_subject_line", request, json=True, required=False, parameter_type=bool, default=False
+    )
 
     subject_line_template_id = create_email_subject_line_template(
         client_sdr_id=client_sdr_id,
         client_archetype_id=archetype_id,
         subject_line=subject_line,
+        is_magic_subject_line=is_magic_subject_line,
     )
     if subject_line_template_id:
         return (

@@ -818,6 +818,7 @@ def import_email_sequence(
             client_archetype_id=archetype.id,
             subject_line=subject_line,
             active=True,
+            is_magic_subject_line=False
         )
 
     # Now we should run email scraper on any Prospect that does not have an email

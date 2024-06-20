@@ -101,6 +101,7 @@ def add_sequence(
                 client_archetype_id=archetype_id,
                 subject_line=subject_line["text"],
                 sellscale_generated=True,
+                is_magic_subject_line=False
             )
 
     elif sequence_type == "LINKEDIN-CTA":
@@ -160,7 +161,8 @@ def add_sequence(
         archetype.template_mode = (
             True if sequence_type == "LINKEDIN-TEMPLATE" else False
         )
-        archetype.li_bump_amount = max(step["step_num"] for step in steps) - 1
+        if steps:
+            archetype.li_bump_amount = max(step["step_num"] for step in steps) - 1
         db.session.commit()
 
         # Wipe the existing bump frameworks

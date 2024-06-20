@@ -23,6 +23,7 @@ class EmailSubjectLineTemplate(db.Model):
     times_accepted = db.Column(db.Integer, nullable=False, default=0)
 
     sellscale_generated = db.Column(db.Boolean, nullable=True, default=False)
+    is_magic_subject_line = db.Column(db.Boolean, nullable=True, default=False)
 
     def to_dict(self):
         archetype: ClientArchetype = ClientArchetype.query.get(self.client_archetype_id)
@@ -37,8 +38,8 @@ class EmailSubjectLineTemplate(db.Model):
             "times_used": self.times_used,
             "times_accepted": self.times_accepted,
             "sellscale_generated": self.sellscale_generated,
+            "is_magic_subject_line": self.is_magic_subject_line,
         }
-
 
 class EmailSequenceStep(db.Model):
     __tablename__ = "email_sequence_step"
