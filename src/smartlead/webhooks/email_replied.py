@@ -149,29 +149,6 @@ def process_email_replied_webhook(payload_id: int):
             "email_reply_body": reply_message,
         }
 
-        # ANALYTICS
-        if (
-            prospect_email.outreach_status
-            and "ACTIVE_CONVO" not in prospect_email.outreach_status.value
-        ):
-            # Cascading Replies: Get all the email schedule entries up to prospect_email.smartlead_sent_count entries
-            sent_emails: list[EmailMessagingSchedule] = (
-                EmailMessagingSchedule.query.filter(
-                    EmailMessagingSchedule.prospect_email_id == prospect_email.id,
-                )
-                .order_by(EmailMessagingSchedule.created_at.asc())
-                .limit(prospect_email.smartlead_sent_count)
-                .all()
-            )
-            for email in sent_emails:
-                template: EmailSequenceStep = EmailSequenceStep.query.get(
-                    email.email_body_template_id
-                )
-                if template:
-                    if template.times_replied is None:
-                        template.times_replied = 0
-                    template.times_replied += 1
-
         # Set the prospect_email's last_message and last_reply_time
         prospect_email.last_message = reply_message
         prospect.email_last_message_from_prospect = reply_message
@@ -185,6 +162,8 @@ def process_email_replied_webhook(payload_id: int):
         prospect.hidden_until = None
         prospect.hidden_reason = None
 
+        # Update the ProspectEmailStatus
+        old_status = prospect_email.outreach_status
         try:
             # Set the Prospect Email to "ACTIVE_CONVO"
             update_prospect_status_email(
@@ -200,13 +179,37 @@ def process_email_replied_webhook(payload_id: int):
             )
 
             # Determine "ACTIVE_CONVO" substatus
-            _ = classify_email.delay(
+            status = classify_email(
                 prospect_id=prospect.id,
                 email_body=reply_message,
             )
         except:
             # If the update fails, then something had gone wrong earlier. We skip for now
             pass
+
+        # ANALYTICS
+        if old_status and (
+            "ACTIVE_CONVO" not in old_status or "ACTIVE_CONVO_OOO" in old_status
+        ):
+            # Make sure this wasn't an OOO reply
+            if status and status != ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO:
+                # Cascading Replies: Get all the email schedule entries up to prospect_email.smartlead_sent_count entries
+                sent_emails: list[EmailMessagingSchedule] = (
+                    EmailMessagingSchedule.query.filter(
+                        EmailMessagingSchedule.prospect_email_id == prospect_email.id,
+                    )
+                    .order_by(EmailMessagingSchedule.created_at.asc())
+                    .limit(prospect_email.smartlead_sent_count)
+                    .all()
+                )
+                for email in sent_emails:
+                    template: EmailSequenceStep = EmailSequenceStep.query.get(
+                        email.email_body_template_id
+                    )
+                    if template:
+                        if template.times_replied is None:
+                            template.times_replied = 0
+                        template.times_replied += 1
 
         # Set the payload to "SUCCEEDED"
         print(f"Processed EMAIL_REPLIED payload (#{smartlead_payload.id}) successfully")

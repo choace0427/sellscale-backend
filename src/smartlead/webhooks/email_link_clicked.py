@@ -2,7 +2,6 @@ import re
 from bs4 import BeautifulSoup
 from app import db, celery
 from src.client.models import ClientArchetype
-from src.email_classifier.services import classify_email
 from src.email_outbound.models import (
     ProspectEmail,
     ProspectEmailOutreachStatus,
