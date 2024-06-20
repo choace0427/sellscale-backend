@@ -1259,6 +1259,7 @@ def get_client_archetype_overview(client_archetype_id):
     linkedin_active = archetype.linkedin_active
     testing_volume = archetype.testing_volume
     id = archetype.id
+    meta_data = archetype.meta_data
 
     num_prospects: int = Prospect.query.filter(
         Prospect.archetype_id == client_archetype_id
@@ -1287,6 +1288,7 @@ def get_client_archetype_overview(client_archetype_id):
         "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,
         "setup_status": archetype.setup_status.value if archetype.setup_status else None,
         "ai_researcher_id": archetype.ai_researcher_id,
+        "meta_data": meta_data,
     }
 
 def get_total_contacts_for_archetype(client_archetype_id):
