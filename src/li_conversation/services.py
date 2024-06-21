@@ -2,7 +2,8 @@ import json
 import yaml
 from typing import List, Union, Optional
 
-from src.ml.services import get_text_generation
+from src.ml.services import chat_ai_verify_demo_set, get_text_generation
+from src.heuristic_keywords.heuristics import demo_key_words
 
 from src.utils.lists import format_str_join
 from src.client.models import ClientArchetype
@@ -346,6 +347,8 @@ def create_linkedin_conversation_entry(
                     prospect.li_unread_messages += 1
             db.session.add(prospect)
 
+        detect_demo_set.delay(thread_urn_id, prospect.id)
+
         return new_linkedin_conversation_entry
     else:
         # Populate the urn_id is it's not already set
@@ -375,6 +378,63 @@ def create_linkedin_conversation_entry(
             return duplicate_exists
         else:
             return None
+        
+@celery.task(max_retries=3)
+def detect_demo_set(thread_urn_id: str, prospect_id: int):
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    clientSDR: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+
+    # Get the conversation entries for the thread
+    conversation_entries = LinkedinConversationEntry.query.filter(
+        LinkedinConversationEntry.thread_urn_id == thread_urn_id
+    ).all()
+
+    latest_message = conversation_entries[-1]
+
+    # Run the demo set ruleset
+    if latest_message:
+        message_lowered = latest_message.message.lower()
+        for key_word in demo_key_words:
+            if key_word in message_lowered:
+                messages = [x.message for x in conversation_entries]
+                is_demo_set = chat_ai_verify_demo_set(messages, prospect.full_name)
+                if is_demo_set:
+                    send_slack_message(
+                        message=f"""
+                        🎉🎉🎉 !!!!! DEMO SET !!!!!! 🎉🎉🎉
+                        ```
+                        {messages[-5:]}
+                        ```
+                        These are the last 5 messages.
+                        ⏰ Current Status: "DEMO_SET"
+
+                        > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.full_name}
+
+                        🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
+                        🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
+                        """,
+                        webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+                    )
+                else:
+                    send_slack_message(
+                        message=f"""
+                        🎉🎉🎉 !!!!! DEMO SET, Open AI said not a demo though. !!!!!! 🎉🎉🎉
+                        ```
+                        {messages[-5:]}
+                        ```
+                        These are the last 5 messages.
+                        ⏰ Current Status: "DEMO_SET"
+
+                        > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.full_name}
+
+                        🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
+                        🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
+                        """,
+                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                    )
+                break
+    # Check for a demo set keyword
 
 
 def detect_time_sensitive_keywords(

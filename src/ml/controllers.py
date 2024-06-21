@@ -21,6 +21,7 @@ from src.ml.openai_wrappers import (
     wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
+from src.li_conversation.services import detect_demo_set #for celery task registration
 from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
