@@ -1,5 +1,6 @@
 from numpy import require
 from src.client.models import ClientSDR, Client
+from src.message_generation.email.services import generate_magic_subject_line
 from src.ml.ai_researcher_services import (
     connect_researcher_to_client_archetype,
     create_ai_researcher,
@@ -44,6 +45,7 @@ from src.ml.fine_tuned_models import get_config_completion
 from src.message_generation.models import GeneratedMessage
 from src.research.account_research import generate_prospect_research
 from src.research.linkedin.services import get_research_and_bullet_points_new
+from src.sockets.services import send_socket_message
 from src.utils.request_helpers import get_request_parameter
 
 ML_BLUEPRINT = Blueprint("ml", __name__)
@@ -663,3 +665,31 @@ def post_simulate_voice(client_sdr_id: int):
 
     return jsonify({"simulated_voice": simulated_voice}), 200
 
+@ML_BLUEPRINT.route("/simulate-magic-subject-line", methods=["POST"])
+@require_user
+def post_simulate_magic_subject_line(client_sdr_id: int):
+    """
+    Simulate a magic subject line using AI Researcher
+    """
+    sequence_id = get_request_parameter(
+        "sequence_id", request, json=True, required=True, parameter_type=int
+    )
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    room_id = get_request_parameter(
+        "room_id", request, json=True, required=True, parameter_type=str
+    )
+
+    magic_subject_line, personalized_email = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, generate_email=True, room_id=room_id)
+
+    if (room_id):
+        send_socket_message('subject-stream', {"message":"done", 'room_id': room_id}, room_id)
+
+    if not magic_subject_line:
+        return "Error simulating magic subject line", 400
+
+    return jsonify({"magic_subject_line": magic_subject_line, "personalized_email": personalized_email}), 200

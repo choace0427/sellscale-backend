@@ -10,6 +10,8 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from src.message_generation.email.models import EmailAutomatedReply
 from src.message_generation.services import get_li_convo_history_transcript_form
+from src.ml.ai_researcher_services import get_generated_email, run_all_ai_researcher_questions_for_prospect
+from src.sockets.services import send_socket_message
 from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import get_text_generation
 
@@ -21,6 +23,11 @@ from src.email_outbound.services import (
 from src.email_sequencing.models import EmailSequenceStep, EmailSubjectLineTemplate
 from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import AccountResearchPoints, ResearchPoints
+
+from src.ml.models import (
+    AIResearcherAnswer,
+    AIResearcherQuestion,
+)
 
 from src.ml.openai_wrappers import (
     OPENAI_CHAT_GPT_4_MODEL,
@@ -583,6 +590,132 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
     response = response.strip('"')
 
     return {"subject_line": response}
+
+
+def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, generate_email: bool = False, room_id: Optional[str] = None) -> str:
+    """Generate a magic subject line for a prospect.
+
+    Args:
+        campaign_id (int): The ID of the campaign
+        prospect_id (int): The ID of the prospect
+
+    Returns:
+        str: The magic subject line
+    """
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    campaign: ClientArchetype = ClientArchetype.query.get(campaign_id)
+
+    if(room_id):
+        send_socket_message('subject-stream', {"step": 1, 'room_id': room_id}, room_id)
+
+    
+    run_all_ai_researcher_questions_for_prospect(prospect.client_sdr_id, prospect_id, None, False)
+
+    if(room_id):
+        send_socket_message('subject-stream', {"step": 2, 'room_id': room_id}, room_id)
+
+    ai_research_points: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id).all()
+
+    ai_researcher_id = campaign.ai_researcher_id
+    ai_questions = AIResearcherQuestion.query.filter_by(researcher_id=ai_researcher_id).all()
+
+    email_body = EmailSequenceStep.query.get(sequence_id).template
+
+    if (generate_email):
+        try:
+            email_body = get_generated_email(
+                email_body=email_body,
+                prospectId=prospect_id,
+            )
+        except Exception as e:
+            print(e)
+
+    if(room_id):
+        send_socket_message('subject-stream', {"step": 3, 'room_id': room_id}, room_id)
+    
+    prompt = '''
+    # Purpose:
+    You are a catchy subject line generator. 
+    The subject lines should be informal, be inherently friendly, 
+    and mention something specific or internal about the target company.
+
+    ### Bad subject lines
+    - “50% off!”
+
+    Good subject lines are:
+
+    ### Example
+    **Person:** 
+    Barry Carter (#288346) Vice President of Infrastructure and Cloud, 711
+    
+    **Subject line:**
+    7-Eleven meets 24/7 innovation
+    
+    **Body:**
+    Hi Barry,
+    
+    I noticed 7-Eleven Japan has been actively exploring GenAI for product planning and edge AI vision detection. At JK Tech, we've developed Gen AI accelerators to help Retail and CPG companies like 7-Eleven deploy AI use cases quickly. We address key challenges like synthesizing structured and unstructured data, protecting sensitive information & access management, and providing an auditable path for AI responses.
+    
+    Given your role as Vice President of Infrastructure and Cloud, I'd love to show you how we can tailor solutions for 7-Eleven. Are you open to a call next week to discuss how our insights could enhance your GenAI initiatives?
+    
+    Best regards,
+    Becky Pallett
+    
+    **Reasoning:**
+    - 7-Eleven and 24/7 innovation is witty.
+    - It uses 7-Eleven and 24/7 as a play with numbers.
+    - 24/7 is also how long 711 is open.
+    - Finally, 24/7 innovation connects with the body of the email of providing innovation. It's nice and short.
+
+    some more samples of good ones
+
+    Looking to Connect
+
+    Your Take on This?
+
+    Pear studio coffee chats!
+
+    Now, Here's the information you should use to generate the subject line:
+
+    Prospect name, title, and company: {prospect_name}, {prospect_title} at {prospect_company}
+
+    Research points:
+    {ai_research_questions}
+    {ai_research_answers}
+
+    Email body:
+    {email_body}
+
+    Please output ONLY a catchy, even punny, subject line that would increase the open rate of the email. Do not include the word 'Subject:' in the output. Do not include quotations.
+    Just the subject line, please.    
+
+    Good subject lines are:
+    - 1-5 words
+    - Avoid buzzwords (to avoid spam detectors)
+    - Sounds friendly or witty.
+    
+    '''.format(
+        prospect_name=prospect.first_name if prospect.first_name else prospect.full_name, 
+        prospect_title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
+        prospect_company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company, 
+        ai_research_questions='\n'.join([f'- {question.key}' for question in ai_questions]), 
+        ai_research_answers='\n'.join([f'- {answer.raw_response}' for answer in ai_research_points]), 
+        email_body=email_body
+    )
+
+    answer = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        model='claude-3-opus-20240229',
+        max_tokens=50
+        )
+    answer = answer.strip('"')
+
+    return answer, email_body
 
 
 def create_email_automated_reply_entry(

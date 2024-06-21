@@ -238,7 +238,8 @@ def get_ai_researcher_answers_for_prospect(
 def run_all_ai_researcher_questions_for_prospect(
     client_sdr_id: int,
     prospect_id: int,
-    room_id: Optional[str] = None
+    room_id: Optional[str] = None,
+    hard_refresh: Optional[bool] = True
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_archetype_id = prospect.archetype_id
@@ -249,11 +250,19 @@ def run_all_ai_researcher_questions_for_prospect(
 
     # Delete all existing answers for this prospect
     existing_answers: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id).all()
-    for answer in existing_answers:
-        db.session.delete(answer)
-    db.session.commit()
+    if hard_refresh:
+        for answer in existing_answers:
+            db.session.delete(answer)
+        db.session.commit()
 
-    for question in questions:
+    questions_without_answers: list[AIResearcherQuestion] = AIResearcherQuestion.query.filter(
+        AIResearcherQuestion.id.notin_(
+            db.session.query(AIResearcherAnswer.question_id).filter_by(prospect_id=prospect_id)
+        ),
+        AIResearcherQuestion.researcher_id == ai_researcher_id
+    ).all()
+
+    for question in questions_without_answers:
         # todo(Aakash) - in future, make this a celery task if it's too slow.
         run_ai_researcher_question(
             client_sdr_id=client_sdr_id,
@@ -275,6 +284,11 @@ def run_ai_researcher_question(
     room_id: str
 ):
     """Run an AI Researcher question on a prospect."""
+
+    #check if there's an answer already. There is only one case where there will be an answer already, 
+    # and that is if run_all_researcher_questions_for_prospect has 
+    # hard_refresh=False
+    
     question: AIResearcherQuestion = AIResearcherQuestion.query.get(question_id)
 
     if question.type == "QUESTION":
@@ -519,9 +533,10 @@ def get_generated_email(email_body, prospectId):
         Hi Dr Xyz..
 
         Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
-        NOTE: Try not to increase the length of the email - seamlessly incorporate personalization to make it same or shorter length.
-        NOTE: Include the personalization at the beginning since that makes for a better hook and helps open rates.
+        NOTE: Try not to increase the length of the email - seamlessly incorproate personalization to make it same or shorter length.
         NOTE: Only respond with the personalized email, nothing else.
+        NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
+        NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
 
         Personalized email:
         """
@@ -542,11 +557,20 @@ def get_generated_email(email_body, prospectId):
         print(e)
         return False
 
-def run_ai_personalizer_on_prospect_email(prospect_email_id: int):
+def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalization_override: Optional[str] = None):
     try:
         prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
         prospect_id: int = prospect_email.prospect_id
         prospect: Prospect = Prospect.query.get(prospect_id)
+
+        #in the case of a magic subject line, we will already just have generated the email body using
+        #regular research techniques. In this case, we will just use the override to update the email body
+        if (personalization_override):
+            generated_message: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
+            generated_message.completion = personalization_override
+            db.session.add(generated_message)
+            db.session.commit()
+            return True
 
         run_all_ai_researcher_questions_for_prospect(
             client_sdr_id=prospect.client_sdr_id,

@@ -1435,6 +1435,7 @@ def get_client_archetype_sequences(client_archetype_id):
             "active": step_data["step"]["active"],
             "title": step_data["step"]["title"],
             "description": step_data["step"]["template"],
+            "id": step_data["step"]["id"],
             "bumped_count": step_data["step"]["bumped_count"],
             "overall_status": step_data["step"]["overall_status"],
             "assets": step_data["assets"],

@@ -1135,6 +1135,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
         ai_subject_line_prompt,
         generate_email,
         generate_subject_line,
+        generate_magic_subject_line,
     )
 
     try:
@@ -1222,7 +1223,16 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             )
 
         # 8b. Generate the subject line
-        if subjectline_strict:
+        if (subjectline_template.is_magic_subject_line):
+            subject_line_prompt = "Magic Subject Line"
+            subject_line, personalized_email_body = generate_magic_subject_line(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect_id,
+                email_body=email_body,
+                subject_line_template_id=subjectline_template.id,
+            )
+            subject_line = subject_line.get("subject_line")
+        elif subjectline_strict:
             subject_line_prompt = "No AI template detected in subject line template. Using exact template."
             subject_line = subjectline_template.subject_line
         else:
@@ -1284,7 +1294,8 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
         if ai_personalization_enabled:
             # 10.a. Run AI personalizer on the email body and subject line if enabled
-            run_ai_personalizer_on_prospect_email(prospect_email.id)
+            # already got personalized if it was a magic subject line
+            run_ai_personalizer_on_prospect_email(prospect_email.id, personalization_override=personalized_email_body)
 
         # 11. Save the prospect_email_id to the prospect and mark the prospect_email as approved
         # This also runs rule_engine on the email body and first line
