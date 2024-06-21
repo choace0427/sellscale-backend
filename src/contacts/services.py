@@ -4,6 +4,7 @@ import os
 from typing import Optional
 from app import db
 import requests
+from src.apollo.services import get_apollo_cookies
 from src.client.models import ClientArchetype, ClientSDR
 from src.company.services import find_company_name_from_url
 from src.contacts.models import SavedApolloQuery
@@ -20,8 +21,6 @@ from src.utils.hasher import generate_uuid
 
 # APOLLO CREDENTIALS (SESSION and XCSRF are reverse engineered tokens, may require manual refreshing periodically)
 APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY")
-APOLLO_SESSION_COOKIE = os.environ.get("APOLLO_SESSION_COOKIE")
-APOLLO_XCSRF_TOKEN = os.environ.get("APOLLO_XCSRF_TOKEN")
 
 ALLOWED_FILTERS = {
     "query_full_name": {
@@ -307,7 +306,7 @@ def add_match_reasons(
             if (
                 breadcrumb["signal_field_name"] == "person_titles"
                 and contact["title"]
-                and breadcrumb['value']
+                and breadcrumb["value"]
                 and breadcrumb["value"] in contact["title"].lower()
             ):
                 match_reasons.append(
@@ -534,10 +533,12 @@ def apollo_get_organizations_from_company_names(
     Returns:
         list: List of organization objects
     """
+    cookies, csrf_token = get_apollo_cookies()
+
     # Set the headers
     headers = {
-        "x-csrf-token": APOLLO_XCSRF_TOKEN,
-        "cookie": APOLLO_SESSION_COOKIE,
+        "x-csrf-token": csrf_token,
+        "cookie": cookies,
     }
 
     def apollo_org_search(company_name: str):
@@ -870,13 +871,16 @@ def upload_prospects_from_apollo_page_to_segment(
 
     return {"msg": msg, "error_code": error_code}
 
+
 def apollo_org_search(company_name: str):
     print("Getting company data for", company_name)
 
+    cookies, csrf_token = get_apollo_cookies()
+
     # Set the headers
     headers = {
-        "x-csrf-token": APOLLO_XCSRF_TOKEN,
-        "cookie": APOLLO_SESSION_COOKIE,
+        "x-csrf-token": csrf_token,
+        "cookie": cookies,
     }
 
     # Set the data
@@ -901,22 +905,22 @@ def apollo_org_search(company_name: str):
         print("ERROR", response.text)
     return None
 
+
 def save_apollo_query(domain):
     # https://app.apollo.io/api/v1/organization_search_lists/save_query
     # {query: "dliagency.com↵apollo.io", cacheKey: 1718407246578}
 
     url = "https://app.apollo.io/api/v1/organization_search_lists/save_query"
-    payload = {
-        "query": domain,
-        "cacheKey": 1718407246578
-    }
-    
+    payload = {"query": domain, "cacheKey": 1718407246578}
+
+    cookies, csrf_token = get_apollo_cookies()
+
     headers = {
-        "x-csrf-token": APOLLO_XCSRF_TOKEN,
-        "cookie": APOLLO_SESSION_COOKIE,
+        "x-csrf-token": cookies,
+        "cookie": csrf_token,
     }
 
     response = requests.post(url, headers=headers, json=payload)
     print(response.text)
-    
+
     return response.json()

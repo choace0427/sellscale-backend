@@ -283,6 +283,8 @@ def register_blueprints(app):
     from src.prospecting.upload.controllers import PROSPECTING_UPLOAD_BLUEPRINT
     from src.merge_crm.webhooks.controllers import MERGE_CRM_WEBHOOKS_BLUEPRINT
 
+    from src.apollo.controllers import APOLLO_REQUESTS
+
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
@@ -365,9 +367,7 @@ def register_blueprints(app):
     app.register_blueprint(UTILIZATION_BLUEPRINT, url_prefix="/utilizationv2")
     app.register_blueprint(PROSPECTING_UPLOAD_BLUEPRINT, url_prefix="/prospect/upload")
 
-    from src.hackathon.david.submission import HACKATHON_BLUEPRINT
-
-    app.register_blueprint(HACKATHON_BLUEPRINT, url_prefix="/hackathon")
+    app.register_blueprint(APOLLO_REQUESTS, url_prefix="/apollo")
 
     db.init_app(app)
 
