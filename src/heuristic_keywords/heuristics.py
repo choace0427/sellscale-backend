@@ -172,4 +172,5 @@ demo_key_words = [
     "demo time arranged",
     "talk soon",
     "reserved a time",
+    "thanks"
 ]

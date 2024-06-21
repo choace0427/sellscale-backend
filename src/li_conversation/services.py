@@ -392,10 +392,10 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
 
     # Get the conversation entries for the thread
     conversation_entries = LinkedinConversationEntry.query.filter(
-        LinkedinConversationEntry.thread_urn_id == thread_urn_id
-    ).all()
+        LinkedinConversationEntry.thread_urn_id == thread_urn_id,
+    ).order_by(LinkedinConversationEntry.created_at.desc()).all()
 
-    latest_message = conversation_entries[-1]
+    latest_message = conversation_entries[0]
 
     # Run the demo set ruleset
     if latest_message:
