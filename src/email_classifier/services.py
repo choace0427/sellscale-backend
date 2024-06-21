@@ -22,15 +22,19 @@ def classify_email(prospect_id: int, email_body: str) -> ProspectEmailOutreachSt
         ProspectEmailOutreachStatus or None: The classified email status or None if the email is not classified
     """
     # Detect OOO - Automatically updates the prospect
+    status = None
+
     out_of_office = detect_out_of_office(prospect_id=prospect_id, email_body=email_body)
     if out_of_office:
-        return ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
+        status = ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO
 
     # GPT Classifier - Last step
-    status = chat_ai_classify_email_active_convo(message=email_body)
-    if status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING:
-        # Perform extra logic here
-        pass
+    if not status:
+        status = chat_ai_classify_email_active_convo(message=email_body)
+        if status == ProspectEmailOutreachStatus.ACTIVE_CONVO_SCHEDULING:
+            # Perform extra logic here
+            pass
+
     update_prospect_status_email(
         prospect_id=prospect_id,
         new_status=status,

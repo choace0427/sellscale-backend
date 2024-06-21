@@ -165,13 +165,6 @@ def process_email_replied_webhook(payload_id: int):
         # Update the ProspectEmailStatus
         old_status = prospect_email.outreach_status
         try:
-            # Set the Prospect Email to "ACTIVE_CONVO"
-            update_prospect_status_email(
-                prospect_id=prospect.id,
-                new_status=ProspectEmailOutreachStatus.ACTIVE_CONVO,
-                metadata=metadata,
-            )
-
             # Generate an automated reply
             generate_smart_email_response(
                 client_sdr_id=prospect.client_sdr_id,
