@@ -345,7 +345,12 @@ def create_linkedin_conversation_entry(
                     prospect.li_unread_messages = 1
                 else:
                     prospect.li_unread_messages += 1
+            
+            if connection_degree != 'You' and prospect.hidden_until and prospect.hidden_until > date:
+                prospect.hidden_until = None
+
             db.session.add(prospect)
+            db.session.commit()
 
         detect_demo_set.delay(thread_urn_id, prospect.id)
 
