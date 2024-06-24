@@ -1,12 +1,13 @@
 import json
 from typing import Optional
-from app import db
+from app import db, celery
 from model_import import Client, ClientSDR, AIResearcher, AIResearcherQuestion, AIResearcherAnswer, ClientArchetype, Prospect
 from src.email_outbound.models import ProspectEmail
 from src.message_generation.models import GeneratedMessage
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import answer_question_about_prospect
 from src.research.models import ResearchPayload, ResearchPoints, ResearchType
+from src.sockets.services import send_socket_message
 
 def get_ai_researchers_for_client(
     client_sdr_id: int
@@ -126,8 +127,9 @@ def create_ai_researcher_question(
 
     return True
 
+@celery.task(max_retries=3)
 def generate_ai_researcher_questions(
-    researcher_id: int, client_sdr_id: int, campaign_id: int
+    researcher_id: int, client_sdr_id: int, campaign_id: int, room_id: Optional[str] = None
 ):
     
     from src.ml.services import get_text_generation
@@ -199,6 +201,8 @@ def generate_ai_researcher_questions(
             print('Attempt', attempt + 1, 'response:', response)
             try:
                 response_json = json.loads(response)
+                if room_id and isinstance(response_json, dict):
+                    response_json.update({"room_id": room_id})
                 return response_json
             except json.JSONDecodeError as e:
                 print(f"Error decoding JSON on attempt {attempt + 1}: {e}")
@@ -219,6 +223,16 @@ def generate_ai_researcher_questions(
             })
     else:
         print("Failed to decode JSON after multiple attempts.")
+        if room_id:
+            send_socket_message('stream-answers', {"message": "done", "room_id": room_id}, room_id)
+    if room_id:
+        if isinstance(response_json, list):
+            for item in response_json:
+                item_with_room_id = {"room_id": room_id, **item}
+                send_socket_message('stream-answers', item_with_room_id, room_id)
+        else:
+            print("Error: response_json is not a list")
+        send_socket_message('stream-answers', {"message":"done", "room_id": room_id}, room_id)
     print(response_json)
 
     return response_json
@@ -273,7 +287,7 @@ def run_all_ai_researcher_questions_for_prospect(
 
     from src.sockets.services import send_socket_message
     if (room_id):
-        send_socket_message('stream-answers', {"message":"done"}, room_id)
+        send_socket_message('stream-answers', {"message":"done", "room_id": room_id}, room_id)
 
     return True
 

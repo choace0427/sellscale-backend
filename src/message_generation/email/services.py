@@ -609,7 +609,7 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
         send_socket_message('subject-stream', {"step": 1, 'room_id': room_id}, room_id)
 
     
-    run_all_ai_researcher_questions_for_prospect(prospect.client_sdr_id, prospect_id, None, False)
+    run_all_ai_researcher_questions_for_prospect(prospect.client_sdr_id, prospect_id, room_id, False)
 
     if(room_id):
         send_socket_message('subject-stream', {"step": 2, 'room_id': room_id}, room_id)

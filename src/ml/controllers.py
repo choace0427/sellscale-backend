@@ -21,6 +21,7 @@ from src.ml.openai_wrappers import (
     wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
+from src.ml.ai_researcher_services import run_ai_researcher_question #for celery task registration
 from src.li_conversation.services import detect_demo_set #for celery task registration
 from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
@@ -529,11 +530,15 @@ def post_generate_ai_researcher_questions(client_sdr_id: int):
         "campaign_id", request, json=True, required=True, parameter_type=int
     )
 
-    response = generate_ai_researcher_questions(
-        researcher_id=researcher_id, client_sdr_id=client_sdr_id, campaign_id=campaign_id
+    room_id = get_request_parameter(
+        "room_id", request, json=True, required=True, parameter_type=str
     )
 
-    return response
+    result = generate_ai_researcher_questions.delay(
+        researcher_id=researcher_id, client_sdr_id=client_sdr_id, campaign_id=campaign_id, room_id=room_id
+    )
+
+    return "AI Researcher answers created successfully", 200
 
 
 @ML_BLUEPRINT.route("/researchers/answers", methods=["POST"])

@@ -1313,11 +1313,17 @@ def answer_question_about_prospect(
     print("\nStep 3: Validating response")
     print(validate_with_gpt)
 
-    if (room_id):
-        validate_with_gpt["question"] = question
-        validate_with_gpt["raw_response"] = response
-        validate_with_gpt["type"] = questionType
-        send_socket_message('stream-answers', validate_with_gpt, room_id)
+    if room_id:
+        formatted_data = {
+            "title": question,
+            "type": questionType,
+            "content": validate_with_gpt.get("cleaned_research"),
+            "raw_response": response,
+            "ai_response": validate_with_gpt.get("relevancy_explanation"),
+            "status": validate_with_gpt.get("is_yes_response"),
+            "room_id": room_id
+        }
+        send_socket_message('stream-answers', formatted_data, room_id)
 
     return True, response, validate_with_gpt
 
