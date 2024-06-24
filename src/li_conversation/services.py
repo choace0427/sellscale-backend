@@ -492,7 +492,12 @@ def detect_time_sensitive_keywords(
             sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
             prospect: Prospect = Prospect.query.get(prospect_id)
 
-            if prospect.status == ProspectStatus.ACTIVE_CONVO_SCHEDULING:
+            if prospect.status in (
+                ProspectStatus.DEMO_LOSS,
+                ProspectStatus.DEMO_SET,
+                ProspectStatus.DEMO_WON,
+                ProspectStatus.ACTIVE_CONVO_SCHEDULING
+            ):
                 return None
 
             old_status = prospect.status.value
