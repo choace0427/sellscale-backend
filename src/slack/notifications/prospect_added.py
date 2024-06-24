@@ -18,6 +18,14 @@ class ProspectAddedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "num_new_prospects",
+        "estimated_savings",
+        "persona_or_segment_string",
+        "top_titles",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -100,14 +108,6 @@ class ProspectAddedNotification(SlackNotificationClass):
         top_titles = fields.get("top_titles")
         company_size_str = fields.get("company_size_str")
         direct_link = fields.get("direct_link")
-        if (
-            not num_new_prospects
-            or not estimated_savings
-            or not persona_or_segment_string
-            or not top_titles
-            or not direct_link
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

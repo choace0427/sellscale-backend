@@ -19,6 +19,18 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "prospect_name",
+        "prospect_title",
+        "prospect_company",
+        "prospect_icp_fit_reason",
+        "archetype_name",
+        "archetype_emoji",
+        "direct_link",
+        "conversation",
+        "initial_send_date",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -117,9 +129,6 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
-                return False
             fields = get_fields()
 
         # Get the fields
@@ -133,18 +142,8 @@ class LinkedInDemoSetNotification(SlackNotificationClass):
         conversation = fields.get("conversation")
         initial_send_date = fields.get("initial_send_date")
 
-        if (
-            not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not prospect_icp_fit_reason
-            or not archetype_name
-            or not archetype_emoji
-            or not direct_link
-            or not conversation
-            or not initial_send_date
-        ):
-            return False
+        # validate the required fields
+        self.validate_required_fields(fields)
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

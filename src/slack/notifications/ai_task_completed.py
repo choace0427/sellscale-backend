@@ -20,6 +20,14 @@ class AITaskCompletedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "title",
+        "contact",
+        "request_date",
+        "completed_date",
+        "dashboard_url",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -88,10 +96,10 @@ class AITaskCompletedNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.title:
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         title = fields.get("title")
@@ -101,14 +109,6 @@ class AITaskCompletedNotification(SlackNotificationClass):
         request_date = fields.get("request_date")
         completed_date = fields.get("completed_date")
         dashboard_url = fields.get("dashboard_url")
-        if (
-            not title
-            or not contact
-            or not request_date
-            or not completed_date
-            or not dashboard_url
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

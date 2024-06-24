@@ -21,6 +21,20 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "prospect_name",
+        "prospect_title",
+        "prospect_company",
+        "prospect_email",
+        "archetype_name",
+        "archetype_emoji",
+        "email_sent_subject",
+        "email_sent_body",
+        "email_reply_body",
+        "direct_link",
+        "initial_send_date",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -119,15 +133,10 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if (
-                not self.prospect_id
-                or not self.email_sent_subject
-                or not self.email_sent_body
-                or not self.email_reply_body
-            ):
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         prospect_name = fields.get("prospect_name")
@@ -141,20 +150,6 @@ class EmailProspectRepliedNotification(SlackNotificationClass):
         email_reply_body = fields.get("email_reply_body", "").replace("\n", "\n>")
         direct_link = fields.get("direct_link")
         initial_send_date = fields.get("initial_send_date")
-        if (
-            not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not prospect_email
-            or not archetype_name
-            or not archetype_emoji
-            or not email_sent_subject
-            or not email_sent_body
-            or not email_reply_body
-            or not direct_link
-            or not initial_send_date
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

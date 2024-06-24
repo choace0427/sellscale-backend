@@ -20,6 +20,7 @@ class SlackNotificationClass:
 
     This class should be inherited by all Slack notifications. This class should not be instantiated directly.
     """
+    required_fields = {}
 
     def __init__(self, client_sdr_id: int, developer_mode: Optional[bool] = False):
         """Initializes a SlackNotification object. The parameters should be the attributes of the class (e.g. client_sdr_id). These parameters will influence the message sent.
@@ -34,7 +35,13 @@ class SlackNotificationClass:
         self.developer_mode = developer_mode
 
         return
-
+    
+    def validate_required_fields(self, fields: dict):
+        """Validates that all required fields are present in the fields dictionary."""
+        if not set(self.required_fields).issubset(fields):
+            missing_fields = set(self.required_fields) - set(fields)
+            raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+    
     def send_notification(self, preview_mode: bool) -> bool:
         """Sends a notification to Slack using the class's attributes and the Slack API. There should be no parameters to this function.
 

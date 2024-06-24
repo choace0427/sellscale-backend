@@ -17,6 +17,11 @@ class CampaignCompletedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "sequence_name",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -126,13 +131,14 @@ class CampaignCompletedNotification(SlackNotificationClass):
         else:
             fields = get_fields()
 
+        # Validate
+        self.validate_required_fields(fields)
+
         # Get the fields
         sequence_name = fields.get("sequence_name")
         sequence_emoji = fields.get("sequence_emoji")
         stats_string = fields.get("stats_string")
         direct_link = fields.get("direct_link")
-        if not sequence_name or not direct_link:
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

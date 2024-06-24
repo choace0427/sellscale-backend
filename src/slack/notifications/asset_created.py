@@ -19,6 +19,13 @@ class AssetCreatedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "asset_name",
+        "asset_type",
+        "ai_summary",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -107,14 +114,15 @@ class AssetCreatedNotification(SlackNotificationClass):
         else:
             fields = get_fields()
 
+        # Validate
+        self.validate_required_fields(fields)
+
         # Get the fields
         client_archetype_names = fields.get("client_archetype_names")
         asset_name = fields.get("asset_name")
         asset_type = fields.get("asset_type")
         ai_summary = fields.get("ai_summary")
         direct_link = fields.get("direct_link")
-        if not asset_name or not asset_type or not ai_summary or not direct_link:
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

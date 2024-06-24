@@ -19,6 +19,17 @@ class EmailAIReplyNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "prospect_name",
+        "prospect_title",
+        "prospect_company",
+        "prospect_first_name",
+        "outreach_status",
+        "direct_link",
+        "prospect_message",
+        "ai_response",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -91,14 +102,10 @@ class EmailAIReplyNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if (
-                not self.prospect_id
-                or not self.prospect_message
-                or not self.ai_response
-            ):
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         prospect_name = fields.get("prospect_name")
@@ -109,17 +116,6 @@ class EmailAIReplyNotification(SlackNotificationClass):
         direct_link = fields.get("direct_link")
         prospect_message = fields.get("prospect_message")
         ai_response = fields.get("ai_response")
-        if (
-            not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not prospect_first_name
-            or not outreach_status
-            or not direct_link
-            or not prospect_message
-            or not ai_response
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

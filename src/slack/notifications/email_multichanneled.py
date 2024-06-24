@@ -19,6 +19,15 @@ class EmailMultichanneledNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "prospect_name",
+        "prospect_message",
+        "from_email",
+        "email_sent_subject",
+        "email_sent_body",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -82,15 +91,10 @@ class EmailMultichanneledNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if (
-                not self.prospect_id
-                or not self.from_email
-                or not self.email_sent_subject
-                or not self.email_sent_body
-            ):
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         prospect_name = fields.get("prospect_name")
@@ -101,15 +105,6 @@ class EmailMultichanneledNotification(SlackNotificationClass):
             fields.get("email_sent_body", "").replace("\n", "\n>").strip("\n")
         )
         direct_link = fields.get("direct_link")
-        if (
-            not prospect_name
-            or not prospect_message
-            or not from_email
-            or not email_sent_subject
-            or not email_sent_body
-            or not direct_link
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

@@ -23,6 +23,17 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "rep",
+        "rating",
+        "prospect_name",
+        "prospect_company",
+        "archetype_name",
+        "demo_date",
+        "demo_status",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -103,10 +114,10 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.rating or not self.prospect_id:
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         rep = fields.get("rep")
@@ -120,17 +131,6 @@ class DemoFeedbackUpdatedNotification(SlackNotificationClass):
         demo_date = fields.get("demo_date")
         demo_status = fields.get("demo_status")
         direct_link = fields.get("direct_link")
-        if (
-            not rep
-            or not rating
-            or not prospect_name
-            or not prospect_company
-            or not archetype_name
-            or not demo_date
-            or not demo_status
-            or not direct_link
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

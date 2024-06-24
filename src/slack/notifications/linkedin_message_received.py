@@ -19,12 +19,23 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "prospect_name",
+        "prospect_title",
+        "prospect_company",
+        "archetype_name",
+        "archetype_emoji",
+        "direct_link",
+        "linkedin_message",
+        "initial_send_date",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
         developer_mode: Optional[bool] = False,
         prospect_id: Optional[int] = None,
-        linkedin_conversation_entry_id: Optional[int]= None,
+        linkedin_conversation_entry_id: Optional[int] = None,
     ):
         super().__init__(client_sdr_id, developer_mode)
         self.prospect_id = prospect_id
@@ -64,11 +75,12 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
             """Gets the fields to be used in the message."""
             client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             prospect: Prospect = Prospect.query.get(self.prospect_id)
-            linkedin_message: LinkedinConversationEntry = LinkedinConversationEntry.query.get(self.linkedin_conversation_entry_id)
+            linkedin_message: LinkedinConversationEntry = (
+                LinkedinConversationEntry.query.get(self.linkedin_conversation_entry_id)
+            )
             client_archetype: ClientArchetype = ClientArchetype.query.get(
                 prospect.archetype_id
             )
-
 
             return {
                 "prospect_name": prospect.full_name,
@@ -91,9 +103,10 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
             fields = get_preview_fields()
         else:
             # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id and not self.message:
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         prospect_name = fields.get("prospect_name")
@@ -104,17 +117,6 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
         direct_link = fields.get("direct_link")
         linkedin_message = fields.get("linkedin_message")
         initial_send_date = fields.get("initial_send_date")
-        if (
-            not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not archetype_name
-            or not archetype_emoji
-            or not direct_link
-            or not linkedin_message
-            or not initial_send_date
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
@@ -176,7 +178,9 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": "*Initial Send Date:* {initial_send_date}".format(
-                            initial_send_date=linkedin_message.date.strftime("%B %d, %Y")
+                            initial_send_date=linkedin_message.date.strftime(
+                                "%B %d, %Y"
+                            )
                         ),
                     },
                 },

@@ -17,6 +17,16 @@ class CampaignActivatedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "sequence_name",
+        "example_prospect_name",
+        "example_prospect_title",
+        "example_prospect_company",
+        "example_prospect_linkedin_url",
+        "example_message",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -90,6 +100,9 @@ class CampaignActivatedNotification(SlackNotificationClass):
         else:
             fields = get_fields()
 
+        # Validate
+        self.validate_required_fields(fields)
+
         # Get the fields
         sequence_name = fields.get("sequence_name")
         example_prospect_name = fields.get("example_prospect_name")
@@ -98,16 +111,6 @@ class CampaignActivatedNotification(SlackNotificationClass):
         example_prospect_linkedin_url = fields.get("example_prospect_linkedin_url")
         example_message = fields.get("example_message")
         direct_link = fields.get("direct_link")
-        if (
-            not sequence_name
-            or not example_prospect_name
-            or not example_prospect_title
-            or not example_prospect_company
-            or not example_prospect_linkedin_url
-            or not example_message
-            or not direct_link
-        ):
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

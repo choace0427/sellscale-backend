@@ -18,6 +18,14 @@ class LinkedinProspectRespondedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "prospect_name",
+        "archetype_name",
+        "direct_link",
+        "conversation",
+        "initial_send_date",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -106,9 +114,6 @@ class LinkedinProspectRespondedNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.prospect_id:
-                return False
             fields = get_fields()
 
         # Get the fields
@@ -120,16 +125,9 @@ class LinkedinProspectRespondedNotification(SlackNotificationClass):
         direct_link = fields.get("direct_link")
         conversation = fields.get("conversation")
         initial_send_date = fields.get("initial_send_date")
-        if (
-            not prospect_name
-            or not prospect_title
-            or not prospect_company
-            or not archetype_name
-            or not direct_link
-            or not conversation
-            or not initial_send_date
-        ):
-            return False
+        
+        #validate the required fields
+        self.validate_required_fields(fields)
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

@@ -20,6 +20,18 @@ class LinkedInMultiThreadNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "sdr",
+        "archetype_name",
+        "referred_name",
+        "referred_company",
+        "referral_name",
+        "referral_company",
+        "referred_message",
+        "referral_message",
+        "direct_link",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -115,19 +127,9 @@ class LinkedInMultiThreadNotification(SlackNotificationClass):
         referred_message = fields.get("referred_message")
         referral_message = fields.get("referral_message")
         direct_link = fields.get("direct_link")
-        if (
-            not sdr
-            or not archetype_name
-            or not referred_name
-            or not referred_company
-            or not referral_name
-            or not referral_name
-            or not referral_company
-            or not referred_message
-            or not referral_message
-            or not direct_link
-        ):
-            return False
+        
+        #validate the required fields
+        self.validate_required_fields(fields)
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

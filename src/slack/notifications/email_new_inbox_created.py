@@ -19,6 +19,11 @@ class EmailNewInboxCreatedNotification(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {
+        "email",
+        "warmup_finish_date",
+    }
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -63,17 +68,14 @@ class EmailNewInboxCreatedNotification(SlackNotificationClass):
         if preview_mode:
             fields = get_preview_fields()
         else:
-            # If we're not in preview mode, we need to ensure that the required fields are set
-            if not self.email or not self.warmup_finish_date:
-                return False
             fields = get_fields()
+
+        # Validate
+        self.validate_required_fields(fields)
 
         # Get the fields
         email = fields.get("email")
         warmup_finish_date = fields.get("warmup_finish_date")
-
-        if not email or not warmup_finish_date:
-            return False
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

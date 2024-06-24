@@ -15,6 +15,8 @@ class LinkedInConnectionDisconnected(SlackNotificationClass):
     This class inherits from SlackNotificationClass.
     """
 
+    required_fields = {"num_messages_in_queue", "direct_link"}
+
     def __init__(
         self,
         client_sdr_id: int,
@@ -67,8 +69,9 @@ class LinkedInConnectionDisconnected(SlackNotificationClass):
         # Get the fields
         num_messages_in_queue = fields.get("num_messages_in_queue")
         direct_link = fields.get("direct_link")
-        if not direct_link:
-            return False
+        
+        #validate the required fields
+        self.validate_required_fields(fields)
 
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
