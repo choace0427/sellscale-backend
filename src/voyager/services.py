@@ -40,7 +40,7 @@ from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import (
     chat_ai_classify_active_convo,
     chat_ai_verify_scheduling_convo,
-    chat_ai_verify_demo_set
+    chat_ai_verify_demo_set,
 )
 
 from src.automation.services import (
@@ -475,7 +475,6 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
 
         return "No conversation found", 400
 
-    bulk_objects = []
     for message in tqdm(convo):
         first_name = (
             message.get("from", {})
@@ -549,32 +548,30 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             .get("text", "")
         )
 
-        bulk_objects.append(
-            create_linkedin_conversation_entry(
-                conversation_url="https://www.linkedin.com/messaging/thread/{value}/".format(
-                    value=message.get("entityUrn", "")
-                    .replace("urn:li:fs_event:(", "")
-                    .split(",")[0]
-                ),
-                author=first_name + " " + last_name,
-                first_name=first_name,
-                last_name=last_name,
-                date=dt.datetime.utcfromtimestamp(message.get("createdAt", 0) / 1000),
-                profile_url="https://www.linkedin.com/in/{value}/".format(value=urn_id),
-                headline=headline,
-                img_url=image_url,
-                img_expire=image_expire,
-                connection_degree="1st" if prospect.li_urn_id == urn_id else "You",
-                li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
-                message=msg,
-                urn_id=msg_urn_id,
-                client_sdr_id=prospect.client_sdr_id,
-                prospect_id=prospect.id,
-            )
+        new_entry = create_linkedin_conversation_entry(
+            conversation_url="https://www.linkedin.com/messaging/thread/{value}/".format(
+                value=message.get("entityUrn", "")
+                .replace("urn:li:fs_event:(", "")
+                .split(",")[0]
+            ),
+            author=first_name + " " + last_name,
+            first_name=first_name,
+            last_name=last_name,
+            date=dt.datetime.utcfromtimestamp(message.get("createdAt", 0) / 1000),
+            profile_url="https://www.linkedin.com/in/{value}/".format(value=urn_id),
+            headline=headline,
+            img_url=image_url,
+            img_expire=image_expire,
+            connection_degree="1st" if prospect.li_urn_id == urn_id else "You",
+            li_url="https://www.linkedin.com/in/{value}/".format(value=public_id),
+            message=msg,
+            urn_id=msg_urn_id,
+            client_sdr_id=prospect.client_sdr_id,
+            prospect_id=prospect.id,
         )
-    bulk_objects = [obj for obj in bulk_objects if obj]
-    db.session.bulk_save_objects(bulk_objects)
-    db.session.commit()
+        if new_entry:
+            db.session.add(new_entry)
+            db.session.commit()
 
     run_conversation_bump_analytics(convo_urn_id=convo_urn_id)
 
@@ -598,7 +595,10 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             messages.append(f"{message.author} ({timestamp}): {message.message}")
         messages.reverse()
 
-        if prospect.status not in [ProspectStatus.ACTIVE_CONVO_SCHEDULING, ProspectStatus.DEMO_SET]:
+        if prospect.status not in [
+            ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+            ProspectStatus.DEMO_SET,
+        ]:
             classify_active_convo(prospect.id, messages)
 
     latest_convo_entry: LinkedinConversationEntry = (
@@ -610,13 +610,13 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
     )
 
     create_and_send_slack_notification_class_message(
-            notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
-            arguments={
-                "client_sdr_id": prospect.client_sdr_id,
-                "prospect_id": prospect.id,
-                "linkedin_conversation_entry_id": latest_convo_entry.id
-            },
-        )
+        notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
+        arguments={
+            "client_sdr_id": prospect.client_sdr_id,
+            "prospect_id": prospect.id,
+            "linkedin_conversation_entry_id": latest_convo_entry.id,
+        },
+    )
 
     # Auto-complete `scheduling_needed_` dash cards
     scheduling_needed_entry: OperatorDashboardEntry = (
@@ -635,14 +635,14 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             mark_task_complete(prospect.client_sdr_id, scheduling_needed_entry.id)
 
     # Auto-complete any `rep_intervention_needed_` dash cards for this prospect
-    rep_intervention_needed_entries: list[OperatorDashboardEntry] = (
-        OperatorDashboardEntry.query.filter(
-            OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
-            OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
-            OperatorDashboardEntry.tag
-            == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
-        ).all()
-    )
+    rep_intervention_needed_entries: list[
+        OperatorDashboardEntry
+    ] = OperatorDashboardEntry.query.filter(
+        OperatorDashboardEntry.status == OperatorDashboardEntryStatus.PENDING,
+        OperatorDashboardEntry.client_sdr_id == prospect.client_sdr_id,
+        OperatorDashboardEntry.tag
+        == f"rep_intervention_needed_{prospect.client_sdr_id}_{prospect_id}",
+    ).all()
 
     for entry in rep_intervention_needed_entries:
         if (
@@ -1102,7 +1102,6 @@ def classify_active_convo(prospect_id: int, messages):
 def get_prospect_status_from_convo(
     messages: list[str], prospect_id: int, current_status: ProspectStatus
 ) -> ProspectStatus:
-
     """Determines what a prospect status should be based on the state of their convo
 
     Args:
@@ -1113,7 +1112,7 @@ def get_prospect_status_from_convo(
         ProspectStatus: The new status of the prospect
     """
 
-    if (current_status == ProspectStatus.DEMO_SET):
+    if current_status == ProspectStatus.DEMO_SET:
         return ProspectStatus.DEMO_SET
 
     prospect = Prospect.query.get(prospect_id)
@@ -1121,6 +1120,7 @@ def get_prospect_status_from_convo(
     # Short circuit by using our own heuristics
     def get_prospect_status_from_convo_heuristics(messages, sdr_name):
         from src.heuristic_keywords.heuristics import scheduling_key_words
+
         most_recent_message = messages[-1] if messages else ""
 
         # If the most recent message is from the prospect, run our heuristics
@@ -1132,13 +1132,18 @@ def get_prospect_status_from_convo(
                     return ProspectStatus.ACTIVE_CONVO_SCHEDULING
 
         return None
+
     clientSDR: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Get heuristic based status (used for Scheduling, mainly)
-    heuristic_status = get_prospect_status_from_convo_heuristics(messages, current_status, clientSDR.name)
+    heuristic_status = get_prospect_status_from_convo_heuristics(
+        messages, current_status, clientSDR.name
+    )
     if heuristic_status:
         # Run a ChatGPT verifier to make sure the status is doubly-correct
-        correct = chat_ai_verify_scheduling_convo(messages, clientSDR.name, current_status)
+        correct = chat_ai_verify_scheduling_convo(
+            messages, clientSDR.name, current_status
+        )
         if correct:
             return heuristic_status
 
@@ -1380,7 +1385,6 @@ def create_add_pre_filters_operator_dashboard_card(client_sdr_id: int):
 
 @celery.task
 def send_generated_messages():
-
     gen_msgs: list[GeneratedMessage] = GeneratedMessage.query.filter_by(
         status=GeneratedMessageStatus.QUEUED_FOR_OUTREACH
     ).all()
@@ -1399,7 +1403,6 @@ def send_generated_messages():
 
 
 def send_generated_message_for_sdr(client_sdr_id: int, li_url: str, msg: str):
-
     if client_sdr_id != 34:
         return False
 

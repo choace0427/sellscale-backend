@@ -196,7 +196,7 @@ class LinkedInInviteAcceptedNotification(SlackNotificationClass):
                             icp_score_reason=(
                                 prospect_icp_score_reason
                                 if prospect_icp_score_reason
-                                else ""
+                                else "ICP Score not available."
                             ),
                         ),
                     },

@@ -72,6 +72,10 @@ def create_and_send_slack_notification_class_message(
             log.status = "FAILED"
             log.error = "Something went wrong while sending the Slack notification, something returned False or Null"
             db.session.commit()
+            send_slack_error_message(
+                type=notification_type.value,
+                error="Something went wrong while sending the Slack notification, something returned False or Null",
+            )
             return False
     except Exception as e:
         db.session.rollback()
