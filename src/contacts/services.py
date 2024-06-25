@@ -911,13 +911,13 @@ def save_apollo_query(domain):
     # {query: "dliagency.com↵apollo.io", cacheKey: 1718407246578}
 
     url = "https://app.apollo.io/api/v1/organization_search_lists/save_query"
-    payload = {"query": domain, "cacheKey": 1718407246578}
+    payload = {"query": domain, "cacheKey": 1719321279248}
 
     cookies, csrf_token = get_apollo_cookies()
 
     headers = {
-        "x-csrf-token": cookies,
-        "cookie": csrf_token,
+        "x-csrf-token": csrf_token,
+        "cookie": cookies,
     }
 
     response = requests.post(url, headers=headers, json=payload)

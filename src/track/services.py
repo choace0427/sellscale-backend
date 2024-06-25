@@ -169,6 +169,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     saved_apollo_query = save_apollo_query(domain=company_website)
 
+
     # organization = apollo_org_search(
     #     company_name=company_name
     # )
@@ -184,6 +185,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         'Director': ['head', 'director'],
         'Owner': ['owner', 'founder', 'c_suite'],
         'Vp': ['vp', 'head', 'director'],
+        'Manager': ['manager']
     }
     default = ['manager', 'senior', 'director', 'vp', 'head', 'owner', 'founder', 'c_suite']
 
@@ -284,6 +286,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         (org_website and company_website and org_website.lower() in company_website.lower())
     ):
         return "Company name or website do not match"
+        
 
     send_slack_message(
         message="*🔗 LinkedIn*: {}\n*👥 Name*: {}\n*♣ Title*: {}\n*📸 Photo*: {}\n*🌆 Organization*: {}\n*👾 Website*: {}\n*🌎 Location*: {}".format(
