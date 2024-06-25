@@ -407,7 +407,7 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                 if is_demo_set:
                     send_slack_message(
                         message=f"""
-                        🎉🎉🎉 !!!!! DEMO SET !!!!!! 🎉🎉🎉
+                        🎉🎉🎉 !!!!! DEMO SET DETECTED!!!!!! 🎉🎉🎉
                         ```
                         {messages[-5:]}
                         ```
@@ -419,12 +419,12 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                         🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
                         🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
                         """,
-                        webhook_urls=[URL_MAP["csm-urgent-alerts"]],
+                        webhook_urls=[URL_MAP["ops-demo-set-detection"]],
                     )
                 else:
                     send_slack_message(
                         message=f"""
-                        🎉🎉🎉 !!!!! DEMO SET, Open AI said not a demo though. !!!!!! 🎉🎉🎉
+                        !!!!!❌ DEMO SET, Open AI said not a demo though. ❌!!!!!!
                         ```
                         {messages[-5:]}
                         ```
@@ -436,7 +436,7 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                         🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
                         🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
                         """,
-                        webhook_urls=[URL_MAP["eng-sandbox"]],
+                        webhook_urls=[URL_MAP["ops-demo-set-detection"]],
                     )
                 break
     # Check for a demo set keyword
