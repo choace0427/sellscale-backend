@@ -82,6 +82,7 @@ def create_and_send_slack_notification_class_message(
         log.status = "ERROR"
         log.error = str(e)
         db.session.commit()
+        send_slack_error_message(type=notification_type.value, error=str(e))
         return False
 
     log.status = "SUCCESS"
