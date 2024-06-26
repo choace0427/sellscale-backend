@@ -110,14 +110,29 @@ class FewShot(db.Model):
     __tablename__ = "few_shot"
 
     id = db.Column(db.Integer, primary_key=True)  # Unique identifier for each FewShot entry
-    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"), nullable=False)  # Foreign key linking to the client archetype
     original_string = db.Column(db.String, nullable=False)  # The original string before any edits
     edited_string = db.Column(db.String, nullable=False)  # The string after edits have been made
     nuance = db.Column(db.String, nullable=False)  # Additional nuance or context for the edited string
+    ai_voice_id = db.Column(db.Integer, db.ForeignKey("ai_voice.id"), nullable=False)  # Foreign key linking to the AI Voice
 
     def to_dict(self):
         return {
             "id": self.id,
-            "client_archetype_id": self.client_archetype_id,
             "nuance": self.nuance,
+        }
+
+class AIVoice(db.Model):
+    __tablename__ = "ai_voice"
+
+    id = db.Column(db.Integer, primary_key=True)  # Unique identifier for each AIVoice entry
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)  # Foreign key linking to the client
+    client_sdr_created_by = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)  # Foreign key linking to the client SDR who created this entry
+    name = db.Column(db.String, nullable=False)  # The name of the AI Voice
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_sdr_created_by": self.client_sdr_created_by,
+            "name": self.name,
         }
