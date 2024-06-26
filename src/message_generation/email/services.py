@@ -641,17 +641,39 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
 
     ### Bad subject lines
     - “50% off!”
+    - “Act Now!”
+    - “Limited Time Offer!”
+    - “Don't Miss Out!”
+    - “Buy One Get One Free!”
+    - “Sale Ends Soon!”
+    - “Exclusive Deal Just for You!”
+    - “Hurry, While Supplies Last!”
+    - “Special Discount Inside!”
+    - “Save Big Today!”
+    - “Unlock Your Savings!”
+    - “Best Price Guaranteed!”
+    - “Flash Sale Alert!”
+    - “Time-Sensitive Offer!”
+    - “Exclusive Access!”
+    - “Limited Stock Available!”
+    - “Final Hours to Save!”
+    - “Price Drop!”
+    - “Clearance Sale!”
+    - “Today Only!”
+    - “Act Fast!”
+    - "Unlocking AI-Powered Sales Growth"
+    - Anything including the name of the person followed by a comma
 
     Good subject lines are:
 
-    ### Example
+    ### GOOD EXAMPLE
     **Person:** 
     Barry Carter (#288346) Vice President of Infrastructure and Cloud, 711
     
-    **Subject line:**
+    **Good Subject line:**
     7-Eleven meets 24/7 innovation
     
-    **Body:**
+    **Body corresponding to the good subject line:**
     Hi Barry,
     
     I noticed 7-Eleven Japan has been actively exploring GenAI for product planning and edge AI vision detection. At JK Tech, we've developed Gen AI accelerators to help Retail and CPG companies like 7-Eleven deploy AI use cases quickly. We address key challenges like synthesizing structured and unstructured data, protecting sensitive information & access management, and providing an auditable path for AI responses.
@@ -690,11 +712,17 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
     Just the subject line, please.    
 
     Good subject lines are:
-    - 1-5 words
+    - 1-4 words
     - Avoid buzzwords (to avoid spam detectors)
     - Sounds friendly or witty.
+    - Relate to the prospect's industry or role
+    - Include a hint of personalization
+    - Create a sense of curiosity or urgency
+    - It should not sound like a sales pitch
+    - It should not sound generic
+    - It should not be a question
     
-    '''.format(
+    Output:'''.format(
         prospect_name=prospect.first_name if prospect.first_name else prospect.full_name, 
         prospect_title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
         prospect_company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company, 

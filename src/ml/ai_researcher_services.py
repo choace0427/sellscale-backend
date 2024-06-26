@@ -521,6 +521,9 @@ def get_generated_email(email_body, prospectId):
         prospect: Prospect = Prospect.query.get(prospectId)
         if not prospect:
             return False
+        
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        client: Client = Client.query.get(client_sdr.client_id)
 
         name = prospect.first_name
         title = prospect.title
@@ -541,6 +544,11 @@ def get_generated_email(email_body, prospectId):
         - name: {name}
         - title: {title} @ {company}
 
+        Sender information:
+        My name: {client_sdr.name}
+        my title: {client_sdr.title}
+        my company: {client.company}
+
         Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
 
         Example
@@ -552,6 +560,7 @@ def get_generated_email(email_body, prospectId):
         NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
         NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
 
+        Important: Return the personalized email in HTML markdown.
         Personalized email:
         """
 
@@ -576,6 +585,9 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
         prospect_id: int = prospect_email.prospect_id
         prospect: Prospect = Prospect.query.get(prospect_id)
+
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr)
+        client: Client = Client.query.get(client_sdr.client_id)
 
         #in the case of a magic subject line, we will already just have generated the email body using
         #regular research techniques. In this case, we will just use the override to update the email body
@@ -625,6 +637,11 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
     - title: {title}
     - company: {company}
 
+    Sender information:
+    My name: {client_sdr_name}
+    my title: {client_sdr_title}
+    my company: {client_company}
+
     Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
 
     Example
@@ -636,6 +653,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
     NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
     NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
 
+    Important: Return the personalized email in HTML markdown.
     Personalized email:"""
 
         prompt = prompt.format(
@@ -643,7 +661,10 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
             personalizations=personalizations,
             name=prospect.first_name,
             title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
-            company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company
+            company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company,
+            client_sdr_name=client_sdr.name,
+            client_sdr_title=client_sdr.title,
+            client_company=client.company
         )
 
         answer = wrapped_chat_gpt_completion(
