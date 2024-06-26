@@ -292,7 +292,6 @@ class ClientArchetype(db.Model):
             "is_ai_research_personalization_enabled": self.is_ai_research_personalization_enabled,
             "testing_volume": self.testing_volume,
             "setup_status": self.setup_status.value if self.setup_status else None,
-            "ai_voice_id": self.ai_voice_id,
         }
 
 
