@@ -41,3 +41,36 @@ class TrackEvent(db.Model):
             "ip_address": self.ip_address,
             "company_id": self.company_id,
         }
+
+class DeanonymizedContact(db.Model):
+    __tablename__ = "deanonymized_contact"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    company = db.Column(db.String, nullable=True)
+    title = db.Column(db.String, nullable=True)
+    visited_date = db.Column(db.DateTime, nullable=False)
+    linkedin = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, nullable=True)
+    tag = db.Column(db.String, nullable=True)
+    prospect_id = db.Column(db.String, nullable=True)
+    location = db.Column(db.String, nullable=True)
+    track_event_id = db.Column(db.Integer, db.ForeignKey("track_event.id"))
+
+    def __repr__(self):
+        return f"<DeanonymizedContact {self.id}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "company": self.company,
+            "title": self.title,
+            "visited_date": self.visited_date,
+            "linkedin": self.linkedin,
+            "email": self.email,
+            "tag": self.tag,
+            "prospect_id": self.prospect_id,
+            "location": self.location,
+            "track_event_id": self.track_event_id,
+        }
