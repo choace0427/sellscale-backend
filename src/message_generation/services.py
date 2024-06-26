@@ -1223,6 +1223,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             )
 
         # 8b. Generate the subject line
+        personalized_email_body = None
         if (subjectline_template.is_magic_subject_line):
             subject_line_prompt = "Magic Subject Line"
             subject_line, personalized_email_body = generate_magic_subject_line(
