@@ -393,9 +393,9 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
     # Get the conversation entries for the thread
     conversation_entries = LinkedinConversationEntry.query.filter(
         LinkedinConversationEntry.thread_urn_id == thread_urn_id,
-    ).order_by(LinkedinConversationEntry.created_at.desc()).all()
+    ).order_by(LinkedinConversationEntry.created_at.asc()).all()
 
-    latest_message = conversation_entries[0]
+    latest_message = conversation_entries[-1]
 
     # Run the demo set ruleset
     if latest_message:
@@ -409,7 +409,7 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                         message=f"""
                         🎉🎉🎉 !!!!! DEMO SET DETECTED!!!!!! 🎉🎉🎉
                         ```
-                        {messages[-5:]}
+                        {messages[-5:] if len(messages) >= 5 else messages}
                         ```
                         These are the last 5 messages.
                         ⏰ Current Status: "DEMO_SET"
@@ -426,7 +426,7 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                         message=f"""
                         !!!!!❌ DEMO SET, Open AI said not a demo though. ❌!!!!!!
                         ```
-                        {messages[-5:]}
+                        {messages[-5:] if len(messages) >= 5 else messages}
                         ```
                         These are the last 5 messages.
                         ⏰ Current Status: "DEMO_SET"
