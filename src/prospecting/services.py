@@ -66,7 +66,7 @@ from src.prospecting.models import (
 )
 from app import db, celery
 from src.segment.models import Segment
-from src.slack.models import SentSlackNotification, SlackNotificationType
+from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
     create_and_send_slack_notification_class_message,
 )
@@ -1345,36 +1345,17 @@ def update_prospect_status_email(
             email_sent_body = metadata.get("email_sent_body") if metadata else None
             email_reply_body = metadata.get("email_reply_body") if metadata else None
 
-            if new_status.value == "ACTIVE_CONVO_OOO":
-                # Check to make sure we have not sent more than 5 in the past 24 hours
-                num_ooo_notifications = SentSlackNotification.query.filter(
-                    SentSlackNotification.client_sdr_id == p.client_sdr_id,
-                    SentSlackNotification.notification_type
-                    == SlackNotificationType.EMAIL_OOO,
-                    SentSlackNotification.created_at
-                    >= datetime.now() - timedelta(hours=24),
-                ).count()
-                # Send special, OOO notification
-                if num_ooo_notifications < 5:
-                    success = create_and_send_slack_notification_class_message(
-                        notification_type=SlackNotificationType.EMAIL_OOO,
-                        arguments={
-                            "client_sdr_id": p.client_sdr_id,
-                            "prospect_id": p.id,
-                        },
-                    )
-            else:
-                # Send normal notification
-                success = create_and_send_slack_notification_class_message(
-                    notification_type=SlackNotificationType.EMAIL_PROSPECT_REPLIED,
-                    arguments={
-                        "client_sdr_id": p.client_sdr_id,
-                        "prospect_id": p.id,
-                        "email_sent_subject": email_sent_subject,
-                        "email_sent_body": email_sent_body,
-                        "email_reply_body": email_reply_body,
-                    },
-                )
+            # Send a slack message
+            success = create_and_send_slack_notification_class_message(
+                notification_type=SlackNotificationType.EMAIL_PROSPECT_REPLIED,
+                arguments={
+                    "client_sdr_id": p.client_sdr_id,
+                    "prospect_id": p.id,
+                    "email_sent_subject": email_sent_subject,
+                    "email_sent_body": email_sent_body,
+                    "email_reply_body": email_reply_body,
+                },
+            )
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
@@ -1916,13 +1897,13 @@ def add_prospect(
 
     # Get research payload
     if research_payload:
-        get_research_payload_new(prospect_id=p_id, test_mode=False)
+        get_research_payload_new.delay(prospect_id=p_id, test_mode=False)
 
     # Find the company details for the prospect
-    find_company_for_prospect(p_id)
+    find_company_for_prospect.delay(p_id)
 
     # Store the prospect as an Individual
-    add_individual_from_prospect(p_id)
+    add_individual_from_prospect.delay(p_id)
 
     if set_note:
         create_prospect_note(prospect_id=p_id, note=set_note)

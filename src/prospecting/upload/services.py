@@ -121,11 +121,11 @@ def create_prospect_upload_history(
 
     # Get the upload name by referencing the Segment and # of uploads under this segment
     segment: Segment = Segment.query.get(client_segment_id)
-    
+
     past_uploads: int = ProspectUploadHistory.query.filter_by(
         client_segment_id=client_segment_id,
     ).count()
-    
+
     if segment:
         upload_name = f"{segment.segment_title} #{past_uploads + 1}"
     else:
@@ -433,15 +433,16 @@ def collect_and_run_celery_jobs_for_upload(
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
+
 @celery.task
 def upload_n_rows_from_prospect_upload_row():
     query = """
-    select prospect_uploads.id 
+    select prospect_uploads.id
     from prospect_uploads
         join client_sdr on client_sdr.id = prospect_uploads.client_sdr_id
         join client on client.id = prospect_uploads.client_id
-    where prospect_uploads.status in ('UPLOAD_QUEUED', 'UPLOAD_NOT_STARTED', 'UPLOAD_IN_PROGRESS', 'UPLOAD_FAILED')	
-        and client.active 
+    where prospect_uploads.status in ('UPLOAD_QUEUED', 'UPLOAD_NOT_STARTED', 'UPLOAD_IN_PROGRESS', 'UPLOAD_FAILED')
+        and client.active
         and client_sdr.active
         and prospect_uploads.upload_attempts < 3
         and prospect_uploads.created_at > NOW() - '3 days'::INTERVAL
@@ -457,6 +458,7 @@ def upload_n_rows_from_prospect_upload_row():
             routing_key="prospecting",
             priority=2,
         )
+
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
 def create_prospect_from_prospect_upload_row(
@@ -672,7 +674,7 @@ def create_prospect_from_linkedin_link(
             employee_count=employee_count,
             full_name=full_name,
             industry=industry,
-            synchronous_research=True,
+            synchronous_research=False,
             linkedin_url=linkedin_url,
             linkedin_bio=linkedin_bio,
             title=title,
@@ -711,7 +713,7 @@ def create_prospect_from_linkedin_link(
 
             custom_data = prospect_upload.data.get("custom_data", {})
             # TODO: Change this to pull label from the data
-            research_point_type_id = create_custom_research_point_type(
+            research_point_type_id = create_custom_research_point_type.delay(
                 prospect_id=new_prospect_id, label="CUSTOM", data=custom_data
             )
 
