@@ -236,37 +236,6 @@ def create_linkedin_conversation_entry(
     if date < datetime.now() - timedelta(days=7):
         return None
 
-    # Flag as urgent if message is new and mentions something urgent
-    if not duplicate_exists and client_sdr_id != -1 and connection_degree != "You":
-        detect_time_sensitive_keywords(
-            message=message,
-            client_sdr_id=client_sdr_id,
-            author=author,
-            direct_link=direct_link,
-            prospect_id=prospect_id,
-        )
-        detect_multithreading_keywords(
-            message=message,
-            client_sdr_id=client_sdr_id,
-            author=author,
-            direct_link=direct_link,
-            prospect_id=prospect_id,
-        )
-        detect_queue_for_snooze_keywords(
-            message=message,
-            client_sdr_id=client_sdr_id,
-            author=author,
-            direct_link=direct_link,
-            prospect_id=prospect_id,
-        )
-        detect_queue_for_continue_the_sequence_keywords(
-            message=message,
-            client_sdr_id=client_sdr_id,
-            author=author,
-            direct_link=direct_link,
-            prospect_id=prospect_id,
-        )
-
     # Get the Thread URN ID from the conversation URL
     try:
         if conversation_url:
@@ -345,12 +314,47 @@ def create_linkedin_conversation_entry(
                     prospect.li_unread_messages = 1
                 else:
                     prospect.li_unread_messages += 1
-            
-            if connection_degree != 'You' and prospect.hidden_until and prospect.hidden_until > date:
+
+            if (
+                connection_degree != "You"
+                and prospect.hidden_until
+                and prospect.hidden_until > date
+            ):
                 prospect.hidden_until = None
 
             db.session.add(prospect)
             db.session.commit()
+
+            # Flag as urgent if message is new and mentions something urgent
+        if not duplicate_exists and client_sdr_id != -1 and connection_degree != "You":
+            detect_time_sensitive_keywords(
+                message=message,
+                client_sdr_id=client_sdr_id,
+                author=author,
+                direct_link=direct_link,
+                prospect_id=prospect_id,
+            )
+            detect_multithreading_keywords(
+                message=message,
+                client_sdr_id=client_sdr_id,
+                author=author,
+                direct_link=direct_link,
+                prospect_id=prospect_id,
+            )
+            detect_queue_for_snooze_keywords(
+                message=message,
+                client_sdr_id=client_sdr_id,
+                author=author,
+                direct_link=direct_link,
+                prospect_id=prospect_id,
+            )
+            detect_queue_for_continue_the_sequence_keywords(
+                message=message,
+                client_sdr_id=client_sdr_id,
+                author=author,
+                direct_link=direct_link,
+                prospect_id=prospect_id,
+            )
 
         detect_demo_set.delay(thread_urn_id, prospect.id)
 
@@ -383,17 +387,21 @@ def create_linkedin_conversation_entry(
             return duplicate_exists
         else:
             return None
-        
+
+
 @celery.task(max_retries=3)
 def detect_demo_set(thread_urn_id: str, prospect_id: int):
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     clientSDR: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Get the conversation entries for the thread
-    conversation_entries = LinkedinConversationEntry.query.filter(
-        LinkedinConversationEntry.thread_urn_id == thread_urn_id,
-    ).order_by(LinkedinConversationEntry.created_at.asc()).all()
+    conversation_entries = (
+        LinkedinConversationEntry.query.filter(
+            LinkedinConversationEntry.thread_urn_id == thread_urn_id,
+        )
+        .order_by(LinkedinConversationEntry.created_at.asc())
+        .all()
+    )
 
     latest_message = conversation_entries[-1]
 
@@ -496,7 +504,7 @@ def detect_time_sensitive_keywords(
                 ProspectStatus.DEMO_LOSS,
                 ProspectStatus.DEMO_SET,
                 ProspectStatus.DEMO_WON,
-                ProspectStatus.ACTIVE_CONVO_SCHEDULING
+                ProspectStatus.ACTIVE_CONVO_SCHEDULING,
             ):
                 return None
 
@@ -522,10 +530,11 @@ Take appropriate action then mark this message as ✅ (_if this classification w
 
             print("Updating prospect status to ACTIVE_CONVO_SCHEDULING")
 
-            update_prospect_status_linkedin(
-                prospect_id=prospect_id,
-                new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
-            )
+            # TODO: Delete if no one complains
+            # update_prospect_status_linkedin(
+            #     prospect_id=prospect_id,
+            #     new_status=ProspectStatus.ACTIVE_CONVO_SCHEDULING,
+            # )
             return
 
 
@@ -1016,10 +1025,10 @@ def generate_chat_gpt_response_to_conversation_thread_helper(
 
     if bump_framework.use_account_research:
         # Grab 3 random points from the research points
-        research_points: list[ResearchPoints] = (
-            ResearchPoints.get_research_points_by_prospect_id(
-                prospect_id=prospect_id, bump_framework_id=bump_framework_id
-            )
+        research_points: list[
+            ResearchPoints
+        ] = ResearchPoints.get_research_points_by_prospect_id(
+            prospect_id=prospect_id, bump_framework_id=bump_framework_id
         )
         found_points = [research_point.to_dict() for research_point in research_points]
         random_sample_points = random.sample(found_points, min(len(found_points), 3))
@@ -1437,12 +1446,11 @@ def get_li_conversation_entries(hours: Optional[int] = 168) -> list[dict]:
     data = []
 
     # Get all the conversation entries that are in the past `hours` hours and are not from the user
-    past_entries: list[LinkedinConversationEntry] = (
-        LinkedinConversationEntry.query.filter(
-            LinkedinConversationEntry.created_at
-            > datetime.now() - timedelta(hours=hours),
-            LinkedinConversationEntry.connection_degree != "You",
-        )
+    past_entries: list[
+        LinkedinConversationEntry
+    ] = LinkedinConversationEntry.query.filter(
+        LinkedinConversationEntry.created_at > datetime.now() - timedelta(hours=hours),
+        LinkedinConversationEntry.connection_degree != "You",
     )
 
     # Parse the entries to get meaningful data
@@ -1591,11 +1599,11 @@ def scrape_conversation_queue():
     from src.voyager.services import update_conversation_entries
     from src.client.services import populate_prospect_events
 
-    scrape_queue: List[LinkedinConversationScrapeQueue] = (
-        LinkedinConversationScrapeQueue.query.filter(
-            LinkedinConversationScrapeQueue.scrape_time < datetime.utcnow()
-        ).all()
-    )
+    scrape_queue: List[
+        LinkedinConversationScrapeQueue
+    ] = LinkedinConversationScrapeQueue.query.filter(
+        LinkedinConversationScrapeQueue.scrape_time < datetime.utcnow()
+    ).all()
 
     for scrape in scrape_queue:
         # try:
@@ -1709,10 +1717,10 @@ def send_autogenerated_bumps(override_sdr_id: Optional[int] = None):
 
         # Check to see if the conversation ever includes a message from the SDR that wasn't AI generated
         if sdr.disable_ai_on_message_send:
-            convo: List[LinkedinConversationEntry] = (
-                LinkedinConversationEntry.li_conversation_thread_by_prospect_id(
-                    oldest_auto_message.prospect_id
-                )
+            convo: List[
+                LinkedinConversationEntry
+            ] = LinkedinConversationEntry.li_conversation_thread_by_prospect_id(
+                oldest_auto_message.prospect_id
             )
             human_sent_msg = next(
                 (

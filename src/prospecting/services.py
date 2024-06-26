@@ -657,96 +657,6 @@ def update_prospect_status_linkedin(
         # )
         # success = prospect_removed_notification.send_notification(preview_mode=False)
 
-        # send_slack_message(
-        #     message="",
-        #     webhook_urls=[client.pipeline_notifications_webhook_url],
-        #     blocks=[
-        #         {
-        #             "type": "header",
-        #             "text": {
-        #                 "type": "plain_text",
-        #                 "text": "🧹 SellScale has cleaned up your pipeline",
-        #                 "emoji": True,
-        #             },
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": "*Prospect removed:* {prospect_name}".format(
-        #                     prospect_name=prospect_name,
-        #                     prospect_message=(
-        #                         p.li_last_message_from_prospect.replace("\n", " ")
-        #                         if p.li_last_message_from_prospect
-        #                         else "-"
-        #                     ),
-        #                 ),
-        #             },
-        #         },
-        #         {"type": "divider"},
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": "*AI label change:* `{old_status}` -> `{new_status}`".format(
-        #                     old_status=current_status.value, new_status=new_status.value
-        #                 ),
-        #             },
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": "*🧠 {type} Reason:* `{disqualification_reason}`".format(
-        #                     type=(
-        #                         "Disqualification"
-        #                         if new_status == ProspectStatus.NOT_QUALIFIED
-        #                         else "Not Interested"
-        #                     ),
-        #                     disqualification_reason=disqualification_reason,
-        #                 ),
-        #             },
-        #         },
-        #         {
-        #             "type": "context",
-        #             "elements": [
-        #                 {
-        #                     "type": "plain_text",
-        #                     "text": "🧳 Title: "
-        #                     + str(p.title)
-        #                     + " @ "
-        #                     + str(p.company)[0:20]
-        #                     + ("..." if len(p.company) > 20 else ""),
-        #                     "emoji": True,
-        #                 },
-        #                 {
-        #                     "type": "plain_text",
-        #                     "text": "📌 SDR: " + client_sdr.name,
-        #                     "emoji": True,
-        #                 },
-        #             ],
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": " ",
-        #             },
-        #             "accessory": {
-        #                 "type": "button",
-        #                 "text": {
-        #                     "type": "plain_text",
-        #                     "text": "View Convo in Sight",
-        #                     "emoji": True,
-        #                 },
-        #                 "value": direct_link,
-        #                 "url": direct_link,
-        #                 "action_id": "button-action",
-        #             },
-        #         },
-        #     ],
-        # )
-
         # Archive their LinkedIn convo
         if client_sdr.auto_archive_convos is None or client_sdr.auto_archive_convos:
             success, reason = archive_convo(p.id)
@@ -769,19 +679,6 @@ def update_prospect_status_linkedin(
             },
         )
 
-        # invite_accepted_notification = LinkedInInviteAcceptedNotification(
-        #     client_sdr_id=p.client_sdr_id,
-        #     prospect_id=p.id,
-        # )
-        # success = invite_accepted_notification.send_notification(preview_mode=False)
-
-        # send_status_change_slack_block(
-        #     outreach_type=ProspectChannels.LINKEDIN,
-        #     prospect=p,
-        #     new_status=ProspectStatus.ACCEPTED,
-        #     custom_message=" accepted your invite! 😀",
-        #     metadata=message,
-        # )
     if (
         new_status == ProspectStatus.ACTIVE_CONVO
         and "ACTIVE_CONVO" not in current_status.value
@@ -802,18 +699,6 @@ def update_prospect_status_linkedin(
                     "prospect_id": p.id,
                 },
             )
-            # responded_notification = LinkedinProspectRespondedNotification(
-            #     client_sdr_id=p.client_sdr_id,
-            #     prospect_id=p.id,
-            # )
-            # success = responded_notification.send_notification(preview_mode=False)
-            # send_status_change_slack_block(
-            #     outreach_type=ProspectChannels.LINKEDIN,
-            #     prospect=p,
-            #     new_status=ProspectStatus.ACTIVE_CONVO,
-            #     custom_message=" responded to your LinkedIn Invite! 🙌",
-            #     metadata=message,
-            # )
 
     if (
         new_status == ProspectStatus.SCHEDULING
@@ -860,37 +745,12 @@ def update_prospect_status_linkedin(
                     "is_hand_off": True,
                 },
             )
-            # notification = LinkedInDemoSetNotification(
-            #     client_sdr_id=p.client_sdr_id, prospect_id=p.id, is_hand_off=True
-            # )
-            # success = notification.send_notification(preview_mode=False)
-
-            # send_status_change_slack_block(
-            #     outreach_type=ProspectChannels.LINKEDIN,
-            #     prospect=p,
-            #     new_status=ProspectStatus.DEMO_SET,
-            #     custom_message=" was handed off internally!! 🎉",
-            #     metadata={"threadUrl": p.li_conversation_thread_id},
-            # )
         else:
             # Send the normal demo set notification
             success = create_and_send_slack_notification_class_message(
                 notification_type=SlackNotificationType.LINKEDIN_DEMO_SET,
                 arguments={"client_sdr_id": p.client_sdr_id, "prospect_id": p.id},
             )
-            # notification = LinkedInDemoSetNotification(
-            #     client_sdr_id=p.client_sdr_id,
-            #     prospect_id=p.id,
-            # )
-            # success = notification.send_notification(preview_mode=False)
-
-            # send_status_change_slack_block(
-            #     outreach_type=ProspectChannels.LINKEDIN,
-            #     prospect=p,
-            #     new_status=ProspectStatus.DEMO_SET,
-            #     custom_message=" set a time to demo!! 🎉🎉🎉",
-            #     metadata={"threadUrl": p.li_conversation_thread_id},
-            # )
 
     # status jumps
     if (
@@ -2779,78 +2639,6 @@ def send_to_purgatory(
                 "outbound_channel": "LinkedIn",
             },
         )
-
-        # send_slack_message(
-        #     message="SellScale AI just snoozed a prospect to "
-        #     + datetime.strftime(new_hidden_until, "%B %d, %Y")
-        #     + "!",
-        #     webhook_urls=[
-        #         URL_MAP["eng-sandbox"],
-        #         client.pipeline_notifications_webhook_url,
-        #     ],
-        #     blocks=[
-        #         {
-        #             "type": "header",
-        #             "text": {
-        #                 "type": "plain_text",
-        #                 "text": "⏰ SellScale AI just snoozed "
-        #                 + prospect.full_name
-        #                 + " to "
-        #                 + datetime.strftime(new_hidden_until, "%B %d, %Y")
-        #                 + "!",
-        #                 "emoji": True,
-        #             },
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": (
-        #                     "*Last Message from Prospect:* _{prospect_message}_\n\n*AI Response:* _{ai_response}_\n\n\n\n*SDR* {sdr_name}"
-        #                 ).format(
-        #                     prospect_message=(
-        #                         prospect.li_last_message_from_prospect.replace(
-        #                             "\n", " "
-        #                         )
-        #                         if prospect.li_last_message_from_prospect
-        #                         else ""
-        #                     ),
-        #                     ai_response=(
-        #                         prospect.li_last_message_from_sdr.replace("\n", " ")
-        #                         if prospect.li_last_message_from_sdr
-        #                         else ""
-        #                     ),
-        #                     sdr_name=client_sdr.name,
-        #                 ),
-        #             },
-        #         },
-        #         {
-        #             "type": "section",
-        #             "text": {
-        #                 "type": "mrkdwn",
-        #                 "text": "Message will re-appear in SellScale inbox on "
-        #                 + datetime.strftime(new_hidden_until, "%B %d, %Y")
-        #                 + ".",
-        #             },
-        #             "accessory": {
-        #                 "type": "button",
-        #                 "text": {
-        #                     "type": "plain_text",
-        #                     "text": "View Convo in Sight",
-        #                     "emoji": True,
-        #                 },
-        #                 "value": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
-        #                     auth_token=client_sdr.auth_token, prospect_id=prospect_id
-        #                 )
-        #                 + str(prospect_id),
-        #                 "url": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
-        #                     auth_token=client_sdr.auth_token, prospect_id=prospect_id
-        #                 ),
-        #                 "action_id": "button-action",
-        #             },
-        #         },
-        #     ],
-        # )
 
 
 def update_prospect_demo_date(
