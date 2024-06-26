@@ -573,6 +573,9 @@ scheduler.add_job(
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
 )
+scheduler.add_job(
+    run_hourly_move_all_revival_prospects_back_to_previous_status, trigger="interval", minutes=10
+)
 scheduler.add_job(func=send_generated_messages_job, trigger="interval", minutes=30)
 
 # Hourly triggers
