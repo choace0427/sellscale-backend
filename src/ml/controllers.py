@@ -40,7 +40,8 @@ from src.ml.services import (
     trigger_icp_classification,
     edit_text,
     trigger_icp_classification_single_prospect,
-    get_template_suggestions
+    get_template_suggestions,
+    add_few_shot
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -699,3 +700,30 @@ def post_simulate_magic_subject_line(client_sdr_id: int):
         return "Error simulating magic subject line", 400
 
     return jsonify({"magic_subject_line": magic_subject_line, "personalized_email": personalized_email}), 200
+
+@ML_BLUEPRINT.route("/add-few-shot", methods=["POST"])
+@require_user
+def post_add_few_shot(client_sdr_id: int):
+    """
+    Add a new FewShot entry using AI Researcher
+    """
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    )
+    original_string = get_request_parameter(
+        "original_string", request, json=True, required=True, parameter_type=str
+    )
+    edited_string = get_request_parameter(
+        "edited_string", request, json=True, required=True, parameter_type=str
+    )
+
+    success = add_few_shot(
+        client_archetype_id=client_archetype_id,
+        original_string=original_string,
+        edited_string=edited_string,
+    )
+
+    if not success:
+        return "Error adding FewShot entry", 400
+
+    return jsonify(success), 200

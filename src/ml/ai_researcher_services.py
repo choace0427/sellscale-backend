@@ -560,7 +560,7 @@ def get_generated_email(email_body, prospectId):
         NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
         NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
 
-        Important: Return the personalized email in HTML markdown.
+        Important: Return the personalized email in HTML format.
         Personalized email:
         """
 
@@ -653,7 +653,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
     NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
     NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
 
-    Important: Return the personalized email in HTML markdown.
+    Important: Return the personalized email in HTML format.
     Personalized email:"""
 
         prompt = prompt.format(

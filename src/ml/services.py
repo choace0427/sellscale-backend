@@ -19,6 +19,7 @@ from src.message_generation.models import (
     GeneratedMessageType,
 )
 from src.ml.models import (
+    FewShot,
     TextGeneration,
 )
 import traceback
@@ -1388,3 +1389,54 @@ def get_template_suggestions(archetype_id: int, template_content: str ):
     validate_with_gpt = get_validated_response(messages, "gpt-4o", 600)
 
     return validate_with_gpt
+
+def add_few_shot(client_archetype_id, original_string, edited_string):
+    """
+    Add a new FewShot entry using the provided parameters.
+
+    Args:
+        client_archetype_id (int): The ID of the client archetype.
+        original_string (str): The original string before any edits.
+        edited_string (str): The string after edits have been made.
+
+    Returns:
+        bool: True if the entry was added successfully, False otherwise.
+    """
+    try:
+        # Generate the nuance using the wrapped_chat_gpt_completion function
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an assistant that helps generate nuanced descriptions based on edits made to text."
+            },
+            {
+                "role": "user",
+                "content": f"Original: {original_string}\nEdited: {edited_string}\nPlease describe the edits made to the string, and return only the edits as a JavaScript array.\
+                \
+                Array:"
+            }
+        ]
+        response = wrapped_chat_gpt_completion(
+            messages=messages,
+            model="gpt-4o",
+            max_tokens=500
+        )
+        nuance = response
+        nuance = nuance.replace("javascript", "").replace("`", "").replace("\n", "")
+        
+        # Create a new FewShot entry
+
+        new_few_shot = FewShot(
+            client_archetype_id=client_archetype_id,
+            original_string=original_string,
+            edited_string=edited_string,
+            nuance=nuance
+        )
+        db.session.add(new_few_shot)
+        db.session.commit()
+        return new_few_shot.to_dict()
+    except Exception as e:
+        print(f"Error adding FewShot entry: {e}")
+        db.session.rollback()
+        return False
+
