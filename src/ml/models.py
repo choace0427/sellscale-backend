@@ -105,3 +105,19 @@ class AIResearcherAnswer(db.Model):
             "question": question.to_dict() if deep_get else None,
             "relevancy_explanation": self.relevancy_explanation,
         }
+
+class FewShot(db.Model):
+    __tablename__ = "few_shot"
+
+    id = db.Column(db.Integer, primary_key=True)  # Unique identifier for each FewShot entry
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"), nullable=False)  # Foreign key linking to the client archetype
+    original_string = db.Column(db.String, nullable=False)  # The original string before any edits
+    edited_string = db.Column(db.String, nullable=False)  # The string after edits have been made
+    nuance = db.Column(db.String, nullable=False)  # Additional nuance or context for the edited string
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_archetype_id": self.client_archetype_id,
+            "nuance": self.nuance,
+        }
