@@ -304,6 +304,8 @@ def create_linkedin_conversation_entry(
             )
             new_linkedin_conversation_entry.ai_generated = True
 
+        db.session.commit()
+
         # A new message is being recorded, increase unread message count
         if prospect_id != -1:
             prospect: Prospect = Prospect.query.get(prospect_id)

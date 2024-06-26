@@ -90,7 +90,7 @@ class EmailNewInboxCreatedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"📬 *New Inbox Created: {email}*\n✅ DKIM ✅ DMARC ✅ SPF ✅ Warming Enabled\nEstimated warmup date: {warmup_finish_date}",
+                        "text": f"📬 *New Inbox Created: {email}*\n✅ DKIM ✅ DMARC ✅ SPF ✅ Warming Enabled ✅ Domain Forwarding\nEstimated warmup date: {warmup_finish_date}",
                     },
                 }
             ],
