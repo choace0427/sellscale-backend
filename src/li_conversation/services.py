@@ -390,7 +390,6 @@ def create_linkedin_conversation_entry(
         else:
             return None
 
-
 @celery.task(max_retries=3)
 def detect_demo_set(thread_urn_id: str, prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)

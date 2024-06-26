@@ -4092,3 +4092,58 @@ def fetch_company_details(client_sdr_id: int, prospect_id: int):
     data = dict(result)
 
     return jsonify(data)
+
+def move_prospect_back_to_previous_status(prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if prospect.status != ProspectStatus.ACTIVE_CONVO_REVIVAL:
+        return
+
+    # get last prospect_status_record before ACTIVE_CONVO_REVIVAL
+    last_status_record = (
+        ProspectStatusRecords.query.filter(
+            ProspectStatusRecords.prospect_id == prospect_id,
+            ProspectStatusRecords.to_status != ProspectStatus.ACTIVE_CONVO_REVIVAL,
+        )
+        .order_by(ProspectStatusRecords.created_at.desc())
+        .first()
+    )
+    update_prospect_status_linkedin(
+        prospect_id=prospect_id,
+        new_status=last_status_record.to_status,
+        quietly=True,
+    )
+
+@celery.task
+def move_all_revival_prospects_back_to_previous_status():
+    query = """
+    select 
+        prospect.full_name,
+        prospect.id,
+        client_sdr.name,
+        client.company,
+        client_sdr.id sdr_id,
+        prospect.li_conversation_urn_id,
+        max(prospect_status_records.created_at) revival_created,
+        max(linkedin_conversation_entry.date) max_msg_date,
+        concat('https://app.sellscale.com/authenticate?stytch_token_type=direct&token=', client_sdr.auth_token, '&redirect=prospects/', prospect.id) sight
+    from prospect
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+        join client on client.id = prospect.client_id
+        join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        join linkedin_conversation_entry on linkedin_conversation_entry.thread_urn_id = prospect.li_conversation_urn_id
+    where
+        client.active and 
+        client_sdr.active and
+        prospect.status = 'ACTIVE_CONVO_REVIVAL' and
+        prospect_status_records.to_status = 'ACTIVE_CONVO_REVIVAL' and
+        linkedin_conversation_entry.connection_degree <> 'You'
+    group by 1,2,3,4,5,6
+    having
+        max(linkedin_conversation_entry.date) > max(prospect_status_records.created_at);
+    """
+    data = db.session.execute(query).fetchall()
+
+    for row in data:
+        prospect_id = row[1]
+        move_prospect_back_to_previous_status(prospect_id)
+        print(f"Moved prospect {prospect_id} back to previous status")

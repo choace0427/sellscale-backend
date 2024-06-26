@@ -506,6 +506,11 @@ def run_retry_upload_prospect_to_campaign():
     if is_scheduling_instance():
         retry_upload_prospect_to_campaign.delay()
 
+def run_hourly_move_all_revival_prospects_back_to_previous_status():
+    from src.prospecting.services import move_all_revival_prospects_back_to_previous_status
+
+    if is_scheduling_instance():
+        move_all_revival_prospects_back_to_previous_status.delay()
 
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))

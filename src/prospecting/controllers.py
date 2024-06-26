@@ -12,6 +12,7 @@ from src.prospecting.champions.services import (
     mark_prospects_as_champion,
     refresh_job_data_for_all_champions,
 )
+from src.prospecting.services import move_all_revival_prospects_back_to_previous_status
 from src.prospecting.models import ExistingContact, ProspectUploadSource
 from src.segment.models import Segment
 from src.segment.services import (
