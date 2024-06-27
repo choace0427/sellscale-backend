@@ -169,7 +169,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                         "type": "mrkdwn",
                         "text": "*{name}:* {message}".format(
                             name=prospect_name,
-                            message=linkedin_message.message,
+                            message=linkedin_message,
                         ),
                     },
                 },
@@ -178,9 +178,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                     "text": {
                         "type": "mrkdwn",
                         "text": "*Initial Send Date:* {initial_send_date}".format(
-                            initial_send_date=linkedin_message.date.strftime(
-                                "%B %d, %Y"
-                            )
+                            initial_send_date=initial_send_date
                         ),
                     },
                 },
