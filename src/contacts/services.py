@@ -604,7 +604,6 @@ def apollo_get_pre_filters(
     persona_id: Optional[int] = None,
     segment_id: Optional[int] = None,
 ):
-    import pdb; pdb.set_trace()
     query = f"""
         select data, results, persona.id "persona", saved_apollo_query.id
 from saved_apollo_query
@@ -615,7 +614,7 @@ where client_sdr.id = {client_sdr_id}
   and (
     ({persona_id != None} and persona.id = {persona_id or 'null'})
     or ({segment_id != None} and segment.id = {segment_id or 'null'})
-    or ({segment_id == None} and {persona_id == None}
+    or ({segment_id == None} and {persona_id == None} and
       saved_apollo_query.is_prefilter
     )
   )
