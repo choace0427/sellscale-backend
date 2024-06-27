@@ -16,7 +16,7 @@ class TrackSource(db.Model):
         return f"<TrackSource {self.id}>"
 
     def to_dict(self):
-        return {"id": self.id, "client_id": self.client_id, "track_key": self.track_key}
+        return {"id": self.id, "client_id": self.client_id, "track_key": self.track_key, "verified": self.verified, "website_base": self.website_base}
 
 
 class TrackEvent(db.Model):
@@ -38,6 +38,7 @@ class TrackEvent(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "created_at": self.created_at,
             "track_source_id": self.track_source_id,
             "event_type": self.event_type,
             "window_location": self.window_location,

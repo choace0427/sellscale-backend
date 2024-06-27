@@ -409,3 +409,10 @@ def verify_track_source(client_sdr_id: int):
 
     return True, track_source.track_key
 
+def get_client_track_source_metadata(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    track_source: TrackSource = TrackSource.query.filter(
+        TrackSource.client_id == client_sdr.client_id,
+    ).first()
+
+    return track_source.to_dict()
