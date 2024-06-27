@@ -383,3 +383,19 @@ def get_website_tracking_script(client_sdr_id: int):
         </script>
     '''
 
+def verify_track_source(track_event_id: int):
+    track_event: TrackEvent = TrackEvent.query.get(track_event_id)
+    if not track_event:
+        return "Track event not found"
+
+    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
+    if not track_source:
+        return "Track source not found"
+    
+    track_source.verified = True
+    track_source.website_base = track_event.window_location and track_event.window_location.split("/")[2]
+    db.session.add(track_source)
+    db.session.commit()
+
+    return track_source.track_key
+

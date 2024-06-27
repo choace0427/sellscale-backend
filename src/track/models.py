@@ -9,6 +9,9 @@ class TrackSource(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     track_key = db.Column(db.String, nullable=False)
 
+    verified = db.Column(db.Boolean, nullable=True, default=False)
+    website_base = db.Column(db.String, nullable=True)
+
     def __repr__(self):
         return f"<TrackSource {self.id}>"
 
