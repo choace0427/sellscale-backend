@@ -378,24 +378,34 @@ def get_website_tracking_script(client_sdr_id: int):
         db.session.commit()
 
     return '''
-        <script>
-            !function(){function t(){fetch("https://api.ipify.org/?format=json").then(t=>t.json()).then(t=>{var e,n,o,i;e=t.ip,o=JSON.stringify({ip:e,page:n=window.location.href,track_key:"''' + track_source.track_key + '''"}),(i=new XMLHttpRequest).open("POST","https://sellscale-api-prod.onrender.com/track/webpage",!0),i.setRequestHeader("Content-Type","application/json"),i.send(o)}).catch(t=>console.error("Error fetching IP:",t))}t(),window.onpopstate=function(e){t()},new MutationObserver(function(e){e.forEach(function(e){"childList"===e.type&&t()})}).observe(document.body,{childList:!0,subtree:!0})}();
-        </script>
+<script>
+    !function(){function t(){fetch("https://api.ipify.org/?format=json").then(t=>t.json()).then(t=>{var e,n,o,i;e=t.ip,o=JSON.stringify({ip:e,page:n=window.location.href,track_key:"''' + track_source.track_key + '''"}),(i=new XMLHttpRequest).open("POST","https://sellscale-api-prod.onrender.com/track/webpage",!0),i.setRequestHeader("Content-Type","application/json"),i.send(o)}).catch(t=>console.error("Error fetching IP:",t))}t(),window.onpopstate=function(e){t()},new MutationObserver(function(e){e.forEach(function(e){"childList"===e.type&&t()})}).observe(document.body,{childList:!0,subtree:!0})}();
+</script>
     '''
 
-def verify_track_source(track_event_id: int):
-    track_event: TrackEvent = TrackEvent.query.get(track_event_id)
-    if not track_event:
-        return "Track event not found"
+def get_most_recent_track_event(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    track_source: TrackSource = TrackSource.query.filter(
+        TrackSource.client_id == client_sdr.client_id,
+    ).first()
+
+    # most recent track event
+    track_event: TrackEvent = TrackEvent.query.filter(
+        TrackEvent.track_source_id == track_source.id,
+    ).order_by(TrackEvent.created_at.desc()).first()
+    return track_event
+
+def verify_track_source(client_sdr_id: int):
+    track_event = get_most_recent_track_event(client_sdr_id)
 
     track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
     if not track_source:
-        return "Track source not found"
+        return False, "Track source not found"
     
     track_source.verified = True
     track_source.website_base = track_event.window_location and track_event.window_location.split("/")[2]
     db.session.add(track_source)
     db.session.commit()
 
-    return track_source.track_key
+    return True, track_source.track_key
 

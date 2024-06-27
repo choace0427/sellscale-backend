@@ -1,5 +1,6 @@
-from flask import Blueprint, request
-from src.track.services import create_track_event
+from flask import Blueprint, jsonify, request
+from src.authentication.decorators import require_user
+from src.track.services import create_track_event, get_most_recent_track_event, get_website_tracking_script, verify_track_source
 from src.track.services import find_company_from_orginfo
 
 from src.utils.request_helpers import get_request_parameter
@@ -18,3 +19,25 @@ def create():
     if not success:
         return "ERROR", 400
     return "OK", 200
+
+@TRACK_BLUEPRINT.route("/get_script", methods=["GET"])
+@require_user
+def get_script(client_sdr_id: int):
+    script = get_website_tracking_script(client_sdr_id)
+    return jsonify({
+        "script": script
+    }), 200
+
+@TRACK_BLUEPRINT.route("/verify_source", methods=["GET"])
+@require_user
+def verify_source(client_sdr_id: int):
+    success, msg = verify_track_source(client_sdr_id)
+    if not success:
+        return msg, 400
+    return msg, 200
+
+@TRACK_BLUEPRINT.route("/most_recent_track_event", methods=["GET"])
+@require_user
+def most_recent_track_event(client_sdr_id: int):
+    event = get_most_recent_track_event(client_sdr_id)
+    return jsonify(event.to_dict()), 200
