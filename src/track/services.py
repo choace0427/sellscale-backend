@@ -1,13 +1,16 @@
 from regex import D
 import requests
 from sqlalchemy import or_
+from src.client.models import ClientSDR, Client
 from src.company.models import Company
 from src.contacts.services import apollo_get_contacts
 from src.prospecting.models import Prospect
-from src.track.models import TrackEvent, TrackSource
+from src.track.models import DeanonymizedContact, TrackEvent, TrackSource
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
+from src.utils.hasher import generate_uuid
 from src.utils.slack import URL_MAP, send_slack_message
+from tests.research import linkedin
 
 
 def create_track_event(
@@ -182,7 +185,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     job_title_level_to_apollo_map = {
         'Cxo': ['owner', 'founder', 'c_suite'],
         'Senior': ['manager', 'senior', 'partner'],
-        'Director': ['head', 'director'],
+        'Director': ['head', 'director', 'head'],
         'Owner': ['owner', 'founder', 'c_suite'],
         'Vp': ['vp', 'head', 'director'],
         'Manager': ['manager']
@@ -286,6 +289,21 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         (org_website and company_website and org_website.lower() in company_website.lower())
     ):
         return "Company name or website do not match"
+    
+    deanon_contact: DeanonymizedContact = DeanonymizedContact(
+        name=name,
+        company=org_name,
+        title=title,
+        visited_date=track_event.created_at,
+        linkedin=linkedin_url,
+        email=None,
+        tag=None,
+        prospect_id=None,
+        location=location,
+        track_event_id=track_event.id
+    )
+    db.session.add(deanon_contact)
+    db.session.commit()
         
 
     send_slack_message(
@@ -344,3 +362,24 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     )
 
     return contacts
+
+def get_website_tracking_script(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    track_source: TrackSource = TrackSource.query.filter(
+        TrackSource.client_id == client_sdr.client_id,
+    ).first()
+
+    if not track_source:
+        track_source: TrackSource = TrackSource(
+            client_id=client_sdr.client_id,
+            track_key=generate_uuid(),
+        )
+        db.session.add(track_source)
+        db.session.commit()
+
+    return '''
+        <script>
+            !function(){function t(){fetch("https://api.ipify.org/?format=json").then(t=>t.json()).then(t=>{var e,n,o,i;e=t.ip,o=JSON.stringify({ip:e,page:n=window.location.href,track_key:"''' + track_source.track_key + '''"}),(i=new XMLHttpRequest).open("POST","https://sellscale-api-prod.onrender.com/track/webpage",!0),i.setRequestHeader("Content-Type","application/json"),i.send(o)}).catch(t=>console.error("Error fetching IP:",t))}t(),window.onpopstate=function(e){t()},new MutationObserver(function(e){e.forEach(function(e){"childList"===e.type&&t()})}).observe(document.body,{childList:!0,subtree:!0})}();
+        </script>
+    '''
+
