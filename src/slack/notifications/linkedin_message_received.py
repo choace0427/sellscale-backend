@@ -64,7 +64,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                 "prospect_icp_score_reason": "(✅ title: CEO, ✅ company: SomeCompany)",
                 "archetype_name": "CEOs at AI Companies",
                 "archetype_emoji": "🤖",
-                "message": "Just confirming -- meeting next thursday? thx.",
+                "linkedin_message": "Just confirming -- meeting next thursday? thx.",
                 "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}".format(
                     auth_token=client_sdr.auth_token,
                 ),
@@ -88,7 +88,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                 "prospect_company": prospect.company,
                 "archetype_name": client_archetype.archetype,
                 "initial_send_date": linkedin_message.date.strftime("%B %d, %Y"),
-                "message": linkedin_message.message,
+                "linkedin_message": linkedin_message.message,
                 "archetype_emoji": (
                     client_archetype.emoji if client_archetype.emoji else "-"
                 ),
