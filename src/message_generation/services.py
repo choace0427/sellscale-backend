@@ -323,6 +323,9 @@ def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
         db.session.add(gm_job)
         db.session.commit()
 
+    if gm_job.attempts > 3:
+        raise ValueError("Exceeded maximum number of attempts")
+
     return True
 
 
