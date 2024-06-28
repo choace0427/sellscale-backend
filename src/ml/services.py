@@ -1622,6 +1622,7 @@ def find_contacts_from_perplexity(
     purpose: str
 ):
     query = """Find 5 people (with Linkedin URLs) who would be valid candidates for a campaign with this goal: "{purpose}"."""
+    query = query.format(purpose=purpose)
 
     response = simple_perplexity_response("llama-3-sonar-large-32k-online", query)
 
