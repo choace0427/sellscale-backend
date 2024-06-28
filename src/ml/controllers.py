@@ -43,6 +43,7 @@ from src.ml.services import (
     trigger_icp_classification_single_prospect,
     get_template_suggestions,
     add_few_shot,
+    get_nice_answer,
     get_few_shots,
     update_few_shot,
     get_all_ai_voices,
@@ -738,6 +739,31 @@ def post_add_few_shot(client_sdr_id: int):
 
     return jsonify(success), 200
 
+
+@ML_BLUEPRINT.route("/quick", methods=["POST"])
+@require_user
+def post_universal_prompt(client_sdr_id: int):
+    """
+    Add a new FewShot entry using AI Researcher
+    """
+    string = get_request_parameter(
+        "userInput", request, json=True, required=True, parameter_type=str
+    )
+    campaign_id = get_request_parameter(
+        "campaign_id", request, json=True, required=False, parameter_type=str
+    )
+    room_id = get_request_parameter(
+        "edited_string", request, json=True, required=False, parameter_type=str
+    )
+    context_info = get_request_parameter(
+        "contextInfo", request, json=True, required=False, parameter_type=str
+    )
+
+    success = get_nice_answer(
+        userInput=string, client_sdr_id=client_sdr_id, campaign_id=campaign_id, context_info=context_info
+    )
+
+    return jsonify({'response': success}), 200
 @ML_BLUEPRINT.route("/voices/all", methods=["GET"])
 @require_user
 def get_get_all_ai_voices(client_sdr_id: int):

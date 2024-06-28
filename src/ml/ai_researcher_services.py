@@ -533,7 +533,7 @@ def get_generated_email(email_body, prospectId):
         research = ', '.join([str(answer) for answer in research_list])
 
         prompt = """
-        You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to spread the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
+        You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to add the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
 
         Provided Template:
         {original_email_body}
@@ -572,7 +572,8 @@ def get_generated_email(email_body, prospectId):
                 voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
                 prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
 
-        prompt += """Important: Return the personalized email in HTML format, only the new email body.
+        prompt += """NOTE: Do not add random line breaks or spaces in the email.
+        Important: Return the personalized email in HTML format, only the new email body.
         Personalized email:"""
 
         prompt = prompt.format(
@@ -687,7 +688,8 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
                 voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
                 prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
 
-        prompt += """Important: Return the personalized email in HTML format, only the new email body.
+        prompt += """NOTE: Do not add random line breaks or spaces in the email.
+        Important: Return the personalized email in HTML format, only the new email body.
         Personalized email:"""
 
         prompt = prompt.format(

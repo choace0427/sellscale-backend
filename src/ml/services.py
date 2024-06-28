@@ -1454,10 +1454,55 @@ def add_few_shot(client_archetype_id, original_string, edited_string):
         print(f"Error adding FewShot entry: {e}")
         db.session.rollback()
         return False
+def get_nice_answer(userInput, client_sdr_id=None, campaign_id=None, context_info=None):
+    """
+    Get like a nice answer or something from the AI
+    """
+
+    userInfo = "here is some contextual information about the DOM. Please know that this information surrounds what the user is attempting to input text into. They are using your help to get a good answer" + context_info + "."
+    userInput = userInfo + " ok, finally: here is the user input: " + userInput + '\n \n ok, there is the user input. Only give the answer to the input, do not prefix it with anything. Do not give the answer like its repeating what the user asked. If the user appears to be stating something please state what they said more eloquently given the context. Be careful, sometimes the system might have too much context, so you need to abide by ONLY what the user is asking for. i.e. if they asked for a template only give them the template.'
+
+    system_prompt = '''You are an AI for an automated outbound software called sellscale will generate do exactly what the user's request is to their hearts content. 
+            If you are asked to write any placeholder data, please surround it with two square brackets like: '[[',  and ']]' If the user is asking for an email, they mean the body, not the subject and body. Only do as they say. Again, do not premise the answer to the user.
+            '''
+    if (client_sdr_id):
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client : Client = client_sdr.client
+        system_prompt += '''
+        The user's company is called {client_name} and the user's name is {sdr_name}.
+        '''.format(client_name=client.company, sdr_name=client_sdr.name)
+        if (client_sdr.title):
+            system_prompt += '''
+            The user's title is {sdr_title}
+            '''.format(sdr_title=client_sdr.title)
+
+    if (campaign_id):
+        campaign: ClientArchetype = ClientArchetype.query.get(campaign_id)
+        system_prompt += '''
+        The campaign is called {campaign_name}
+        '''.format(campaign_name=campaign.archetype)
+
+    system_prompt += 'please be as brief as possible. Only give the answer to the input, do not prefix it with anything. Do not give the answer like its repeating what the user asked and do not premise the answer.'
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": f"{userInput}"
+        }
+    ]
+    response = wrapped_chat_gpt_completion(
+        messages=messages,
+        model="gpt-4o",
+        max_tokens=1000
+    )
+    return response
 def get_few_shots(ai_voice_id):
     """
     Get all FewShot entries for a given AI voice.
-
     Args:
         ai_voice_id (int): The ID of the AI voice.
 

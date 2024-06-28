@@ -640,7 +640,10 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
                 "[[" not in subjectline_template.subject_line
                 and "{{" not in subjectline_template.subject_line
             )
-            if (not subject_line_strict):
+            subject_line = subjectline_template.subject_line
+            if (subject_line_strict):
+                pass
+            elif (not subject_line_strict):
                 subject_line_prompt = ai_subject_line_prompt(
                 client_sdr_id=prospect.client_sdr_id,
                 prospect_id=prospect_id,
@@ -648,8 +651,11 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
                 subject_line_template_id=subjectline_template.id,
             )
                 #replace subject line if there were brackets.
-                subjectline_template.subject_line = subject_line_prompt
-            return subjectline_template.subject_line, email_body
+                subject_line = generate_subject_line(prompt=subject_line_prompt)
+                subject_line = subject_line.get("subject_line")
+                # subjectline_template.subject_line = subject_line_prompt
+                # db.session.commit()
+            return subject_line, email_body
 
     if(room_id):
         send_socket_message('subject-stream', {"step": 3, 'room_id': room_id}, room_id)
