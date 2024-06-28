@@ -549,7 +549,7 @@ scheduler.add_job(
 
 # Minute triggers
 scheduler.add_job(func=minutely_upload_prospect_upload_rows, trigger="interval", minutes=1)
-scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", minutes=1)
+scheduler.add_job(func=scrape_all_inboxes_job, trigger="interval", minutes=15)
 scheduler.add_job(func=scrape_li_convos, trigger="interval", minutes=1)
 scheduler.add_job(run_sales_navigator_launches, trigger="interval", minutes=1)
 scheduler.add_job(run_auto_resolve_linkedin_tasks, trigger="interval", minutes=1)

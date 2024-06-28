@@ -496,7 +496,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
 
     if active:
         # Find emails for prospects under this archetype
-        find_emails_for_archetype.delay(archetype_id=archetype_id)
+        find_emails_for_archetype(archetype_id=archetype_id)
 
         # Send slack notification
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
