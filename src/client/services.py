@@ -454,6 +454,7 @@ def create_client_archetype(
     linkedin_active: Optional[bool] = False,
     email_active: Optional[bool] = False,
     connection_type: Optional[EmailToLinkedInConnection] = None,
+    purpose: Optional[str] = None,
 ):
     c: Client = get_client(client_id=client_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -569,21 +570,34 @@ def create_client_archetype(
         description=f"Created a new campaign for {archetype}",
     )
 
+    if purpose:
+        from src.ml.services import find_contacts_from_perplexity, one_shot_linkedin_sequence_generation
+
+        one_shot_linkedin_sequence_generation.delay(
+            client_sdr_id,
+            archetype_id,
+            purpose
+        )
+        find_contacts_from_perplexity.delay(
+            archetype_id,
+            purpose
+        )
+
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
-    template = LinkedinInitialMessageTemplate(
-        title="Simple Connection",
-        message="Hi [[first name]]! I'd love to connect!",
-        client_sdr_id=client_sdr_id,
-        client_archetype_id=archetype_id,
-        active=True,
-        times_used=0,
-        times_accepted=0,
-        sellscale_generated=True,
-        research_points=[],
-        additional_instructions="",
-    )
-    db.session.add(template)
-    db.session.commit()
+    # template = LinkedinInitialMessageTemplate(
+    #     title="Simple Connection",
+    #     message="Hi [[first name]]! I'd love to connect!",
+    #     client_sdr_id=client_sdr_id,
+    #     client_archetype_id=archetype_id,
+    #     active=True,
+    #     times_used=0,
+    #     times_accepted=0,
+    #     sellscale_generated=True,
+    #     research_points=[],
+    #     additional_instructions="",
+    # )
+    # db.session.add(template)
+    # db.session.commit()
 
     return {"client_archetype_id": client_archetype.id}
 
