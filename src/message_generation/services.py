@@ -340,6 +340,14 @@ def research_and_generate_outreaches_for_prospect(  # THIS IS A PROTECTED TASK. 
     try:
         from src.research.linkedin.services import get_research_and_bullet_points_new
 
+        if gm_job_id:
+            gm: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
+            if not gm or gm.status in [
+                GeneratedMessageJobStatus.COMPLETED,
+                GeneratedMessageJobStatus.FAILED,
+            ]:
+                return (False, "Job does not exist or is already completed")
+
         # Mark the job as in progress
         update_generated_message_job_queue_status(
             gm_job_id, GeneratedMessageJobStatus.IN_PROGRESS
@@ -1142,6 +1150,14 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
     try:
         campaign: OutboundCampaign = OutboundCampaign.query.get(campaign_id)
+
+        if gm_job_id:
+            gm: GeneratedMessageJobQueue = GeneratedMessageJobQueue.query.get(gm_job_id)
+            if not gm or gm.status in [
+                GeneratedMessageJobStatus.COMPLETED,
+                GeneratedMessageJobStatus.FAILED,
+            ]:
+                return (False, "Job does not exist or is already completed")
 
         # 1. Mark the job as in progress
         update_generated_message_job_queue_status(
