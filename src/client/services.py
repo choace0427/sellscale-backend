@@ -571,14 +571,14 @@ def create_client_archetype(
     )
 
     if purpose:
-        from src.ml.services import find_contacts_from_perplexity, one_shot_linkedin_sequence_generation
+        from src.ml.services import find_contacts_from_serp, one_shot_linkedin_sequence_generation
 
         one_shot_linkedin_sequence_generation.delay(
             client_sdr_id,
             archetype_id,
             purpose
         )
-        find_contacts_from_perplexity.delay(
+        find_contacts_from_serp.delay(
             archetype_id,
             purpose
         )

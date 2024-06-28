@@ -38,6 +38,7 @@ import openai
 import json
 import yaml
 from src.company.services import find_company_for_prospect
+from src.research.website.serp_helpers import search_google_news, search_google_news_raw
 from src.utils.abstract.attr_utils import deep_get
 
 import os
@@ -1617,48 +1618,48 @@ Generated Sequence:"""
     return json_data
 
 @celery.task
-def find_contacts_from_perplexity(
+def find_contacts_from_serp(
     archetype_id: int,
     purpose: str
 ):
-    query = """Find 5 people (with Linkedin URLs) who would be valid candidates for a campaign with this goal: "{purpose}"."""
-    query = query.format(purpose=purpose)
+    query ="""
+You are a converter. Convert the purpose into a search.
 
-    response = simple_perplexity_response("llama-3-sonar-large-32k-online", query)
+Examples:
+Input: I want to find doctors who work at the top 50 hospitals so I can give them an AI tool to unlock more value from the top CPT codes right now
+Output: "site:linkedin.com/in/ doctor at top 50 hospital owners"
 
-    # use chatGPT to extract the response into a JSON object with an array of objects with {name: string, linkedin_url: string}
-    prompt = """You are a JSON converter. I will provide you with a list of contacts, and you will convert it into a JSON object with an array of objects with a 'name' and 'linkedin_url' key for each entry.
+Input: Startup founders who recently raised a Series B in the last 4 months. I want to target them for a partnership so I can feature them in our upcoming blog post.
+Output: "site:linkedin.com/in/ startup founder raised Series B in the last 4 months"
 
-    ex. {{ "contacts": [ {{"name": "John Doe", "linkedin_url": "https://www.linkedin.com/in/johndoe"}}, {{"name": "Jane Doe", "linkedin_url": "https://www.linkedin.com/in/janedoe"}} ] }}
+NOTE: Only respond with the search query and nothing else.
 
-    Here is the corpus of contacts:
-    {response}
+Input: {}
+Output:"""
 
-    NOTE: Only respond with the JSON object and nothing else.
-
-    JSON Output:""".format(response=response)
-
-    response = wrapped_chat_gpt_completion(
+    query = query.format(purpose)
+    output = wrapped_chat_gpt_completion(
         messages=[
             {
                 "role": "user",
-                "content": prompt
+                "content": query
             }
         ],
         model='gpt-4o',
-        max_tokens=3000
+        max_tokens=200
     )
 
-    sanitized_response = response.replace("json", "").replace("`", "")
+    search_results = search_google_news_raw(
+        output.replace('"', '')
+    )
 
-    json_data = json.loads(sanitized_response)
+    links = [x['link'] for x in search_results['organic_results']]
 
-    for contact in json_data.get("contacts"):
-        from src.prospecting.services import create_prospect_from_linkedin_link
-
+    from src.prospecting.services import create_prospect_from_linkedin_link
+    for link in links:
         create_prospect_from_linkedin_link.delay(
             archetype_id=archetype_id,
-            url=contact.get("linkedin_url")
+            url=link
         )
 
-    return json_data
+    return links
