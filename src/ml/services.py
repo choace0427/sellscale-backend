@@ -19,6 +19,7 @@ from src.message_generation.models import (
     GeneratedMessageType,
 )
 from src.ml.models import (
+    AIVoice,
     FewShot,
     TextGeneration,
 )
@@ -1404,6 +1405,7 @@ def add_few_shot(client_archetype_id, original_string, edited_string):
         bool: True if the entry was added successfully, False otherwise.
     """
     try:
+        client_archetype = ClientArchetype.query.get(client_archetype_id)
         # Generate the nuance using the wrapped_chat_gpt_completion function
         messages = [
             {
@@ -1412,26 +1414,38 @@ def add_few_shot(client_archetype_id, original_string, edited_string):
             },
             {
                 "role": "user",
-                "content": f"Original: {original_string}\nEdited: {edited_string}\nPlease describe the edits made to the string, and return only the edits as a JavaScript array.\
-                \
-                Array:"
+                "content": f"Original: {original_string}\nEdited: {edited_string}\n"
+                           "Describe each edit with a focus on the nuance and impact of the change. Avoid positional data or direct word swaps like `[word] changed to [word]`.\n"
+                           "Be specific about word choice, tone, and style transformations. Highlight any drastic shifts in tone, such as changes to a playful or exaggerated style.\n"
+                           "Make it sound engaging and insightful, emphasizing how the overall feel and voice of the text has been altered.\n\n"
+                           "If there was a drastic shift in tone, or word style, even if it is, every word starts with a P now, you need to capture that too. \n\n"
+                           "Do not make any remarks about parts of the text remaining unchanged. \n\n"
+                           "Please provide the descriptions of the edits in the form of a Python array, only the array of strings. \n"
+                           "Your output:"
             }
         ]
-        response = wrapped_chat_gpt_completion(
-            messages=messages,
-            model="gpt-4o",
-            max_tokens=500
-        )
-        nuance = response
-        nuance = nuance.replace("javascript", "").replace("`", "").replace("\n", "")
+        
+        for attempt in range(3):
+            response = wrapped_chat_gpt_completion(
+                messages=messages,
+                model="gpt-4o",
+                max_tokens=500
+            )
+            nuance = response.replace("python", "").replace("`", "").replace("\n", "")
+            try:
+                nuance_array = eval(nuance)
+                if isinstance(nuance_array, list):
+                    break
+            except:
+                if attempt == 2:
+                    raise ValueError("Failed to generate a valid Python array from the response.")
         
         # Create a new FewShot entry
-
         new_few_shot = FewShot(
-            client_archetype_id=client_archetype_id,
             original_string=original_string,
             edited_string=edited_string,
-            nuance=nuance
+            nuance=nuance,
+            ai_voice_id=client_archetype.ai_voice_id
         )
         db.session.add(new_few_shot)
         db.session.commit()
@@ -1440,7 +1454,73 @@ def add_few_shot(client_archetype_id, original_string, edited_string):
         print(f"Error adding FewShot entry: {e}")
         db.session.rollback()
         return False
+def get_few_shots(ai_voice_id):
+    """
+    Get all FewShot entries for a given AI voice.
 
+    Args:
+        ai_voice_id (int): The ID of the AI voice.
+
+    Returns:
+        list: A list of FewShot entries.
+    """
+    try:
+        few_shots: list[dict] = [few_shot.to_dict() for few_shot in FewShot.query.filter_by(ai_voice_id=ai_voice_id).all()]
+    except Exception as e:
+        return []
+    return few_shots
+
+def get_all_ai_voices(client_sdr_id):
+    """
+    Get all the AI voices available
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    voices: list[AIVoice] = AIVoice.query.filter_by(client_id=client_sdr.client_id).all()
+    if not voices:
+        return []
+    return [voice.to_dict() for voice in voices]
+
+def create_ai_voice(name: str, client_sdr_id: int):
+    """
+    Create a new AI voice
+    """
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    new_voice: AIVoice = AIVoice(name=name, client_sdr_created_by=client_sdr.id, client_id=client_sdr.client_id )
+    db.session.add(new_voice)
+    db.session.commit()
+    return new_voice.to_dict()
+
+def assign_ai_voice(voice_id: int, archetype_id: int):
+    """
+    Assign an AI voice to an archetype. If voice_id is None, set the archetype's voice id to null.
+    """
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if voice_id is None:
+        archetype.ai_voice_id = None
+    else:
+        voice: AIVoice = AIVoice.query.get(voice_id)
+        archetype.ai_voice_id = voice.id
+    db.session.add(archetype)
+    db.session.commit()
+    return archetype.to_dict()
+
+def update_few_shot(id: int, nuance: str):
+    """
+    Update the nuance of a FewShot entry.
+
+    Args:
+        id (int): The ID of the FewShot entry.
+        nuance (str): The new nuance to be set.
+
+    Returns:
+        dict: The updated FewShot entry as a dictionary.
+    """
+    few_shot: FewShot = FewShot.query.get(id)
+    if not few_shot:
+        return {}
+    few_shot.nuance = nuance
+    db.session.commit()
+    return few_shot.to_dict()
 @celery.task
 def one_shot_linkedin_sequence_generation(
     client_sdr_id: int,

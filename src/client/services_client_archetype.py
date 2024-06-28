@@ -1261,6 +1261,7 @@ def get_client_archetype_overview(client_archetype_id):
     id = archetype.id
     meta_data = archetype.meta_data
     ai_researcher_id = archetype.ai_researcher_id
+    ai_voice_id = archetype.ai_voice_id
 
     num_prospects: int = Prospect.query.filter(
         Prospect.archetype_id == client_archetype_id
@@ -1291,6 +1292,7 @@ def get_client_archetype_overview(client_archetype_id):
         "ai_researcher_id": archetype.ai_researcher_id,
         "meta_data": meta_data,
         "ai_researcher_id": ai_researcher_id,
+        "ai_voice_id": ai_voice_id,
     }
 
 def get_total_contacts_for_archetype(client_archetype_id):

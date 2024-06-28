@@ -1125,7 +1125,6 @@ def create_and_start_email_generation_jobs(self, campaign_id: int):
         db.session.rollback()
         raise self.retry(exc=e, countdown=2**self.request.retries)
 
-
 @celery.task(bind=True, max_retries=3)
 def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME OF THIS FUNCTION
     self, prospect_id: int, campaign_id: int, gm_job_id: int
@@ -1224,15 +1223,17 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
 
         # 8b. Generate the subject line
         personalized_email_body = None
-        if (subjectline_template.is_magic_subject_line):
+        if (subjectline_template and subjectline_template.is_magic_subject_line):
             subject_line_prompt = "Magic Subject Line"
             subject_line, personalized_email_body = generate_magic_subject_line(
-                client_sdr_id=client_sdr_id,
+                campaign_id=prospect.archetype_id,
                 prospect_id=prospect_id,
-                email_body=email_body,
-                subject_line_template_id=subjectline_template.id,
+                sequence_id = template.id,
+                generate_email = True,
+                subject_line_id=subjectline_template.id,
             )
-            subject_line = subject_line.get("subject_line")
+            email_body = personalized_email_body
+            # subject_line = subject_line.get("subject_line")
         elif subjectline_strict:
             subject_line_prompt = "No AI template detected in subject line template. Using exact template."
             subject_line = subjectline_template.subject_line

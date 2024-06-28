@@ -592,7 +592,7 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
     return {"subject_line": response}
 
 
-def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, generate_email: bool = False, room_id: Optional[str] = None) -> str:
+def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, generate_email: bool = False, room_id: Optional[str] = None, subject_line_id: Optional[int] = None) -> str:
     """Generate a magic subject line for a prospect.
 
     Args:
@@ -629,6 +629,27 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
             )
         except Exception as e:
             print(e)
+
+    if (subject_line_id):
+        if(room_id):
+            send_socket_message('subject-stream', {"step": 3, 'room_id': room_id}, room_id)
+        subjectline_template: EmailSubjectLineTemplate = EmailSubjectLineTemplate.query.get(subject_line_id)
+        if not subjectline_template.is_magic_subject_line:
+            subject_line_strict = False
+            subject_line_strict = (
+                "[[" not in subjectline_template.subject_line
+                and "{{" not in subjectline_template.subject_line
+            )
+            if (not subject_line_strict):
+                subject_line_prompt = ai_subject_line_prompt(
+                client_sdr_id=prospect.client_sdr_id,
+                prospect_id=prospect_id,
+                email_body=email_body,
+                subject_line_template_id=subjectline_template.id,
+            )
+                #replace subject line if there were brackets.
+                subjectline_template.subject_line = subject_line_prompt
+            return subjectline_template.subject_line, email_body
 
     if(room_id):
         send_socket_message('subject-stream', {"step": 3, 'room_id': room_id}, room_id)

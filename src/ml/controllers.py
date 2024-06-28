@@ -42,7 +42,12 @@ from src.ml.services import (
     edit_text,
     trigger_icp_classification_single_prospect,
     get_template_suggestions,
-    add_few_shot
+    add_few_shot,
+    get_few_shots,
+    update_few_shot,
+    get_all_ai_voices,
+    create_ai_voice,
+    assign_ai_voice
 )
 from src.ml.fine_tuned_models import get_config_completion
 
@@ -691,8 +696,12 @@ def post_simulate_magic_subject_line(client_sdr_id: int):
     room_id = get_request_parameter(
         "room_id", request, json=True, required=True, parameter_type=str
     )
+    #not required. Comes from sequencing page.
+    subject_line_id = get_request_parameter(
+        "subject_line_id", request, json=True, required=False, parameter_type=str
+    )
 
-    magic_subject_line, personalized_email = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, generate_email=True, room_id=room_id)
+    magic_subject_line, personalized_email = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, generate_email=True, room_id=room_id, subject_line_id=subject_line_id)
 
     if (room_id):
         send_socket_message('subject-stream', {"message":"done", 'room_id': room_id}, room_id)
@@ -726,5 +735,94 @@ def post_add_few_shot(client_sdr_id: int):
 
     if not success:
         return "Error adding FewShot entry", 400
+
+    return jsonify(success), 200
+
+@ML_BLUEPRINT.route("/voices/all", methods=["GET"])
+@require_user
+def get_get_all_ai_voices(client_sdr_id: int):
+    """
+    Retrieve all AI Voice entries
+    """
+    ai_voices_list = get_all_ai_voices(client_sdr_id=client_sdr_id)
+
+    return jsonify(ai_voices_list), 200
+
+
+@ML_BLUEPRINT.route("/voices", methods=["POST"])
+@require_user
+def post_create_ai_voice(client_sdr_id: int):
+    """
+    Create an AI Voice entry
+    """
+    name = get_request_parameter(
+        "name", request, json=True, required=True, parameter_type=str
+    )
+
+    success = create_ai_voice(name=name, client_sdr_id=client_sdr_id)
+
+    if not success:
+        return "Error creating AI Voice entry", 400
+
+    return jsonify(success), 200
+
+@ML_BLUEPRINT.route("/voices", methods=["PUT"])
+@require_user
+def put_ai_voice(client_sdr_id: int):
+    """
+    Create an AI Voice entry
+    """
+    void_id = None
+    voice_id = get_request_parameter(
+        "voice_id", request, json=True, required=False, parameter_type=int
+    )
+
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success = assign_ai_voice(voice_id=voice_id, archetype_id=archetype_id )
+
+    if not success:
+        return "Error creating AI Voice entry", 400
+
+    return jsonify(success), 200
+
+@ML_BLUEPRINT.route("/few-shot", methods=["POST"])
+@require_user
+def post_few_shot(client_sdr_id: int):
+    """
+    Create a FewShot entry
+    """
+    ai_voice_id = get_request_parameter(
+        "voice_id", request, json=True, required=True, parameter_type=int
+    )
+
+    # Assuming the function add_few_shot is defined in src/ml/services.py
+    success = get_few_shots(ai_voice_id=ai_voice_id)
+
+    if not success:
+        return jsonify([]), 200
+
+    return jsonify(success), 200
+
+@ML_BLUEPRINT.route("/few-shot", methods=["PUT"])
+@require_user
+def put_few_shot(client_sdr_id: int):
+    """
+    Create a FewShot entry
+    """
+    id = get_request_parameter(
+        "id", request, json=True, required=True, parameter_type=int
+    )
+    nuance = get_request_parameter(
+        "nuance", request, json=True, required=True, parameter_type=str
+    )
+
+    # Assuming the function add_few_shot is defined in src/ml/services.py
+    success = update_few_shot(id=id, nuance=nuance)
+
+    if not success:
+        return jsonify({}), 200
 
     return jsonify(success), 200

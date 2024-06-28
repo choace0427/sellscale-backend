@@ -294,6 +294,7 @@ def add_prospects_to_segment(prospect_ids: list[int], new_segment_id: int):
                 {
                     Prospect.segment_id: new_segment_id,
                     Prospect.archetype_id: archetype.id,
+                    Prospect.client_sdr_id: archetype.client_sdr_id
                 },
                 synchronize_session=False,
             )
