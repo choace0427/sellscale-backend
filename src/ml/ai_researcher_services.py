@@ -611,7 +611,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         prospect_id: int = prospect_email.prospect_id
         prospect: Prospect = Prospect.query.get(prospect_id)
 
-        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr)
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
 
         # in the case of a magic subject line, we will already just have generated the email body using
