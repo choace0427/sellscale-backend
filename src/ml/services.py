@@ -1459,7 +1459,7 @@ def get_nice_answer(userInput, client_sdr_id=None, campaign_id=None, context_inf
     Get like a nice answer or something from the AI
     """
 
-    userInfo = "here is some contextual information about the DOM. Please know that this information surrounds what the user is attempting to input text into. They are using your help to get a good answer" + context_info + "."
+    userInfo = "here is some contextual information about the DOM. Please know that this information surrounds what the user is attempting to input text into. They are using your help to get a good answer" + context_info + ". If I gave you a conversation there, do not write any placeholder data."
     userInput = userInfo + " ok, finally: here is the user input: " + userInput + '\n \n ok, there is the user input. Only give the answer to the input, do not prefix it with anything. Do not give the answer like its repeating what the user asked. If the user appears to be stating something please state what they said more eloquently given the context. Be careful, sometimes the system might have too much context, so you need to abide by ONLY what the user is asking for. i.e. if they asked for a template only give them the template.'
 
     system_prompt = '''You are an AI for an automated outbound software called sellscale will generate do exactly what the user's request is to their hearts content. 
@@ -1525,13 +1525,24 @@ def get_all_ai_voices(client_sdr_id):
         return []
     return [voice.to_dict() for voice in voices]
 
-def create_ai_voice(name: str, client_sdr_id: int):
+def create_ai_voice(name: str, client_sdr_id: int, client_archetype_id: int):
     """
     Create a new AI voice
     """
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    new_voice: AIVoice = AIVoice(name=name, client_sdr_created_by=client_sdr.id, client_id=client_sdr.client_id )
+    if not client_sdr:
+        raise ValueError(f"ClientSDR with id {client_sdr_id} not found")
+
+    new_voice: AIVoice = AIVoice(name=name, client_sdr_created_by=client_sdr.id, client_id=client_sdr.client_id)
     db.session.add(new_voice)
+    db.session.flush()  # Ensure new_voice.id is available
+
+    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    if not client_archetype:
+        raise ValueError(f"ClientArchetype with id {client_archetype_id} not found")
+
+    client_archetype.ai_voice_id = new_voice.id
+    db.session.add(client_archetype)
     db.session.commit()
     return new_voice.to_dict()
 

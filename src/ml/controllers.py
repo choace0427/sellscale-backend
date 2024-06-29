@@ -784,8 +784,11 @@ def post_create_ai_voice(client_sdr_id: int):
     name = get_request_parameter(
         "name", request, json=True, required=True, parameter_type=str
     )
+    client_archetype_id = get_request_parameter(
+        "client_archetype_id", request, json=True, required=True, parameter_type=int
+    )
 
-    success = create_ai_voice(name=name, client_sdr_id=client_sdr_id)
+    success = create_ai_voice(name=name, client_sdr_id=client_sdr_id, client_archetype_id=client_archetype_id)
 
     if not success:
         return "Error creating AI Voice entry", 400
