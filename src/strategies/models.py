@@ -20,3 +20,11 @@ class Strategies(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+
+class StrategyClientArchetypeMapping(db.Model):
+    __tablename__ = "strategy_client_archetype_mapping"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    strategy_id = db.Column(db.Integer, db.ForeignKey("stragegies.id"), nullable=False)
+    client_archetype_id = db.Column(db.Integer, db.ForeignKey("client_archetype.id"), nullable=False)
