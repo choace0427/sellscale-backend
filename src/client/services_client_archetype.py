@@ -1476,7 +1476,7 @@ def get_client_archetype_sequences(client_archetype_id):
         {
             "bump_framework_id": row[0],
             "title": row[1],
-            "description": "Instruction: " + str(row[2]),
+            "description": str(row[2]),
             "bumped_count": row[3],
             "assets": get_all_bump_framework_assets(row[0]),
             "active": row[4],
