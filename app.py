@@ -284,6 +284,7 @@ def register_blueprints(app):
     from src.merge_crm.webhooks.controllers import MERGE_CRM_WEBHOOKS_BLUEPRINT
 
     from src.apollo.controllers import APOLLO_REQUESTS
+    from src.strategies.controllers import STRATEGIES_BLUEPRINT
 
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
@@ -368,6 +369,7 @@ def register_blueprints(app):
     app.register_blueprint(PROSPECTING_UPLOAD_BLUEPRINT, url_prefix="/prospect/upload")
 
     app.register_blueprint(APOLLO_REQUESTS, url_prefix="/apollo")
+    app.register_blueprint(STRATEGIES_BLUEPRINT, url_prefix="/strategies")
 
     db.init_app(app)
 
