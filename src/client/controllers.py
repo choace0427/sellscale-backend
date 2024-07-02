@@ -3627,6 +3627,9 @@ def update_asset_endpoint(client_sdr_id: int):
     asset_value = get_request_parameter(
         "asset_value", request, json=True, required=False, parameter_type=str
     )
+    asset_raw_value = get_request_parameter(
+        "asset_raw_value", request, json=True, required=False, parameter_type=str
+    )
     asset_type = get_request_parameter(
         "asset_type", request, json=True, required=False, parameter_type=str
     )
@@ -3639,6 +3642,7 @@ def update_asset_endpoint(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         asset_key=asset_key,
         asset_value=asset_value,
+        asset_raw_value=asset_raw_value,
         asset_type=asset_type,
         asset_tags=asset_tags,
     )
