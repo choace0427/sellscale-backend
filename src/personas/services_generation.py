@@ -494,7 +494,6 @@ def generate_email_initial(
 
 
     """
-
     prompt = f"""
     
 You are an angle creator for outbound emails. Your goal is to return new, creative outbound angles and copy for generative outreach to prospects.
@@ -997,7 +996,6 @@ def generate_linkedin_cta(
     stream_event: Optional[str] = None,
     stream_room_id: Optional[str] = None,
 ):
-
     prompt = f"""
   
 You are an angle creator for outbound LinkedIn. Your goal is to return new, creative outbound angles and copy for generative call to actions on generative outreach to prospects.
@@ -1196,35 +1194,37 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
 
 def clean_output_with_ai(output: str):
 
-    prompt = f"""
+    prompt = f"""You are a JSON formatter. 
+    I am going to give you some raw data that I want you to structure in JSON format. Return a JSON object in the following format:
     
-    I'm going to give you some data that's a list of messages and I want you to format each message so that it fits in this JSON array format:
+    {{
+        "message": [
+            (
+            "angle": <1_SOMETHING>-based,
+            "angle_description": <1_ANGLE_DESCRIPTION>,
+            "subject": <1_MESSAGE_SUBJECT>,
+            "message": <1_MESSAGE_BODY>,
+            "asset_ids": [<1_ASSET_IDS>],
+            ),
+            (
+            "angle": <2_SOMETHING>-based,
+            "angle_description": <2_ANGLE_DESCRIPTION>,
+            "subject": <2_MESSAGE_SUBJECT>,
+            "message": <2_MESSAGE_BODY>,
+            "asset_ids": [<2_ASSET_IDS>],
+            ),
+            ...OTHERS...
+        ]
+    }}
     
-    [
-    (
-    "angle": <1_SOMETHING>-based,
-    "angle_description": <1_ANGLE_DESCRIPTION>,
-    "subject": <1_MESSAGE_SUBJECT>,
-    "message": <1_MESSAGE_BODY>,
-    "asset_ids": [<1_ASSET_IDS>],
-    ),
-    (
-    "angle": <2_SOMETHING>-based,
-    "angle_description": <2_ANGLE_DESCRIPTION>,
-    "subject": <2_MESSAGE_SUBJECT>,
-    "message": <2_MESSAGE_BODY>,
-    "asset_ids": [<2_ASSET_IDS>],
-    ),
-    ...OTHERS...
-    ]
-    
-    If you don't have something, just put an empty string. Maintain the newline formatting in the JSON message. ONLY respond with the JSON array format.
     The message property should just be the message body, not the subject line, not the angle, not the angle description, and not the asset IDs.
     
     # Data #
     {output}
     
-    """.strip()
+    IMPORTANT: Return only the JSON output. Do not include any other text in your response.
+
+    Output:""".strip()
 
     completion = (
         get_text_generation(
@@ -1249,6 +1249,8 @@ def clean_output_with_ai(output: str):
         data = yaml.safe_load(
             completion.replace("```json", "").replace("```", "").strip()
         )
+
+        data = data.get("message", [])
 
         # add a custom uuid to each message
         for i, message in enumerate(data):
