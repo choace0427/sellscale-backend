@@ -1600,8 +1600,8 @@ def scrape_conversations_inbox():
 
 @celery.task
 def scrape_conversation_queue():
-from src.voyager.services import update_conversation_entries
-from src.client.services import populate_prospect_events
+    from src.voyager.services import update_conversation_entries
+    from src.client.services import populate_prospect_events
 
     scrape_queue: List[
         LinkedinConversationScrapeQueue
