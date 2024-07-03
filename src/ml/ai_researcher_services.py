@@ -564,6 +564,7 @@ def get_generated_email(email_body, prospectId):
         """
         
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+        few_shots = []
         if client_archetype.ai_voice_id:
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
             # look up if there are any few shots attached the the AI Voice
@@ -620,7 +621,6 @@ def get_generated_email(email_body, prospectId):
                 model='gpt-4o',
                 max_tokens=1000
             )
-
 
         return answer
     except Exception as e:
@@ -702,6 +702,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         """
 
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+        few_shots = []
         if client_archetype.ai_voice_id:
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
             # look up if there are any few shots attached the the AI Voice
@@ -753,7 +754,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
                         "content": prompt
                     }
                 ],
-                model='gpt-4o',
+                model='claude-3-5-sonnet-20240620',
                 max_tokens=1000
             )
 
