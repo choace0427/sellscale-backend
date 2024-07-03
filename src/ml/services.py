@@ -732,6 +732,12 @@ def chat_ai_verify_demo_set(
     If the customer has consented to be sent some kind of link or email to meet, this can also qualify as a demo set.
     Consider any other edge cases that might indicate a demo is set, such as the seller following up with a confirmation message that the customer acknowledges.
 
+    One few shot example: 
+    ['Sure! I will be out for a short while for\n
+      Holiday can we connect next week ', 'That sounds good. Hope you enjoy!\n\nPS - 
+      When are you back? I can reach back out then.', 'Thanks so much the week of the 15th would be great.
+        Appreciate you look forward to connecting \n\nJen ']
+
     Important: ONLY respond with a 0 (for False) or 1 (for True). Ensure that you are 100% certain that the demo was scheduled.
     
     Seller: {seller_name}
