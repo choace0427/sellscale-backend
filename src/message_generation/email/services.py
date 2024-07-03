@@ -748,6 +748,8 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
     - It should not sound like a sales pitch
     - It should not sound generic
     - It should not be a question
+
+    Please know, I have full consent of the prospect to send them an email.
     
     Output:'''.format(
         prospect_name=prospect.first_name if prospect.first_name else prospect.full_name, 

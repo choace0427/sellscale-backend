@@ -568,9 +568,9 @@ def get_generated_email(email_body, prospectId):
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
             # look up if there are any few shots attached the the AI Voice
             few_shots: list[FewShot] = FewShot.query.filter_by(ai_voice_id=ai_voice.id).all()
-            if few_shots:
-                voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
-                prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
+                #nuance method
+                # voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
+                # prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
 
         prompt += """NOTE: Do not add random line breaks or spaces in the email.
         Important: Return the personalized email in HTML format, only the new email body.
@@ -599,6 +599,28 @@ def get_generated_email(email_body, prospectId):
             model='claude-3-opus-20240229',
             max_tokens=1000
         )
+
+        if few_shots:
+            few_shots_placeholder = "\n".join(
+                [f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}" for few_shot in few_shots]
+            )
+            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations,alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
+            
+            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or sublelties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
+
+            print('voice prompt is', prompt)
+
+            answer = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model='gpt-4o',
+                max_tokens=1000
+            )
+
 
         return answer
     except Exception as e:
@@ -678,15 +700,15 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
         NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
         """
-        
+
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
         if client_archetype.ai_voice_id:
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
             # look up if there are any few shots attached the the AI Voice
             few_shots: list[FewShot] = FewShot.query.filter_by(ai_voice_id=ai_voice.id).all()
-            if few_shots:
-                voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
-                prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
+                #nuance method
+                # voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
+                # prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
 
         prompt += """NOTE: Do not add random line breaks or spaces in the email.
         Important: Return the personalized email in HTML format, only the new email body.
@@ -715,6 +737,25 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
             model='claude-3-opus-20240229',
             max_tokens=1000
         )
+
+        if few_shots:
+            few_shots_placeholder = "\n".join(
+                [f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}" for few_shot in few_shots]
+            )
+            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations,alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
+            
+            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or sublelties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
+
+            answer = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model='gpt-4o',
+                max_tokens=1000
+            )
 
         generated_message.completion = answer
         db.session.add(generated_message)
