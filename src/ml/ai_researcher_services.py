@@ -624,7 +624,7 @@ def get_generated_email(email_body, prospectId):
             prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or subtleties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
 
             prompt += """\nNOTE: Do not add random line breaks or spaces in the email.
-            Important: Return the personalized email in HTML format, only the new email body.
+            Important: Return ONLY the personalized email in HTML format, only the new email body.
             Personalized email:"""
 
             answer = wrapped_chat_gpt_completion(
@@ -634,11 +634,11 @@ def get_generated_email(email_body, prospectId):
                         "content": prompt
                     }
                 ],
-                model='gpt-4o',
+                model='claude-3-opus-20240229',
                 max_tokens=1000
             )
 
-        return answer
+        return answer.replace("html", "").replace("`", "")
     except Exception as e:
         print(e)
         return False
@@ -777,7 +777,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
             prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or subtleties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
 
             prompt += """\nNOTE: Do not add random line breaks or spaces in the email.
-            Important: Return the personalized email in HTML format, only the new email body.
+            Important: Return ONLY the personalized email in HTML format, only the new email body.
             Personalized email:"""
 
             answer = wrapped_chat_gpt_completion(
@@ -791,7 +791,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
                 max_tokens=1000
             )
 
-        generated_message.completion = answer
+        generated_message.completion = answer.replace("html", "").replace("`", "")
         db.session.add(generated_message)
         db.session.commit()
 
