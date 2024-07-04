@@ -702,7 +702,7 @@ def post_simulate_magic_subject_line(client_sdr_id: int):
         "subject_line_id", request, json=True, required=False, parameter_type=str
     )
 
-    magic_subject_line, personalized_email = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, generate_email=True, room_id=room_id, subject_line_id=subject_line_id)
+    magic_subject_line, personalized_email, ai_research_points = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, generate_email=True, room_id=room_id, subject_line_id=subject_line_id)
 
     if (room_id):
         send_socket_message('subject-stream', {"message":"done", 'room_id': room_id}, room_id)
@@ -710,7 +710,11 @@ def post_simulate_magic_subject_line(client_sdr_id: int):
     if not magic_subject_line:
         return "Error simulating magic subject line", 400
 
-    return jsonify({"magic_subject_line": magic_subject_line, "personalized_email": personalized_email}), 200
+    return jsonify({
+        "magic_subject_line": magic_subject_line,
+        "personalized_email": personalized_email,
+        "ai_research": [point.to_dict() for point in ai_research_points]
+    }), 200
 
 @ML_BLUEPRINT.route("/add-few-shot", methods=["POST"])
 @require_user
@@ -824,7 +828,7 @@ def post_few_shot(client_sdr_id: int):
     Create a FewShot entry
     """
     ai_voice_id = get_request_parameter(
-        "voice_id", request, json=True, required=True, parameter_type=int
+        "voice_id", request, json=True, required=False, parameter_type=int
     )
 
     # Assuming the function add_few_shot is defined in src/ml/services.py
@@ -839,17 +843,14 @@ def post_few_shot(client_sdr_id: int):
 @require_user
 def put_few_shot(client_sdr_id: int):
     """
-    Create a FewShot entry
+    DELETE a FewShot entry
     """
     id = get_request_parameter(
         "id", request, json=True, required=True, parameter_type=int
     )
-    nuance = get_request_parameter(
-        "nuance", request, json=True, required=True, parameter_type=str
-    )
 
     # Assuming the function add_few_shot is defined in src/ml/services.py
-    success = update_few_shot(id=id, nuance=nuance)
+    success = update_few_shot(id=id)
 
     if not success:
         return jsonify({}), 200

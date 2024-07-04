@@ -119,6 +119,8 @@ class FewShot(db.Model):
         return {
             "id": self.id,
             "nuance": self.nuance,
+            "edited_string": self.edited_string,
+            "original_string": self.original_string,
         }
 
 class AIVoice(db.Model):

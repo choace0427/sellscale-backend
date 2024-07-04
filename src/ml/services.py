@@ -1492,17 +1492,13 @@ def get_nice_answer(userInput, client_sdr_id=None, campaign_id=None, context_inf
 
     messages = [
         {
-            "role": "system",
-            "content": system_prompt
-        },
-        {
             "role": "user",
-            "content": f"{userInput}"
+            "content": f"{system_prompt}\n{userInput}"
         }
     ]
     response = wrapped_chat_gpt_completion(
         messages=messages,
-        model="gpt-4o",
+        model="claude-3-5-sonnet-20240620",
         max_tokens=1000
     )
     return response
@@ -1566,23 +1562,22 @@ def assign_ai_voice(voice_id: int, archetype_id: int):
     db.session.commit()
     return archetype.to_dict()
 
-def update_few_shot(id: int, nuance: str):
+def update_few_shot(id: int):
     """
-    Update the nuance of a FewShot entry.
+    Delete a FewShot entry.
 
     Args:
         id (int): The ID of the FewShot entry.
-        nuance (str): The new nuance to be set.
 
     Returns:
-        dict: The updated FewShot entry as a dictionary.
+        bool: True if the deletion was successful, False otherwise.
     """
     few_shot: FewShot = FewShot.query.get(id)
     if not few_shot:
-        return {}
-    few_shot.nuance = nuance
+        return False
+    db.session.delete(few_shot)
     db.session.commit()
-    return few_shot.to_dict()
+    return True
 @celery.task
 def one_shot_linkedin_sequence_generation(
     client_sdr_id: int,

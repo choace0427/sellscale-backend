@@ -561,6 +561,11 @@ def get_generated_email(email_body, prospectId):
         NOTE: Only respond with the personalized email, nothing else.
         NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
         NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
+
+        When crafting outreach emails, keep them concise and focused. Start with a personalized greeting and mention a recent achievement or milestone of the recipient to grab their attention in a conversational tone. For example, instead of a robotic-sounding sentence, use a more natural and engaging phrasing like, "I saw that [Company] was recently named [Achievement] - that's fantastic news!" Avoid lengthy explanations or repetitive phrases about your intentions or their company's details. Instead, focus on the main purpose of the email with a clear and direct ask, making it easy for the recipient to understand what you want.
+
+        Use a professional tone and avoid informal elements like emojis, which can detract from the message's seriousness. Highlight the benefits of what you are offering or requesting, and personalize the message by referencing specific achievements or media coverage relevant to the recipient. Ensure that the core message is clear and that the email is easy to read, maintaining a natural flow throughout.
+
         """
         
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
@@ -602,14 +607,25 @@ def get_generated_email(email_body, prospectId):
         )
 
         if few_shots:
-            few_shots_placeholder = "\n".join(
-                [f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}" for few_shot in few_shots]
-            )
-            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations,alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
+            different_few_shots = [
+                f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}"
+                for few_shot in few_shots if few_shot.original_string != few_shot.edited_string
+            ]
+            #there are like specific directions i.e. 'make it short and sweet' or 'make it more formal'
+            same_few_shots = [
+                f"This is an constraint you will need to abide by: {few_shot.original_string}"
+                for few_shot in few_shots if few_shot.original_string == few_shot.edited_string
+            ]
             
-            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or sublelties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
+            few_shots_placeholder = "\n".join(different_few_shots + same_few_shots)
+            
+            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations, alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
+            
+            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or subtleties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
 
-            print('voice prompt is', prompt)
+            prompt += """\nNOTE: Do not add random line breaks or spaces in the email.
+            Important: Return the personalized email in HTML format, only the new email body.
+            Personalized email:"""
 
             answer = wrapped_chat_gpt_completion(
                 messages=[
@@ -699,6 +715,10 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         NOTE: Only respond with the personalized email, nothing else.
         NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
         NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
+
+        When crafting outreach emails, keep them concise and focused. Start with a personalized greeting and mention a recent achievement or milestone of the recipient to grab their attention in a conversational tone. For example, instead of a robotic-sounding sentence, use a more natural and engaging phrasing like, "I saw that [Company] was recently named [Achievement]- that's fantastic news!" Avoid lengthy explanations or repetitive phrases about your intentions or their company's details. Instead, focus on the main purpose of the email with a clear and direct ask, making it easy for the recipient to understand what you want.
+
+        Use a professional tone and avoid informal elements like emojis, which can detract from the message's seriousness. Highlight the benefits of what you are offering or requesting, and personalize the message by referencing specific achievements or media coverage relevant to the recipient. Ensure that the core message is clear and that the email is easy to read, maintaining a natural flow throughout.
         """
 
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
@@ -740,12 +760,25 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         )
 
         if few_shots:
-            few_shots_placeholder = "\n".join(
-                [f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}" for few_shot in few_shots]
-            )
-            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations,alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
+            different_few_shots = [
+                f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}"
+                for few_shot in few_shots if few_shot.original_string != few_shot.edited_string
+            ]
+            #there are like specific directions i.e. 'make it short and sweet' or 'make it more formal'
+            same_few_shots = [
+                f"This is an constraint you will need to abide by: {few_shot.original_string}"
+                for few_shot in few_shots if few_shot.original_string == few_shot.edited_string
+            ]
             
-            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or sublelties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
+            few_shots_placeholder = "\n".join(different_few_shots + same_few_shots)
+            
+            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations, alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
+            
+            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or subtleties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
+
+            prompt += """\nNOTE: Do not add random line breaks or spaces in the email.
+            Important: Return the personalized email in HTML format, only the new email body.
+            Personalized email:"""
 
             answer = wrapped_chat_gpt_completion(
                 messages=[
@@ -754,7 +787,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
                         "content": prompt
                     }
                 ],
-                model='claude-3-5-sonnet-20240620',
+                model='claude-3-opus-20240229',
                 max_tokens=1000
             )
 

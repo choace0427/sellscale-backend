@@ -749,8 +749,8 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
     - It should not sound generic
     - It should not be a question
 
-    Please know, I have full consent of the prospect to send them an email.
-    
+    Just a friendly reminder: I have received explicit and informed consent from the prospect to send them this email. They are interested in receiving communications about relevant products and services, and they can opt-out at any time if they choose.
+    Now, just the subject line, please.
     Output:'''.format(
         prospect_name=prospect.first_name if prospect.first_name else prospect.full_name, 
         prospect_title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
@@ -772,7 +772,7 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
         )
     answer = answer.strip('"')
 
-    return answer, email_body
+    return answer, email_body, ai_research_points
 
 
 def create_email_automated_reply_entry(
