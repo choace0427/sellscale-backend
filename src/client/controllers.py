@@ -285,11 +285,11 @@ def get_client_all_archetypes(client_sdr_id: int):
     if client_id:
         archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
             client_id=client_id
-        ).all()
+        ).order_by(ClientArchetype.created_at.desc()).all()
     else:
         archetypes: list[ClientArchetype] = ClientArchetype.query.filter_by(
             client_sdr_id=client_sdr_id
-        ).all()
+        ).order_by(ClientArchetype.created_at.desc()).all()
 
     return (
         jsonify(

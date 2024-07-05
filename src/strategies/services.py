@@ -186,6 +186,10 @@ def get_all_strategies(client_sdr_id: int):
             prospect_email_status_records.to_status = 'SENT_OUTREACH'
         ) num_sent,
         count(distinct prospect.id) filter (where
+            prospect_status_records.to_status in ('SENT_OUTREACH') or 
+            prospect_email_status_records.to_status = 'SENT_OUTREACH'
+        ) num_sent,
+        count(distinct prospect.id) filter (where
             prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or
             prospect_email_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION')
         ) num_pos_response,
@@ -230,6 +234,7 @@ def get_all_strategies(client_sdr_id: int):
             "num_sent": strategy.num_sent,
             "num_pos_response": strategy.num_pos_response,
             "num_demo": strategy.num_demo,
+            "num_sent": strategy.num_sent,
         }
         for strategy in strategies
     ]
