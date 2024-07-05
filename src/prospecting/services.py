@@ -2216,7 +2216,12 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
     if not p:
         return {"message": "Prospect not found", "status_code": 404}
     if p and p.client_sdr_id != client_sdr_id:
-        return {"message": "This prospect does not belong to you", "status_code": 403}
+        # Fetch the ClientSDR object using the provided client_sdr_id
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        
+        # Check if the client_sdr is not an Admin or if the prospect does not belong to the same client
+        if client_sdr.role != 'ADMIN' or p.client_id != client_sdr.client_id:
+            return {"message": "This prospect does not belong to you", "status_code": 403}
     p_email: ProspectEmail = ProspectEmail.query.get(p.approved_prospect_email_id)
     p_email_status = None
     if p_email and p_email.outreach_status:

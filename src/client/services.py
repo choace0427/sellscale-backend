@@ -2706,9 +2706,11 @@ def get_demo_feedback(client_sdr_id: int, prospect_id: int) -> list[DemoFeedback
         list[DemoFeedback}: List of Demo feedback
     """
 
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
     demo_feedback: list[DemoFeedback] = (
         DemoFeedback.query.filter(
-            DemoFeedback.client_sdr_id == client_sdr_id,
+            DemoFeedback.client_sdr_id == prospect.client_sdr_id,
             DemoFeedback.prospect_id == prospect_id,
         )
         .order_by(DemoFeedback.id.asc())

@@ -1,4 +1,5 @@
 import json
+from src.client.models import ClientSDR
 
 from src.message_generation.services import get_li_convo_history
 from app import db
@@ -168,8 +169,14 @@ def post_prospect_read_messages(client_sdr_id: int):
     )
 
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if prospect.client_sdr_id != client_sdr_id:
-        return jsonify({"error": "Unauthorized"}), 401
+    if prospect and prospect.client_sdr_id != client_sdr_id:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not (client_sdr.role == 'ADMIN' and prospect.client_id == client_sdr.client_id):
+            print(f"client_sdr_id: {client_sdr_id}, prospect.client_sdr_id: {prospect.client_sdr_id}", 'role:', client_sdr.role, 'client_id:', client_sdr.client_id, 'prospect.client_id:', prospect.client_id)
+            return jsonify({"error": "This prospect does not belong to you"}), 403
+        #override client_sdr_id to the one of the prospect because 
+        #admins can read messages of any prospect of their client
+        client_sdr_id = prospect.client_sdr_id
 
     updated = prospect.li_unread_messages != 0
     prospect.li_unread_messages = 0

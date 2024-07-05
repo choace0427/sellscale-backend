@@ -163,34 +163,66 @@ def get_inbox_prospects(client_sdr_id: int):
     - Snoozed
     """
 
-    query = f"""
-with d as (
-select
-prospect.id "prospect_id",
-client_sdr.name "client_sdr_name",
-prospect.full_name,
-prospect.title,
-prospect.company,
-prospect.overall_status,
-prospect.status "status_linkedin",
-prospect_email.outreach_status "status_email",
-prospect.hidden_until,
-prospect.li_last_message_timestamp,
-prospect.li_last_message_from_prospect,
-prospect.email_last_message_timestamp,
-prospect.email_last_message_from_prospect,
-prospect.deactivate_ai_engagement
-from prospect
-join client_sdr on client_sdr.id = prospect.client_sdr_id
-left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
-where prospect.overall_status in ('DEMO', 'ACTIVE_CONVO', 'SENT_OUTREACH')
-and client_sdr_id = {client_sdr_id}
-)
-select
-*
-from d;
-    """
-
+    sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    #god mode fetches all inboxes for all client_sdrs in the client
+    if sdr.role == 'ADMIN':
+        query = f"""
+        with d as (
+        select
+        prospect.id "prospect_id",
+        client_sdr.name "client_sdr_name",
+        client_sdr.img_url "client_sdr_img_url",
+        prospect.full_name,
+        prospect.title,
+        prospect.company,
+        prospect.overall_status,
+        prospect.status "status_linkedin",
+        prospect_email.outreach_status "status_email",
+        prospect.hidden_until,
+        prospect.li_last_message_timestamp,
+        prospect.li_last_message_from_prospect,
+        prospect.email_last_message_timestamp,
+        prospect.email_last_message_from_prospect,
+        prospect.deactivate_ai_engagement
+        from prospect
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+        left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+        where prospect.overall_status in ('DEMO', 'ACTIVE_CONVO', 'SENT_OUTREACH')
+        and client_sdr.client_id = {sdr.client_id}
+        )
+        select
+        *
+        from d;
+        """
+    else:
+        query = f"""
+        with d as (
+        select
+        prospect.id "prospect_id",
+        client_sdr.name "client_sdr_name",
+        client_sdr.img_url "client_sdr_img_url",
+        prospect.full_name,
+        prospect.title,
+        prospect.company,
+        prospect.overall_status,
+        prospect.status "status_linkedin",
+        prospect_email.outreach_status "status_email",
+        prospect.hidden_until,
+        prospect.li_last_message_timestamp,
+        prospect.li_last_message_from_prospect,
+        prospect.email_last_message_timestamp,
+        prospect.email_last_message_from_prospect,
+        prospect.deactivate_ai_engagement
+        from prospect
+        join client_sdr on client_sdr.id = prospect.client_sdr_id
+        left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+        where prospect.overall_status in ('DEMO', 'ACTIVE_CONVO', 'SENT_OUTREACH')
+        and client_sdr_id = {client_sdr_id}
+        )
+        select
+        *
+        from d;
+        """
     result = db.session.execute(query).fetchall()
     if result is not None:
         result = [dict(row) for row in result]

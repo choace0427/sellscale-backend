@@ -23,7 +23,7 @@ from src.bump_framework.services import (
     get_db_bump_sequence,
     send_new_framework_created_message,
 )
-from src.client.models import ClientArchetype, ClientSDR
+from src.client.models import Client, ClientArchetype, ClientSDR
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.ml.services import (
@@ -638,15 +638,24 @@ def get_bump_framework(client_sdr_id: int, bump_id: int):
     if not bump_framework:
         return jsonify({"status": "error", "message": "Bump framework not found."}), 404
     elif bump_framework.client_sdr_id != client_sdr_id:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "This bump framework does not belong to you.",
-                }
-            ),
-            401,
-        )
+        #get the client from the bump framework
+        bump_client_sdr = ClientSDR.query.get(bump_framework.client_sdr_id)
+        bump_client = Client.query.get(bump_client_sdr.client_id)
+
+        my_sdr = ClientSDR.query.get(client_sdr_id)
+        my_client = Client.query.get(my_sdr.client_id)
+
+        #god mode can see bumps as long as we're looking at the right client
+        if my_sdr.role != 'ADMIN' or bump_client.id != my_client.id:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "This bump framework does not belong to you.",
+                    }
+                ),
+                401,
+            )
 
     return (
         jsonify(

@@ -1530,7 +1530,10 @@ def get_demo_date(client_sdr_id: int, prospect_id: int):
     if not prospect:
         return jsonify({"message": "Prospect not found"}), 404
     elif prospect.client_sdr_id != client_sdr_id:
-        return jsonify({"message": "Prospect does not belong to user"}), 403
+        #admin can see all prospects under a client
+        client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first() 
+        if not (client_sdr.role == 'ADMIN' and prospect.client_id == client_sdr.client_id):
+            return jsonify({"message": "Prospect does not belong to user"}), 403
 
     return jsonify({"demo_date": prospect.demo_date}), 200
 
