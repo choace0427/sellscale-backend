@@ -152,7 +152,7 @@ def get_outstanding_inbox(client_sdr_id: int):
     return sorted_prospect_lists_by_date
 
 
-def get_inbox_prospects(client_sdr_id: int):
+def get_inbox_prospects(client_sdr_id: int, force_admin = False):
     """
     Returns a list of all prospects in the inbox in a series of buckets:
     - Needs Attention
@@ -165,7 +165,8 @@ def get_inbox_prospects(client_sdr_id: int):
 
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     #god mode fetches all inboxes for all client_sdrs in the client
-    if sdr.role == 'ADMIN':
+    #insecure hack. but we like to live dangerously
+    if force_admin:
         query = f"""
         with d as (
         select
@@ -189,6 +190,7 @@ def get_inbox_prospects(client_sdr_id: int):
         left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
         where prospect.overall_status in ('DEMO', 'ACTIVE_CONVO', 'SENT_OUTREACH')
         and client_sdr.client_id = {sdr.client_id}
+        and client_sdr.active = True
         )
         select
         *
