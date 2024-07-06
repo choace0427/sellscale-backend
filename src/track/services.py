@@ -416,3 +416,112 @@ def get_client_track_source_metadata(client_sdr_id: int):
     ).first()
 
     return track_source.to_dict()
+
+def track_event_history(client_sdr_id: int, days=14):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+        select 
+            to_char(track_event.created_at, 'YYYY-MM-DD') created_at,
+            count(distinct track_event.ip_address) "distinct_visits",
+            count(distinct deanonymized_contact.linkedin) "distinct_deanonymized_visits"
+        from track_event
+            join track_source on track_source.id = track_event.track_source_id
+            left join deanonymized_contact on deanonymized_contact.track_event_id = track_event.id
+        where
+            track_source.client_id = {client_id}
+            and track_event.created_at > NOW() - '14 days'::INTERVAL
+        group by 1
+        order by 1 desc
+        limit {days};
+    """
+
+    query = query.format(client_id=client_id, days=days)
+    result = db.engine.execute(query)
+    
+    formatted_result = []
+    for row in result:
+        formatted_result.append({
+            "label": row["created_at"],
+            "distinct_visits": row["distinct_visits"],
+            "distinct_deanonymized_visits": row["distinct_deanonymized_visits"]
+        })
+    
+    return formatted_result
+
+def top_locations(client_sdr_id, days=14):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+    select 
+        deanonymized_contact.location location,
+        count(distinct deanonymized_contact.linkedin) "distinct_deanonymized_visits"
+    from track_event
+        join track_source on track_source.id = track_event.track_source_id
+        left join deanonymized_contact on deanonymized_contact.track_event_id = track_event.id
+    where
+        track_source.client_id = {client_id}
+        and track_event.created_at > NOW() - '{days} days'::INTERVAL
+        and deanonymized_contact.location is not null
+    group by 1
+    order by 2 desc
+    limit 5;
+    """
+
+    query = query.format(client_id=client_id, days=days)
+    result = db.engine.execute(query)
+
+    formatted_result = []
+    for row in result:
+        formatted_result.append({
+            "location": row["location"],
+            "distinct_deanonymized_visits": row["distinct_deanonymized_visits"]
+        })
+
+    return formatted_result
+
+def deanonymized_contacts(client_sdr_id, days=14):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id = client_sdr.client_id
+
+    query = """
+    select 
+        deanonymized_contact.name,
+        deanonymized_contact.title,
+        deanonymized_contact.linkedin,
+        deanonymized_contact.company,
+        max(deanonymized_contact.visited_date) recent_visited_date,
+        count(deanonymized_contact.id) num_visits,
+        '' tag
+    from track_event
+        join track_source on track_source.id = track_event.track_source_id
+        left join deanonymized_contact on deanonymized_contact.track_event_id = track_event.id
+    where
+        track_source.client_id = {client_id}
+        and track_event.created_at > NOW() - '{date} days'::INTERVAL
+        and deanonymized_contact.location is not null
+    group by 1,2,3,4
+    order by 5 desc
+    """
+
+    query = query.format(client_id=client_id, date=days)
+    result = db.engine.execute(query)
+
+    formatted_result = []
+    for row in result:
+        formatted_result.append({
+            "avatar": '',
+            "sdr_name": row["name"],
+            "linkedin": True if row["linkedin"] else False,
+            "email": '',
+            "job": row["title"],
+            "company": row["company"],
+            "visit_date": row["recent_visited_date"],
+            "total_visit": row["num_visits"],
+            "intent_score": 'MEDIUM' if row["num_visits"] == 1 else 'HIGH' if row["num_visits"] > 1 and row["num_visits"] <= 2 else 'VERY HIGH',
+            "tag": [row["tag"]] if row["tag"] else []
+        })
+
+    return formatted_result

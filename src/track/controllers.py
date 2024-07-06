@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
-from src.track.services import create_track_event, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, verify_track_source
+from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source
 from src.track.services import find_company_from_orginfo
 
 from src.utils.request_helpers import get_request_parameter
@@ -47,3 +47,25 @@ def most_recent_track_event(client_sdr_id: int):
 def track_source_metadata(client_sdr_id: int):
     metadata = get_client_track_source_metadata(client_sdr_id)
     return jsonify(metadata), 200
+
+@TRACK_BLUEPRINT.route("/get_track_event_history", methods=["GET"])
+@require_user
+def get_track_event_history(client_sdr_id: int):
+    days = get_request_parameter("days", request, json=False, required=False, default_value=14)
+    
+    history = track_event_history(client_sdr_id, days)
+    locations = top_locations(client_sdr_id, days)
+    return jsonify({
+        "traffic": history,
+        "locations": locations
+    }), 200
+
+@TRACK_BLUEPRINT.route("/get_deanonomized_contacts", methods=["GET"])
+@require_user
+def get_deanonomized_contacts(client_sdr_id: int):
+    days = get_request_parameter("days", request, json=False, required=False, default_value=14)
+    contacts = deanonymized_contacts(client_sdr_id, days)
+    return jsonify({
+        "contacts": contacts
+    }), 200
+    
