@@ -614,7 +614,7 @@ scheduler.add_job(run_sales_navigator_reset, trigger=daily_trigger)
 scheduler.add_job(run_scrape_for_demos, trigger=daily_trigger)
 scheduler.add_job(run_daily_editor_assignments, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_notify_about_scheduling, trigger=daily_trigger)
-scheduler.add_job(run_daily_task_reminders, trigger=weekday_trigger)
+# scheduler.add_job(run_daily_task_reminders, trigger=weekday_trigger) # Sends an email to active SDRs for their daily tasks
 scheduler.add_job(
     run_daily_collect_and_generate_campaigns_for_sdr, trigger=daily_2am_trigger
 )
@@ -624,7 +624,7 @@ scheduler.add_job(run_sync_all_campaign_leads, trigger=daily_trigger)
 scheduler.add_job(run_daily_auto_send_report_email, trigger=mid_week_trigger)
 scheduler.add_job(run_daily_trigger_runner, trigger=daily_trigger)
 scheduler.add_job(run_daily_demo_reminders, trigger=daily_trigger)
-scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger)
+# scheduler.add_job(run_daily_send_pipeline_report, trigger=daily_trigger) # Sends slack msg to SDRs with pipeline activity
 scheduler.add_job(run_capture_outbound_quota_snapshot, trigger=daily_trigger)
 scheduler.add_job(run_auto_turn_off_finished_archetypes, trigger=daily_trigger)
 scheduler.add_job(run_merge_poll_crm_opportunities, trigger=daily_trigger)
