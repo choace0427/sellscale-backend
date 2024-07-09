@@ -655,7 +655,7 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
                 subject_line = subject_line.get("subject_line")
                 # subjectline_template.subject_line = subject_line_prompt
                 # db.session.commit()
-            return subject_line, email_body
+            return subject_line, email_body, ai_research_points
 
     if(room_id):
         send_socket_message('subject-stream', {"step": 3, 'room_id': room_id}, room_id)
