@@ -7,6 +7,8 @@ from src.utils.request_helpers import get_request_parameter
 from src.analytics.services import (
     add_activity_log,
     get_activity_logs,
+    get_cycle_dates_for_campaign,
+    get_template_analytics_for_archetype,
     get_all_campaign_analytics_for_client,
     get_all_campaign_analytics_for_client_campaigns_page,
     get_outreach_over_time,
@@ -229,6 +231,31 @@ def get_activity_logs_endpoint(client_sdr_id: int):
 
     return jsonify({"message": "Success", "data": logs}), 200
 
+@ANALYTICS_BLUEPRINT.route("/get_cycle_dates", methods=["GET"])
+@require_user
+def get_cycle_dates(client_sdr_id: int):
+    campaign_id = get_request_parameter("campaignID", request, json=False, required=True)
+    print('got campaign id', campaign_id)
+    
+    try:
+        # Assuming there's a service function to fetch cycle dates
+        cycle_dates = get_cycle_dates_for_campaign(client_sdr_id, campaign_id)
+        return jsonify(cycle_dates), 200
+    except Exception as e:
+        print(f"Error fetching cycle dates: {e}")
+        return jsonify({"message": "Error fetching cycle dates", "error": str(e)}), 500
+    
+
+#endpoint to get template analytics
+@ANALYTICS_BLUEPRINT.route("/template_analytics", methods=["GET"])
+@require_user
+def get_template_analytics(client_sdr_id: int):
+
+    archetype_id = get_request_parameter("archetype_id", request, json=False, required=True)
+    start_date = get_request_parameter("start_date", request, json=False, required=True)
+
+    data = get_template_analytics_for_archetype(archetype_id, start_date)
+    return jsonify({"message": "Success", "data": data}), 200
 
 @ANALYTICS_BLUEPRINT.route("/overview_analytics", methods=["GET"])
 @require_user

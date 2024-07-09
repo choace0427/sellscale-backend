@@ -3263,12 +3263,26 @@ def get_campaign_analytics(client_sdr_id: int):
     client_archetype_id: int = get_request_parameter(
         "client_archetype_id", request, json=False, required=True
     )
+    start_date: str = get_request_parameter(
+        "start_date", request, json=False, required=False
+    )
+    end_date: str = get_request_parameter(
+        "end_date", request, json=False, required=False
+    )
+    verbose: bool = get_request_parameter(
+        "verbose", request, json=False, required=False
+    )
+    if verbose is None:
+        verbose = False
+    else:
+        verbose = verbose.lower() == "true"
+    
     ca: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
 
     if not ca or ca.client_sdr_id != client_sdr_id:
         return "Unauthorized or persona not found", 403
 
-    analytics = get_client_archetype_analytics(client_archetype_id)
+    analytics = get_client_archetype_analytics(client_archetype_id, start_date, end_date, verbose)
     return jsonify(analytics), 200
 
 @CLIENT_BLUEPRINT.route("/sent_volume_during_period", methods=["POST"])

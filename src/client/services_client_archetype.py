@@ -1214,32 +1214,41 @@ def get_sent_volume_during_time_period(client_sdr_id, start_date, end_date, camp
         print(f"Error occurred: {e}")
         return None
 
-def get_client_archetype_analytics(client_archetype_id):
+def get_client_archetype_analytics(client_archetype_id, start_date=None, end_date=None, verbose=False):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client_id = client_archetype.client_id
 
     analytics = get_all_campaign_analytics_for_client(
         client_id=client_id,
         client_archetype_id=int(client_archetype_id),
+        start_date=start_date,
+        end_date=end_date,
+        verbose = verbose
     )
 
-    num_sent, num_opens, num_replies, num_demos, num_pos_replies = 0, 0, 0, 0, 0
-    if analytics and len(analytics) > 0:
-        num_sent = analytics[0]["num_sent"]
-        num_opens = analytics[0]["num_opens"]
-        num_replies = analytics[0]["num_replies"]
-        num_demos = analytics[0]["num_demos"]
-        num_pos_replies = analytics[0]["num_pos_replies"]
+    if verbose:
+        daily_data = analytics.get("daily", [])
+        return {
+            "summary": analytics.get("summary", []),
+            "daily": daily_data,
+            "top_icp_people": analytics.get("top_icp_people", [])
+        }
+    else:
+        num_sent, num_opens, num_replies, num_demos, num_pos_replies = 0, 0, 0, 0, 0
+        if analytics and len(analytics) > 0:
+            num_sent = analytics[0]["num_sent"]
+            num_opens = analytics[0]["num_opens"]
+            num_replies = analytics[0]["num_replies"]
+            num_demos = analytics[0]["num_demos"]
+            num_pos_replies = analytics[0]["num_pos_replies"]
 
-
-    return {
-        "num_sent": num_sent,
-        "num_opens": num_opens,
-        "num_replies": num_replies,
-        "num_demos": num_demos,
-        "num_pos_replies": num_pos_replies,
-    }
-
+        return {
+            "num_sent": num_sent,
+            "num_opens": num_opens,
+            "num_replies": num_replies,
+            "num_demos": num_demos,
+            "num_pos_replies": num_pos_replies,
+        }
 
 def get_client_archetype_overview(client_archetype_id):
     archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)

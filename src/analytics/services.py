@@ -1,6 +1,7 @@
 from src.analytics.models import ActivityLog, FeatureFlag
 from app import db
 from flask import jsonify
+from src.campaigns.models import OutboundCampaign
 
 from src.client.models import *
 from src.message_generation.models import *
@@ -130,8 +131,12 @@ def flag_is_value(feature: str, value: int) -> bool:
 
 
 def get_all_campaign_analytics_for_client(
-    client_id: int, client_archetype_id: Optional[int] = None
+    client_id: int, client_archetype_id: Optional[int] = None, start_date: Optional[str] = None, end_date: Optional[str] = None, verbose: bool = False
 ):
+    date_filter = ""
+    if start_date and end_date:
+        date_filter = f"and (prospect_status_records.created_at between '{start_date} 00:00:00' and '{end_date} 23:59:59' or prospect_email_status_records.created_at between '{start_date} 00:00:00' and '{end_date} 23:59:59')"
+
     query = """
         with d as (
             select 
@@ -185,6 +190,7 @@ def get_all_campaign_analytics_for_client(
             where client_archetype.client_id = {client_id}
                 and not client_archetype.is_unassigned_contact_archetype
                 {client_archetype_id_filter}
+                {date_filter}
             group by 1,2,3,4,5, client_archetype.updated_at, client_sdr.name, client_sdr.img_url, icp_scoring_ruleset.included_individual_title_keywords, icp_scoring_ruleset.included_individual_locations_keywords, icp_scoring_ruleset.included_individual_industry_keywords, icp_scoring_ruleset.included_company_name_keywords, icp_scoring_ruleset.included_company_locations_keywords, icp_scoring_ruleset.included_individual_generalized_keywords, icp_scoring_ruleset.included_individual_skills_keywords, icp_scoring_ruleset.included_company_generalized_keywords,icp_scoring_ruleset.included_company_industries_keywords, icp_scoring_ruleset.company_size_start, icp_scoring_ruleset.company_size_end, client_archetype.id, icp_scoring_ruleset.included_individual_seniority_keywords
             order by client_archetype.updated_at desc
         )
@@ -205,6 +211,7 @@ def get_all_campaign_analytics_for_client(
             if client_archetype_id
             else ""
         ),
+        date_filter=date_filter
     )
 
     data = db.session.execute(query).fetchall()
@@ -245,9 +252,123 @@ def get_all_campaign_analytics_for_client(
             }
         )
 
+    if verbose and start_date and end_date:
+        print(start_date, end_date)
+        
+        verbose_query = f"""
+            with d as (
+                select 
+                    case 
+                        when prospect_status_records.created_at is not null then to_char(prospect_status_records.created_at, 'YYYY-MM-DD')
+                        when prospect_email_status_records.created_at is not null then to_char(prospect_status_records.created_at, 'YYYY-MM-DD')
+                    end date,
+                    count(distinct prospect.id) filter (
+                        where prospect_status_records.to_status = 'SENT_OUTREACH' or 
+                            prospect_email_status_records.to_status = 'SENT_OUTREACH'
+                    ) num_sent,
+                    count(distinct prospect.id) filter (
+                        where prospect_status_records.to_status = 'ACCEPTED' or 
+                            prospect_email_status_records.to_status = 'EMAIL_OPENED'
+                    ) num_opens,
+                    count(distinct prospect.id) filter (
+                        where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
+                            prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+                    ) num_replies,
+                    count (distinct prospect.id) filter (
+                        where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
+                            prospect_email_status_records.to_status = 'DEMO_SET'
+                    ) positive_reply,
+                    count(distinct prospect.id) filter (
+                        where prospect_status_records.to_status = 'DEMO_SET' or
+                            prospect_email_status_records.to_status = 'DEMO_SET'
+                    ) num_demos,
+                    array_agg (
+                        concat(prospect.id, '###', prospect.full_name, '###', prospect_status_records.to_status, '###', case
+                            when prospect.li_last_message_from_prospect is not null then prospect.li_last_message_from_prospect
+                            when prospect.email_last_message_from_prospect is not null then prospect.email_last_message_from_prospect
+                            else ''
+                        end)
+                    ) filter (
+                        where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
+                            prospect_email_status_records.to_status = 'DEMO_SET'
+                    ) positive_reply_details,
+                    array_agg(distinct client_archetype.id)
+                from client_archetype
+                    join client_sdr on client_sdr.id = client_archetype.client_sdr_id
+                    join prospect on prospect.archetype_id = client_archetype.id
+                    left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                    left join prospect_email on prospect_email.id = prospect.approved_prospect_email_id
+                    left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+                where client_archetype.id = {client_archetype_id}
+                group by 1
+                order by 1 desc
+            )
+            select 
+                *
+            from d;
+        """
+
+
+        top_icp_query = f"""
+            select 
+                prospect.full_name,
+                prospect.icp_fit_score,
+                prospect_status_records.created_at as status_created_at,
+                prospect_email_status_records.created_at as email_status_created_at
+            from prospect
+                left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                left join prospect_email on prospect_email.prospect_id = prospect.id
+                left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id    
+            where prospect.icp_fit_score is not null
+                and prospect.archetype_id = {client_archetype_id}
+                and prospect.overall_status not in ('REMOVED')
+            order by prospect.icp_fit_score desc
+            limit 5;
+        """
+        top_icp_people = db.session.execute(top_icp_query).fetchall()
+        top_icp_people_list = [
+            {
+                "full_name": row[0],
+                "icp_fit_score": row[1],
+                "status_created_at": row[2],
+                "email_status_created_at": row[3]
+            } 
+            for row in top_icp_people
+        ]
+
+        verbose_data = db.session.execute(verbose_query).fetchall()
+        verbose_data_arr = []
+        for row in verbose_data:
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d') if isinstance(start_date, str) else start_date
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') if isinstance(end_date, str) else end_date
+            row_date_obj = datetime.strptime(row[0], '%Y-%m-%d') if isinstance(row[0], str) else row[0]
+
+            if start_date_obj and end_date_obj and row_date_obj and start_date_obj <= row_date_obj <= end_date_obj:
+                verbose_data_arr.append(
+                    {
+                        "date": row[0],
+                        "num_sent": row[1],
+                        "num_opens": row[2],
+                        "num_replies": row[3],
+                        "num_pos_replies": row[4],
+                        "num_demos": row[5],
+                        "positive_reply_details": row[6]  # Ensure positive replies come in as an array
+                    }
+                )
+        
+        # Filter top_icp_people_list based on start_date and end_date
+        filtered_top_icp_people_list = []
+        for person in top_icp_people_list:
+            status_date_obj = person['status_created_at'] if isinstance(person['status_created_at'], datetime) else datetime.strptime(person['status_created_at'], '%Y-%m-%d') if person['status_created_at'] else None
+            email_status_date_obj = person['email_status_created_at'] if isinstance(person['email_status_created_at'], datetime) else datetime.strptime(person['email_status_created_at'], '%Y-%m-%d') if person['email_status_created_at'] else None
+
+            if start_date_obj and end_date_obj:
+                if (status_date_obj and start_date_obj <= status_date_obj <= end_date_obj) or (email_status_date_obj and start_date_obj <= email_status_date_obj <= end_date_obj):
+                    filtered_top_icp_people_list.append(person)
+
+        return {"summary": data_arr, "daily": verbose_data_arr, "top_icp_people": filtered_top_icp_people_list}
+
     return data_arr
-
-
 def get_outreach_over_time(
     client_id: int,
     num_days: int = 365,
@@ -592,4 +713,165 @@ def get_overview_pipeline_activity(client_sdr_id: int) -> dict:
         "leads_created_last_1_month": opps_pipeline_leads_stats[3],
         "activity_3_mon": distinct_activity_stats[0],
         "activity_1_day": distinct_activity_stats[1],
+    }
+
+
+def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: int) -> list[dict]:
+    """
+    Fetches the cycle dates for all outbound campaigns attached to the given campaign ID.
+
+    Args:
+        client_sdr_id (int): The Client SDR ID.
+        campaign_id (int): The Campaign ID.
+
+    Returns:
+        list[dict]: A list of dictionaries containing the start and end dates of the cycles.
+    """
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(id=campaign_id).first()
+    if not client_archetype:
+        raise ValueError("Client Archetype not found for the given client ID")
+
+    # Fetching all outbound campaigns attached to the given campaign ID
+    outbound_campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter_by(client_archetype_id=client_archetype.id).all()
+    if not outbound_campaigns:
+        raise ValueError("No outbound campaigns found for the given campaign ID")
+
+    from datetime import datetime, timedelta
+
+    def get_monday(date):
+        return date - timedelta(days=date.weekday())
+
+    def get_friday(date):
+        return date + timedelta(days=(4 - date.weekday()))
+
+    # Fetching cycle dates from all outbound campaigns
+    cycle_dates = []
+    seen_dates = set()
+    for outbound_campaign in outbound_campaigns:
+        start_date = outbound_campaign.campaign_start_date
+        end_date = outbound_campaign.campaign_end_date
+
+        monday = get_monday(start_date).date()
+        friday = get_friday(end_date).date()
+
+        date_tuple = (monday, friday)
+        if date_tuple not in seen_dates:
+            seen_dates.add(date_tuple)
+            cycle_dates.append({"start": date_tuple[0].isoformat(), "end": date_tuple[1].isoformat()})
+
+    return cycle_dates
+
+#template analytics endpoint
+
+def get_template_analytics_for_archetype(archetype_id: int, start_date: Optional[str] = None):
+    from sqlalchemy import text
+    from datetime import datetime
+
+    if start_date is None:
+        start_date = datetime.now().strftime('%Y-%m-%d')
+
+    # CTA Analytics
+    cta_analytics_query = text("""
+        select 
+            generated_message_cta.text_value,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') as num_sent,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') as num_open,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') as num_reply
+        from prospect
+            left join generated_message on generated_message.id = prospect.approved_outreach_message_id
+            left join generated_message_cta on generated_message_cta.id = generated_message.message_cta
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        where prospect.icp_fit_score is not null and
+            (
+                prospect_status_records.created_at >= :start_date
+            )
+            and prospect.archetype_id = :archetype_id
+            and generated_message_cta.text_value is not null
+        group by generated_message_cta.text_value
+        limit 5;
+    """)
+    print('params are', {'archetype_id': archetype_id, 'start_date': start_date})
+    cta_analytics = db.session.execute(cta_analytics_query, {'archetype_id': archetype_id, 'start_date': start_date}).fetchall()
+
+    print('cta_analytics', cta_analytics)
+
+    # Linkedin Template Analytics
+    linkedin_template_analytics_query = text("""
+        select 
+            linkedin_initial_message_template.message,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') as num_sent,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') as num_open,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO') as num_reply
+        from prospect
+            left join generated_message on generated_message.id = prospect.approved_outreach_message_id
+            left join linkedin_initial_message_template on linkedin_initial_message_template.id = generated_message.li_init_template_id
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        where 
+            (
+                prospect_status_records.created_at >= :start_date
+            )
+            and prospect.archetype_id = :archetype_id
+            and linkedin_initial_message_template.message is not null
+        group by linkedin_initial_message_template.message
+        limit 5;
+    """)
+    linkedin_template_analytics = db.session.execute(linkedin_template_analytics_query, {'archetype_id': archetype_id, 'start_date': start_date}).fetchall()
+
+    print('linkedin_template_analytics', linkedin_template_analytics)
+
+    # Subject Lines
+    subject_lines_analytics_query = text("""
+        select 
+            email_subject_line_template.subject_line,
+            count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') as num_sent,
+            count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') as num_open,
+            count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'ACTIVE_CONVO') as num_reply
+        from prospect
+            left join prospect_email on prospect_email.prospect_id = prospect.id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            left join generated_message on generated_message.id = prospect_email.personalized_subject_line
+            left join email_subject_line_template on generated_message.email_subject_line_template_id = email_subject_line_template.id
+        where 
+            email_subject_line_template.subject_line is not null and
+            (
+                prospect_email_status_records.created_at >= :start_date
+            )
+            and prospect.archetype_id = :archetype_id
+            and email_subject_line_template.subject_line is not null
+        group by email_subject_line_template.subject_line
+        limit 5;
+    """)
+    subject_lines_analytics = db.session.execute(subject_lines_analytics_query, {'archetype_id': archetype_id, 'start_date': start_date}).fetchall()
+
+    print('subject_lines_analytics', subject_lines_analytics)
+
+    # Email Templates
+    email_templates_analytics_query = text("""
+        select 
+            email_sequence_step.title,
+            count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') as num_sent,
+            count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'EMAIL_OPENED') as num_open,
+            count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'ACTIVE_CONVO') as num_reply
+        from prospect
+            left join prospect_email on prospect_email.prospect_id = prospect.id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            left join generated_message on generated_message.id = prospect_email.personalized_body
+            left join email_sequence_step on email_sequence_step.id = generated_message.email_sequence_step_template_id
+        where 
+            email_sequence_step.title is not null and
+            (
+                prospect_email_status_records.created_at >= :start_date
+            )
+            and prospect.archetype_id = :archetype_id
+        group by 1;
+    """)
+    email_templates_analytics = db.session.execute(email_templates_analytics_query, {'archetype_id': archetype_id, 'start_date': start_date}).fetchall()
+
+    print('email_templates_analytics', email_templates_analytics)
+
+    return {
+        "cta_analytics": [dict(row) for row in cta_analytics],
+        "linkedin_template_analytics": [dict(row) for row in linkedin_template_analytics],
+        "subject_lines_analytics": [dict(row) for row in subject_lines_analytics],
+        "email_templates_analytics": [dict(row) for row in email_templates_analytics]
     }
