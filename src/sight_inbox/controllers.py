@@ -19,7 +19,7 @@ def index(client_sdr_id: int):
 def get_inbox_details(client_sdr_id: int):
 
     # get force_admin boolean param
-    force_admin = request.args.get("force_admin", default=False, type=bool)
+    force_admin = get_request_parameter("force_admin", request, json=False, required=False, parameter_type=bool)
 
     details = get_inbox_prospects(client_sdr_id, force_admin)
 
