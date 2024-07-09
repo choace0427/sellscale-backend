@@ -322,9 +322,15 @@ def update_status(client_sdr_id: int, prospect_id: int):
 
     # Validate parameters
     prospect: Prospect = Prospect.query.get(prospect_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    is_admin = client_sdr.role == "ADMIN"
     if not prospect:
         return jsonify({"message": "Prospect not found"}), 404
-    elif prospect.client_sdr_id != client_sdr_id:
+    elif (
+        prospect.client_sdr_id != client_sdr_id and not (
+            client_sdr.client_id == prospect.client_id and is_admin
+        )
+    ):
         return jsonify({"message": "Not authorized"}), 401
 
     # Update prospect status
