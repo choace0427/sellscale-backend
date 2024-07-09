@@ -1,3 +1,4 @@
+import datetime
 from regex import D
 import requests
 from sqlalchemy import or_
@@ -372,7 +373,7 @@ def get_website_tracking_script(client_sdr_id: int):
     if not track_source:
         track_source: TrackSource = TrackSource(
             client_id=client_sdr.client_id,
-            track_key=generate_uuid(),
+            track_key=generate_uuid(base=datetime.datetime.now().isoformat())
         )
         db.session.add(track_source)
         db.session.commit()
@@ -384,6 +385,7 @@ def get_website_tracking_script(client_sdr_id: int):
     '''
 
 def get_most_recent_track_event(client_sdr_id: int):
+    import pdb; pdb.set_trace()
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     track_source: TrackSource = TrackSource.query.filter(
         TrackSource.client_id == client_sdr.client_id,
