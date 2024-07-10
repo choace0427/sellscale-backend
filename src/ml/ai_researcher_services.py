@@ -629,10 +629,8 @@ Generated HTML Email:"""
     except Exception as e:
         print(e)
         return False
-def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalization_override: Optional[str] = None):
+def run_ai_personalizer_on_prospect_email(template_id: int, prospect_id: int, personalization_override: Optional[str] = None):
     try:
-        prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
-        prospect_id: int = prospect_email.prospect_id
         prospect: Prospect = Prospect.query.get(prospect_id)
 
         client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
@@ -641,10 +639,6 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         # in the case of a magic subject line, we will already just have generated the email body using
         # regular research techniques. In this case, we will just use the override to update the email body
         if personalization_override:
-            generated_message: GeneratedMessage = GeneratedMessage.query.get(prospect_email.personalized_body)
-            generated_message.completion = personalization_override
-            db.session.add(generated_message)
-            db.session.commit()
             return True
 
         run_all_ai_researcher_questions_for_prospect(
@@ -653,12 +647,8 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         )
 
         #get the template from the generated message.
-        email_body_id = prospect_email.personalized_body
-        generated_email: GeneratedMessage = GeneratedMessage.query.get(email_body_id)
-        email_template: EmailSequenceStep = generated_email.email_sequence_step_template_id
+        email_template: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
         email_template = email_template.template
-
-        generated_message: GeneratedMessage = GeneratedMessage.query.get(email_body_id)
 
         positive_research_points = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id, is_yes_response=True).all()
 
@@ -675,6 +665,7 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
         few_shots = []
         few_shots_placeholder = ''
+        few_shots_edited = ''
 
         if client_archetype.ai_voice_id:
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
@@ -691,13 +682,13 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
             
             few_shots_placeholder = "\n".join(few_shots_edited)
         
-        if few_shots_edited:
-            few_shots_placeholder = (
-                " Here are a couple example inputs, and outputs, for you to reference:\n"
-                + few_shots_placeholder
-                + "\nThose are the examples.\n"
-                + "\n".join(directions)
-            )
+            if few_shots_edited:
+                few_shots_placeholder = (
+                    " Here are a couple example inputs, and outputs, for you to reference:\n"
+                    + few_shots_placeholder
+                    + "\nThose are the examples.\n"
+                    + "\n".join(directions)
+                )
         prompt = f"""
 You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to add the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
 
@@ -747,14 +738,9 @@ Generated HTML Email:"""
             max_tokens=1000
         )
 
-        generated_message.completion = answer.replace("html", "").replace("`", "")
-        db.session.add(generated_message)
-        db.session.commit()
-
-        return True
+        return prompt, answer.replace("html", "").replace("`", "")
     except Exception as e:
-        print(e)
-        return False
+        raise e
 
 def simulate_voice_message(text, voice_params):
     # Filter out parameters with a value of 50

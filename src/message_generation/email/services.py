@@ -594,7 +594,7 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
     return {"subject_line": response}
 
 
-def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, should_generate_email: bool = False, room_id: Optional[str] = None, subject_line_id: Optional[int] = None) -> str:
+def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, should_generate_email: bool = False, room_id: Optional[str] = None, subject_line_id: Optional[int] = None, email_body: Optional[str] = None) -> str:
     """Generate a magic subject line for a prospect, optionally generating an email body.
 
     Args:
@@ -610,10 +610,9 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
     if(room_id):
         send_socket_message('subject-stream', {"step": 1, 'room_id': room_id}, room_id)
 
-    email_body = None
     #false = don't refresh if research already done.
 
-    if (should_generate_email):
+    if (should_generate_email or not email_body ):
         
         if (room_id):
             send_socket_message('subject-stream', {"step": 2, 'room_id': room_id}, room_id)

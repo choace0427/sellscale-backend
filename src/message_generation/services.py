@@ -322,6 +322,8 @@ def increment_generated_message_job_queue_attempts(gm_job_id: int) -> bool:
             gm_job.attempts = 1
         db.session.add(gm_job)
         db.session.commit()
+    else:
+        return None
 
     if gm_job.attempts > 3:
         raise ValueError("Exceeded maximum number of attempts")
@@ -1193,6 +1195,16 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             return (False, "Prospect already has a prospect_email entry")
 
         # 5. Perform account research (double down). Only if AI personalization is not enabled
+        # old i-scraper (linkedin) method. else perplexity method
+        template_id = None
+        templates: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
+            EmailSequenceStep.client_archetype_id == prospect.archetype_id,
+            EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
+            EmailSequenceStep.active == True,
+        ).all()
+        template: EmailSequenceStep = random.choice(templates) if templates else None
+        if template:
+            template_id = template.id
         if not (client_archetype.is_ai_research_personalization_enabled):
             generate_prospect_research(prospect.id, False, False)
             # 6. Create research points and payload for the prospect
@@ -1202,15 +1214,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 print(e)
 
             # 7a. Get the Email Body prompt
-            template_id = None
-            templates: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
-                EmailSequenceStep.client_archetype_id == prospect.archetype_id,
-                EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
-                EmailSequenceStep.active == True,
-            ).all()
-            template: EmailSequenceStep = random.choice(templates) if templates else None
-            if template:
-                template_id = template.id
             initial_email_prompt = ai_initial_email_prompt(
                 client_sdr_id=client_sdr_id,
                 prospect_id=prospect_id,
@@ -1220,6 +1223,10 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             # 7b. Generate the email body
             email_body = generate_email(prompt=initial_email_prompt)
             email_body = email_body.get("body")
+        else:
+            # 10.a. Run AI personalizer on the email body and subject line if enabled
+            # already got personalized if it was a magic subject line
+            initial_email_prompt, email_body = run_ai_personalizer_on_prospect_email(template_id, prospect_id, False)
 
         # 8a. Get the Subject Line
         subjectline_template_id = None
@@ -1252,6 +1259,7 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 should_generate_email = True,
                 room_id = None,
                 subject_line_id=subjectline_template.id,
+                email_body = email_body
             )
             email_body = personalized_email_body
             # subject_line = subject_line.get("subject_line")
@@ -1311,11 +1319,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             personalized_body_id=ai_generated_body.id,
             outbound_campaign_id=campaign_id,
         )
-
-        if ai_personalization_enabled:
-            # 10.a. Run AI personalizer on the email body and subject line if enabled
-            # already got personalized if it was a magic subject line
-            run_ai_personalizer_on_prospect_email(prospect_email.id, personalization_override=personalized_email_body)
 
         # 11. Save the prospect_email_id to the prospect and mark the prospect_email as approved
         # This also runs rule_engine on the email body and first line
