@@ -39,17 +39,13 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
     and the research point types the prospect's sdr has active.
     """
 
-    print(f"Starting generate_research_points for prospect_id: {prospect_id}, test_mode: {test_mode}")
-
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
     # Populate the research payload if it hasn't been already
-    print("Populating research payload")
     get_research_payload_new(prospect_id=prospect_id, test_mode=test_mode)
 
     # Get general prospect the research payload
-    print("Getting general prospect research payload")
     payload = ResearchPayload.get_by_prospect_id(
         prospect_id=prospect_id, payload_type=ResearchType.LINKEDIN_ISCRAPER
     )
@@ -58,60 +54,55 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
 
     try:
         # We generate all the points (including ones a blocklist) because they're filtered later
-        print("Generating all research points")
-        research_point_types = get_all_research_point_types(client_sdr.id, archetype_id=prospect.archetype_id)
-
-        research_payloads = {
-            rpt.get("name"): ResearchPayload.query.filter(
-                ResearchPayload.prospect_id == prospect_id,
-                ResearchPayload.research_type == ResearchType.CUSTOM_DATA,
-                ResearchPayload.research_sub_type == rpt.get("name"),
-            ).first() if rpt.get("client_id") else payload
-            for rpt in research_point_types
-        }
-
-        for research_point_type in research_point_types:
-            name = research_point_type.get("name")
-            print(f"Processing research point type: {name}")
-            payload = research_payloads.get(name)
+        for research_point_type in get_all_research_point_types(
+            client_sdr.id, archetype_id=prospect.archetype_id
+        ):
+            # If is custom, use corresponding custom payload
+            if research_point_type.get("client_id"):
+                payload: ResearchPayload = ResearchPayload.query.filter(
+                    ResearchPayload.prospect_id == prospect_id,
+                    ResearchPayload.research_type == ResearchType.CUSTOM_DATA,
+                    ResearchPayload.research_sub_type
+                    == research_point_type.get("name"),
+                ).first()
 
             if payload is None:
-                print(f"No payload found for research point type: {name}, skipping")
                 continue
 
-            research_point = ResearchPoints.query.filter(
+            # If the research point already exists, we append it
+            research_point: ResearchPoints = ResearchPoints.query.filter(
                 ResearchPoints.research_payload_id == payload.id,
-                ResearchPoints.research_point_type == name,
+                ResearchPoints.research_point_type == research_point_type.get("name"),
             ).first()
             if research_point:
-                print(f"Research point already exists for type: {name}, appending")
                 final_research_points.append(research_point.to_dict())
                 continue
 
-            print(f"Creating new research point for type: {name}")
-            result = execute_research_point_type(name, prospect_id, payload.payload)
-            text = result.get("response", "").strip()
-            if not text:
-                print(f"No response text for research point type: {name}, skipping")
+            # Else we create it
+
+            # Execute the function associated with the research point type
+            result = execute_research_point_type(
+                research_point_type.get("name"), prospect_id, payload.payload
+            )
+            text: str = result.get("response", "")
+            if text.strip() == "":
                 continue
 
-            research_point = ResearchPoints(
+            # Create the research point
+            research_point: ResearchPoints = ResearchPoints(
                 research_payload_id=payload.id,
-                research_point_type=name,
-                value=text,
+                research_point_type=research_point_type.get("name"),
+                value=text.strip(),
             )
             db.session.add(research_point)
             db.session.commit()
 
-            print(f"Research point created for type: {name}, appending to final list")
             final_research_points.append(research_point.to_dict())
 
     except Exception as e:
-        print(f"Exception occurred: {e}, rolling back")
         db.session.rollback()
         raise e
 
-    print(f"Finished generating research points for prospect_id: {prospect_id}")
     return final_research_points
 
     # Support this?
