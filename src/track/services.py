@@ -153,7 +153,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     c_confidence = deep_get(track_event.company_identify_payload, "data.company.confidence")
         
     company_payload = deep_get(track_event.company_identify_payload, "data.company", {})
-    location = deep_get(track_event.company_identify_payload, "data.ip.location.locality")
+    location = deep_get(company_payload, "location.locality") or deep_get(track_event.company_identify_payload, "data.ip.location")
     company_name = deep_get(company_payload, "display_name")
     company_website = deep_get(company_payload, "website")
     company_size = deep_get(company_payload, "size")
@@ -269,18 +269,32 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     if not contacts:
         return "No contacts"
     
-    if len(contacts) > 5:
-        return "Too many contacts found"
+    contact = None
+    if len(contacts) > 1:
+        person_job_title_sub_role = deep_get(person_payload, "job_title_sub_role")
+        if person_job_title_sub_role:
+            for c in contacts:
+                if c['title'] == person_job_title_sub_role:
+                    contact = c
+                    break
+        if not contact and len(contacts) < 5:
+            contact = contacts[0]
 
-    linkedin_url = deep_get(contacts[0], "linkedin_url") 
-    name = deep_get(contacts[0], "name")
-    title = deep_get(contacts[0], "title")
-    photo_url = deep_get(contacts[0], "photo_url")
-    org_name = deep_get(contacts[0], "organization.name")
-    org_website = deep_get(contacts[0], "organization.website_url")
-    state = deep_get(contacts[0], "state")
-    city = deep_get(contacts[0], "city")
-    country = deep_get(contacts[0], "country")
+    elif len(contacts) > 0:
+        contact = contacts[0]
+
+    if not contact:
+        return "No contact found"
+
+    linkedin_url = deep_get(contact, "linkedin_url") 
+    name = deep_get(contact, "name")
+    title = deep_get(contact, "title")
+    photo_url = deep_get(contact, "photo_url")
+    org_name = deep_get(contact, "organization.name")
+    org_website = deep_get(contact, "organization.website_url")
+    state = deep_get(contact, "state")
+    city = deep_get(contact, "city")
+    country = deep_get(contact, "country")
     location = f"{city}, {state}, {country}"
     website_viewed = track_event.window_location
     
@@ -385,7 +399,6 @@ def get_website_tracking_script(client_sdr_id: int):
     '''
 
 def get_most_recent_track_event(client_sdr_id: int):
-    import pdb; pdb.set_trace()
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     track_source: TrackSource = TrackSource.query.filter(
         TrackSource.client_id == client_sdr.client_id,
