@@ -569,13 +569,13 @@ def personalize_email(template_id, prospectId):
             
             few_shots_placeholder = "\n".join(few_shots_edited)
         
-        if few_shots_edited:
-            few_shots_placeholder = (
-                " Here are a couple example inputs, and outputs, for you to reference:\n"
-                + few_shots_placeholder
-                + "\nThose are the examples.\n"
-                + "\n".join(directions)
-            )
+            if few_shots_edited:
+                few_shots_placeholder = (
+                    " Here are a couple example inputs, and outputs, for you to reference:\n"
+                    + few_shots_placeholder
+                    + "\nThose are the examples.\n"
+                    + "\n".join(directions)
+                )
         prompt = f"""
 You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to add the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
 
