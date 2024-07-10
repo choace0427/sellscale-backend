@@ -451,7 +451,6 @@ def fetch_conversation(api: LinkedIn, prospect_id: int, check_for_update: bool =
 
         return messages, "UPDATED"
 
-
 def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: int):
     """Updates LinkedinConversationEntry table with new entries
 
@@ -1054,14 +1053,14 @@ def classify_active_convo(prospect_id: int, messages):
         if i >= 5:
             break
         length = 130
-        text = message.get("content", "")
+        text = message if isinstance(message, str) else message.get("content", "")
         truncated_text = (text[:length] + "...") if len(text) > length else text
         block_messages.append(
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*{'SDR' if message.get('role') == 'user' else 'Prospect'}*: {truncated_text}",
+                    "text": f"{truncated_text}",
                 },
             }
         )
@@ -1138,7 +1137,7 @@ def get_prospect_status_from_convo(
 
     # Get heuristic based status (used for Scheduling, mainly)
     heuristic_status = get_prospect_status_from_convo_heuristics(
-        messages, current_status, clientSDR.name
+        messages, clientSDR.name
     )
     if heuristic_status:
         # Run a ChatGPT verifier to make sure the status is doubly-correct
