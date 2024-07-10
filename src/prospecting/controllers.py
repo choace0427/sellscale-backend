@@ -1560,7 +1560,9 @@ def get_li_history(client_sdr_id: int, prospect_id: int):
 @require_user
 def get_history(client_sdr_id: int, prospect_id: int):
     prospect: Prospect = Prospect.query.get(prospect_id)
-    if not prospect or prospect.client_sdr_id != client_sdr_id:
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if not prospect or prospect.client_id != client_sdr.client_id:
         return jsonify({"message": "Prospect not found"}), 404
 
     li_history = get_prospect_li_history(prospect_id=prospect_id)

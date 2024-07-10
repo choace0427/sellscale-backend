@@ -184,14 +184,16 @@ def refresh_prospect_upload_history(
         if retry:
             from src.automation.orchestrator import add_process_for_future
 
-            add_process_for_future(
-                type="refresh_prospect_upload_history",
-                args={
-                    "prospect_upload_history_id": prospect_upload_history_id,
-                    "retry": True,
-                },
-                minutes=1,  # 1 minute from now
-            )
+            pass
+
+            # add_process_for_future(
+            #     type="refresh_prospect_upload_history",
+            #     args={
+            #         "prospect_upload_history_id": prospect_upload_history_id,
+            #         "retry": True,
+            #     },
+            #     minutes=1,  # 1 minute from now
+            # )
         return True, "ProspectUploadHistory entry still in progress."
 
 
