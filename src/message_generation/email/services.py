@@ -10,7 +10,9 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from src.message_generation.email.models import EmailAutomatedReply
 from src.message_generation.services import get_li_convo_history_transcript_form
-from src.ml.ai_researcher_services import get_generated_email, run_all_ai_researcher_questions_for_prospect
+from src.ml.ai_researcher_services import personalize_email, run_all_ai_researcher_questions_for_prospect
+from src.research.account_research import generate_prospect_research
+from src.research.linkedin.services import get_research_and_bullet_points_new
 from src.sockets.services import send_socket_message
 from src.utils.slack import send_slack_message, URL_MAP
 from src.ml.services import get_text_generation
@@ -592,8 +594,8 @@ def generate_subject_line(prompt: str) -> dict[str, str]:
     return {"subject_line": response}
 
 
-def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, generate_email: bool = False, room_id: Optional[str] = None, subject_line_id: Optional[int] = None) -> str:
-    """Generate a magic subject line for a prospect.
+def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id: int, should_generate_email: bool = False, room_id: Optional[str] = None, subject_line_id: Optional[int] = None) -> str:
+    """Generate a magic subject line for a prospect, optionally generating an email body.
 
     Args:
         campaign_id (int): The ID of the campaign
@@ -608,28 +610,29 @@ def generate_magic_subject_line(campaign_id: int, prospect_id: int, sequence_id:
     if(room_id):
         send_socket_message('subject-stream', {"step": 1, 'room_id': room_id}, room_id)
 
-    
-    run_all_ai_researcher_questions_for_prospect(prospect.client_sdr_id, prospect_id, room_id, False)
+    email_body = None
+    #false = don't refresh if research already done.
 
-    if(room_id):
-        send_socket_message('subject-stream', {"step": 2, 'room_id': room_id}, room_id)
+    if (should_generate_email):
+        
+        if (room_id):
+            send_socket_message('subject-stream', {"step": 2, 'room_id': room_id}, room_id)
+        email_body = personalize_email(
+                template_id = sequence_id,
+                prospectId=prospect_id
+            )
+        print('email body is', email_body)
+        print("Generated email personalized.")
 
-    ai_research_points: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id).all()
+    ai_research_points: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id, is_yes_response=True).all()
 
     ai_researcher_id = campaign.ai_researcher_id
     ai_questions = AIResearcherQuestion.query.filter_by(researcher_id=ai_researcher_id).all()
 
-    email_body = EmailSequenceStep.query.get(sequence_id).template
+    if (not email_body):
+        email_body: EmailSequenceStep = EmailSequenceStep.query.get(sequence_id).template
 
-    if (generate_email):
-        try:
-            email_body = get_generated_email(
-                email_body=email_body,
-                prospectId=prospect_id,
-            )
-        except Exception as e:
-            print(e)
-
+    # hack to skip generation of a magic subject line for the simulation tab
     if (subject_line_id):
         if(room_id):
             send_socket_message('subject-stream', {"step": 3, 'room_id': room_id}, room_id)

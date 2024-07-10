@@ -19,6 +19,8 @@ from src.message_generation.models import (
     GeneratedMessageType,
 )
 from src.ml.models import (
+    AIResearcherAnswer,
+    AIResearcherQuestion,
     AIVoice,
     FewShot,
     TextGeneration,
@@ -1398,7 +1400,7 @@ def get_template_suggestions(archetype_id: int, template_content: str ):
 
     return validate_with_gpt
 
-def add_few_shot(client_archetype_id, original_string, edited_string):
+def add_few_shot(client_archetype_id, original_string, edited_string, prospect_id=None, template_id = None):
     """
     Add a new FewShot entry using the provided parameters.
 
@@ -1406,51 +1408,57 @@ def add_few_shot(client_archetype_id, original_string, edited_string):
         client_archetype_id (int): The ID of the client archetype.
         original_string (str): The original string before any edits.
         edited_string (str): The string after edits have been made.
+        prospect_id (int, optional): The ID of the prospect. Default is None.
 
     Returns:
         bool: True if the entry was added successfully, False otherwise.
     """
     try:
-        client_archetype = ClientArchetype.query.get(client_archetype_id)
-        # Generate the nuance using the wrapped_chat_gpt_completion function
-        messages = [
-            {
-                "role": "system",
-                "content": "You are an assistant that helps generate nuanced descriptions based on edits made to text."
-            },
-            {
-                "role": "user",
-                "content": f"Original: {original_string}\nEdited: {edited_string}\n"
-                           "Describe each edit with a focus on the nuance and impact of the change. Avoid positional data or direct word swaps like `[word] changed to [word]`.\n"
-                           "Be specific about word choice, tone, and style transformations. Highlight any drastic shifts in tone, such as changes to a playful or exaggerated style.\n"
-                           "Make it sound engaging and insightful, emphasizing how the overall feel and voice of the text has been altered.\n\n"
-                           "If there was a drastic shift in tone, or word style, even if it is, every word starts with a P now, you need to capture that too. \n\n"
-                           "Do not make any remarks about parts of the text remaining unchanged. \n\n"
-                           "Please provide the descriptions of the edits in the form of a Python array, only the array of strings. \n"
-                           "Your output:"
-            }
-        ]
+        client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+        client_sdr: ClientSDR = ClientSDR.query.get(client_archetype.client_sdr_id)
+
+        client: Client = Client.query.get(client_sdr.client_id)
         
-        for attempt in range(3):
-            response = wrapped_chat_gpt_completion(
-                messages=messages,
-                model="gpt-4o",
-                max_tokens=500
+        if prospect_id:
+
+
+            if (template_id):
+                # Get the template
+                template: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
+                template_string = template.template
+                
+            print('prospect_id', prospect_id)
+            prospect: Prospect = Prospect.query.get(prospect_id)
+
+            ai_researcher_answers: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id).all()
+
+            # Collect research information
+            research_points = '\n'.join([
+                f"- #{index + 1}: {AIResearcherQuestion.query.get(answer.question_id).key}\n\t- {answer.short_summary}\n\t- {answer.relevancy_explanation}"
+                for index, answer in enumerate(ai_researcher_answers) if answer.is_yes_response
+            ])
+            # Precede the edited_string with cursory information about the prospect and research
+            cursory_info = (
+                f"Recipient Information:\n"
+                f"Prospect Name: {prospect.full_name}\n"
+                f"Prospect Title: {prospect.title}\n"
+                f"Prospect Company: {prospect.company}\n\n"
+                f"Sender Information:\n"
+                f"My Name: {client_sdr.name}\n"
+                f"My Title: {client_sdr.title}\n"
+                f"My Company: {client.company}\n\n"
+                f"Template:\n{template_string}\n\n"
+                f"Research points:\n{research_points}\n\n"
+                f"Generated Email:\n{'#' * 10}\n{edited_string}"
             )
-            nuance = response.replace("python", "").replace("`", "").replace("\n", "")
-            try:
-                nuance_array = eval(nuance)
-                if isinstance(nuance_array, list):
-                    break
-            except:
-                if attempt == 2:
-                    raise ValueError("Failed to generate a valid Python array from the response.")
-        
+            edited_string = cursory_info
+
         # Create a new FewShot entry
         new_few_shot = FewShot(
             original_string=original_string,
             edited_string=edited_string,
-            nuance=nuance,
+            nuance='',
             ai_voice_id=client_archetype.ai_voice_id
         )
         db.session.add(new_few_shot)

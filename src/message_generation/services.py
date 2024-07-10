@@ -1192,34 +1192,34 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
             )
             return (False, "Prospect already has a prospect_email entry")
 
-        # 5. Perform account research (double down)
-        generate_prospect_research(prospect.id, False, False)
+        # 5. Perform account research (double down). Only if AI personalization is not enabled
+        if not (client_archetype.is_ai_research_personalization_enabled):
+            generate_prospect_research(prospect.id, False, False)
+            # 6. Create research points and payload for the prospect
+            try:
+                get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
+            except Exception as e:
+                print(e)
 
-        # 6. Create research points and payload for the prospect
-        try:
-            get_research_and_bullet_points_new(prospect_id=prospect_id, test_mode=False)
-        except Exception as e:
-            print(e)
-
-        # 7a. Get the Email Body prompt
-        template_id = None
-        templates: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
-            EmailSequenceStep.client_archetype_id == prospect.archetype_id,
-            EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
-            EmailSequenceStep.active == True,
-        ).all()
-        template: EmailSequenceStep = random.choice(templates) if templates else None
-        if template:
-            template_id = template.id
-        initial_email_prompt = ai_initial_email_prompt(
-            client_sdr_id=client_sdr_id,
-            prospect_id=prospect_id,
-            template_id=template_id,
-            ai_personalization_enabled=ai_personalization_enabled,
-        )
-        # 7b. Generate the email body
-        email_body = generate_email(prompt=initial_email_prompt)
-        email_body = email_body.get("body")
+            # 7a. Get the Email Body prompt
+            template_id = None
+            templates: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
+                EmailSequenceStep.client_archetype_id == prospect.archetype_id,
+                EmailSequenceStep.overall_status == ProspectOverallStatus.PROSPECTED,
+                EmailSequenceStep.active == True,
+            ).all()
+            template: EmailSequenceStep = random.choice(templates) if templates else None
+            if template:
+                template_id = template.id
+            initial_email_prompt = ai_initial_email_prompt(
+                client_sdr_id=client_sdr_id,
+                prospect_id=prospect_id,
+                template_id=template_id,
+                ai_personalization_enabled=ai_personalization_enabled,
+            )
+            # 7b. Generate the email body
+            email_body = generate_email(prompt=initial_email_prompt)
+            email_body = email_body.get("body")
 
         # 8a. Get the Subject Line
         subjectline_template_id = None
@@ -1248,7 +1248,9 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 campaign_id=prospect.archetype_id,
                 prospect_id=prospect_id,
                 sequence_id = template.id,
-                generate_email = True,
+                #we should generate an email since personalization must be enabled for magic subject lines.
+                should_generate_email = True,
+                room_id = None,
                 subject_line_id=subjectline_template.id,
             )
             email_body = personalized_email_body
@@ -1263,9 +1265,6 @@ def generate_prospect_email(  # THIS IS A PROTECTED TASK. DO NOT CHANGE THE NAME
                 email_body=email_body,
                 subject_line_template_id=subjectline_template.id,
             )
-            # 7b. Generate the email body
-            email_body = generate_email(prompt=initial_email_prompt)
-            email_body = email_body.get("body")
 
             # 8a. Get the Subject Line
             subject_line = generate_subject_line(prompt=subject_line_prompt)

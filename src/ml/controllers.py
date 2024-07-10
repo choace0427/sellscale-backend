@@ -13,7 +13,7 @@ from src.ml.ai_researcher_services import (
     get_ai_researchers_for_client,
     simulate_voice_message,
     run_all_ai_researcher_questions_for_prospect,
-    get_generated_email,
+    personalize_email,
 )
 from src.ml.campaign_curator import curate_campaigns
 from src.ml.services import one_shot_linkedin_sequence_generation, find_contacts_from_serp
@@ -616,15 +616,16 @@ def post_personalize_email(client_sdr_id: int):
     """
     Personalize an email body using AI Researcher
     """
-    email_body = get_request_parameter(
-        "email_body", request, json=True, required=True, parameter_type=str
+    template_id = get_request_parameter(
+        "template_id", request, json=True, required=True, parameter_type=int
     )
     prospect_id = get_request_parameter(
         "prospect_id", request, json=True, required=True, parameter_type=int
     )
 
-    personalized_email = get_generated_email(
-        email_body=email_body,
+    #todo fix this
+    personalized_email = personalize_email(
+        template_id=template_id,
         prospectId=prospect_id,
     )
 
@@ -702,7 +703,7 @@ def post_simulate_magic_subject_line(client_sdr_id: int):
         "subject_line_id", request, json=True, required=False, parameter_type=str
     )
 
-    magic_subject_line, personalized_email, ai_research_points = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, generate_email=True, room_id=room_id, subject_line_id=subject_line_id)
+    magic_subject_line, personalized_email, ai_research_points = generate_magic_subject_line(archetype_id, prospect_id=prospect_id, sequence_id=sequence_id, should_generate_email=True, room_id=room_id, subject_line_id=subject_line_id)
 
     if (room_id):
         send_socket_message('subject-stream', {"message":"done", 'room_id': room_id}, room_id)
@@ -732,10 +733,20 @@ def post_add_few_shot(client_sdr_id: int):
         "edited_string", request, json=True, required=True, parameter_type=str
     )
 
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=False, parameter_type=int
+    )
+
+    template_id = get_request_parameter(
+        "template_id", request, json=True, required=False, parameter_type=str
+    )
+
     success = add_few_shot(
         client_archetype_id=client_archetype_id,
         original_string=original_string,
         edited_string=edited_string,
+        prospect_id=prospect_id,
+        template_id=template_id
     )
 
     if not success:

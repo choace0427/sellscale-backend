@@ -3,6 +3,7 @@ from typing import Optional
 from app import db, celery
 from model_import import Client, ClientSDR, AIResearcher, AIResearcherQuestion, AIResearcherAnswer, ClientArchetype, Prospect
 from src.email_outbound.models import ProspectEmail
+from src.email_sequencing.models import EmailSequenceStep
 from src.message_generation.models import GeneratedMessage
 from src.ml.models import AIVoice, FewShot
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -517,81 +518,99 @@ def edit_question(
 
     return True
 
-def get_generated_email(email_body, prospectId):
+def personalize_email(template_id, prospectId):
     try:
         prospect: Prospect = Prospect.query.get(prospectId)
+        print('prospect is', prospect.id)
         if not prospect:
             return False
+        
+        email_step: EmailSequenceStep = EmailSequenceStep.query.get(template_id)
+        email_template = email_step.template
         
         client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
 
-        research_list = get_ai_researcher_answers_for_prospect(prospectId)
-        if not research_list:
-            return False
+        ai_researcher_answers: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospectId).all()
 
-        research = ', '.join([str(answer) for answer in research_list])
+        if (len(ai_researcher_answers) == 0):
+            run_all_ai_researcher_questions_for_prospect(
+            client_sdr_id=prospect.client_sdr_id,
+            prospect_id=prospect.id,
+            room_id=None,
+            hard_refresh=False
+        )
+            ai_researcher_answers: list[AIResearcherAnswer] = AIResearcherAnswer.query.filter_by(prospect_id=prospectId).all()
+        # Collect research information
+        research = '\n'.join([
+            f"- #{index + 1}: {AIResearcherQuestion.query.get(answer.question_id).key}\n\t- {answer.short_summary}\n\t- {answer.relevancy_explanation}"
+            for index, answer in enumerate(ai_researcher_answers) if answer.is_yes_response
+        ])
+        if not research:
+            research = ' '
 
-        prompt = """
-        You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to add the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
 
-        Provided Template:
-        {original_email_body}
-
-        ### Personalization
-        {personalizations}
-
-        Prospect Information:
-        - name: {name}
-        - title: {title}
-        - company: {company}
-
-        Sender information:
-        My name: {client_sdr_name}
-        my title: {client_sdr_title}
-        my company: {client_company}
-
-        Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
-
-        Example
-        Hi Dr Xyz..
-
-        Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
-        NOTE: Try not to increase the length of the email - seamlessly incorproate personalization to make it same or shorter length.
-        NOTE: Only respond with the personalized email, nothing else.
-        NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
-        NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
-
-        When crafting outreach emails, keep them concise and focused. Start with a personalized greeting and mention a recent achievement or milestone of the recipient to grab their attention in a conversational tone. For example, instead of a robotic-sounding sentence, use a more natural and engaging phrasing like, "I saw that [Company] was recently named [Achievement] - that's fantastic news!" Avoid lengthy explanations or repetitive phrases about your intentions or their company's details. Instead, focus on the main purpose of the email with a clear and direct ask, making it easy for the recipient to understand what you want.
-
-        Use a professional tone and avoid informal elements like emojis, which can detract from the message's seriousness. Highlight the benefits of what you are offering or requesting, and personalize the message by referencing specific achievements or media coverage relevant to the recipient. Ensure that the core message is clear and that the email is easy to read, maintaining a natural flow throughout.
-
-        """
-        
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
         few_shots = []
+        few_shots_placeholder = ''
+
         if client_archetype.ai_voice_id:
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
-            # look up if there are any few shots attached the the AI Voice
             few_shots: list[FewShot] = FewShot.query.filter_by(ai_voice_id=ai_voice.id).all()
-                #nuance method
-                # voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
-                # prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
 
-        prompt += """NOTE: Do not add random line breaks or spaces in the email.
-        Important: Return the personalized email in HTML format, only the new email body.
-        Personalized email:"""
+            few_shots_edited = [
+                f"\nExample #{index + 1}:\n {few_shot.edited_string}"
+                for index, few_shot in enumerate(few_shots) if hasattr(few_shot, 'original_string') and few_shot.original_string != few_shot.edited_string
+            ]
+            directions = [
+                f"This is a constraint you will need to abide by: {few_shot.original_string}"
+                for few_shot in few_shots if hasattr(few_shot, 'original_string') and few_shot.original_string == few_shot.edited_string
+            ]
+            
+            few_shots_placeholder = "\n".join(few_shots_edited)
+        
+        if few_shots_edited:
+            few_shots_placeholder = (
+                " Here are a couple example inputs, and outputs, for you to reference:\n"
+                + few_shots_placeholder
+                + "\nThose are the examples.\n"
+                + "\n".join(directions)
+            )
+        prompt = f"""
+You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to add the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
 
-        prompt = prompt.format(
-            original_email_body=email_body,
-            personalizations=research,
-            name=prospect.first_name,
-            title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
-            company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company,
-            client_sdr_name=client_sdr.name,
-            client_sdr_title=client_sdr.title,
-            client_company=client.company
-        )
+{few_shots_placeholder}
+
+----------------------------
+
+The examples above are a few stylistic examples of how you should personalize the email.
+
+Now it's your turn to generate an email. Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
+NOTE: Try not to increase the length of the email - seamlessly incorporate personalization to make it same or shorter length.
+NOTE: Only respond with the personalized email, nothing else.
+NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
+
+
+Here is the information for you to use:
+
+Template:
+{email_template}
+
+Sender information:
+My name: {client_sdr.name}
+my title: {client_sdr.title}
+my company: {client.company}
+
+Recipient Information:
+Prospect Name: {prospect.full_name}
+Prospect Title: {prospect.title}
+Prospect Company: {prospect.company}
+
+Research Points:
+{research}
+
+Please only return the email body, nothing else. Do not prefix the email with anything. Ensure that the email is personalized and relevant to the prospect.
+Generated HTML Email:"""
         
         print('prompt is', prompt)
 
@@ -606,43 +625,10 @@ def get_generated_email(email_body, prospectId):
             max_tokens=1000
         )
 
-        if few_shots:
-            different_few_shots = [
-                f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}"
-                for few_shot in few_shots if few_shot.original_string != few_shot.edited_string
-            ]
-            #there are like specific directions i.e. 'make it short and sweet' or 'make it more formal'
-            same_few_shots = [
-                f"This is an constraint you will need to abide by: {few_shot.original_string}"
-                for few_shot in few_shots if few_shot.original_string == few_shot.edited_string
-            ]
-            
-            few_shots_placeholder = "\n".join(different_few_shots + same_few_shots)
-            
-            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations, alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
-            
-            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or subtleties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
-
-            prompt += """\nNOTE: Do not add random line breaks or spaces in the email.
-            Important: Return ONLY the personalized email in HTML format, only the new email body.
-            Personalized email:"""
-
-            answer = wrapped_chat_gpt_completion(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                model='claude-3-opus-20240229',
-                max_tokens=1000
-            )
-
         return answer.replace("html", "").replace("`", "")
     except Exception as e:
         print(e)
         return False
-
 def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalization_override: Optional[str] = None):
     try:
         prospect_email: ProspectEmail = ProspectEmail.query.get(prospect_email_id)
@@ -666,86 +652,88 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
             prospect_id=prospect_id
         )
 
+        #get the template from the generated message.
         email_body_id = prospect_email.personalized_body
+        generated_email: GeneratedMessage = GeneratedMessage.query.get(email_body_id)
+        email_template: EmailSequenceStep = generated_email.email_sequence_step_template_id
+        email_template = email_template.template
+
         generated_message: GeneratedMessage = GeneratedMessage.query.get(email_body_id)
-        origina_email_body = generated_message.completion
 
         positive_research_points = AIResearcherAnswer.query.filter_by(prospect_id=prospect_id, is_yes_response=True).all()
 
-        if len(positive_research_points) == 0:
+      
+        # Collect research information
+        research = '\n'.join([
+            f"- #{index + 1}: {AIResearcherQuestion.query.get(answer.question_id).key}\n\t- {answer.short_summary}\n\t- {answer.relevancy_explanation}"
+            for index, answer in enumerate(positive_research_points) if answer.is_yes_response
+        ])
+        if not research:
             return False
 
-        personalizations = ""
-        for point in positive_research_points:
-            point: AIResearcherAnswer = point
-            question: AIResearcherQuestion = AIResearcherQuestion.query.get(point.question_id)
-
-            raw_data = point.raw_response
-            relevancy_reason = question.relevancy
-            relevancy_explanation = point.relevancy_explanation
-
-            personalizations += f"Raw Data: {raw_data}\nQuestion: {relevancy_reason}\nRelevancy Explanation: {relevancy_explanation}\n\n"
-
-        prompt = """
-        You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to spread the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
-
-        Provided Template:
-        {original_email_body}
-
-        ### Personalization
-        {personalizations}
-
-        Prospect Information:
-        - name: {name}
-        - title: {title}
-        - company: {company}
-
-        Sender information:
-        My name: {client_sdr_name}
-        my title: {client_sdr_title}
-        my company: {client_company}
-
-        Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
-
-        Example
-        Hi Dr Xyz..
-
-        Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
-        NOTE: Try not to increase the length of the email - seamlessly incorproate personalization to make it same or shorter length.
-        NOTE: Only respond with the personalized email, nothing else.
-        NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
-        NOTE: I want you to add at least one personalization right after the initial "Hi _____" (or greeting). Do not have anything else before this personalization. It needs to be a personalized and relevant first sentence to the email.
-
-        When crafting outreach emails, keep them concise and focused. Start with a personalized greeting and mention a recent achievement or milestone of the recipient to grab their attention in a conversational tone. For example, instead of a robotic-sounding sentence, use a more natural and engaging phrasing like, "I saw that [Company] was recently named [Achievement]- that's fantastic news!" Avoid lengthy explanations or repetitive phrases about your intentions or their company's details. Instead, focus on the main purpose of the email with a clear and direct ask, making it easy for the recipient to understand what you want.
-
-        Use a professional tone and avoid informal elements like emojis, which can detract from the message's seriousness. Highlight the benefits of what you are offering or requesting, and personalize the message by referencing specific achievements or media coverage relevant to the recipient. Ensure that the core message is clear and that the email is easy to read, maintaining a natural flow throughout.
-        """
 
         client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
         few_shots = []
+        few_shots_placeholder = ''
+
         if client_archetype.ai_voice_id:
             ai_voice: AIVoice = AIVoice.query.get(client_archetype.ai_voice_id)
-            # look up if there are any few shots attached the the AI Voice
             few_shots: list[FewShot] = FewShot.query.filter_by(ai_voice_id=ai_voice.id).all()
-                #nuance method
-                # voice_data_placeholder = " ".join([f"[[{few_shot.nuance}]]" for few_shot in few_shots])
-                # prompt += f"\n\nI have some 'voice data' which are alterations that the user ultimately wants for their email, they can be word choice, or tone choice. Please take these into account when generating the email: {voice_data_placeholder}"
 
-        prompt += """NOTE: Do not add random line breaks or spaces in the email.
-        Important: Return the personalized email in HTML format, only the new email body.
-        Personalized email:"""
+            few_shots_edited = [
+                f"\nExample #{index + 1}:\n {few_shot.edited_string}"
+                for index, few_shot in enumerate(few_shots) if hasattr(few_shot, 'original_string') and few_shot.original_string != few_shot.edited_string
+            ]
+            directions = [
+                f"This is a constraint you will need to abide by: {few_shot.original_string}"
+                for few_shot in few_shots if hasattr(few_shot, 'original_string') and few_shot.original_string == few_shot.edited_string
+            ]
+            
+            few_shots_placeholder = "\n".join(few_shots_edited)
+        
+        if few_shots_edited:
+            few_shots_placeholder = (
+                " Here are a couple example inputs, and outputs, for you to reference:\n"
+                + few_shots_placeholder
+                + "\nThose are the examples.\n"
+                + "\n".join(directions)
+            )
+        prompt = f"""
+You are an emailer personalizer. Combine the template provided with the personalization to create a personalized email. Keep it as short as possible. Feel free to add the personalizations across the email to keep length minimal. Try to include personalization at the beginning since it helps with open rates.
 
-        prompt = prompt.format(
-            original_email_body=origina_email_body,
-            personalizations=personalizations,
-            name=prospect.first_name,
-            title=prospect.colloquialized_title if prospect.colloquialized_title else prospect.title,
-            company=prospect.colloquialized_company if prospect.colloquialized_company else prospect.company,
-            client_sdr_name=client_sdr.name,
-            client_sdr_title=client_sdr.title,
-            client_company=client.company
-        )
+{few_shots_placeholder}
 
+----------------------------
+
+The examples above are a few stylistic examples of how you should personalize the email.
+
+Now it's your turn to generate an email. Tie in relevant details into the emails so it is compelling for the person I am reaching out to.
+NOTE: Try not to increase the length of the email - seamlessly incorporate personalization to make it same or shorter length.
+NOTE: Only respond with the personalized email, nothing else.
+NOTE: When adding personalization throughout the email, ensure that you write in a natural way that is not robotic or forced. Additionally, ensure you tie in the personalization in a way that is relevant to the email content.
+
+
+Here is the information for you to use:
+
+Template:
+{email_template}
+
+Sender information:
+My name: {client_sdr.name}
+my title: {client_sdr.title}
+my company: {client.company}
+
+Recipient Information:
+Prospect Name: {prospect.full_name}
+Prospect Title: {prospect.title}
+Prospect Company: {prospect.company}
+
+Research Points:
+{research}
+
+Please only return the email body, nothing else. Do not prefix the email with anything. Ensure that the email is personalized and relevant to the prospect.
+Generated HTML Email:"""
+        
         print('prompt is', prompt)
 
         answer = wrapped_chat_gpt_completion(
@@ -758,38 +746,6 @@ def run_ai_personalizer_on_prospect_email(prospect_email_id: int, personalizatio
             model='claude-3-opus-20240229',
             max_tokens=1000
         )
-
-        if few_shots:
-            different_few_shots = [
-                f"#########ORIGINAL TEMPLATE##########\nOriginal: {few_shot.original_string}\n######EDITED TEMPLATE############\nEdited: {few_shot.edited_string}"
-                for few_shot in few_shots if few_shot.original_string != few_shot.edited_string
-            ]
-            #there are like specific directions i.e. 'make it short and sweet' or 'make it more formal'
-            same_few_shots = [
-                f"This is an constraint you will need to abide by: {few_shot.original_string}"
-                for few_shot in few_shots if few_shot.original_string == few_shot.edited_string
-            ]
-            
-            few_shots_placeholder = "\n".join(different_few_shots + same_few_shots)
-            
-            prompt = f"\n\nI have some 'voice data' which are alterations that the user wants for their email, these are few shots:\n {few_shots_placeholder}. \n \n Given these alterations, alter this email; but know that the content of your output email should not be what's in here, it should capture the essence of these few shot differences. \n\n Ok, here is the email you will modify: {answer}"
-            
-            prompt += "Please respond with ONLY the updated email, the email only. Take close note, in the few shots, what was deleted or added, and infer from those deletions what the user must have been going for by deleting those lines, and try to apply that mindset in the new email, or subtleties. If the emails are addressing someone else, just do not include that content in your answer, but analyze carefully take into account any subtle or major changes in tone, syntax, point of view, level of formality, rhythm, sentence structure, perspective, attitude, personality, style, or even pace. Only include the modified email body, nothing else."
-
-            prompt += """\nNOTE: Do not add random line breaks or spaces in the email.
-            Important: Return ONLY the personalized email in HTML format, only the new email body.
-            Personalized email:"""
-
-            answer = wrapped_chat_gpt_completion(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                model='claude-3-opus-20240229',
-                max_tokens=1000
-            )
 
         generated_message.completion = answer.replace("html", "").replace("`", "")
         db.session.add(generated_message)
