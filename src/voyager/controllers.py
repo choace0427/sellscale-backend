@@ -173,6 +173,11 @@ def send_message(client_sdr_id: int):
         parameter_type=list,
     )
 
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if client_sdr.role == 'ADMIN':
+        prospect = Prospect.query.get(prospect_id)
+        client_sdr_id = prospect.client_sdr_id
+
     if scheduled_send_date:
         add_process_for_future(
             type="send_scheduled_linkedin_message",
