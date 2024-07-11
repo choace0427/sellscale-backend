@@ -276,19 +276,32 @@ class MergeClient:
     ) -> list[ModelOperation]:
         """Get the list of supported operations in the CRM
 
-        Args:
-            operations_only (Optional[bool], optional): If True, only return operations. Defaults to False.
-
         Returns:
             list[ModelOperation]: List of ModelOperations
         """
-        account_details: AccountDetailsAndActions = (
-            self.client.crm.linked_accounts.list(
-                id=self.client_sync_crm.account_id
-            ).results
-        )[0]
-        integration: AccountDetailsAndActionsIntegration = account_details.integration
-        operations: list[ModelOperation] = integration.available_model_operations
+        try:
+            account_details: AccountDetailsAndActions = (
+                self.client.crm.linked_accounts.list(
+                    id=self.client_sync_crm.account_id
+                ).results
+            )[0]
+        except IndexError as e:
+            print(f"IndexError: {str(e)} - No linked accounts found for the given account ID.")
+            return []
+        except Exception as e:
+            print(f"Exception: {str(e)} - An error occurred while retrieving linked accounts.")
+            return []
+
+        try:
+            integration: AccountDetailsAndActionsIntegration = account_details.integration
+            operations: list[ModelOperation] = integration.available_model_operations
+        except AttributeError as e:
+            print(f"AttributeError: {str(e)} - Failed to retrieve integration details or model operations.")
+            return []
+        except Exception as e:
+            print(f"Exception: {str(e)} - An error occurred while processing account details.")
+            return []
+
         return operations
 
     ###############################

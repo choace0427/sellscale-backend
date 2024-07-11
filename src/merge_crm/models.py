@@ -35,26 +35,26 @@ class ClientSyncCRM(db.Model):
             "account_sync": self.account_sync,
             "opportunity_sync": self.opportunity_sync,
         }
-    class CRMContact(db.Model):
-        __tablename__ = "crm_contact"
+class CRMContact(db.Model):
+    __tablename__ = "crm_contact"
 
-        id = db.Column(db.Integer, primary_key=True)
-        first_name = db.Column(db.String, nullable=True)
-        last_name = db.Column(db.String, nullable=True)
-        company = db.Column(db.String, nullable=True)
-        industry = db.Column(db.String, nullable=True)
-        company_url = db.Column(db.String, nullable=True)
-        email_addresses = db.Column(db.ARRAY(db.String), nullable=True)
-        client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String, nullable=True)
+    last_name = db.Column(db.String, nullable=True)
+    company = db.Column(db.String, nullable=True)
+    industry = db.Column(db.String, nullable=True)
+    company_url = db.Column(db.String, nullable=True)
+    email_addresses = db.Column(db.ARRAY(db.String), nullable=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
 
-        def to_dict(self):
-            return {
-                "id": self.id,
-                "first_name": self.first_name,
-                "last_name": self.last_name,
-                "company": self.company,
-                "industry": self.industry,
-                "company_url": self.company_url,
-                "email_addresses": self.email_addresses,
-                "client_id": self.client_id,
-            }
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "company": self.company,
+            "industry": self.industry,
+            "company_url": self.company_url,
+            "email_addresses": self.email_addresses,
+            "client_id": self.client_id,
+        }

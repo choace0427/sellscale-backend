@@ -9,6 +9,7 @@ from src.merge_crm.services import (
     get_client_sync_crm,
     get_client_sync_crm_supported_models,
     get_crm_stages,
+    get_crm_user_contacts_from_db,
     get_crm_users,
     get_integration,
     retrieve_account_token,
@@ -235,6 +236,12 @@ def post_sync_stages(client_sdr_id: int):
 
     return jsonify({"status": "success"})
 
+
+@MERGE_CRM_BLUEPRINT.route("/contacts", methods=["GET"])
+@require_user
+def get_crm_user_contacts_from_db_endpoint(client_id: int):
+    contacts = get_crm_user_contacts_from_db(client_id=client_id)
+    return jsonify({"status": "success", "data": {"contacts": contacts}})
 
 @MERGE_CRM_BLUEPRINT.route("/sync/event", methods=["PATCH"])
 @require_user

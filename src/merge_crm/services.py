@@ -12,6 +12,7 @@ from src.email_outbound.models import (
     ProspectEmail,
 )
 from src.merge_crm.models import ClientSyncCRM
+from src.merge_crm.models import CRMContact
 from merge.resources.crm import (
     ContactRequest,
     EmailAddressRequest,
@@ -273,6 +274,59 @@ def get_crm_users(client_sdr_id: int) -> list[dict]:
 
     return [user.dict() for user in users]
 
+def poll_crm_contacts():
+    # Get all client ids, loop through them and get all contacts
+    client_ids = db.session.query(Client.id).all()
+    for client_id_tuple in client_ids:
+        try:
+            client_id = client_id_tuple[0]
+            #check if client has a merge sync
+
+            client_sync_crm: ClientSyncCRM = ClientSyncCRM.query.filter_by(
+                client_id=client_id
+            ).first()
+            if not client_sync_crm:
+                continue
+            # Choose a random client SDR from the client. This is a weird convention for the MergeClient class
+            client_sdr_id = db.session.query(ClientSDR.id).filter(ClientSDR.client_id == client_id).first()[0]
+            contacts = get_crm_user_contacts(client_sdr_id)
+            
+            for contact in contacts:
+                existing_contact = db.session.query(CRMContact).filter_by(
+                    first_name=contact['first_name'],
+                    last_name=contact['last_name'],
+                    client_id=client_id
+                ).first()
+                
+                if not existing_contact:
+                    new_contact = CRMContact(
+                        first_name=contact['first_name'],
+                        last_name=contact['last_name'],
+                        company=contact['account']['name'] if contact.get('account') else None,
+                        industry=contact['account']['industry'] if contact.get('account') else None,
+                        company_url=contact['account']['website'] if contact.get('account') else None,
+                        email_addresses=contact['email_addresses'],
+                        client_id=client_id
+                    )
+                    db.session.add(new_contact)
+            
+            db.session.commit()
+        except Exception as e:
+            print(f"Error getting contacts for client {client_id}: {e}")
+            continue
+
+def get_crm_user_contacts_from_db(client_id: int) -> list[dict]:
+    """Gets the contacts from the CRM
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        list[dict]: A list of contacts from the CRM
+    """
+    contacts: list[CRMContact] = db.session.query(CRMContact).filter_by(client_id=client_id).all()
+    return [contact.to_dict() for contact in contacts]
+
 
 def get_crm_user_contacts(client_sdr_id: int) -> list[dict]:
     """Gets the contacts from the CRM
@@ -289,22 +343,13 @@ def get_crm_user_contacts(client_sdr_id: int) -> list[dict]:
     for contact in mc.get_all_crm_contacts():
         if contact.first_name is not None:
             contacts.append(contact)
-            print(f"First Name: {contact.first_name}")
-            print(f"Last Name: {contact.last_name}")
-            
-            # Print Account details if available
-            if contact.account:
-                account = contact.account
-                print(f"Account Name: {account.name}")
-                print(f"Account Industry: {account.industry}")
-                print(f"Account Website: {account.website}")
-            print(f"Owner: {contact.owner}")
-            # Print the first email address if available
-            if contact.email_addresses:
-                email_addresses = contact.email_addresses
-                print(f"Email Addresses: {[email.email_address for email in email_addresses]}")
-
-    return [contact.dict() for contact in contacts]
+    return [
+        {
+            **contact.dict(),
+            "email_addresses": [email.email_address for email in contact.email_addresses] if contact.email_addresses else []
+        }
+        for contact in contacts
+    ]
 
 def sync_sdr_to_crm_user(
     client_sdr_id: int, merge_user_id: Optional[str] = None
