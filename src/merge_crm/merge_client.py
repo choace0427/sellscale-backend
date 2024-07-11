@@ -9,6 +9,7 @@ from merge.resources.crm import (
     AccountDetails,
     Contact,
     CrmContactResponse,
+    ContactsListRequestExpand,
     Account,
     CrmAccountResponse,
     Opportunity,
@@ -293,6 +294,18 @@ class MergeClient:
     ###############################
     #       CONTACT METHODS       #
     ###############################
+
+    @is_allowable(model_name="CRMContact")
+    def get_all_crm_contacts(self) -> list[Contact]:
+        """Get all contacts in the client's CRM
+
+        Returns:
+            list[Contact]: List of Contacts
+        """
+        contacts = self.client.crm.contacts.list(
+            expand=ContactsListRequestExpand.ACCOUNT,
+        ).results
+        return contacts
 
     @is_allowable(model_name="CRMContact")
     def find_contact_by_prospect_id(self, prospect_id: int) -> Optional[Contact]:

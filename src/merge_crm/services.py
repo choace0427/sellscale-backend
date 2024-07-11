@@ -274,6 +274,38 @@ def get_crm_users(client_sdr_id: int) -> list[dict]:
     return [user.dict() for user in users]
 
 
+def get_crm_user_contacts(client_sdr_id: int) -> list[dict]:
+    """Gets the contacts from the CRM
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client
+
+    Returns:
+        list[dict]: A list of contacts from the CRM
+    """
+    mc: MergeClient = MergeClient(client_sdr_id=client_sdr_id)
+    contacts: list[ContactRequest] = []
+    
+    for contact in mc.get_all_crm_contacts():
+        if contact.first_name is not None:
+            contacts.append(contact)
+            print(f"First Name: {contact.first_name}")
+            print(f"Last Name: {contact.last_name}")
+            
+            # Print Account details if available
+            if contact.account:
+                account = contact.account
+                print(f"Account Name: {account.name}")
+                print(f"Account Industry: {account.industry}")
+                print(f"Account Website: {account.website}")
+            print(f"Owner: {contact.owner}")
+            # Print the first email address if available
+            if contact.email_addresses:
+                email_addresses = contact.email_addresses
+                print(f"Email Addresses: {[email.email_address for email in email_addresses]}")
+
+    return [contact.dict() for contact in contacts]
+
 def sync_sdr_to_crm_user(
     client_sdr_id: int, merge_user_id: Optional[str] = None
 ) -> bool:
