@@ -413,43 +413,90 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
     if latest_message:
         message_lowered = latest_message.message.lower()
         for key_word in demo_key_words:
-            if key_word in message_lowered:
+            # if key_word in message_lowered:
+            if True:
                 messages = [x.message for x in conversation_entries]
                 is_demo_set = chat_ai_verify_demo_set(messages, prospect.full_name)
                 if is_demo_set:
+                    messages = messages[-5:] if len(messages) >= 5 else messages
+                    messages_joined = '\n'.join(messages)
                     send_slack_message(
-                        message=f"""
-                        🎉🎉🎉 !!!!! DEMO SET DETECTED!!!!!! 🎉🎉🎉
-                        ```
-                        {messages[-5:] if len(messages) >= 5 else messages}
-                        ```
-                        These are the last 5 messages.
-                        ⏰ Current Status: "DEMO_SET"
-
-                        > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.full_name}
-
-                        🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
-                        🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
-                        """,
+                        message="Demo set detected 🎉",
                         webhook_urls=[URL_MAP["ops-demo-set-detection"]],
+                        blocks=[
+                            {
+                                "type": "header",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Demo set detected 🎉",
+                                    "emoji": True,
+                                },
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "```{messages_joined}```\nThese are the last few messages.\n⏰ Recommended Status: *\"DEMO_SET\"*".format(
+                                        messages_joined=messages_joined
+                                    ),
+                                },
+                            },
+                            {
+                                "type": "section",
+                                "fields": [
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": f"> 🤖 *Rep*: {clientSDR.name}",
+                                    },
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": f"> 👥 *Prospect*: {prospect.full_name}",
+                                    },
+                                ],
+                            },
+                            {"type": "divider"},
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)",
+                                },
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "Direct Link ➡️",
+                                },
+                                "accessory": {
+                                    "type": "button",
+                                    "text": {"type": "plain_text", "text": "Link", "emoji": True},
+                                    "url": f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}",
+                                    "action_id": "button-action",
+                                },
+                            },
+                            {"type": "divider"},
+                        ],
                     )
+
                 else:
-                    send_slack_message(
-                        message=f"""
-                        !!!!!❌ DEMO SET, Open AI said not a demo though. ❌!!!!!!
-                        ```
-                        {messages[-5:] if len(messages) >= 5 else messages}
-                        ```
-                        These are the last 5 messages.
-                        ⏰ Current Status: "DEMO_SET"
+                    pass
+                    # send_slack_message(
+                    #     message=f"""
+                    #     !!!!!❌ DEMO SET, Open AI said not a demo though. ❌!!!!!!
+                    #     ```
+                    #     {messages[-5:] if len(messages) >= 5 else messages}
+                    #     ```
+                    #     These are the last 5 messages.
+                    #     ⏰ Current Status: "DEMO_SET"
 
-                        > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.full_name}
+                    #     > 🤖 Rep: {clientSDR.name} | 👥 Prospect: {prospect.full_name}
 
-                        🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
-                        🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
-                        """,
-                        webhook_urls=[URL_MAP["ops-demo-set-detection"]],
-                    )
+                    #     🎊🎈 Take action and mark as ✅ (if wrong, inform an engineer)
+                    #     🔗 Direct Link: https://app.sellscale.com/authenticate?stytch_token_type=direct&token={clientSDR.auth_token}&redirect=prospects/{prospect.id}
+                    #     """,
+                    #     webhook_urls=[URL_MAP["ops-demo-set-detection"]],
+                    # )
                 break
     # Check for a demo set keyword
 
