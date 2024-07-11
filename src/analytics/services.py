@@ -260,7 +260,7 @@ def get_all_campaign_analytics_for_client(
                 select 
                     case 
                         when prospect_status_records.created_at is not null then to_char(prospect_status_records.created_at, 'YYYY-MM-DD')
-                        when prospect_email_status_records.created_at is not null then to_char(prospect_status_records.created_at, 'YYYY-MM-DD')
+                        when prospect_email_status_records.created_at is not null then to_char(prospect_email_status_records.created_at, 'YYYY-MM-DD')
                     end date,
                     count(distinct prospect.id) filter (
                         where prospect_status_records.to_status = 'SENT_OUTREACH' or 
