@@ -1127,10 +1127,12 @@ def update_prospect_status_email(
 
         return True
 
+    
+
     applied = apply_realtime_response_engine_rules(prospect_id, new_status)
     if applied:
         print("Realtime response engine rules applied")
-
+    
     # Get the prospect and email record
     p: Prospect = Prospect.query.get(prospect_id)
     if not p:
@@ -1202,8 +1204,8 @@ def update_prospect_status_email(
             email_sent_subject = (
                 metadata.get("email_sent_subject") if metadata else None
             )
-            email_sent_body = metadata.get("email_sent_body") if metadata else None
-            email_reply_body = metadata.get("email_reply_body") if metadata else None
+            email_sent_body = metadata.get("email_sent_body") if metadata else '[ Review in Sight ]'
+            email_reply_body = metadata.get("email_reply_body") if metadata else '[ Review in Sight ]'
 
             # Send a slack message
             success = create_and_send_slack_notification_class_message(

@@ -214,7 +214,6 @@ def create_engagement_feed_item(
     Returns:
         int: Engagement feed item ID
     """
-
     new_item = EngagementFeedItem(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,

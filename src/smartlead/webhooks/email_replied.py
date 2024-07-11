@@ -110,6 +110,7 @@ def process_email_replied_webhook(payload_id: int):
                 Prospect.smartlead_campaign_id == campaign_id,
                 Prospect.archetype_id == client_archetype.id,
             ),
+            Prospect.approved_prospect_email_id.isnot(None),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -164,25 +165,30 @@ def process_email_replied_webhook(payload_id: int):
 
         # Update the ProspectEmailStatus
         old_status = prospect_email.outreach_status
-        try:
-            # Generate an automated reply
-            generate_smart_email_response(
-                client_sdr_id=prospect.client_sdr_id,
-                prospect_id=prospect.id,
-            )
+        # try:
+        #     # Generate an automated reply
+        #     generate_smart_email_response(
+        #         client_sdr_id=prospect.client_sdr_id,
+        #         prospect_id=prospect.id,
+        #     )
+        # except:
+        #     # If the update fails, then something had gone wrong earlier. We skip for now
+        #     pass
 
+        try:
             # Determine "ACTIVE_CONVO" substatus
             status = classify_email(
                 prospect_id=prospect.id,
                 email_body=reply_message,
             )
-        except:
-            # If the update fails, then something had gone wrong earlier. We skip for now
+        except Exception as e:
+            print(f"Failed to classify email: {str(e)}")
+            status = None
             pass
 
         # ANALYTICS
         if old_status and (
-            "ACTIVE_CONVO" not in old_status or "ACTIVE_CONVO_OOO" in old_status
+            "ACTIVE_CONVO" not in old_status.value or "ACTIVE_CONVO_OOO" in old_status.value
         ):
             # Make sure this wasn't an OOO reply
             if status and status != ProspectEmailOutreachStatus.ACTIVE_CONVO_OOO:

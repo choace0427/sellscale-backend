@@ -106,6 +106,7 @@ def process_email_opened_webhook(payload_id: int):
                 Prospect.smartlead_campaign_id == campaign_id,
                 Prospect.archetype_id == client_archetype.id,
             ),
+            Prospect.approved_prospect_email_id.isnot(None),
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (
@@ -167,8 +168,9 @@ def process_email_opened_webhook(payload_id: int):
                 prospect_id=prospect.id,
                 new_status=ProspectEmailOutreachStatus.EMAIL_OPENED,
             )
-        except:
+        except Exception as e:
             # If the update fails, then something had gone wrong earlier. We skip for now
+            print(f"Failed to update Prospect Email status to 'OPENED': {str(e)}")
             pass
 
         # TEMPORARY: Send slack notification

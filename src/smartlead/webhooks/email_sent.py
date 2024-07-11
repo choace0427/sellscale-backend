@@ -106,6 +106,7 @@ def process_email_sent_webhook(payload_id: int):
                 Prospect.smartlead_campaign_id == campaign_id,
                 Prospect.archetype_id == client_archetype.id,
             ),
+            Prospect.approved_prospect_email_id.isnot(None)
         ).first()
         if not prospect:
             smartlead_payload.processing_status = (

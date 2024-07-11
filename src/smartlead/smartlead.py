@@ -440,13 +440,15 @@ class Smartlead:
             return self.get_lead_categories()
         return response.json()
 
-    def get_lead_by_email_address(self, email_address):
+    def get_lead_by_email_address(self, email_address, retries_left=3):
+        if retries_left == 0:
+            return None
         url = f"{self.BASE_URL}/leads/?api_key={self.api_key}&email={email_address}"
         response = requests.get(url)
         if response.status_code == 429 or not is_jsonable(response):
             print("Rate limited while getting lead by email address, retrying...")
             time.sleep(self.DELAY_SECONDS)
-            return self.get_lead_by_email_address(email_address)
+            return self.get_lead_by_email_address(email_address, retries_left - 1)
         return response.json()
 
     def post_update_lead_category(
