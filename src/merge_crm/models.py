@@ -46,6 +46,7 @@ class CRMContact(db.Model):
     company_url = db.Column(db.String, nullable=True)
     do_not_contact = db.Column(db.Boolean, nullable=True, default=False)
     email_addresses = db.Column(db.ARRAY(db.String), nullable=True)
+    crm_id = db.Column(db.String, nullable=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
 
     def to_dict(self):
@@ -55,6 +56,7 @@ class CRMContact(db.Model):
             "last_name": self.last_name,
             "company": self.company,
             "do_not_contact": self.do_not_contact,
+            "crm_id": self.crm_id,
             "industry": self.industry,
             "company_url": self.company_url,
             "email_addresses": self.email_addresses,

@@ -196,11 +196,15 @@ class MergeClient:
         self.client = Merge(api_key=self.api_key, account_token=self.account_token)
         self.client_sync_crm = client_sync_crm
 
-    def is_allowable(model_name: str):
+    def is_allowable(model_name: str, skip_if_cursor: bool = False):
         """Decorator to check if the model is allowed to be synced"""
 
         def decorator(method):
             def wrapper(self, *args, **kwargs):
+                # Check if we should skip the allowable check based on the cursor
+                if skip_if_cursor and 'cursor' in kwargs and kwargs['cursor']:
+                    return method(self, *args, **kwargs)
+
                 print(f"Checking if model {model_name} is supported...")
 
                 self: MergeClient = self  # Typing hack
@@ -217,7 +221,6 @@ class MergeClient:
             return wrapper
 
         return decorator
-
     ###############################
     #         CRM METHODS         #
     ###############################
@@ -308,17 +311,23 @@ class MergeClient:
     #       CONTACT METHODS       #
     ###############################
 
-    @is_allowable(model_name="CRMContact")
-    def get_all_crm_contacts(self) -> list[Contact]:
+    @is_allowable(model_name="CRMContact", skip_if_cursor=True)
+    def get_all_crm_contacts(self, cursor: Optional[str] = None) -> tuple[list, Optional[str]]:
         """Get all contacts in the client's CRM
 
+        Args:
+            cursor (Optional[str]): Cursor for pagination
+
         Returns:
-            list[Contact]: List of Contacts
+            tuple[list[Contact], Optional[str]]: List of Contacts and the next cursor
         """
-        contacts = self.client.crm.contacts.list(
-            expand=ContactsListRequestExpand.ACCOUNT,
-        ).results
-        return contacts
+        response = self.client.crm.contacts.list(expand=ContactsListRequestExpand.ACCOUNT, cursor=cursor, page_size=1000)
+        print(f"Response received. Number of contacts retrieved: {len(response.results)}")
+        
+        next_cursor = response.next
+        print(f"Next cursor: {next_cursor}")
+
+        return response.results, next_cursor
 
     @is_allowable(model_name="CRMContact")
     def find_contact_by_prospect_id(self, prospect_id: int) -> Optional[Contact]:
