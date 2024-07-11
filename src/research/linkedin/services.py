@@ -3,6 +3,7 @@ from src.company.services import add_company_cache_to_db
 from app import celery, db
 
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.merge_crm.models import CRMContact
 from src.ml.models import TextGeneration
 from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus, ProspectStatusRecords
 from src.research.models import (
@@ -239,7 +240,7 @@ def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
     client: Client = Client.query.get(client_sdr.client_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    def is_on_dnc_list(prospect, client, client_sdr):
+    def is_on_dnc_list(prospect: Prospect, client: Client, client_sdr: ClientSDR):
         # Check against Client's DNC lists
         def is_on_dnc_list_helper(dnc_list, prospect_attr, exact_match=False):
             # lowercase everything for case-insensitive matching
@@ -250,6 +251,18 @@ def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
                 return prospect_attr_lower in (item.lower() for item in dnc_list)
             
             return any(item.lower() in prospect_attr_lower for item in dnc_list)
+        
+        #maybe this has to take into account company as well? 
+        #the reason we are not doing this is because perhaps the company changed
+        if prospect.first_name and prospect.last_name:
+            existing_contact = CRMContact.query.filter_by(
+                first_name=prospect.first_name,
+                last_name=prospect.last_name,
+                client_id=client.id,
+                do_not_contact=True
+            ).first()
+            if existing_contact:
+                return True
 
         if (
             is_on_dnc_list_helper(client.do_not_contact_company_names, prospect.company, exact_match=True) or

@@ -316,6 +316,34 @@ def poll_crm_contacts():
             print(f"Error getting contacts for client {client_id}: {e}")
             continue
 
+def update_dnc_status(client_sdr_id: int, contact_id: int, do_not_contact: bool) -> tuple[bool, str]:
+    """Updates the Do Not Contact (DNC) status of a contact for a given client SDR.
+
+    Args:
+        client_sdr_id (int): The ID of the SDR, used for retrieving the client.
+        contact_id (int): The ID of the contact whose DNC status is to be updated.
+        do_not_contact (bool): The new DNC status to be set.
+
+    Returns:
+        tuple[bool, str]: A tuple containing a boolean indicating success and a message.
+    """
+    try:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not client_sdr:
+            return False, "Client SDR not found"
+
+        contact: CRMContact = CRMContact.query.get(contact_id)
+        if not contact or contact.client_id != client_sdr.client_id:
+            return False, "Contact not found or does not belong to the client"
+
+        contact.do_not_contact = do_not_contact
+        db.session.commit()
+        return True, "DNC status updated successfully"
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error updating DNC status: {e}"
+
+
 def get_crm_user_contacts_from_db(client_sdr_id: int) -> list[dict]:
     """Gets the contacts from the CRM
 

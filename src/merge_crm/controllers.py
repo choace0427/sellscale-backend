@@ -10,6 +10,7 @@ from src.merge_crm.services import (
     get_client_sync_crm_supported_models,
     get_crm_stages,
     get_crm_user_contacts_from_db,
+    update_dnc_status,
     get_crm_users,
     get_integration,
     retrieve_account_token,
@@ -242,6 +243,19 @@ def post_sync_stages(client_sdr_id: int):
 def get_crm_user_contacts_from_db_endpoint(client_sdr_id: int):
     contacts = get_crm_user_contacts_from_db(client_sdr_id=client_sdr_id)
     return jsonify({"status": "success", "data": {"contacts": contacts}})
+
+@MERGE_CRM_BLUEPRINT.route("/dnc", methods=["POST"])
+@require_user
+def post_dnc_status(client_sdr_id: int):
+    do_not_contact = get_request_parameter("active", request, json=True, required=True, parameter_type=bool)
+    contact_id = get_request_parameter("contact_id", request, json=True, required=True, parameter_type=int)
+
+    success, message = update_dnc_status(client_sdr_id, contact_id, do_not_contact=do_not_contact)
+    if not success:
+        return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "success", "message": "DNC status updated"}), 200
+
 
 @MERGE_CRM_BLUEPRINT.route("/sync/event", methods=["PATCH"])
 @require_user
