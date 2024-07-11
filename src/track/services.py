@@ -319,7 +319,15 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     )
     db.session.add(deanon_contact)
     db.session.commit()
-        
+
+    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
+    client_id = track_source.client_id
+    client: Client = Client.query.get(client_id)
+    webhook_url = client.pipeline_notifications_webhook_url
+
+    webhook_urls = [URL_MAP["sales-visitors"]]
+    if webhook_url:
+        webhook_urls.append(webhook_url)
 
     send_slack_message(
         message="*🔗 LinkedIn*: {}\n*👥 Name*: {}\n*♣ Title*: {}\n*📸 Photo*: {}\n*🌆 Organization*: {}\n*👾 Website*: {}\n*🌎 Location*: {}".format(
@@ -373,7 +381,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 			]
 		}
 	],
-        webhook_urls=[URL_MAP["sales-visitors"]],
+        webhook_urls=webhook_urls,
     )
 
     return contacts
