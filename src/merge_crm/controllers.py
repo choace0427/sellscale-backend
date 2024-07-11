@@ -239,8 +239,8 @@ def post_sync_stages(client_sdr_id: int):
 
 @MERGE_CRM_BLUEPRINT.route("/contacts", methods=["GET"])
 @require_user
-def get_crm_user_contacts_from_db_endpoint(client_id: int):
-    contacts = get_crm_user_contacts_from_db(client_id=client_id)
+def get_crm_user_contacts_from_db_endpoint(client_sdr_id: int):
+    contacts = get_crm_user_contacts_from_db(client_sdr_id=client_sdr_id)
     return jsonify({"status": "success", "data": {"contacts": contacts}})
 
 @MERGE_CRM_BLUEPRINT.route("/sync/event", methods=["PATCH"])

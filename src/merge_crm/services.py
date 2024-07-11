@@ -302,6 +302,7 @@ def poll_crm_contacts():
                     new_contact = CRMContact(
                         first_name=contact['first_name'],
                         last_name=contact['last_name'],
+                        do_not_contact=False,
                         company=contact['account']['name'] if contact.get('account') else None,
                         industry=contact['account']['industry'] if contact.get('account') else None,
                         company_url=contact['account']['website'] if contact.get('account') else None,
@@ -315,7 +316,7 @@ def poll_crm_contacts():
             print(f"Error getting contacts for client {client_id}: {e}")
             continue
 
-def get_crm_user_contacts_from_db(client_id: int) -> list[dict]:
+def get_crm_user_contacts_from_db(client_sdr_id: int) -> list[dict]:
     """Gets the contacts from the CRM
 
     Args:
@@ -324,7 +325,9 @@ def get_crm_user_contacts_from_db(client_id: int) -> list[dict]:
     Returns:
         list[dict]: A list of contacts from the CRM
     """
-    contacts: list[CRMContact] = db.session.query(CRMContact).filter_by(client_id=client_id).all()
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    contacts: list[CRMContact] = db.session.query(CRMContact).filter_by(client_id=client.id).all()
     return [contact.to_dict() for contact in contacts]
 
 

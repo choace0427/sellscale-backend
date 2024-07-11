@@ -44,6 +44,7 @@ class CRMContact(db.Model):
     company = db.Column(db.String, nullable=True)
     industry = db.Column(db.String, nullable=True)
     company_url = db.Column(db.String, nullable=True)
+    do_not_contact = db.Column(db.Boolean, nullable=True, default=False)
     email_addresses = db.Column(db.ARRAY(db.String), nullable=True)
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
 
@@ -53,6 +54,7 @@ class CRMContact(db.Model):
             "first_name": self.first_name,
             "last_name": self.last_name,
             "company": self.company,
+            "do_not_contact": self.do_not_contact,
             "industry": self.industry,
             "company_url": self.company_url,
             "email_addresses": self.email_addresses,
