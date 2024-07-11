@@ -96,9 +96,9 @@ def find_hunter_email_from_prospect_id(
     score = data["score"]
 
     # Verify the email
-    success, email, _score = verify_email(email)
-    if not success:
-        return None
+    # success, email, _score = verify_email(email)
+    # if not success:
+    #     return None
 
     p.email = email
     p.email_score = score
