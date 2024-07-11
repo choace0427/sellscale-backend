@@ -76,9 +76,6 @@ def find_hunter_email_from_prospect_id(
     client_sdr_id = p.client_sdr_id
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    if client_sdr.email_fetching_credits <= 0:
-        return None
-
     if not p.company_url or "linkedin.com/" in p.company_url:
         return None
 
