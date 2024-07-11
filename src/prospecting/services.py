@@ -1186,20 +1186,6 @@ def update_prospect_status_email(
             )
     # Send a slack message if the new status is active convo (responded)
     elif "ACTIVE_CONVO" in new_status.value:
-        if "ACTIVE_CONVO" not in old_status.value:  # First time response
-            create_engagement_feed_item(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
-                channel_type=ProspectChannels.EMAIL.value,
-                engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
-            )
-        else:  # Other responses
-            create_engagement_feed_item(
-                client_sdr_id=p.client_sdr_id,
-                prospect_id=p.id,
-                channel_type=ProspectChannels.EMAIL.value,
-                engagement_type=EngagementFeedType.RESPONDED.value,
-            )
         if not quietly:
             email_sent_subject = (
                 metadata.get("email_sent_subject") if metadata else None
@@ -1214,10 +1200,25 @@ def update_prospect_status_email(
                     "client_sdr_id": p.client_sdr_id,
                     "prospect_id": p.id,
                     "email_sent_subject": email_sent_subject,
-                    "email_sent_body": email_sent_body,
-                    "email_reply_body": email_reply_body,
+                    "email_sent_body": p.email_last_message_from_sdr if p.email_last_message_from_sdr else '[ Review in Sight ]',
+                    "email_reply_body": p.email_last_message_from_prospect if p.email_last_message_from_prospect else '[ Review in Sight ]',
                 },
             )
+        if "ACTIVE_CONVO" not in old_status.value:  # First time response
+            create_engagement_feed_item(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
+                channel_type=ProspectChannels.EMAIL.value,
+                engagement_type=EngagementFeedType.ACCEPTED_INVITE.value,
+            )
+        else:  # Other responses
+            create_engagement_feed_item(
+                client_sdr_id=p.client_sdr_id,
+                prospect_id=p.id,
+                channel_type=ProspectChannels.EMAIL.value,
+                engagement_type=EngagementFeedType.RESPONDED.value,
+            )
+        
     elif new_status == ProspectEmailOutreachStatus.DEMO_SET:  # Demo Set
         create_engagement_feed_item(
             client_sdr_id=p.client_sdr_id,
