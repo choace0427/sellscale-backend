@@ -574,6 +574,7 @@ def create_icp_route(
         filter_company_size=filter_company_size,
         segment_id=segment_id,
         send_slack=send_slack,
+        active=True
     )
 
     db.session.add(icp_route)
@@ -592,6 +593,7 @@ def update_icp_route(
     filter_company_size: Optional[str] = None,
     segment_id: Optional[int] = None,
     send_slack: Optional[bool] = None,
+    active: Optional[bool] = None,
 ):
     client_sd: ClientSDR = ClientSDR.query.get(client_sdr_id)
     icp_route = ICPRouting.query.get(icp_route_id)
@@ -615,7 +617,17 @@ def update_icp_route(
         icp_route.segment_id = segment_id
     if send_slack is not None:
         icp_route.send_slack = send_slack
+    if active is not None:
+        icp_route.active = active
 
     db.session.commit()
 
     return icp_route
+
+def get_all_icp_routes(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    icp_routes = ICPRouting.query.filter(
+        ICPRouting.client_id == client_sdr.client_id
+    ).all()
+
+    return icp_routes

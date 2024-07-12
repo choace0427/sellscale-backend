@@ -98,3 +98,5 @@ class ICPRouting(db.Model):
 
     segment_id = db.Column(db.Integer, db.ForeignKey("segment.id"), nullable=True)
     send_slack = db.Column(db.Boolean, nullable=False, default=False)
+
+    active = db.Column(db.Boolean, nullable=False, default=True)
