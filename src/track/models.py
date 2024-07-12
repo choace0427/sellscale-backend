@@ -83,6 +83,8 @@ class DeanonymizedContact(db.Model):
     
 class ICPRouting(db.Model):
     __tablename__ = "icp_routing"
+
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
     
     id = db.Column(db.Integer, primary_key=True)
     

@@ -1,4 +1,6 @@
 import datetime
+from typing import Optional
+from flask_socketio import send
 from regex import D
 import requests
 from sqlalchemy import or_
@@ -6,7 +8,7 @@ from src.client.models import ClientSDR, Client
 from src.company.models import Company
 from src.contacts.services import apollo_get_contacts
 from src.prospecting.models import Prospect
-from src.track.models import DeanonymizedContact, TrackEvent, TrackSource
+from src.track.models import DeanonymizedContact, TrackEvent, TrackSource, ICPRouting
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.hasher import generate_uuid
@@ -549,3 +551,71 @@ def deanonymized_contacts(client_sdr_id, days=14):
         })
 
     return formatted_result
+
+def create_icp_route(
+    client_sdr_id: int,
+    title: str,
+    description: str,
+    filter_company: str,
+    filter_title: str,
+    filter_location: str,
+    filter_company_size: str,
+    segment_id: Optional[int] = None,
+    send_slack: bool = False,
+):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    icp_route = ICPRouting(
+        client_id=client_sdr.client_id,
+        title=title,
+        description=description,
+        filter_company=filter_company,
+        filter_title=filter_title,
+        filter_location=filter_location,
+        filter_company_size=filter_company_size,
+        segment_id=segment_id,
+        send_slack=send_slack,
+    )
+
+    db.session.add(icp_route)
+    db.session.commit()
+
+    return icp_route
+
+def update_icp_route(
+    client_sdr_id: int,
+    icp_route_id: int,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    filter_company: Optional[str] = None,
+    filter_title: Optional[str] = None,
+    filter_location: Optional[str] = None,
+    filter_company_size: Optional[str] = None,
+    segment_id: Optional[int] = None,
+    send_slack: Optional[bool] = None,
+):
+    client_sd: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    icp_route = ICPRouting.query.get(icp_route_id)
+
+    if not icp_route or icp_route.client_id != client_sd.client_id:
+        return "ICP Route not found"
+
+    if title:
+        icp_route.title = title
+    if description:
+        icp_route.description = description
+    if filter_company:
+        icp_route.filter_company = filter_company
+    if filter_title:
+        icp_route.filter_title = filter_title
+    if filter_location:
+        icp_route.filter_location = filter_location
+    if filter_company_size:
+        icp_route.filter_company_size = filter_company_size
+    if segment_id:
+        icp_route.segment_id = segment_id
+    if send_slack is not None:
+        icp_route.send_slack = send_slack
+
+    db.session.commit()
+
+    return icp_route
