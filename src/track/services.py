@@ -315,7 +315,8 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         tag=None,
         prospect_id=None,
         location=location,
-        track_event_id=track_event.id
+        track_event_id=track_event.id,
+        company_size=company_size
     )
     db.session.add(deanon_contact)
     db.session.commit()

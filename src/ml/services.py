@@ -1250,7 +1250,7 @@ def get_perplexity_response(model: str, messages: list) -> str:
     import json
 
     url = "https://api.perplexity.ai/chat/completions"
-    payload = {"model": model, "messages": messages}
+    payload = {"model": model, "messages": messages, "return_citations": True, "return_images": True}
     headers = {
         "accept": "application/json",
         "content-type": "application/json",

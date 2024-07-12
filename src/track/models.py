@@ -59,6 +59,7 @@ class DeanonymizedContact(db.Model):
     tag = db.Column(db.String, nullable=True)
     prospect_id = db.Column(db.String, nullable=True)
     location = db.Column(db.String, nullable=True)
+    company_size = db.Column(db.String, nullable=True)
     track_event_id = db.Column(db.Integer, db.ForeignKey("track_event.id"))
 
     def __repr__(self):
@@ -77,4 +78,21 @@ class DeanonymizedContact(db.Model):
             "prospect_id": self.prospect_id,
             "location": self.location,
             "track_event_id": self.track_event_id,
+            "company_size": self.company_size,
         }
+    
+class ICPRouting(db.Model):
+    __tablename__ = "icp_routing"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    title = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=False)
+
+    filter_company = db.Column(db.String, nullable=False)
+    filter_title = db.Column(db.String, nullable=False)
+    filter_location = db.Column(db.String, nullable=False)
+    filter_company_size = db.Column(db.String, nullable=False)
+
+    segment_id = db.Column(db.Integer, db.ForeignKey("segment.id"), nullable=True)
+    send_slack = db.Column(db.Boolean, nullable=False, default=False)
