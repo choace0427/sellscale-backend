@@ -23,6 +23,9 @@ from src.message_generation.services import (
     send_sent_by_sellscale_notification,
 )
 
+from src.merge_crm.services import add_contact_to_db # for celery task registration
+
+
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)
 
 
