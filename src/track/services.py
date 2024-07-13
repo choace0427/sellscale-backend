@@ -672,6 +672,18 @@ def get_all_icp_routes(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     icp_routes = ICPRouting.query.filter(
         ICPRouting.client_id == client_sdr.client_id
-    ).all()
+    ).order_by(ICPRouting.created_at.desc()).all()
 
     return icp_routes
+
+def get_icp_route_details(client_sdr_id: int, icp_route_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    icp_route = ICPRouting.query.filter(
+        ICPRouting.client_id == client_sdr.client_id,
+        ICPRouting.id == icp_route_id
+    ).first()
+
+    if not icp_route:
+        return "ICP Route not found"
+
+    return icp_route.to_dict()

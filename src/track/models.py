@@ -100,3 +100,17 @@ class ICPRouting(db.Model):
     send_slack = db.Column(db.Boolean, nullable=False, default=False)
 
     active = db.Column(db.Boolean, nullable=False, default=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "filter_company": self.filter_company,
+            "filter_title": self.filter_title,
+            "filter_location": self.filter_location,
+            "filter_company_size": self.filter_company_size,
+            "segment_id": self.segment_id,
+            "send_slack": self.send_slack,
+            "active": self.active,
+        }

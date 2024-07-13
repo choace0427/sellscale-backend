@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
-from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes
+from src.track.models import ICPRouting
+from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes, get_icp_route_details
 from src.track.services import find_company_from_orginfo
 
 from src.utils.request_helpers import get_request_parameter
@@ -130,5 +131,16 @@ def update_icp_route_endpoint(client_sdr_id: int, icp_route_id: int):
 @TRACK_BLUEPRINT.route("/get_all_icp_routes", methods=["GET"])
 @require_user
 def get_all_icp_routes_endpoint(client_sdr_id: int):
-    icp_routes = get_all_icp_routes(client_sdr_id)
+    icp_routes: list[ICPRouting] = get_all_icp_routes(client_sdr_id)
     return jsonify([route.to_dict() for route in icp_routes]), 200
+
+
+@TRACK_BLUEPRINT.route("/get_icp_route_details/<int:icp_route_id>", methods=["GET"])
+@require_user
+def get_icp_route_details_endpoint(client_sdr_id: int, icp_route_id: int):
+    icp_route = get_icp_route_details(client_sdr_id, icp_route_id)
+    
+    if isinstance(icp_route, str):
+        return icp_route, 404
+
+    return jsonify(icp_route), 200
