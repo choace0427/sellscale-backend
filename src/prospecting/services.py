@@ -1668,7 +1668,7 @@ def add_prospect(
             return prospect_exists.id
 
         # No good reason to have duplicate. Return None
-        return None
+        return prospect_exists.id
 
     if linkedin_url and len(linkedin_url) > 0:
         linkedin_url = linkedin_url.replace("https://www.", "")
@@ -1744,6 +1744,8 @@ def add_prospect(
 
         # from src.client.services import remove_prospects_caught_by_filters
         # remove_prospects_caught_by_filters.delay(client_sdr_id=client_sdr_id)
+
+        return p_id
     else:
         return None
 

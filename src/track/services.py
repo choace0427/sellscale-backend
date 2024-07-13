@@ -1,10 +1,11 @@
 import datetime
+from http import client
 from typing import Optional
 from flask_socketio import send
 from regex import D
 import requests
 from sqlalchemy import or_
-from src.client.models import ClientSDR, Client
+from src.client.models import ClientArchetype, ClientSDR, Client
 from src.company.models import Company
 from src.contacts.services import apollo_get_contacts
 from src.prospecting.models import Prospect
@@ -139,6 +140,47 @@ def find_company_from_people_labs(track_event_id):
 def get_track_events():
     track_events = TrackEvent.query.order_by(TrackEvent.created_at.desc()).limit(5000).all()
     return track_events
+
+def process_deanonymized_contact(deanon_contact_id):
+    from src.prospecting.services import add_prospect
+
+    deanon_contact: DeanonymizedContact = DeanonymizedContact.query.get(deanon_contact_id)
+    track_event: TrackEvent = TrackEvent.query.get(deanon_contact.track_event_id)
+    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
+    client_id = track_source.client_id
+    random_unassigned_client_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_id == client_id,
+        ClientArchetype.is_unassigned_contact_archetype == True,
+    ).first()
+    archetype_id = random_unassigned_client_archetype.id
+    client_sdr_id = random_unassigned_client_archetype.client_sdr_id
+
+    current_company = deanon_contact.company
+    name = deanon_contact.name
+    stripped_linkedin_url = deanon_contact.linkedin
+    title = deanon_contact.title
+    twitter_url = ''
+    segment_id = None
+
+    prospect_id = add_prospect(
+        client_id=client_id,
+        archetype_id=archetype_id,
+        client_sdr_id=client_sdr_id,
+        company=current_company,
+        full_name=name,
+        linkedin_url=stripped_linkedin_url,
+        title=title,
+        twitter_url=twitter_url,
+        segment_id=segment_id,
+    )
+
+    deanon_contact.prospect_id = prospect_id
+    db.session.add(deanon_contact)
+    db.session.commit()
+
+    return prospect_id
+
+
 
 def deanonymize_track_events_for_people_labs(track_event_id):
     from src.contacts.services import apollo_org_search, save_apollo_query
@@ -386,6 +428,8 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 	],
         webhook_urls=webhook_urls,
     )
+
+    process_deanonymized_contact(deanon_contact.id)
 
     return contacts
 
