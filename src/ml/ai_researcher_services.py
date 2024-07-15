@@ -323,6 +323,7 @@ def run_ai_researcher_question(
             short_summary = "Could not find the information related to this query."
             relevancy_explanation = "Could not find the information related to this query."
             raw_response = "None."
+            response_citations = []
         else:
             is_yes_response = data["is_yes_response"]
             short_summary = data["cleaned_research"]
@@ -414,6 +415,7 @@ def run_ai_researcher_question(
             short_summary = "Could not find the information related to this query."
             relevancy_explanation = "Could not find the information related to this query."
             raw_response = "None."
+            response_citations = []
 
             ai_researcher_answer: AIResearcherAnswer = AIResearcherAnswer(
                 prospect_id=prospect_id,

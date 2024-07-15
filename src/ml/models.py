@@ -140,3 +140,133 @@ class AIVoice(db.Model):
             "client_sdr_created_by": self.client_sdr_created_by,
             "name": self.name,
         }
+
+
+# This class represents a Language Learning Model (LLM) entry in the database.
+# It includes methods to convert the entry to a dictionary and call the LLM to get a response based on the stored system and user prompts.
+
+
+# Example usage:
+# Retrieve or create an LLM entry
+# llm_entry = LLM(
+#     name="example_llm",
+#     system="You are a helpful assistant.",
+#     user="What is the weather today?",
+#     dependencies={"location": "New York"}
+# )
+
+# # Call the LLM to get a response
+# response = llm_entry()
+# print(response)
+
+
+from enum import Enum
+
+class LLMModel(Enum):
+    GPT_3_5_TURBO = "gpt-3.5-turbo"
+    GPT_4 = "gpt-4"
+    GPT_4O = "gpt-4o"
+    CLAUDE_OPUS = "claude-3-opus-20240229"
+    CLAUDE_SONNET = "claude-3-5-sonnet-20240620"
+
+class LLM(db.Model):
+    __tablename__ = "llm"
+
+    id = db.Column(db.Integer, primary_key=True)  # Unique identifier for each LLM entry
+    name = db.Column(db.String, nullable=False, unique=True)  # Name key for the LLM entry
+    system = db.Column(db.String, nullable=True)  # System attribute for the prompt, optional
+    user = db.Column(db.String, nullable=False)  # User attribute for the prompt
+    dependencies = db.Column(db.JSON, nullable=False, default={})  # Dependencies for the prompt
+    model = db.Column(db.String, nullable=False, default=LLMModel.GPT_4O.value)  # Model to use for the LLM
+    max_tokens = db.Column(db.Integer, nullable=False, default=100)  # Max tokens for the response
+
+    def __init__(self, name, user=None, dependencies=None, system=None, model=None, max_tokens=None):
+        existing_entry = LLM.query.filter_by(name=name).first()
+        if existing_entry:
+            if dependencies and existing_entry.dependencies.keys() == dependencies.keys():
+                # Use the existing entry if dependencies match
+                self.id = existing_entry.id
+                self.name = existing_entry.name
+                self.system = existing_entry.system if system is None else system
+                self.user = existing_entry.user if user is None else user
+                self.dependencies = existing_entry.dependencies
+                self.model = existing_entry.model if model is None else model.value
+                self.max_tokens = existing_entry.max_tokens if max_tokens is None else max_tokens
+
+                # Ensure all parameters are set on the object
+                system = self.system if system is None else system
+                user = self.user if user is None else user
+                dependencies = self.dependencies if dependencies is None else dependencies
+                model = self.model if model is None else model.value
+                max_tokens = self.max_tokens if max_tokens is None else max_tokens
+            else:
+                if dependencies and existing_entry.dependencies != dependencies:
+                    print(f"Dependencies have changed for LLM entry with name '{name}'. Re-setting the object.")
+                    existing_entry.name = name
+                    existing_entry.system = system
+                    existing_entry.user = user
+                    existing_entry.dependencies = dependencies
+                    existing_entry.model = model.value if model else existing_entry.model
+                    existing_entry.max_tokens = max_tokens if max_tokens else existing_entry.max_tokens
+                    db.session.commit()
+                self.id = existing_entry.id
+                self.name = existing_entry.name
+                self.system = existing_entry.system
+                self.user = existing_entry.user
+                self.dependencies = existing_entry.dependencies
+                self.model = existing_entry.model
+                self.max_tokens = existing_entry.max_tokens
+        else:
+            self.name = name
+            self.system = system
+            self.user = user
+            self.dependencies = dependencies or {}
+            self.model = model.value if model else LLMModel.GPT_3_5_TURBO.value
+            self.max_tokens = max_tokens if max_tokens else 100
+            db.session.add(self)
+            db.session.commit()
+        
+        if user and dependencies:
+            # Inject dependencies into user and system strings if wrapped in {{}}
+            for key, value in dependencies.items():
+                placeholder = f"{{{{{key}}}}}"
+                if self.user:
+                    self.user = self.user.replace(placeholder, value)
+                if self.system:
+                    self.system = self.system.replace(placeholder, value)
+
+            # Call the LLM to get a response based on the stored system and user prompts.
+            from src.ml.services import wrapped_chat_gpt_completion
+
+            messages = [{"role": "user", "content": self.user}]
+            if self.system:
+                messages.insert(0, {"role": "system", "content": self.system})
+
+            self.response = wrapped_chat_gpt_completion(
+                messages=messages,
+                max_tokens=self.max_tokens,
+                model=self.model,
+            )
+        else:
+            self.response = None
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "system": self.system,
+            "user": self.user,
+            "dependencies": self.dependencies,
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "response": self.response,
+        }
+
+    def __call__(self):
+        """
+        Return the response from the LLM.
+        
+        Returns:
+            str: The response from the LLM.
+        """
+        return self.response
