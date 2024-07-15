@@ -20,8 +20,8 @@ class Strategies(db.Model):
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
 
-    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
-    created_by = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
 
     def to_dict(self, deep_get: bool = False):
         retval = {
