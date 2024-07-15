@@ -27,11 +27,21 @@ def post_create_strategy(client_sdr_id: int):
         "client_archetype_ids", request, json=True, required=True, parameter_type=list
     )
 
+    start_date = get_request_parameter(
+        "start_date", request, json=True, required=True, parameter_type=str
+    )
+
+    end_date = get_request_parameter(
+        "end_date", request, json=True, required=True, parameter_type=str
+    )
+
     strategy = create_strategy(
         client_sdr_id=client_sdr_id,
         name=name,
         description=description,
         client_archetype_ids=client_archetype_ids,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     return jsonify(strategy), 201

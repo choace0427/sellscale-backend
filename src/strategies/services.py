@@ -9,6 +9,8 @@ def create_strategy(
     name: str,
     description: str,
     client_archetype_ids: list[int],
+    start_date: str,
+    end_date: str,
 ):
     """
     Create a strategy.
@@ -20,6 +22,8 @@ def create_strategy(
         status=StrategyStatuses.IN_PROGRESS,
         created_by=client_sdr_id,
         client_id=client_sdr.client_id,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     db.session.add(strategy)

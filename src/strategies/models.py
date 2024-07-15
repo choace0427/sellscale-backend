@@ -17,6 +17,8 @@ class Strategies(db.Model):
     description = db.Column(db.String, nullable=False)
     tagged_campaigns = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(StrategyStatuses), nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=False)
@@ -30,6 +32,8 @@ class Strategies(db.Model):
             "status": self.status.value,
             "client_id": self.client_id,
             "created_by": self.created_by,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
         }
 
         if deep_get:
