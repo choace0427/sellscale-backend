@@ -89,6 +89,7 @@ class AIResearcherAnswer(db.Model):
     short_summary = db.Column(db.String, nullable=False)
     raw_response = db.Column(db.String, nullable=False)
     relevancy_explanation = db.Column(db.String, nullable=True)
+    citations = db.Column(db.ARRAY(db.String), nullable=True)
 
     def to_dict(self, deep_get: bool = False):
         question: AIResearcherQuestion = AIResearcherQuestion.query.get(
@@ -104,6 +105,7 @@ class AIResearcherAnswer(db.Model):
             "raw_response": self.raw_response,
             "question": question.to_dict() if deep_get else None,
             "relevancy_explanation": self.relevancy_explanation,
+            "citations": self.citations,
         }
 
 class FewShot(db.Model):
