@@ -27,6 +27,7 @@ from src.email_sequencing.services import (
     modify_email_sequence_step,
     get_email_subject_line_template,
     create_email_subject_line_template,
+    generate_email_subject_lines,
     modify_email_subject_line_template,
     modify_email_template_pool_item,
     deactivate_email_subject_line_template,
@@ -425,6 +426,63 @@ def patch_email_subject_line_template(client_sdr_id: int):
         ),
         400,
     )
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line/generate", methods=["POST"])
+@require_user
+def post_generate_email_subject_lines(client_sdr_id: int):
+    """Generates email subject lines based on the given archetype"""
+    data = request.get_json()
+    archetype_id = data.get("archetype_id")
+    try:
+        result = generate_email_subject_lines(client_sdr_id, archetype_id)
+    except Exception as e:
+        return (
+            jsonify({"status": "error", "message": f"Error generating subject lines: {str(e)}"}),
+            500,
+        )
+
+    return jsonify({"status": "success", "data": result}), 200
+
+
+@EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line/delete", methods=["DELETE"])
+@require_user
+def delete_email_subject_line_template(client_sdr_id: int):
+    """Deletes an email subject line template"""
+    email_subject_line_template_id = get_request_parameter(
+        "email_subject_line_template_id", request, json=True, required=True
+    )
+
+    subject_line_template: EmailSubjectLineTemplate = (
+        EmailSubjectLineTemplate.query.get(email_subject_line_template_id)
+    )
+    if not subject_line_template:
+        return (
+            jsonify(
+                {"status": "error", "message": "Email subject line template not found."}
+            ),
+            404,
+        )
+    elif subject_line_template.client_sdr_id != client_sdr_id:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "This email subject line template does not belong to you.",
+                }
+            ),
+            401,
+        )
+
+    db.session.delete(subject_line_template)
+    db.session.commit()
+
+    return (
+        jsonify(
+            {"status": "success", "message": "Email subject line template deleted."}
+        ),
+        200,
+    )
+
 
 
 @EMAIL_SEQUENCING_BLUEPRINT.route("/subject_line/deactivate", methods=["POST"])

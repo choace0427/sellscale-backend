@@ -1,12 +1,13 @@
 import datetime
 import json
 import re
+
 from model_import import (
     EmailSequenceStep,
     EmailSubjectLineTemplate,
 )
 from app import db
-from src.client.models import ClientArchetype, ClientAssets
+from src.client.models import ClientArchetype, ClientAssets, ClientSDR, Client
 from src.email_outbound.models import ProspectEmail
 from src.email_sequencing.models import (
     EmailGraderEntry,
@@ -15,6 +16,7 @@ from src.email_sequencing.models import (
     EmailTemplateType,
 )
 import yaml
+from src.ml.services import get_text_generation
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional, Union
 from src.ml.openai_wrappers import (
@@ -464,6 +466,100 @@ def get_email_subject_line_template(
 
     return [template.to_dict() for template in templates]
 
+def generate_email_subject_lines(client_sdr_id, archetype_id) -> list[str]:
+    """Generates email subject lines based on the given archetype ID and associated body templates
+
+    Args:
+        archetype_id (int): The id of the archetype
+
+    Returns:
+        list[str]: A list of generated email subject lines
+    """
+    if not archetype_id:
+        return []
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+
+    if not archetype:
+        return []
+
+    # Get existing email body templates for the client archetype
+    email_templates: list[EmailSequenceStep] = EmailSequenceStep.query.filter(
+        EmailSequenceStep.client_archetype_id == archetype_id,
+        EmailSequenceStep.active == True
+    ).all()
+
+    if not email_templates:
+        return []
+
+    client_description = client.description
+    company_name = client.company
+
+    # Combine the body templates into a single string
+    body_content = " ".join([template.template for template in email_templates])
+
+    messages = [
+        {
+            "role": "system",
+            "content": f"""
+            You are an email assistant that will help me write smart and effective email
+            subject lines for a sales email. The company sending an email is called {company_name}. 
+            {company_name} is {client_description}. 
+            Here are some email body contents to consider: {body_content}
+            You will come up with a few different styles of email subject lines.
+
+            Style: Brevity-based
+            Description: just be shorter - no one has time to read. Good subject lines are at most 4 words, short, informal, and maybe have 2 of them lowercase.
+
+            Style: Offer-based
+            Description: Provide a unique out of this world offer. Good subject lines are at most 4 words, short, informal, and maybe have 2 of them lowercase.
+
+            Style: Pain-based
+            Description: write a narrative extremely emotionally about a problem. Good subject lines are at most 4 words, short, informal, and maybe have 2 of them lowercase.
+
+            Please return the style as at least the first three (pain, shorter, offer). You can provide 2 other wildcards.
+            Generate at most 5 subject lines.
+
+            do not make these gimicky. 
+            Deliver the response as an array, where each subject line is a string in the array.
+            Go!
+            """,
+        }
+    ]
+
+    def generate_subject_lines_with_retry(messages, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                response = get_text_generation(
+                    messages=messages,
+                    model="gpt-4o",
+                    max_tokens=240,
+                    type="MISC_CLASSIFY",
+                )
+                print(f"Response: {response}")
+                result = json.loads(response)
+                print('result is', result)
+                if isinstance(result, list):
+                    return result
+            except Exception as e:
+                print(f"Error generating email subject lines (Attempt {attempt + 1}): {e}")
+        return []
+
+    subject_lines = generate_subject_lines_with_retry(messages)
+    created_subject_lines = []
+    for subject_line in subject_lines:
+        template_id = create_email_subject_line_template(
+            client_sdr_id=client_sdr_id,
+            client_archetype_id=archetype_id,
+            subject_line=subject_line,
+            active=True,
+            sellscale_generated=True,
+        )
+        template = EmailSubjectLineTemplate.query.get(template_id)
+        created_subject_lines.append(template.to_dict())
+    return created_subject_lines
 
 def create_email_subject_line_template(
     client_sdr_id: int,
