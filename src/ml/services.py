@@ -1242,10 +1242,10 @@ def get_perplexity_research(prospect_id: int, client_sdr_id: int) -> str:
     ]
 
     response = get_perplexity_response("llama-3-sonar-large-32k-online", messages)
-    return response
+    return response["content"]
 
 
-def get_perplexity_response(model: str, messages: list) -> str:
+def get_perplexity_response(model: str, messages: list) -> dict:
     import requests
     import json
 
@@ -1260,9 +1260,13 @@ def get_perplexity_response(model: str, messages: list) -> str:
     response = requests.post(url, json=payload, headers=headers)
     print(response.text)
     x = json.loads(response.text)
-    response = x["choices"][0]["message"]["content"]
+    result = {
+        "content": x["choices"][0]["message"]["content"],
+        "citations": x.get("citations", []),
+        "images": x.get("images", [])
+    }
 
-    return response
+    return result
 
 
 def simple_perplexity_response(model: str, prompt: str):
@@ -1272,7 +1276,7 @@ def simple_perplexity_response(model: str, prompt: str):
     messages = [{"role": "user", "content": prompt}]
 
     response = get_perplexity_response(model, messages)
-    return response
+    return response["content"], response["citations"], response["images"]
 
 
 def answer_question_about_prospect(
@@ -1300,7 +1304,7 @@ def answer_question_about_prospect(
     print("Step 1: Answering question")
     print(prompt)
 
-    response = simple_perplexity_response("llama-3-sonar-large-32k-online", prompt)
+    response, response_citations, response_images = simple_perplexity_response("llama-3-sonar-large-32k-online", prompt)
     print("\nStep 2: Raw response")
     print(response)
 
@@ -1332,11 +1336,13 @@ def answer_question_about_prospect(
             "raw_response": response,
             "ai_response": validate_with_gpt.get("relevancy_explanation"),
             "status": validate_with_gpt.get("is_yes_response"),
-            "room_id": room_id
+            "room_id": room_id,
+            "citations": response_citations,
+            "images": response_images
         }
         send_socket_message('stream-answers', formatted_data, room_id)
 
-    return True, response, validate_with_gpt
+    return True, response, validate_with_gpt, response_citations, response_images
 
 def get_template_suggestions(archetype_id: int, template_content: str ):
     '''

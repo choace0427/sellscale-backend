@@ -377,7 +377,7 @@ def post_answer_perplexity_question(client_sdr_id: int):
         "room_id", request, json=True, required=False, parameter_type=str
     )
 
-    success, answer, reasoning = answer_question_about_prospect(
+    success, answer, reasoning, response_citations, response_images = answer_question_about_prospect(
         client_sdr_id=client_sdr_id,
         prospect_id=prospect_id,
         question=question,

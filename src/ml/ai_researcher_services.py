@@ -309,7 +309,7 @@ def run_ai_researcher_question(
 
     if question.type == "QUESTION":
         print("Running question type question", "with data", question.key, question.relevancy, "for prospect", prospect_id)
-        success, raw_response, data = answer_question_about_prospect(
+        success, raw_response, data, response_citations, response_images = answer_question_about_prospect(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             question=question.key,
@@ -335,7 +335,8 @@ def run_ai_researcher_question(
             is_yes_response=is_yes_response,
             short_summary=short_summary,
             raw_response=raw_response,
-            relevancy_explanation=relevancy_explanation
+            relevancy_explanation=relevancy_explanation,
+            citations=response_citations
         )
         db.session.add(ai_researcher_answer)
         db.session.commit()
@@ -399,7 +400,7 @@ def run_ai_researcher_question(
         # Step 2: extract key points from the response using GPT-4o
         # step 3: for each key point, generate a short summary and relevancy explanation and save it as an answer
 
-        success, raw_response, data = answer_question_about_prospect(
+        success, raw_response, data, response_citations, response_images = answer_question_about_prospect(
             client_sdr_id=client_sdr_id,
             prospect_id=prospect_id,
             question=question.key,
@@ -420,7 +421,8 @@ def run_ai_researcher_question(
                 is_yes_response=is_yes_response,
                 short_summary=short_summary,
                 raw_response=raw_response,
-                relevancy_explanation=relevancy_explanation
+                relevancy_explanation=relevancy_explanation,
+                citations=response_citations
             )
             db.session.add(ai_researcher_answer)
             db.session.commit()
