@@ -17,8 +17,8 @@ class Strategies(db.Model):
     description = db.Column(db.String, nullable=False)
     tagged_campaigns = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(StrategyStatuses), nullable=False)
-    start_date = db.Column(db.DateTime, nullable=False)
-    end_date = db.Column(db.DateTime, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
 
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=True)
     created_by = db.Column(db.Integer, db.ForeignKey("client_sdr.id"), nullable=True)
