@@ -180,10 +180,10 @@ class LLM(db.Model):
     model = db.Column(db.String, nullable=False, default=LLMModel.GPT_4O.value)  # Model to use for the LLM
     max_tokens = db.Column(db.Integer, nullable=False, default=100)  # Max tokens for the response
 
-    def __init__(self, name, user=None, dependencies=None, system=None, model=None, max_tokens=None):
+    def __init__(self, name, dependencies, user=None, system=None, model=None, max_tokens=None):
         existing_entry = LLM.query.filter_by(name=name).first()
         if existing_entry:
-            if dependencies and existing_entry.dependencies.keys() == dependencies.keys():
+            if existing_entry.dependencies.keys() == dependencies.keys():
                 # Use the existing entry if dependencies match
                 self.id = existing_entry.id
                 self.name = existing_entry.name
@@ -200,7 +200,7 @@ class LLM(db.Model):
                 model = self.model if model is None else model.value
                 max_tokens = self.max_tokens if max_tokens is None else max_tokens
             else:
-                if dependencies and existing_entry.dependencies != dependencies:
+                if existing_entry.dependencies != dependencies:
                     print(f"Dependencies have changed for LLM entry with name '{name}'. Re-setting the object.")
                     existing_entry.name = name
                     existing_entry.system = system
@@ -220,35 +220,36 @@ class LLM(db.Model):
             self.name = name
             self.system = system
             self.user = user
-            self.dependencies = dependencies or {}
+            self.dependencies = dependencies
             self.model = model.value if model else LLMModel.GPT_3_5_TURBO.value
             self.max_tokens = max_tokens if max_tokens else 100
             db.session.add(self)
             db.session.commit()
         
-        if user and dependencies:
-            # Inject dependencies into user and system strings if wrapped in {{}}
-            for key, value in dependencies.items():
-                placeholder = f"{{{{{key}}}}}"
-                if self.user:
-                    self.user = self.user.replace(placeholder, value)
-                if self.system:
-                    self.system = self.system.replace(placeholder, value)
+        # Call the LLM to get a response based on the stored system and user prompts.
+        from src.ml.services import wrapped_chat_gpt_completion
 
-            # Call the LLM to get a response based on the stored system and user prompts.
-            from src.ml.services import wrapped_chat_gpt_completion
+        # Inject dependencies into user and system strings if wrapped in {{}}
+        user_with_dependencies = self.user
+        system_with_dependencies = self.system
+        for key, value in dependencies.items():
+            placeholder = f"{{{{{key}}}}}"
+            if user_with_dependencies:
+                user_with_dependencies = user_with_dependencies.replace(placeholder, value)
+            if system_with_dependencies:
+                system_with_dependencies = system_with_dependencies.replace(placeholder, value)
+        
+        print('params for llm are', user_with_dependencies, system_with_dependencies, self.dependencies)
 
-            messages = [{"role": "user", "content": self.user}]
-            if self.system:
-                messages.insert(0, {"role": "system", "content": self.system})
+        messages = [{"role": "user", "content": user_with_dependencies}]
+        if system_with_dependencies:
+            messages.insert(0, {"role": "system", "content": system_with_dependencies})
 
-            self.response = wrapped_chat_gpt_completion(
-                messages=messages,
-                max_tokens=self.max_tokens,
-                model=self.model,
-            )
-        else:
-            self.response = None
+        self.response = wrapped_chat_gpt_completion(
+            messages=messages,
+            max_tokens=self.max_tokens,
+            model=self.model,
+        )
 
     def to_dict(self):
         return {

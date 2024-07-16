@@ -16,6 +16,7 @@ from src.email_sequencing.models import (
     EmailTemplateType,
 )
 import yaml
+from src.ml.models import LLM, LLMModel
 from src.ml.services import get_text_generation
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from typing import List, Optional, Union
@@ -500,54 +501,34 @@ def generate_email_subject_lines(client_sdr_id, archetype_id) -> list[str]:
     # Combine the body templates into a single string
     body_content = " ".join([template.template for template in email_templates])
 
-    messages = [
-        {
-            "role": "system",
-            "content": f"""
-            You are an email assistant that will help me write smart and effective email
-            subject lines for a sales email. The company sending an email is called {company_name}. 
-            {company_name} is {client_description}. 
-            Here are some email body contents to consider: {body_content}
-            You will come up with a few different styles of email subject lines.
-
-            Style: Brevity-based
-            Description: just be shorter - no one has time to read. Good subject lines are at most 4 words, short, informal, and maybe have 2 of them lowercase.
-
-            Style: Offer-based
-            Description: Provide a unique out of this world offer. Good subject lines are at most 4 words, short, informal, and maybe have 2 of them lowercase.
-
-            Style: Pain-based
-            Description: write a narrative extremely emotionally about a problem. Good subject lines are at most 4 words, short, informal, and maybe have 2 of them lowercase.
-
-            Please return the style as at least the first three (pain, shorter, offer). You can provide 2 other wildcards.
-            Generate at most 5 subject lines.
-
-            do not make these gimicky. 
-            Deliver the response as an array, where each subject line is a string in the array.
-            Go!
-            """,
+    llm = LLM(
+        name="generate_email_subject_lines",
+        dependencies={
+            "company_name": company_name,
+            "client_description": client_description,
+            "body_content": body_content
         }
-    ]
+    )
 
-    def generate_subject_lines_with_retry(messages, max_retries=3):
+    def generate_subject_lines_with_retry(llm, max_retries=3):
         for attempt in range(max_retries):
             try:
-                response = get_text_generation(
-                    messages=messages,
-                    model="gpt-4o",
-                    max_tokens=240,
-                    type="MISC_CLASSIFY",
-                )
-                print(f"Response: {response}")
+                response = llm()
+                start_idx = response.find('[')
+                end_idx = response.rfind(']') + 1
+                if start_idx != -1 and end_idx != -1:
+                    response = response[start_idx:end_idx]
+                
                 result = json.loads(response)
-                print('result is', result)
                 if isinstance(result, list):
                     return result
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error generating email subject lines (Attempt {attempt + 1}): {e}")
             except Exception as e:
                 print(f"Error generating email subject lines (Attempt {attempt + 1}): {e}")
         return []
 
-    subject_lines = generate_subject_lines_with_retry(messages)
+    subject_lines = generate_subject_lines_with_retry(llm)
     created_subject_lines = []
     for subject_line in subject_lines:
         template_id = create_email_subject_line_template(
