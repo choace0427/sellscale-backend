@@ -53,9 +53,7 @@ def create_segment(client_sdr_id: int):
         "segment_title", request, json=True, required=True
     )
     filters = get_request_parameter("filters", request, json=True, required=True)
-    parent_segment_id = get_request_parameter(
-        "parent_segment_id", request, json=True, required=False
-    )
+
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=False
     )
@@ -67,7 +65,6 @@ def create_segment(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         segment_title=segment_title,
         filters=filters,
-        parent_segment_id=parent_segment_id,
         campaign_id=campaign_id,
         saved_apollo_query_id=saved_apollo_query_id
     )

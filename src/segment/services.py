@@ -23,7 +23,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 
 def create_new_segment(
-    client_sdr_id: int, segment_title: str, filters: dict, parent_segment_id: int = None, campaign_id: int = None, saved_apollo_query_id: Optional[int] = None
+    client_sdr_id: int, segment_title: str, filters: dict, campaign_id: int = None, saved_apollo_query_id: Optional[int] = None, attached_segment_tag_ids = [],
 ) -> Segment or None:
     existing_segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, segment_title=segment_title
@@ -31,18 +31,15 @@ def create_new_segment(
     if existing_segment:
         return None
 
-    parent_segment: Segment = Segment.query.get(parent_segment_id)
     if saved_apollo_query_id:
         saved_apollo_query_id = saved_apollo_query_id
-    elif parent_segment:
-        saved_apollo_query_id = parent_segment.saved_apollo_query_id
 
     new_segment = Segment(
         client_sdr_id=client_sdr_id,
         segment_title=segment_title,
         filters=filters,
-        parent_segment_id=parent_segment_id,
         saved_apollo_query_id=saved_apollo_query_id,
+        attached_segment_tag_ids=attached_segment_tag_ids,
     )
 
     db.session.add(new_segment)
@@ -55,6 +52,7 @@ def create_new_segment(
             segment_title=segment_title,
             filters=filters,
             client_archetype_id=campaign_id,
+            attached_segment_tag_ids=attached_segment_tag_ids,
         )
 
     return new_segment
@@ -181,6 +179,7 @@ def update_segment(
     segment_title: str,
     filters: dict,
     client_archetype_id: Optional[int] = None,
+    attached_segment_tag_ids: Optional[list[int]] = None,
 ) -> Segment:
     segment: Segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, id=segment_id
@@ -197,6 +196,9 @@ def update_segment(
 
     if client_archetype_id:
         segment.client_archetype_id = client_archetype_id
+
+    if attached_segment_tag_ids:
+        segment.attached_segment_tag_ids = attached_segment_tag_ids
 
     db.session.add(segment)
     db.session.commit()
@@ -999,24 +1001,37 @@ def create_n_sub_batches_for_segment(segment_id: int, num_batches: int):
     ).all()
 
     num_prospects = len(unused_prospects)
-    num_prospects_per_batch = num_prospects // num_batches
+    num_prospects_per_batch = num_prospects // (num_batches + 1)
 
-    for i in range(num_batches):
+    current_count = 1
+
+    for i in range(num_batches + 1):
         start_index = i * num_prospects_per_batch
         end_index = (i + 1) * num_prospects_per_batch
-        if i == num_batches - 1:
+        if i == num_batches:
             end_index = num_prospects
         prospects_in_batch = unused_prospects[start_index:end_index]
         prospect_ids = [prospect.id for prospect in prospects_in_batch]
 
-        new_segment = create_new_segment(
-            client_sdr_id=original_segment.client_sdr_id,
-            segment_title=f"Batch {i + 1}: {original_segment.segment_title}",
-            filters=original_segment.filters,
-            parent_segment_id=segment_id,
-        )
+        print(prospect_ids, flush=True)
 
-        add_prospects_to_segment(prospect_ids, new_segment.id)
+        if i != 0:
+            new_title = f"Batch {current_count}: {original_segment.segment_title}"
+
+            while Segment.query.filter_by(segment_title=new_title).first() is not None:
+                current_count += 1
+                new_title = f"Batch {current_count}: {original_segment.segment_title}"
+
+            new_segment = create_new_segment(
+                client_sdr_id=original_segment.client_sdr_id,
+                segment_title=new_title,
+                filters=original_segment.filters,
+                attached_segment_tag_ids=original_segment.attached_segment_tag_ids,
+            )
+
+            add_prospects_to_segment(prospect_ids, new_segment.id)
+        else:
+            add_prospects_to_segment(prospect_ids, segment_id)
 
     return True, "Subsegments created"
 
