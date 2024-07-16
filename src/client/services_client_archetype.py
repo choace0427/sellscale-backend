@@ -1541,6 +1541,7 @@ def is_archetype_uploading_contacts(client_archetype_id: int):
                 :upload_not_started,
                 :upload_queued
             )
+            AND created_at >= NOW() - INTERVAL '12 hours'
         )
     """
     result = db.session.execute(upload_history_query, {
