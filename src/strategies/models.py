@@ -3,6 +3,7 @@ from enum import Enum
 from typing import TypedDict
 
 class StrategyStatuses(Enum):
+    NOT_STARTED = "NOT_STARTED"
     FAILED = "FAILED"
     IN_PROGRESS = "IN_PROGRESS"
     SUCCESS = "SUCCESS"

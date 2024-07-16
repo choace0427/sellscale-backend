@@ -19,7 +19,7 @@ def create_strategy(
     strategy = Strategies(
         title=name,
         description=description,
-        status=StrategyStatuses.IN_PROGRESS,
+        status=StrategyStatuses.NOT_STARTED,
         created_by=client_sdr_id,
         client_id=client_sdr.client_id,
         start_date=start_date,
