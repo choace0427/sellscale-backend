@@ -68,6 +68,14 @@ def patch_update_strategy(client_sdr_id: int, strategy_id: int):
         "new_archetypes", request, json=True, required=True, parameter_type=list
     )
 
+    start_date = get_request_parameter(
+        "start_date", request, json=True, required=True, parameter_type=str
+    )
+
+    end_date = get_request_parameter(
+        "end_date", request, json=True, required=True, parameter_type=str
+    )
+
     strategy = edit_strategy(
         client_sdr_id=client_sdr_id,
         strategy_id=strategy_id,
@@ -75,6 +83,8 @@ def patch_update_strategy(client_sdr_id: int, strategy_id: int):
         new_description=new_description,
         new_status=new_status,
         new_archetypes=new_archetypes,
+        new_start_date=start_date,
+        new_end_date=end_date,
     )
 
     return jsonify(strategy), 200

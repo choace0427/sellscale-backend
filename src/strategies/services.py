@@ -107,6 +107,8 @@ def edit_strategy(
     new_description: Optional[str] = None,
     new_status: Optional[StrategyStatuses] = None,
     new_archetypes: Optional[list[int]] = None,
+    new_start_date: Optional[str] = None,
+    new_end_date: Optional[str] = None,
 ):
     """
     Edit a strategy.
@@ -123,6 +125,10 @@ def edit_strategy(
         strategy.description = new_description
     if new_status:
         strategy.status = new_status
+    if new_start_date:
+        strategy.start_date = new_start_date
+    if new_end_date:
+        strategy.end_date = new_end_date
 
     db.session.add(strategy)
     db.session.commit()
@@ -182,6 +188,8 @@ def get_all_strategies(client_sdr_id: int):
         stragegies.description,
         stragegies.created_at,
         stragegies.status,
+        stragegies.start_date,
+        stragegies.end_date,
         array_agg(distinct 
             concat(client_archetype.id, '#-#-#', client_archetype.emoji, ' ', client_archetype.archetype)
         ) archetypes,
@@ -212,7 +220,8 @@ def get_all_strategies(client_sdr_id: int):
     where
         stragegies.client_id = {client_id}
     group by 
-        1,2,3,4,5,6,7,8
+        1,2,3,4,5,6,7,8, 9, 10
+    order by stragegies.start_date
     """.format(client_id=client_id)
 
     strategies = db.engine.execute(query)
@@ -225,6 +234,8 @@ def get_all_strategies(client_sdr_id: int):
             "sdr_img_url": strategy.img_url,
             "title": strategy.title,
             "description": strategy.description,
+            "start_date": strategy.start_date,
+            "end_date": strategy.end_date,
             "created_at": strategy.created_at,
             "status": strategy.status,
             "archetypes": [
