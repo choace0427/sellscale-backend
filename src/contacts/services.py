@@ -453,8 +453,8 @@ def apollo_get_organizations(
 
         chatgpt_response = chatgpt_response.replace("`", "").replace("json", "")
 
-        data = json.loads(chatgpt_response)
-        stripped_names = data.get("company_names", [])
+        chatgpt_json = json.loads(chatgpt_response)
+        stripped_names = chatgpt_json.get("company_names", [])
 
         if not company_names:
             company_names = stripped_names
