@@ -285,3 +285,40 @@ def get_template_analytics(client_sdr_id: int):
 def get_overview_analytics(client_sdr_id: int):
     data = get_overview_pipeline_activity(client_sdr_id)
     return jsonify({"message": "Success", "data": data}), 200
+
+@ANALYTICS_BLUEPRINT.route("/inbox_performance", methods=["GET"])
+@require_user
+def get_inbox_performance(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return jsonify({"message": "Client SDR not found"}), 404
+    
+    from app import db;
+
+    client_id = client_sdr.client_id
+
+    query = """
+    with d as (
+        select 
+            prospect.id,
+            max(prospect_status_records.created_at) filter (where to_status = 'ACTIVE_CONVO_REVIVAL') max_revival,
+            max(prospect_status_records.created_at) filter (where cast(to_status as varchar) ilike 'ACTIVE_CONVO_%') max_active_convo
+        from prospect
+            join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+        where prospect.client_id = :client_id
+        group by 1
+        having 
+            max(prospect_status_records.created_at) filter (where to_status = 'ACTIVE_CONVO_REVIVAL') is not null and
+            max(prospect_status_records.created_at) filter (where cast(to_status as varchar) ilike 'ACTIVE_CONVO_%') is not null
+    )
+    select 
+        count(distinct id) num_revivals_attempted,
+        count(distinct id) filter (where max_active_convo > max_revival) actual_revivals
+    from d;
+    """
+
+    result = db.session.execute(query, {'client_id': client_id}).fetchone()
+    if not result:
+        return jsonify({"message": "No data found"}), 404
+
+    return jsonify({"message": "Success", "data": dict(result)}), 200
