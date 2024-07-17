@@ -56,7 +56,10 @@ class DeanonymizedContact(db.Model):
     visited_date = db.Column(db.DateTime, nullable=False)
     linkedin = db.Column(db.String, nullable=False)
     email = db.Column(db.String, nullable=True)
+
     tag = db.Column(db.String, nullable=True)
+    icp_route_id = db.Column(db.Integer, db.ForeignKey("icp_routing.id"))
+
     prospect_id = db.Column(db.String, nullable=True)
     location = db.Column(db.String, nullable=True)
     company_size = db.Column(db.String, nullable=True)
@@ -79,6 +82,7 @@ class DeanonymizedContact(db.Model):
             "location": self.location,
             "track_event_id": self.track_event_id,
             "company_size": self.company_size,
+            "icp_route_id": self.icp_route_id,
         }
     
 class ICPRouting(db.Model):
