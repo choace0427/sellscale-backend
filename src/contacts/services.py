@@ -10,6 +10,7 @@ from src.company.services import find_company_name_from_url
 from src.contacts.models import SavedApolloQuery
 
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.ml.services import simple_perplexity_response
 from src.prospecting.controllers import add_prospect_from_csv_payload
 from src.prospecting.models import ProspectUploadSource
 from src.utils.abstract.attr_utils import deep_get
@@ -419,6 +420,7 @@ def apollo_get_organizations(
     client_sdr_id: int,
     company_names: list[str] = [],
     company_urls: list[str] = [],
+    company_prompt: str = "",
 ) -> list:
     """A near-pass-through function which will collect organization objects from Apollo based on the company names provided.
 
@@ -431,6 +433,27 @@ def apollo_get_organizations(
     """
     # Get organizations from company names
     data: list = []
+
+    if company_prompt:
+        perplexity_response = simple_perplexity_response("llama-3-sonar-large-32k-online", company_prompt)[0]
+        chatgpt_response = wrapped_chat_gpt_completion(messages=[
+            {
+                "role": "system",
+                "content": "You will be given a prompt containing a list of current companies. I want you to extract "
+                           "it and return it in a comma-separated list of string."},
+            {
+                "role": "user",
+                "content": perplexity_response
+            }])
+
+        names = chatgpt_response.split(",")
+        stripped_names = [name.strip() for name in names]
+
+        if not company_names:
+            company_names = stripped_names
+        else:
+            company_names.extend(stripped_names)
+
     if company_names:
         orgs = apollo_get_organizations_from_company_names(
             client_sdr_id=client_sdr_id,

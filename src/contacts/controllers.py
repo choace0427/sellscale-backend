@@ -175,7 +175,11 @@ def get_company(client_sdr_id: int):
     company_urls = get_request_parameter(
         "company_urls", request, json=True, required=False, default_value=None
     )
-    if not company_names and not company_urls:
+    company_prompt = get_request_parameter(
+        "company_prompt", request, json=True, required=False, default_value=None
+    )
+
+    if not company_names and not company_urls and not company_prompt:
         return jsonify(
             {
                 "status": "error",
@@ -188,6 +192,7 @@ def get_company(client_sdr_id: int):
         client_sdr_id=client_sdr_id,
         company_names=company_names,
         company_urls=company_urls,
+        company_prompt=company_prompt,
     )
 
     return jsonify(
