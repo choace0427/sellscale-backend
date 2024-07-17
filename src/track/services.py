@@ -8,12 +8,15 @@ from sqlalchemy import or_
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.company.models import Company
 from src.contacts.services import apollo_get_contacts
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.ml.services import simple_perplexity_response
 from src.prospecting.models import Prospect
 from src.track.models import DeanonymizedContact, TrackEvent, TrackSource, ICPRouting
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.hasher import generate_uuid
 from src.utils.slack import URL_MAP, send_slack_message
+from tests import prospect
 from tests.research import linkedin
 
 
@@ -558,13 +561,14 @@ def deanonymized_contacts(client_sdr_id, days=14):
 
     query = """
     select 
+        deanonymized_contact.id,
         deanonymized_contact.name,
         deanonymized_contact.title,
         deanonymized_contact.linkedin,
         deanonymized_contact.company,
+        deanonymized_contact.tag,
         max(deanonymized_contact.visited_date) recent_visited_date,
-        count(deanonymized_contact.id) num_visits,
-        '' tag
+        count(deanonymized_contact.id) num_visits
     from track_event
         join track_source on track_source.id = track_event.track_source_id
         left join deanonymized_contact on deanonymized_contact.track_event_id = track_event.id
@@ -572,7 +576,7 @@ def deanonymized_contacts(client_sdr_id, days=14):
         track_source.client_id = {client_id}
         and track_event.created_at > NOW() - '{date} days'::INTERVAL
         and deanonymized_contact.location is not null
-    group by 1,2,3,4
+    group by 1,2,3,4,5,6
     order by 5 desc
     """
 
@@ -582,6 +586,7 @@ def deanonymized_contacts(client_sdr_id, days=14):
     formatted_result = []
     for row in result:
         formatted_result.append({
+            "id": row["id"],
             "avatar": '',
             "sdr_name": row["name"],
             "linkedin": True if row["linkedin"] else False,
@@ -591,7 +596,7 @@ def deanonymized_contacts(client_sdr_id, days=14):
             "visit_date": row["recent_visited_date"],
             "total_visit": row["num_visits"],
             "intent_score": 'MEDIUM' if row["num_visits"] == 1 else 'HIGH' if row["num_visits"] > 1 and row["num_visits"] <= 2 else 'VERY HIGH',
-            "tag": [row["tag"]] if row["tag"] else []
+            "tag": row["tag"]
         })
 
     return formatted_result
@@ -687,3 +692,91 @@ def get_icp_route_details(client_sdr_id: int, icp_route_id: int):
         return "ICP Route not found"
 
     return icp_route.to_dict()
+
+def categorize_deanonymized_contacts(deanonymized_contact_ids: list[int], async_=True):
+    for deanon_contact_id in deanonymized_contact_ids:
+        if async_:
+            categorize_deanonyomized_contact.delay(deanon_contact_id)
+        else:
+            categorize_deanonyomized_contact(deanon_contact_id)
+
+    return True
+
+@celery.task
+def categorize_deanonyomized_contact(deanon_contact_id: int):
+    deanon_contact: DeanonymizedContact = DeanonymizedContact.query.get(deanon_contact_id)
+    track_event: TrackEvent = TrackEvent.query.get(deanon_contact.track_event_id)
+    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
+    client_id = track_source.client_id
+    
+    icp_routings: list[ICPRouting] = ICPRouting.query.filter(
+        ICPRouting.client_id == client_id,
+        ICPRouting.active == True
+    ).all()
+
+    company_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the company called {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include what they do, what they sell, who they serve.".format(deanon_contact.company))
+    prospect_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the person named {} who works at {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include their role, responsibilities, and any other relevant information.".format(deanon_contact.name, deanon_contact.company))
+
+    prompt = """
+You are an ICP categorizer. Here are the options for the different ICPs you have access to:
+{icp_routes}
+
+Here is information about the prospect we are considering.
+Name: {name}
+Company: {company}
+Title: {title}
+Visited Date: {visited_date}
+LinkedIn: {linkedin}
+Email: {email}
+Location: {location}
+Company Size: {company_size}
+
+Short summary about prospect:
+{prospect_information}
+
+Short summary about company: 
+{company_information}
+
+Which route should we categorize this prospect under? 
+
+IMPORTANT: Only respond with the ICP Route Id # and absolutely nothing else.
+ex. 1
+ex. 3
+
+Icp Route Id #:"""
+
+    gpt_response = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt.format(
+                    icp_routes="\n".join([f"{route.id}: {route.title}" for route in icp_routings]),
+                    name=deanon_contact.name,
+                    company=deanon_contact.company,
+                    title=deanon_contact.title,
+                    visited_date=deanon_contact.visited_date,
+                    linkedin=deanon_contact.linkedin,
+                    email=deanon_contact.email,
+                    location=deanon_contact.location,
+                    company_size=deanon_contact.company_size,
+                    prospect_information=prospect_information[0],
+                    company_information=company_information[0]
+                )
+            }
+        ],
+        max_tokens=30,
+        model='gpt-4o'
+    )
+
+    icp_route_id = int(gpt_response)
+
+    icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
+    if not icp_route:
+        return "ICP Route not found"
+    
+    deanon_contact.icp_route_id = icp_route_id
+    deanon_contact.tag = icp_route.title
+    db.session.add(deanon_contact)
+    db.session.commit()
+
+    return icp_route_id
