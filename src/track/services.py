@@ -433,6 +433,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     )
 
     process_deanonymized_contact(deanon_contact.id)
+    categorize_deanonyomized_contact(deanon_contact.id)
 
     return contacts
 
@@ -750,7 +751,7 @@ Icp Route Id #:"""
             {
                 "role": "user",
                 "content": prompt.format(
-                    icp_routes="\n".join([f"{route.id}: {route.title}" for route in icp_routings]),
+                    icp_routes="\n".join([f"{route.id}: {route.title} - {route.description}" for route in icp_routings] + ["-1: None of the above"]),
                     name=deanon_contact.name,
                     company=deanon_contact.company,
                     title=deanon_contact.title,
