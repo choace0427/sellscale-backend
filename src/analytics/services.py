@@ -896,129 +896,146 @@ def process_cycle_data_and_generate_report(client_sdr_id: int, cycle_data: dict)
         dict: The generated report.
     """
     from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+    import traceback
+    import sys
 
-    # Extracting relevant data from cycle_data
-    analytics_data = cycle_data.get("analyticsData", [])
-    
-    # Combining daily data and summary data into a narrative form
-    compiled_data = []
-    for item in analytics_data:
-        summary = item.get("summary", [{}])[0]
-        campaign_id = summary.get("id", -1)
-        if (campaign_id != -1):
-            # Determine start and end dates based on daily data
-            daily_data = item.get("daily", [])
-            if daily_data:
-                start_date = min(d['date'] for d in daily_data)
-                end_date = max(d['date'] for d in daily_data)
-            else:
-                start_date = None
-                end_date = None
+    def print_error_with_line_number(e):
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        tb = traceback.extract_tb(exc_tb)
+        line_number = tb[-1].lineno
+        print(f"Error: {e} at line {line_number}")
 
-            # Get one of the generated messages for the campaign
-            outbound_campaign = None
-            if start_date and end_date:
-                outbound_campaign = OutboundCampaign.query.filter(
-                    OutboundCampaign.client_archetype_id == campaign_id,
-                    OutboundCampaign.created_at.between(start_date, end_date)
-                ).order_by(OutboundCampaign.created_at.asc()).first()
+    try:
+        # Extracting relevant data from cycle_data
+        analytics_data = cycle_data.get("analyticsData", [])
+        
+        # Combining daily data and summary data into a narrative form
+        compiled_data = []
+        for item in analytics_data:
+            summary = item.get("summary", [{}])
+            summary = summary[0] if summary else {}
+            campaign_id = summary.get("id", -1)
+            if (campaign_id != -1):
+                # Determine start and end dates based on daily data
+                daily_data = item.get("daily", [])
+                if daily_data:
+                    start_date = min(d['date'] for d in daily_data)
+                    end_date = max(d['date'] for d in daily_data)
+                else:
+                    start_date = None
+                    end_date = None
 
-            # the outbound campaign has an array prospect_ids which we can get some prospect information from
-            prospect_ids = outbound_campaign.prospect_ids if outbound_campaign else []
+                # Get one of the generated messages for the campaign
+                outbound_campaign = None
+                if start_date and end_date:
+                    outbound_campaign = OutboundCampaign.query.filter(
+                        OutboundCampaign.client_archetype_id == campaign_id,
+                        OutboundCampaign.created_at.between(start_date, end_date)
+                    ).order_by(OutboundCampaign.created_at.asc()).first()
 
-            # get the prospects
-            prospects: list[Prospect] = (
-                Prospect.query.filter(Prospect.id.in_(prospect_ids))
-                .order_by(Prospect.icp_fit_score.desc())
-                .limit(3)
-                .all()
-            )
-            prospect_blurbs = []
-            for prospect in prospects:
-                blurb = (
-                    f"Prospect Name: {prospect.full_name}, "
-                    f"Title: {prospect.title}, "
-                    f"Company: {prospect.company}, "
+                # the outbound campaign has an array prospect_ids which we can get some prospect information from
+                prospect_ids = outbound_campaign.prospect_ids if outbound_campaign else []
+
+                # get the prospects
+                prospects: list[Prospect] = (
+                    Prospect.query.filter(Prospect.id.in_(prospect_ids))
+                    .order_by(Prospect.icp_fit_score.desc())
+                    .limit(3)
+                    .all()
                 )
-                prospect_blurbs.append(blurb)
-            prospect_blurbs_str = "\n".join(prospect_blurbs)
+                prospect_blurbs = []
+                for prospect in prospects:
+                    blurb = (
+                        f"Prospect Name: {prospect.full_name}, "
+                        f"Title: {prospect.title}, "
+                        f"Company: {prospect.company}, "
+                    )
+                    prospect_blurbs.append(blurb)
+                prospect_blurbs_str = "\n".join(prospect_blurbs)
 
-            generated_message_text = ""
-            if outbound_campaign:
-                generated_message = GeneratedMessage.query.filter(
-                    GeneratedMessage.outbound_campaign_id == outbound_campaign.id,
-                    GeneratedMessage.completion.isnot(None),
-                    GeneratedMessage.date_sent.between(start_date, end_date)
-                ).order_by(GeneratedMessage.date_sent.asc()).first()
-                generated_message_text = generated_message.completion if generated_message else ""
-        archetype = summary.get("archetype", "Unknown Campaign")
-        daily_data = item.get("daily", [])
-        
-        narrative = (
-            f"Campaign '{archetype}':\n"
-            f"Total messages sent: {sum(d['num_sent'] for d in daily_data)}\n"
-            f"Total opens: {sum(d['num_opens'] for d in daily_data)}\n"
-            f"Total replies: {sum(d['num_replies'] for d in daily_data)}\n"
-            f"Total positive replies: {sum(d['num_pos_replies'] for d in daily_data)}\n"
-            f"Prospect information:\n {prospect_blurbs_str}\n"
-            f"Total demos: {sum(d['num_demos'] for d in daily_data)}\n"
-            f"Sample outreach message from this campaign: {generated_message_text}\n"
-            f"Daily breakdown:\n"
-        )
-        
-        for daily in daily_data:
-            narrative += (
-                f"  - Date: {daily.get('date')}, "
-                f"Sent: {daily.get('num_sent')}, "
-                f"Opens: {daily.get('num_opens')}, "
-                f"Replies: {daily.get('num_replies')}, "
-                f"Positive Replies: {daily.get('num_pos_replies')}, "
-                f"Demos: {daily.get('num_demos')}\n"
+                generated_message_text = ""
+                if outbound_campaign:
+                    generated_message = GeneratedMessage.query.filter(
+                        GeneratedMessage.outbound_campaign_id == outbound_campaign.id,
+                        GeneratedMessage.completion.isnot(None),
+                        GeneratedMessage.date_sent.between(start_date, end_date)
+                    ).order_by(GeneratedMessage.date_sent.asc()).first()
+                    generated_message_text = generated_message.completion if generated_message else ""
+            archetype = summary.get("archetype")
+            if not archetype:
+                continue
+            daily_data = item.get("daily", [])
+            
+            narrative = (
+                f"Campaign '{archetype}':\n"
+                f"Total messages sent: {sum(d['num_sent'] for d in daily_data)}\n"
+                f"Total opens: {sum(d['num_opens'] for d in daily_data)}\n"
+                f"Total replies: {sum(d['num_replies'] for d in daily_data)}\n"
+                f"Total positive replies: {sum(d['num_pos_replies'] for d in daily_data)}\n"
+                f"Prospect information:\n {prospect_blurbs_str}\n"
+                f"Total demos: {sum(d['num_demos'] for d in daily_data)}\n"
+                f"Sample outreach message from this campaign: {generated_message_text}\n"
+                f"Daily breakdown:\n"
             )
+            
+            for daily in daily_data:
+                narrative += (
+                    f"  - Date: {daily.get('date')}, "
+                    f"Sent: {daily.get('num_sent')}, "
+                    f"Opens: {daily.get('num_opens')}, "
+                    f"Replies: {daily.get('num_replies')}, "
+                    f"Positive Replies: {daily.get('num_pos_replies')}, "
+                    f"Demos: {daily.get('num_demos')}\n"
+                )
+            
+            compiled_data.append(narrative.strip())
+
         
-        compiled_data.append(narrative.strip())
+        compiled_data_str = "\n\n".join(compiled_data)
 
-    
-    compiled_data_str = "\n\n".join(compiled_data)
+        compiled_data_str += '''\n\nThe report should be generated and organized in HTML format, use tables to illustrate as well. appropriately formatted 
+        with various colors such as #BE4BDB (purple), and #A9E34B (green) to highlight table headers or footers. and tables. Text should be normal colors such as black or white depending on the background color.
+        Make sure not to use global styling for the output as it may accidentally affect the overall design of the report.
+        '''
 
-    compiled_data_str += '''\n\nThe report should be generated and organized in HTML format, use tables to illustrate as well. appropriately formatted 
-    with various colors such as #BE4BDB (purple), and #A9E34B (green) to highlight table headers or footers. and tables. Text should be normal colors such as black or white depending on the background color.
-    Make sure not to use global styling for the output as it may accidentally affect the overall design of the report.
-    '''
+        print('compiled_data_str', compiled_data_str)
 
-    print('compiled_data_str', compiled_data_str)
+        # Preparing the input for the LLM
+        user_prompt = (
+            f"Cycle Data Summary:\n"
+            f"Summary Data: {compiled_data_str}\n"
+        )
 
-    # Preparing the input for the LLM
-    user_prompt = (
-        f"Cycle Data Summary:\n"
-        f"Summary Data: {compiled_data_str}\n"
-    )
+        system_prompt = '''You are a sales analytics expert delivering feedback for an array of different sales outreach campaigns that ran that week.
+        You have access to the daily data and summary data for each campaign. Make sure to mention any insights based on the prospect information provided if applicable.
+        Please generate a report detailing across all outreach campaigns:
+        1. What went well
+        2. What didn't go well
+        3. Interesting/unusual learnings
+        4. A hypothesis
 
-    system_prompt = '''You are a sales analytics expert delivering feedback for an array of different sales outreach campaigns that ran that week.
-You have access to the daily data and summary data for each campaign. Make sure to mention any insights based on the prospect information provided if applicable.
-Please generate a report detailing across all outreach campaigns:
-1. What went well
-2. What didn't go well
-3. Interesting/unusual learnings
-4. A hypothesis
+        Please mention the name of the campaign when generating your research. Do not precede your response with any greetings, salutations, or introduction to the report.
+        Make sure the report is detailed and points out specific campaigns by name.
+        '''
 
-Please mention the name of the campaign when generating your research. Do not precede your response with any greetings, salutations, or introduction to the report.
-Make sure the report is detailed and points out specific campaigns by name.
-'''
+        # Generating the report
+        report_response = wrapped_chat_gpt_completion(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=2500,
+            model="gpt-4o"
+        )
 
-    # Generating the report
-    report_response = wrapped_chat_gpt_completion(
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        max_tokens=2500,
-        model="gpt-4o"
-    )
+        report_response = report_response.replace('```html', '').replace('```', '').strip()
 
-    report_response = report_response.replace('```html', '').replace('```', '').strip()
+        # Returning the report as a dictionary
+        result = {
+            "report": report_response
+        }
+    except Exception as e:
+        print_error_with_line_number(e)
+        result = {"report": "An error occurred while generating the report."}
 
-    # Returning the report as a dictionary
-    return {
-        "report": report_response
-    }
+    return result
