@@ -578,10 +578,39 @@ def create_prospect_from_linkedin_link(
                 )
 
             result = search_for_li(
-                email,
-                client_sdr.timezone,
-                str(full_name or first_name + " " + last_name).strip(),
-                company,
+                timezone=client_sdr.timezone,
+                email=email,
+                name=str(full_name or first_name + " " + last_name).strip(),
+                company=company,
+            )
+
+            if result:
+                linkedin_url = result
+                # print("Found LinkedIn URL: {}".format(linkedin_url))
+            else:
+                raise Exception("No LinkedIn URL found for email: {}".format(email))
+
+        # If don't have a li_url and don't have an email, use name and company (title?) to search for the li_url
+        if not linkedin_url and not email:
+            company = prospect_upload.data.get("company", "")
+
+            full_name = prospect_upload.data.get("full_name", "")
+            first_name = prospect_upload.data.get("first_name", "")
+            last_name = prospect_upload.data.get("last_name", "")
+            title = prospect_upload.data.get("title", "")
+
+            valid = full_name or (first_name and last_name)
+            if not valid:
+                raise Exception(
+                    "Not a valid name found to find email: {}".format(email)
+                )
+
+            result = search_for_li(
+                timezone=client_sdr.timezone,
+                name=str(full_name or first_name + " " + last_name).strip(),
+                company=company,
+                title=title,
+                use_email=False
             )
 
             if result:

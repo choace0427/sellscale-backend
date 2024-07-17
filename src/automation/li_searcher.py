@@ -11,7 +11,7 @@ serp_api_key = os.getenv("SERP_API_KEY")
 headers = {"user-agent": "my-app/0.0.1"}
 
 
-def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
+def search_for_li(timezone: str, email: str = "", name: str = "", company: str = "", title: str = "", use_email: bool = True):
     region = "uk-en" if timezone.startswith("Europe/") else "us-en"
 
     # name_parts = name.split(" ")
@@ -66,6 +66,8 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
             query += f"{email}, "
         if company:
             query += f"{company}, "
+        if title:
+            query += f"{title, }"
         query += "site:linkedin.com/in"
 
         serp_api_key = os.getenv("SERP_API_KEY")
@@ -101,4 +103,4 @@ def search_for_li(email: str, timezone: str, name: str = "", company: str = ""):
                 )
                 return None
 
-    return _internal_find_li()
+    return _internal_find_li(use_email=use_email)
