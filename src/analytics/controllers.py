@@ -8,6 +8,7 @@ from src.analytics.services import (
     add_activity_log,
     get_activity_logs,
     get_cycle_dates_for_campaign,
+    process_cycle_data_and_generate_report,
     get_template_analytics_for_archetype,
     get_all_campaign_analytics_for_client,
     get_all_campaign_analytics_for_client_campaigns_page,
@@ -206,6 +207,28 @@ def ask_analytics(client_sdr_id: int):
     return jsonify({"message": "Success", "answer": answer}), 200
 
 
+@ANALYTICS_BLUEPRINT.route("/generate_report", methods=["POST"])
+@require_user
+def generate_report(client_sdr_id: int):
+    """
+    Endpoint to generate a report based on cycle data.
+    """
+    try:
+        # Extracting cycleData from the request body
+        cycle_data = request.json.get("cycleData")
+        if not cycle_data:
+            return jsonify({"message": "cycleData is required"}), 400
+
+        # Assuming there's a service function to process the cycle data and generate a report
+        report = process_cycle_data_and_generate_report(client_sdr_id, cycle_data)
+
+        return jsonify(report), 200
+    except Exception as e:
+        print(f"Error generating report: {e}")
+        return jsonify({"message": "Error generating report", "error": str(e)}), 500
+
+
+
 @ANALYTICS_BLUEPRINT.route("/activity_log", methods=["POST"])
 @require_user
 def post_activity_log_endpoint(client_sdr_id: int):
@@ -234,7 +257,7 @@ def get_activity_logs_endpoint(client_sdr_id: int):
 @ANALYTICS_BLUEPRINT.route("/get_cycle_dates", methods=["GET"])
 @require_user
 def get_cycle_dates(client_sdr_id: int):
-    campaign_id = get_request_parameter("campaignID", request, json=False, required=True)
+    campaign_id = get_request_parameter("campaignID", request, json=False, required=False)
     print('got campaign id', campaign_id)
     
     try:

@@ -179,7 +179,7 @@ def get_all_campaign_analytics_for_client(
                 icp_scoring_ruleset.included_company_industries_keywords,
                 icp_scoring_ruleset.company_size_start,
                 icp_scoring_ruleset.company_size_end,
-                client_archetype.id id
+                client_archetype.id as id
             from client_archetype
                 join client_sdr on client_sdr.id = client_archetype.client_sdr_id
                 join prospect on prospect.client_sdr_id = client_sdr.id
@@ -248,7 +248,7 @@ def get_all_campaign_analytics_for_client(
                 "open_percent": row[25],
                 "reply_percent": row[26],
                 "demo_percent": row[27],
-                "id": row[28],
+                "id": client_archetype_id,
             }
         )
 
@@ -716,26 +716,17 @@ def get_overview_pipeline_activity(client_sdr_id: int) -> dict:
     }
 
 
-def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: int) -> list[dict]:
+def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: Optional[int] = None) -> list[dict]:
     """
-    Fetches the cycle dates for all outbound campaigns attached to the given campaign ID.
+    Fetches the cycle dates for all outbound campaigns attached to the given campaign ID or client SDR ID.
 
     Args:
         client_sdr_id (int): The Client SDR ID.
-        campaign_id (int): The Campaign ID.
+        campaign_id (Optional[int]): The Campaign ID. If None, fetches campaigns for the client SDR ID.
 
     Returns:
         list[dict]: A list of dictionaries containing the start and end dates of the cycles.
     """
-    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(id=campaign_id).first()
-    if not client_archetype:
-        raise ValueError("Client Archetype not found for the given client ID")
-
-    # Fetching all outbound campaigns attached to the given campaign ID
-    outbound_campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter_by(client_archetype_id=client_archetype.id).all()
-    if not outbound_campaigns:
-        raise ValueError("No outbound campaigns found for the given campaign ID")
-
     from datetime import datetime, timedelta
 
     def get_monday(date):
@@ -743,6 +734,23 @@ def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: int) -> list[d
 
     def get_friday(date):
         return date + timedelta(days=(4 - date.weekday()))
+
+    if campaign_id is not None:
+        client_archetype: ClientArchetype = ClientArchetype.query.filter_by(id=campaign_id).first()
+        if not client_archetype:
+            return []
+
+        # Fetching all outbound campaigns attached to the given campaign ID
+        outbound_campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter_by(client_archetype_id=client_archetype.id).all()
+        if not outbound_campaigns:
+            return []
+    else:
+        # Fetching all outbound campaigns for the given client SDR ID
+        outbound_campaigns: list[OutboundCampaign] = OutboundCampaign.query.join(ClientArchetype).filter(
+            ClientArchetype.client_sdr_id == client_sdr_id
+        ).all()
+        if not outbound_campaigns:
+            return []
 
     # Fetching cycle dates from all outbound campaigns
     cycle_dates = []
@@ -759,7 +767,7 @@ def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: int) -> list[d
             seen_dates.add(date_tuple)
             cycle_dates.append({"start": date_tuple[0].isoformat(), "end": date_tuple[1].isoformat()})
 
-    return cycle_dates
+    return sorted(cycle_dates, key=lambda x: x['start'], reverse=True)
 
 #template analytics endpoint
 
@@ -874,4 +882,143 @@ def get_template_analytics_for_archetype(archetype_id: int, start_date: Optional
         "linkedin_template_analytics": [dict(row) for row in linkedin_template_analytics],
         "subject_lines_analytics": [dict(row) for row in subject_lines_analytics],
         "email_templates_analytics": [dict(row) for row in email_templates_analytics]
+    }
+
+def process_cycle_data_and_generate_report(client_sdr_id: int, cycle_data: dict) -> dict:
+    """
+    Process the cycle data and generate a report using the LLM model.
+    
+    Args:
+        client_sdr_id (int): The ID of the client SDR.
+        cycle_data (dict): The cycle data to be processed.
+    
+    Returns:
+        dict: The generated report.
+    """
+    from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+
+    # Extracting relevant data from cycle_data
+    analytics_data = cycle_data.get("analyticsData", [])
+    
+    # Combining daily data and summary data into a narrative form
+    compiled_data = []
+    for item in analytics_data:
+        summary = item.get("summary", [{}])[0]
+        campaign_id = summary.get("id", -1)
+        if (campaign_id != -1):
+            # Determine start and end dates based on daily data
+            daily_data = item.get("daily", [])
+            if daily_data:
+                start_date = min(d['date'] for d in daily_data)
+                end_date = max(d['date'] for d in daily_data)
+            else:
+                start_date = None
+                end_date = None
+
+            # Get one of the generated messages for the campaign
+            outbound_campaign = None
+            if start_date and end_date:
+                outbound_campaign = OutboundCampaign.query.filter(
+                    OutboundCampaign.client_archetype_id == campaign_id,
+                    OutboundCampaign.created_at.between(start_date, end_date)
+                ).order_by(OutboundCampaign.created_at.asc()).first()
+
+            # the outbound campaign has an array prospect_ids which we can get some prospect information from
+            prospect_ids = outbound_campaign.prospect_ids if outbound_campaign else []
+
+            # get the prospects
+            prospects: list[Prospect] = (
+                Prospect.query.filter(Prospect.id.in_(prospect_ids))
+                .order_by(Prospect.icp_fit_score.desc())
+                .limit(3)
+                .all()
+            )
+            prospect_blurbs = []
+            for prospect in prospects:
+                blurb = (
+                    f"Prospect Name: {prospect.full_name}, "
+                    f"Title: {prospect.title}, "
+                    f"Company: {prospect.company}, "
+                )
+                prospect_blurbs.append(blurb)
+            prospect_blurbs_str = "\n".join(prospect_blurbs)
+
+            generated_message_text = ""
+            if outbound_campaign:
+                generated_message = GeneratedMessage.query.filter(
+                    GeneratedMessage.outbound_campaign_id == outbound_campaign.id,
+                    GeneratedMessage.completion.isnot(None),
+                    GeneratedMessage.date_sent.between(start_date, end_date)
+                ).order_by(GeneratedMessage.date_sent.asc()).first()
+                generated_message_text = generated_message.completion if generated_message else ""
+        archetype = summary.get("archetype", "Unknown Campaign")
+        daily_data = item.get("daily", [])
+        
+        narrative = (
+            f"Campaign '{archetype}':\n"
+            f"Total messages sent: {sum(d['num_sent'] for d in daily_data)}\n"
+            f"Total opens: {sum(d['num_opens'] for d in daily_data)}\n"
+            f"Total replies: {sum(d['num_replies'] for d in daily_data)}\n"
+            f"Total positive replies: {sum(d['num_pos_replies'] for d in daily_data)}\n"
+            f"Prospect information:\n {prospect_blurbs_str}\n"
+            f"Total demos: {sum(d['num_demos'] for d in daily_data)}\n"
+            f"Sample outreach message from this campaign: {generated_message_text}\n"
+            f"Daily breakdown:\n"
+        )
+        
+        for daily in daily_data:
+            narrative += (
+                f"  - Date: {daily.get('date')}, "
+                f"Sent: {daily.get('num_sent')}, "
+                f"Opens: {daily.get('num_opens')}, "
+                f"Replies: {daily.get('num_replies')}, "
+                f"Positive Replies: {daily.get('num_pos_replies')}, "
+                f"Demos: {daily.get('num_demos')}\n"
+            )
+        
+        compiled_data.append(narrative.strip())
+
+    
+    compiled_data_str = "\n\n".join(compiled_data)
+
+    compiled_data_str += '''\n\nThe report should be generated and organized in HTML format, use tables to illustrate as well. appropriately formatted 
+    with various colors such as #BE4BDB (purple), and #A9E34B (green) to highlight table headers or footers. and tables. Text should be normal colors such as black or white depending on the background color.
+    Make sure not to use global styling for the output as it may accidentally affect the overall design of the report.
+    '''
+
+    print('compiled_data_str', compiled_data_str)
+
+    # Preparing the input for the LLM
+    user_prompt = (
+        f"Cycle Data Summary:\n"
+        f"Summary Data: {compiled_data_str}\n"
+    )
+
+    system_prompt = '''You are a sales analytics expert delivering feedback for an array of different sales outreach campaigns that ran that week.
+You have access to the daily data and summary data for each campaign. Make sure to mention any insights based on the prospect information provided if applicable.
+Please generate a report detailing across all outreach campaigns:
+1. What went well
+2. What didn't go well
+3. Interesting/unusual learnings
+4. A hypothesis
+
+Please mention the name of the campaign when generating your research. Do not precede your response with any greetings, salutations, or introduction to the report.
+Make sure the report is detailed and points out specific campaigns by name.
+'''
+
+    # Generating the report
+    report_response = wrapped_chat_gpt_completion(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        max_tokens=2500,
+        model="gpt-4o"
+    )
+
+    report_response = report_response.replace('```html', '').replace('```', '').strip()
+
+    # Returning the report as a dictionary
+    return {
+        "report": report_response
     }

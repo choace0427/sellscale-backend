@@ -1,5 +1,6 @@
 from datetime import datetime
 from src.analytics.services import get_all_campaign_analytics_for_client
+from src.campaigns.models import OutboundCampaign
 from src.company.models import Company
 from sqlalchemy import update
 from app import db, celery
@@ -1214,16 +1215,45 @@ def get_sent_volume_during_time_period(client_sdr_id, start_date, end_date, camp
         print(f"Error occurred: {e}")
         return None
 
-def get_client_archetype_analytics(client_archetype_id, start_date=None, end_date=None, verbose=False):
-    client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
-    client_id = client_archetype.client_id
+def get_client_archetype_analytics(client_archetype_id=None, start_date=None, end_date=None, verbose=False, client_sdr_id=None):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if client_archetype_id is not None:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+        client_id = client_archetype.client_id
+    else:
+        #if client archetype id is none, we want to get all archetypes for that client that had a matching outbound
+        #campaign created at during that time period
+
+        #get all archetypes for that client
+        client_archetypes = ClientArchetype.query.filter(ClientArchetype.client_id == client_sdr.client_id).all()
+
+        #get all outbound campaigns matching those archetypes during that time period
+        outbound_campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter(
+            OutboundCampaign.created_at >= start_date,
+            OutboundCampaign.created_at <= end_date,
+            OutboundCampaign.client_archetype_id.in_([archetype.id for archetype in client_archetypes])
+        ).all()
+
+        #archetypes that ran campaigns during that time period
+        matched_client_archetype_ids = list(set(campaign.client_archetype_id for campaign in outbound_campaigns))
+
+        analytics = []
+        for matched_campaign in matched_client_archetype_ids:
+            analytics.append(get_all_campaign_analytics_for_client(client_id = client_sdr.client_id, 
+                                                            client_archetype_id = matched_campaign,
+                                                              start_date = start_date,
+                                                               end_date = end_date, verbose = True))
+        return analytics
+        
 
     analytics = get_all_campaign_analytics_for_client(
         client_id=client_id,
-        client_archetype_id=int(client_archetype_id),
+        client_archetype_id=int(client_archetype_id) if client_archetype_id is not None else None,
         start_date=start_date,
         end_date=end_date,
-        verbose = verbose
+        verbose=verbose
     )
 
     if verbose:
