@@ -218,7 +218,6 @@ def create_raw_csv_entry_from_json_payload(
     Returns:
         int: The ID of the raw CSV entry. -1 if the hash already exists (duplicate payload).
     """
-
     # Hash the payload so we can check against duplicates.
     json_dumps = json.dumps(payload)
     payload_hash_value: str = hashlib.sha256(json_dumps.encode()).hexdigest()

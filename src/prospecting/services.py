@@ -2077,11 +2077,15 @@ def validate_prospect_json_payload(payload: dict):
     for prospect in payload:
         email = prospect.get("email")
         linkedin_url = prospect.get("linkedin_url")
+        full_name = prospect.get("full_name")
+        first_name = prospect.get("first_name")
+        last_name = prospect.get("last_name")
+        company = prospect.get("company")
 
-        if not linkedin_url and not email:
+        if not linkedin_url and not email and not (full_name and company) and not (first_name and last_name and company):
             return (
                 False,
-                "Could not find the required 'linkedin_url' or 'email' field. Please check your CSV, or make sure each Prospect has a linkedin_url or email field.",
+                "Could not find the required 'linkedin_url' or 'email' field. Please check your CSV, or make sure each Prospect has a linkedin_url or email field, or include 'Name, Company Name, and Title'.",
             )
 
     return True, "No Error"
