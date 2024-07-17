@@ -435,19 +435,26 @@ def apollo_get_organizations(
     data: list = []
 
     if company_prompt:
+        company_prompt = company_prompt + "  Return the company names in bullet point form."
         perplexity_response = simple_perplexity_response("llama-3-sonar-large-32k-online", company_prompt)[0]
-        chatgpt_response = wrapped_chat_gpt_completion(messages=[
-            {
-                "role": "system",
-                "content": "You will be given a prompt containing a list of current companies. I want you to extract "
-                           "it and return it in a comma-separated list of string."},
-            {
-                "role": "user",
-                "content": perplexity_response
-            }])
+        chatgpt_response = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You will be given a prompt containing a list of current companies. I want you to extract "
+                               "it and return it in a json format, with one object with the key 'company_names'. Additionally, just keep the names simple. Do not add 'Inc.' or 'Corporated' or other similar additions. For example, Apple Inc. is just Apple. Also, do not include anything else in your output. \nOutput:"},
+                {
+                    "role": "user",
+                    "content": perplexity_response
+                }],
+            model="gpt-4o",
+            max_tokens=1000
+        )
 
-        names = chatgpt_response.split(",")
-        stripped_names = [name.strip() for name in names]
+        chatgpt_response = chatgpt_response.replace("`", "").replace("json", "")
+
+        data = json.loads(chatgpt_response)
+        stripped_names = data.get("company_names", [])
 
         if not company_names:
             company_names = stripped_names
