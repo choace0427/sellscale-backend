@@ -4,7 +4,7 @@ from src.authentication.decorators import require_user
 from src.client.controllers import create_archetype
 from src.client.models import ClientArchetype, ClientSDR
 from src.client.services import create_client_archetype
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
 from src.segment.models import Segment
 from src.segment.services import (
     add_prospects_to_segment,
@@ -33,10 +33,13 @@ from src.segment.services import (
     remove_tag_from_segment,
     attach_tag_to_segment,
     get_segment_tags_for_sdr,
-    create_and_add_tag_to_segment
+    create_and_add_tag_to_segment,
+    get_count_no_active_convo, get_prospects_ids_no_active_convo,
+    reset_prospect_contacts,
 )
 from src.segment.services_auto_segment import run_auto_segment
 from src.utils.request_helpers import get_request_parameter
+from src.segment.services import reset_prospect_task
 
 SEGMENT_BLUEPRINT = Blueprint("segment", __name__)
 
@@ -100,6 +103,52 @@ def get_segments(client_sdr_id: int):
     segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client, tag_filter=tag_filter)
 
     return {"segments": segments}, 200
+
+
+@SEGMENT_BLUEPRINT.route("/<int:segment_id>/count_no_active_convo", methods=["GET"])
+@require_user
+def get_segment_count_no_active_convo(client_sdr_id: int, segment_id: int):
+    segment = Segment.query.filter_by(
+        client_sdr_id=client_sdr_id, id=segment_id
+    ).first()
+
+    if not segment:
+        return "Segment not found", 404
+
+    return get_count_no_active_convo(segment_id), 200
+
+
+@SEGMENT_BLUEPRINT.route("/reset_segment", methods=["POST"])
+@require_user
+def post_reset_segment_convo_count(client_sdr_id: int):
+    segment_id = get_request_parameter("segment_id", request, json=True, required=True)
+    new_segment_title = get_request_parameter("new_segment_title", request, json=True, required=True)
+
+    segment = Segment.query.filter_by(
+        client_sdr_id=client_sdr_id, id=segment_id
+    ).first()
+
+    if not segment:
+        return "Segment not found", 404
+
+    # Get prospect Id From where we want to reset
+    prospect_ids = get_prospects_ids_no_active_convo(segment_id)
+
+    # Reset the prospect
+    reset_prospect_contacts(prospect_ids)
+
+    # Create new Segment with new segment title
+    new_segment = create_new_segment(
+        client_sdr_id=client_sdr_id,
+        segment_title=new_segment_title,
+        filters=segment.filters,
+        attached_segment_tag_ids=segment.attached_segment_tag_ids,
+    )
+
+    # Add those prospects to the new Segment
+    add_prospects_to_segment(prospect_ids, new_segment_id=new_segment.id)
+
+    return "Prospect reset", 200
 
 
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>", methods=["PATCH"])

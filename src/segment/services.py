@@ -14,7 +14,7 @@ from src.prospecting.icp_score.services import update_icp_filters
 from src.prospecting.models import (
     Prospect,
     ProspectOverallStatus,
-    ProspectUploadHistory,
+    ProspectUploadHistory, ProspectStatus,
 )
 from src.segment.models import Segment
 from src.segment.models import SegmentTags
@@ -29,6 +29,7 @@ def create_new_segment(
         client_sdr_id=client_sdr_id, segment_title=segment_title
     ).first()
     if existing_segment:
+        print("existing segment")
         return None
 
     if saved_apollo_query_id:
@@ -56,6 +57,76 @@ def create_new_segment(
         )
 
     return new_segment
+
+
+def get_count_no_active_convo(
+        segment_id: int
+) -> dict:
+    query = """
+    with prospect_sale_status as (
+        select 
+	    p.id,
+	    (count(distinct psr.id) filter (where psr.to_status = 'ACTIVE_CONVO') + count(distinct p.id) filter (where pesr.to_status = 'ACTIVE_CONVO')) = 0 should_reset
+        from prospect p 
+            left join prospect_status_records psr on p.id = psr.prospect_id
+            left join prospect_email pe on pe.prospect_id = psr.prospect_id
+            left join prospect_email_status_records pesr on pesr.prospect_email_id = pe.id
+        where p.segment_id = :segment_id
+        group by p.segment_id, p.id ) 
+    select count(prospect_sale_status.id)
+    from prospect_sale_status
+    where should_reset = TRUE
+    """
+
+    count_not_in_active_convo = db.session.execute(query, {"segment_id": segment_id}).fetchone()[0]
+    retval = {
+        "count_not_in_active_convo": count_not_in_active_convo
+    }
+
+    return retval
+
+def get_prospects_ids_no_active_convo(
+        segment_id: int
+):
+    query = """
+    with prospect_sale_status as (
+        select 
+	    p.id,
+	    (count(distinct psr.id) filter (where psr.to_status = 'ACTIVE_CONVO') + count(distinct p.id) filter (where pesr.to_status = 'ACTIVE_CONVO')) = 0 should_reset
+        from prospect p 
+            left join prospect_status_records psr on p.id = psr.prospect_id
+            left join prospect_email pe on pe.prospect_id = psr.prospect_id
+            left join prospect_email_status_records pesr on pesr.prospect_email_id = pe.id
+        where p.segment_id = :segment_id
+        group by p.segment_id, p.id ) 
+    select prospect_sale_status.id as prospect_id
+    from prospect_sale_status
+    where should_reset = TRUE
+    """
+
+    prospect_ids_not_in_active_convo = db.session.execute(query, {"segment_id": segment_id}).fetchall()
+    retval = []
+    for row in prospect_ids_not_in_active_convo:
+        retval.append(row["prospect_id"])
+
+    return retval
+
+
+def reset_prospect_contacts(convo_reset_prospect_ids: list[int]):
+    for prospect_id in convo_reset_prospect_ids:
+        # reset_prospect_task(prospect_id)
+        reset_prospect_task.delay(prospect_id)
+
+
+@celery.task
+def reset_prospect_task(prospect_id: int):
+    prospect = Prospect.query.get(prospect_id)
+    prospect.approved_prospect_email_id = None
+    prospect.approved_outreach_message_id = None
+    prospect.status = ProspectStatus.PROSPECTED
+    prospect.overall_status = ProspectOverallStatus.PROSPECTED
+
+    db.session.commit()
 
 
 def get_segments_for_sdr(
@@ -1012,8 +1083,6 @@ def create_n_sub_batches_for_segment(segment_id: int, num_batches: int):
             end_index = num_prospects
         prospects_in_batch = unused_prospects[start_index:end_index]
         prospect_ids = [prospect.id for prospect in prospects_in_batch]
-
-        print(prospect_ids, flush=True)
 
         if i != 0:
             new_title = f"Batch {current_count}: {original_segment.segment_title}"
