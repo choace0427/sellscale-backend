@@ -54,3 +54,42 @@ def attempt_chat_completion_with_vision(
     top_choice = choices[0]
     result = top_choice["message"]["content"].strip()
     return True, result
+
+
+def attempt_chat_completion_with_vision_base64(
+        message: str,
+        base_64_image: str,
+):
+    api_key = os.environ.get("OPENAI_KEY")
+
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    payload = {
+        "model": "gpt-4o",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": message.strip()},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base_64_image}"
+                        },
+                    },
+                ],
+            }
+        ],
+        "max_tokens": 2000,
+    }
+    res = requests.post(
+        "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
+    )
+    response = res.json()
+
+    if response is None or response["choices"] is None or len(response["choices"]) == 0:
+        return False, "No response from OpenAI API"
+
+    choices = response["choices"]
+    top_choice = choices[0]
+    result = top_choice["message"]["content"].strip()
+    return True, result

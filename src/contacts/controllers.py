@@ -1,3 +1,6 @@
+import base64
+import json
+
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 
@@ -13,6 +16,7 @@ from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.utils.request_helpers import get_request_parameter
 from sqlalchemy import or_
 from src.company.models import Company, CompanyRelation
+from src.vision.services import attempt_chat_completion_with_vision_base64
 
 CONTACTS_BLUEPRINT = Blueprint("contacts", __name__)
 
@@ -221,6 +225,43 @@ def get_territories_request(client_sdr_id: int):
     territories = get_territories(client_sdr_id=client_sdr_id)
 
     return jsonify({"territories": territories})
+
+
+@CONTACTS_BLUEPRINT.route("/image_company_extract", methods=["POST"])
+@require_user
+def post_image_company_extract(client_sdr_id: int):
+    files = request.files.getlist('files')
+
+    file_name_to_base64 = {}
+    for file in files:
+        file_name_to_base64[file.filename] = base64.b64encode(file.read()).decode('utf-8')
+
+    file_name_to_companies = []
+
+    message = """
+    Instructions: You will be given an image which contains images of company logos, or text of companies.
+    You are to extract them, and generate a list of companies names without descriptions.
+    You will output the list of company names in a json format, with the key being "companies", and the value being a list of company names.
+    """
+
+    for file_name in file_name_to_base64.keys():
+        base_64 = file_name_to_base64[file_name]
+
+        success, response = attempt_chat_completion_with_vision_base64(
+            message=message,
+            base_64_image=base_64,
+        )
+
+        if success:
+            cleaned_response = response.replace('```', '').replace('json', '').replace('\n', '')
+            response_json = json.loads(cleaned_response)
+
+            companies = response_json.get('companies', [])
+
+            for company in companies:
+                file_name_to_companies.append((file_name, company))
+
+    return jsonify({"data": file_name_to_companies, "status": "success"})
 
 
 @CONTACTS_BLUEPRINT.route("/get_pre_filters", methods=["GET"])
