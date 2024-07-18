@@ -16,7 +16,7 @@ from src.ml.ai_researcher_services import (
     personalize_email,
 )
 from src.ml.campaign_curator import curate_campaigns
-from src.ml.services import one_shot_linkedin_sequence_generation, find_contacts_from_serp
+from src.ml.services import one_shot_linkedin_sequence_generation, find_contacts_from_serp, handle_chat_icp
 from src.ml.openai_wrappers import (
     NEWEST_CHAT_GP_MODEL,
     wrapped_chat_gpt_completion,
@@ -867,3 +867,31 @@ def put_few_shot(client_sdr_id: int):
         return jsonify({}), 200
 
     return jsonify(success), 200
+
+@ML_BLUEPRINT.route("/chat-icp", methods=["POST"])
+@require_user
+def post_chat_icp(client_sdr_id: int):
+    """
+    Handle chat ICP requests
+    """
+    prompt = get_request_parameter(
+        "prompt", request, json=True, required=True, parameter_type=str
+    )
+    chat_content = get_request_parameter(
+        "chatContent", request, json=True, required=True, parameter_type=str
+    )
+
+    current_csv = get_request_parameter(
+        "currentCSV", request, json=True, required=False, parameter_type=str
+    )
+    #if current csv is not provided, it will be set to ''
+    if not current_csv:
+        current_csv = ''
+
+    # Assuming the function handle_chat_icp is defined in src/ml/services.py
+    response = handle_chat_icp(prompt=prompt, chat_content=chat_content, current_csv=current_csv)
+
+    if not response:
+        return jsonify({"message": "Error handling chat ICP"}), 400
+
+    return jsonify(response), 200
