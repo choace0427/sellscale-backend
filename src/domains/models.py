@@ -78,6 +78,8 @@ class Domain(db.Model):
         db.Integer, db.ForeignKey("domain_setup_tracker.id"), nullable=True
     )
 
+    active = db.Column(db.Boolean, nullable=True, default=True)
+
     def to_dict(self, include_email_banks: bool = False):
         # Get the Setup details
         setup_tracker: DomainSetupTracker = DomainSetupTracker.query.filter_by(
@@ -112,4 +114,5 @@ class Domain(db.Model):
             "last_refreshed": self.last_refreshed,
             "domain_setup_tracker": setup_tracker.to_dict() if setup_tracker else None,
             "email_banks": email_banks if include_email_banks else None,
+            "active": self.active if self.active is not None else True,
         }
