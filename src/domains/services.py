@@ -41,7 +41,7 @@ from src.utils.domains.pythondns import (
     dmarc_record_valid,
     spf_record_valid,
 )
-from src.smartlead.services import sync_workmail_to_smartlead
+from src.smartlead.services import sync_workmail_to_smartlead, toggle_email_accounts_for_campaign
 import os
 import time
 from src.utils.slack import send_slack_message, URL_MAP
@@ -641,6 +641,68 @@ def handle_all_domain_setups() -> bool:
 
     for domain_setup_tracker in domain_setup_trackers:
         handle_domain_setup.delay(domain_setup_tracker.id)
+
+    return True
+
+
+def get_smartlead_campaign_ids_from_client_and_client_sdr(
+        client_id: int, client_sdr_id: int
+):
+    """Get the smartlead campaign id from the client and client_sdr"""
+    query = """
+    SELECT client_archetype.smartlead_campaign_id
+    FROM client_archetype
+    WHERE client_archetype.client_id = :client_id 
+    AND client_archetype.client_sdr_id = :client_sdr_id 
+    AND client_archetype.smartlead_campaign_id IS NOT NULL;
+    """
+
+    result = db.session.execute(query, {"client_id": client_id, "client_sdr_id": client_sdr_id})
+
+    flattened = [row[0] for row in result]
+
+    if not flattened:
+        return []
+
+    return flattened
+
+
+def toggle_domain(domain_id: int, client_sdr_id: int, toggle_on: bool):
+    """Toggle a domain
+
+        0. Set domain active to false.
+        1. Use the domain_id, grab the client_id associated with the domain
+        2. Grab all the smartlead_campaign_id that are associated with the client_id and client_sdr_id
+        4. Find the active smartlead_campaign
+        5. Use the domain_id, grab all the email banks associated to this domain
+        6. For each of the smartlead_campaign_id, try to remove the email bank from the smartlead_campaign_id
+        7.
+
+        Args:
+        domain_id (int): The ID of the domain to toggle
+    """
+    domain: Domain = Domain.query.filter_by(id=domain_id).first()
+
+    if domain is None:
+        return
+
+    domain.active = toggle_on
+
+    client_id = domain.client_id
+
+    # Get all the smartlead_campaign_id that are associated with the client_id and client_sdr_id
+    smartlead_campaign_ids = get_smartlead_campaign_ids_from_client_and_client_sdr(client_id, client_sdr_id)
+
+    # Get all the emails associated with the domain
+    email_banks = SDREmailBank.query.filter_by(domain_id=domain_id).all()
+    email_account_ids = [email_bank.smartlead_account_id for email_bank in email_banks]
+
+    # Remove or add the email banks from the smartlead_campaign_id
+    for smartlead_campaign_id in smartlead_campaign_ids:
+        # Add the email bank from the smartlead_campaign_id
+        toggle_email_accounts_for_campaign(campaign_id=smartlead_campaign_id, email_account_ids=email_account_ids, enable=toggle_on)
+
+    db.session.commit()
 
     return True
 

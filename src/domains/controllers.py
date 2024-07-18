@@ -13,7 +13,7 @@ from src.domains.services import (
     patch_domain_entry,
     request_domain_inboxes,
     validate_domain_configuration,
-    workmail_setup_workflow,
+    workmail_setup_workflow, toggle_domain,
 )
 from model_import import ClientSDR, Client
 from src.authentication.decorators import require_user
@@ -53,6 +53,38 @@ def get_all_domain_details(client_sdr_id):
         ),
         200,
     )
+
+
+@DOMAINS_BLUEPRINT.route("/toggle_domain", methods=["POST"])
+@require_user
+def post_toggle_domain(client_sdr_id: int):
+    domain_id = get_request_parameter(
+        "domain_id", request, json=True, required=True, parameter_type=int
+    )
+    toggle_on = get_request_parameter(
+        "toggle_on", request, json=True, required=True, parameter_type=bool
+    )
+
+    success = toggle_domain(domain_id=domain_id, client_sdr_id=client_sdr_id, toggle_on=toggle_on)
+
+    if success:
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                }
+            ),
+            200,
+        )
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                }
+            ),
+            400,
+        )
 
 
 @DOMAINS_BLUEPRINT.route("/", methods=["POST"])

@@ -1589,6 +1589,25 @@ def toggle_email_account_for_archetype(
     return result.get("ok", False), result.get("message", "")
 
 
+def toggle_email_accounts_for_campaign(
+        campaign_id: int, email_account_ids: list[str], enable: bool
+) -> tuple[bool, str]:
+    sl = Smartlead()
+
+    if enable:
+        result = sl.add_email_account_to_campaign(
+            campaign_id=campaign_id,
+            email_account_ids=email_account_ids,
+        )
+    else:
+        result = sl.remove_email_account_from_campaign(
+            campaign_id=campaign_id,
+            email_account_ids=email_account_ids,
+        )
+
+    return result.get("ok", False), result.get("message", "")
+
+
 def prospect_exists_in_smartlead(prospect_id: int) -> bool:
     """Verifies that a prospect exists in Smartlead
 
