@@ -296,3 +296,36 @@ def get_apollo_queries(client_sdr_id: int):
         "status": "success",
         "data": queries,
     })
+
+@CONTACTS_BLUEPRINT.route("/magic_apollo_search", methods=["POST"])
+@require_user
+def query_then_search(client_sdr_id: int):
+    query = get_request_parameter("query", request, json=True, required=True)
+    filters = predict_filters_needed(query, use_apollo_filters=True)
+
+    print('filters are', filters)
+
+    data = apollo_get_contacts(
+        client_sdr_id=client_sdr_id,
+        num_contacts=filters.get("num_contacts", 100),
+        person_titles=filters.get("person_titles", []),
+        person_not_titles=filters.get("person_not_titles", []),
+        q_person_title=filters.get("q_person_title", ""),
+        q_person_name=filters.get("q_person_name", ""),
+        organization_industry_tag_ids=filters.get("organization_industry_tag_ids", []),
+        organization_num_employees_ranges=filters.get("organization_num_employees_ranges", None),
+        person_locations=filters.get("person_locations", []),
+        organization_ids=filters.get("organization_ids", None),
+        revenue_range=filters.get("revenue_range", {"min": None, "max": None}),
+        organization_latest_funding_stage_cd=filters.get("organization_latest_funding_stage_cd", []),
+        currently_using_any_of_technology_uids=filters.get("currently_using_any_of_technology_uids", []),
+        event_categories=filters.get("event_categories", None),
+        published_at_date_range=filters.get("published_at_date_range", None),
+        person_seniorities=filters.get("person_seniorities", None),
+        q_organization_search_list_id=filters.get("q_organization_search_list_id", None),
+        q_organization_keyword_tags=filters.get("q_organization_keyword_tags", None),
+        organization_department_or_subdepartment_counts=filters.get("organization_department_or_subdepartment_counts", None),
+        is_prefilter=filters.get("is_prefilter", None),
+    )
+
+    return jsonify(data)

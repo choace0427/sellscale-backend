@@ -151,6 +151,65 @@ ALLOWED_FILTERS = {
     },
 }
 
+ALLOWED_FILTERS_APOLLO = {
+    "currently_using_any_of_technology_uids": {
+        "summary": "(list) List of technology UIDs currently in use",
+        "output_type": "list",
+        "prompt": "Extract the technology UIDs currently in use from the query. The values should be a list of strings.",
+    },
+    "event_categories": {
+        "summary": "(list) List of event categories",
+        "output_type": "list",
+        "prompt": "Extract the event categories from the query. The values should be a list of strings.",
+    },
+    "num_contacts": {
+        "summary": "(int) Number of contacts",
+        "output_type": "integer",
+        "prompt": "Extract the number of contacts from the query. The value should be an integer.",
+    },
+    "organization_ids": {
+        "summary": "(list) List of organization IDs",
+        "output_type": "list",
+        "prompt": "Extract the organization IDs from the query. The values should be a list of strings.",
+    },
+    "organization_industry_tag_ids": {
+        "summary": "(list) List of organization industry tag IDs",
+        "output_type": "list",
+        "prompt": "Extract the organization industry tag IDs from the query. The values should be a list of strings.",
+    },
+    "per_page": {
+        "summary": "(int) Number of results per page",
+        "output_type": "integer",
+        "prompt": "Extract the number of results per page from the query. THE VALUE SHOULD ALWAYS BE 100.",
+    },
+    "person_locations": {
+        "summary": "(list) List of person locations",
+        "output_type": "list",
+        "prompt": "Extract the person locations from the query. The values should be a list of strings.",
+    },
+    "person_titles": {
+        "summary": "(list) List of person titles",
+        "output_type": "list",
+        "prompt": "Extract the person titles from the query. The values should be a list of strings.",
+    },
+    "published_at_date_range": {
+        "summary": "(dict) Date range for published content",
+        "output_type": "dict",
+        "prompt": "Extract the date range for published content from the query. The value should be a dictionary with keys 'min' and 'max' and values as strings.",
+    },
+    "q_person_name": {
+        "summary": "(str) Person name query",
+        "output_type": "string",
+        "prompt": "Extract the person name query from the query. The value should be a string.",
+    },
+    "revenue_range": {
+        "summary": "(dict) Range of revenue",
+        "output_type": "dict",
+        "prompt": "Extract the revenue range from the query. The value should be a dictionary with keys 'min' and 'max' and values as integers.",
+    },
+}
+
+
 
 def get_contacts_from_predicted_query_filters(query: str, retries=3):
     try:
@@ -692,7 +751,8 @@ limit 1
     }
 
 
-def predict_filters_types_needed(query: str) -> list:
+def predict_filters_types_needed(query: str, use_apollo_filters=False) -> list:
+    allowed_filters = ALLOWED_FILTERS_APOLLO if use_apollo_filters else ALLOWED_FILTERS
     prompt = """
     Referring to the query provided, return a list of which filters will be needed to get the results from the query.
 
@@ -712,32 +772,35 @@ def predict_filters_types_needed(query: str) -> list:
                     filter_name=filter_name,
                     filter_description=filter_details["summary"],
                 )
-                for filter_name, filter_details in ALLOWED_FILTERS.items()
+                for filter_name, filter_details in allowed_filters.items()
             ]
         ),
     )
 
     completion = wrapped_chat_gpt_completion(
-        messages=[{"role": "user", "content": prompt}], max_tokens=300, model="gpt-4"
+        messages=[{"role": "user", "content": prompt}], max_tokens=300, model="gpt-4o"
     )
+
+    completion = completion.replace("`", "").replace("json", "")
 
     data = yaml.safe_load(completion)
 
     return data["filters"]
 
 
-def predict_filters_needed(query: str) -> dict:
-    filter_types = predict_filters_types_needed(query)
+def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
+    allowed_filters = ALLOWED_FILTERS_APOLLO if use_apollo_filters else ALLOWED_FILTERS
+    filter_types = predict_filters_types_needed(query, use_apollo_filters=use_apollo_filters)
 
     overall_filters = {}
 
     for filter_type in filter_types:
         instruction = deep_get(
-            ALLOWED_FILTERS,
+            allowed_filters,
             "{filter_type}.prompt".format(filter_type=filter_type),
         )
         output_type = deep_get(
-            ALLOWED_FILTERS,
+            allowed_filters,
             "{filter_type}.output_type".format(filter_type=filter_type),
         )
 
@@ -748,7 +811,7 @@ def predict_filters_needed(query: str) -> dict:
             messages=[
                 {
                     "role": "user",
-                    "content": "You are extracting data from the query. Follow the instructions carefully.\n\nQuery: {query}\n\nFilter Name: {filter_name}\n\nInstruction:\n{instruction}\nOutput Type: {output_type}\n\nImportant: Return the output as a JSON with the key 'data': and value in the given format\n\nOutput:".format(
+                    "content": "You are extracting data from the query. Follow the instructions carefully, no nested objects: \n\nQuery: {query}\n\nFilter Name: {filter_name}\n\nInstruction:\n{instruction}\nOutput Type: {output_type}\n\nImportant: Return the output as a JSON with the key 'data': and value in the given format. No nested objects unless told dict. \n\nOutput:".format(
                         query=query,
                         filter_name=filter_type,
                         instruction=instruction,
@@ -757,8 +820,12 @@ def predict_filters_needed(query: str) -> dict:
                 }
             ],
             max_tokens=300,
-            model="gpt-4",
+            model="gpt-4o",
         )
+
+        print('completion is', completion)
+
+        completion = completion.replace("`", "").replace("json", "")
 
         data = yaml.safe_load(completion)
 
