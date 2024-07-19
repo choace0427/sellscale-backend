@@ -572,7 +572,7 @@ def update_conversation_entries(api: LinkedIn, convo_urn_id: str, prospect_id: i
             db.session.add(new_entry)
             db.session.commit()
 
-        if prospect.li_urn_id == urn_id and new_entry:
+        if prospect.li_urn_id == urn_id and new_entry and prospect.overall_status == ProspectOverallStatus.ACTIVE_CONVO:
             create_and_send_slack_notification_class_message(
                 notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
                 arguments={
