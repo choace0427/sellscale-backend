@@ -190,7 +190,7 @@ ALLOWED_FILTERS_APOLLO = {
     "person_titles": {
         "summary": "(list) List of person titles",
         "output_type": "list",
-        "prompt": "Extract the person titles from the query. The values should be a list of strings.",
+        "prompt": "Extract the person titles from the query. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 5 related job titles that may be synonymous with my target audience. Not plural",
     },
     "published_at_date_range": {
         "summary": "(dict) Date range for company news",
@@ -695,7 +695,7 @@ def apollo_get_pre_filters(
 ):
     if saved_query_id:
         query = f"""
-            select data, results, persona.id "persona", saved_apollo_query.id
+            select data, results, saved_apollo_query.id
             from saved_apollo_query
             where saved_apollo_query.id = {saved_query_id}
             limit 1
@@ -722,12 +722,17 @@ def apollo_get_pre_filters(
     d_results = []
     results = db.engine.execute(query).fetchall()
     for row in results:
-        (
-            data,
-            results,
-            persona_id,
-            query_id,
-        ) = row
+        if (saved_query_id):
+            data, results, query_id = row
+            persona_id = None
+            segment_id = None
+        else:
+            (
+                data,
+                results,
+                persona_id,
+                query_id,
+            ) = row
         d_results.append(
             {
                 "data": data,
@@ -846,14 +851,16 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
 
     #always come up with some technology they might be using
     if use_apollo_filters:
-        technology_uids = get_technology_uids(query)
-        overall_filters["currently_using_any_of_technology_uids"] = technology_uids
-        #remove the technology_uids from the filter_types because the job is done.
         if "currently_using_any_of_technology_uids" in filter_types:
+            technology_uids = get_technology_uids(query)
+            overall_filters["currently_using_any_of_technology_uids"] = technology_uids
+            #remove the technology_uids from the filter_types because the job is done.
             filter_types.remove("currently_using_any_of_technology_uids")
 
 
-    for filter_type in filter_types:
+    import concurrent.futures
+
+    def process_filter(filter_type):
         instruction = deep_get(
             allowed_filters,
             "{filter_type}.prompt".format(filter_type=filter_type),
@@ -864,7 +871,7 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
         )
 
         if not instruction or not output_type:
-            continue
+            return None, None
 
         completion = wrapped_chat_gpt_completion(
             messages=[
@@ -886,7 +893,14 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
 
         data = yaml.safe_load(completion)
 
-        overall_filters[filter_type] = data["data"]
+        return filter_type, data["data"]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_filter = {executor.submit(process_filter, filter_type): filter_type for filter_type in filter_types}
+        for future in concurrent.futures.as_completed(future_to_filter):
+            filter_type, result = future.result()
+            if filter_type and result:
+                overall_filters[filter_type] = result
 
     print('returning overall_filters', overall_filters)
     return overall_filters
