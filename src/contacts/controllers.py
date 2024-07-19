@@ -275,10 +275,15 @@ def get_apollo_get_pre_filters(client_sdr_id: int):
         "segment_id", request, json=False, required=False
     )
 
+    saved_query_id = get_request_parameter(
+        "saved_query_id", request, json=False, required=False
+    )
+
     data = apollo_get_pre_filters(
         client_sdr_id=client_sdr_id,
         persona_id=persona_id,
         segment_id=segment_id,
+        saved_query_id=saved_query_id,
     )
 
     return jsonify(

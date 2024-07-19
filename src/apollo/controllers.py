@@ -2,7 +2,7 @@ from app import db
 from flask import Blueprint, jsonify, request
 import requests
 
-from src.apollo.services import save_apollo_cookies, get_apollo_cookies
+from src.apollo.services import save_apollo_cookies, get_apollo_cookies, get_fuzzy_company_list
 from src.authentication.decorators import require_user
 from src.contacts.models import SavedApolloQuery
 from src.utils.request_helpers import get_request_parameter
@@ -98,25 +98,9 @@ def search_technology_tags():
     q_tag_fuzzy_name = get_request_parameter(
         "q_tag_fuzzy_name", request, json=False, required=True, parameter_type=str
     )
-    cookies, csrf_token = get_apollo_cookies()
-    if not cookies:
-        return (
-            jsonify({"status": "error", "message": "Error getting Apollo cookies."}),
-            500,
-        )
-    headers = {
-        "x-csrf-token": csrf_token,
-        "cookie": cookies,
-    }
-    params = {
-        "q_tag_fuzzy_name": q_tag_fuzzy_name,
-        "kind": "technology",
-        "display_mode": "fuzzy_select_mode",
-        "cacheKey": 1705003292782,
-    }
-    response = requests.get(
-        "https://app.apollo.io/api/v1/tags/search", headers=headers, params=params
-    )
+
+    response = get_fuzzy_company_list(q_tag_fuzzy_name)
+
     if response.status_code != 200:
         return (
             jsonify({"status": "error", "message": "Error searching technology tags."}),

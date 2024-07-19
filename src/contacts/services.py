@@ -4,7 +4,7 @@ import os
 from typing import Optional
 from app import db
 import requests
-from src.apollo.services import get_apollo_cookies
+from src.apollo.services import get_apollo_cookies, get_fuzzy_company_list
 from src.client.models import ClientArchetype, ClientSDR
 from src.company.services import find_company_name_from_url
 from src.contacts.models import SavedApolloQuery
@@ -153,7 +153,7 @@ ALLOWED_FILTERS = {
 
 ALLOWED_FILTERS_APOLLO = {
     "currently_using_any_of_technology_uids": {
-        "summary": "(list) List of technology UIDs currently in use",
+        "summary": "(list) List of technologies that are used by this segment of people",
         "output_type": "list",
         "prompt": "Extract the technology UIDs currently in use from the query. The values should be a list of strings.",
     },
@@ -185,7 +185,7 @@ ALLOWED_FILTERS_APOLLO = {
     "person_locations": {
         "summary": "(list) List of person locations",
         "output_type": "list",
-        "prompt": "Extract the person locations from the query. The values should be a list of strings.",
+        "prompt": "Extract the person locations from the query. The values should be a list of strings, including a choice of, if relevant: ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']",
     },
     "person_titles": {
         "summary": "(list) List of person titles",
@@ -193,7 +193,7 @@ ALLOWED_FILTERS_APOLLO = {
         "prompt": "Extract the person titles from the query. The values should be a list of strings.",
     },
     "published_at_date_range": {
-        "summary": "(dict) Date range for published content",
+        "summary": "(dict) Date range for company news",
         "output_type": "dict",
         "prompt": "Extract the date range for published content from the query. The value should be a dictionary with keys 'min' and 'max' and values as strings.",
     },
@@ -691,24 +691,33 @@ def apollo_get_pre_filters(
     client_sdr_id: int,
     persona_id: Optional[int] = None,
     segment_id: Optional[int] = None,
+    saved_query_id: Optional[int] = None,
 ):
-    query = f"""
-        select data, results, persona.id "persona", saved_apollo_query.id
-from saved_apollo_query
-  join client_sdr on client_sdr.id = saved_apollo_query.client_sdr_id
-  left join persona on persona.saved_apollo_query_id = saved_apollo_query.id
-  left join segment on segment.saved_apollo_query_id = saved_apollo_query.id
-where client_sdr.id = {client_sdr_id}
-  and (
-    ({persona_id != None} and persona.id = {persona_id or 'null'})
-    or ({segment_id != None} and segment.id = {segment_id or 'null'})
-    or ({segment_id == None} and {persona_id == None} and
-      saved_apollo_query.is_prefilter
-    )
-  )
-order by saved_apollo_query.created_at desc
-limit 1
-    """
+    if saved_query_id:
+        query = f"""
+            select data, results, persona.id "persona", saved_apollo_query.id
+            from saved_apollo_query
+            where saved_apollo_query.id = {saved_query_id}
+            limit 1
+        """
+    else:
+        query = f"""
+            select data, results, persona.id "persona", saved_apollo_query.id
+            from saved_apollo_query
+            join client_sdr on client_sdr.id = saved_apollo_query.client_sdr_id
+            left join persona on persona.saved_apollo_query_id = saved_apollo_query.id
+            left join segment on segment.saved_apollo_query_id = saved_apollo_query.id
+            where client_sdr.id = {client_sdr_id}
+            and (
+                ({persona_id != None} and persona.id = {persona_id or 'null'})
+                or ({segment_id != None} and segment.id = {segment_id or 'null'})
+                or ({segment_id == None} and {persona_id == None} and
+                saved_apollo_query.is_prefilter
+                )
+            )
+            order by saved_apollo_query.created_at desc
+            limit 1
+        """
 
     d_results = []
     results = db.engine.execute(query).fetchall()
@@ -749,6 +758,47 @@ limit 1
         "data": query_data,
         "companies": [company.to_dict() for company in companies],
     }
+
+def get_technology_uids(query: str) -> list:
+    #ingest the prompt and come up with
+    #at most 5 relevant technologies that might be used
+    def get_data(query):
+        completion = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Here is a user query: {query}, based on that, please give me a python list of one word short strings of at most 7 different technologies that could be used by this market segment. They can be specific, please return only the python list".format(
+                        query=query,
+                    ),
+                }
+            ],
+            max_tokens=100,
+            model="gpt-4o",
+        )
+        completion = completion.replace("`", "").replace("python", "").replace('json','')
+        data = yaml.safe_load(completion)
+        return data
+
+    attempts = 0
+    data = []
+    while attempts < 3:
+        try:
+            data = get_data(query)
+            break
+        except:
+            attempts += 1
+            if attempts == 3:
+                data = []
+                break
+
+    ret = []
+    for technology in data:
+        uids = get_fuzzy_company_list(technology)
+        if uids:
+            response_json = uids.json()
+            if len(response_json.get('tags', [])) > 1:
+                ret.append(response_json['tags'][0]['uid'])
+    return ret
 
 
 def predict_filters_types_needed(query: str, use_apollo_filters=False) -> list:
@@ -794,6 +844,15 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
 
     overall_filters = {}
 
+    #always come up with some technology they might be using
+    if use_apollo_filters:
+        technology_uids = get_technology_uids(query)
+        overall_filters["currently_using_any_of_technology_uids"] = technology_uids
+        #remove the technology_uids from the filter_types because the job is done.
+        if "currently_using_any_of_technology_uids" in filter_types:
+            filter_types.remove("currently_using_any_of_technology_uids")
+
+
     for filter_type in filter_types:
         instruction = deep_get(
             allowed_filters,
@@ -823,14 +882,13 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
             model="gpt-4o",
         )
 
-        print('completion is', completion)
-
         completion = completion.replace("`", "").replace("json", "")
 
         data = yaml.safe_load(completion)
 
         overall_filters[filter_type] = data["data"]
 
+    print('returning overall_filters', overall_filters)
     return overall_filters
 
 

@@ -1,3 +1,4 @@
+import requests
 from app import db
 from src.apollo.models import ApolloCookies
 
@@ -38,3 +39,26 @@ def get_apollo_cookies() -> dict:
     except Exception as e:
         print(f"Error getting Apollo cookies: {e}")
         return {}
+
+def get_fuzzy_company_list(q_tag_fuzzy_name):
+    cookies, csrf_token = get_apollo_cookies()
+    if not cookies:
+        return (
+           ({"status": "error", "message": "Error getting Apollo cookies."}),
+            500,
+        )
+    headers = {
+        "x-csrf-token": csrf_token,
+        "cookie": cookies,
+    }
+    params = {
+        "q_tag_fuzzy_name": q_tag_fuzzy_name,
+        "kind": "technology",
+        "display_mode": "fuzzy_select_mode",
+        "cacheKey": 1705003292782,
+    }
+    response = requests.get(
+        "https://app.apollo.io/api/v1/tags/search", headers=headers, params=params
+    )
+
+    return response
