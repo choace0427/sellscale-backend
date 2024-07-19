@@ -64,7 +64,7 @@ from src.prospecting.models import (
     VALID_NEXT_LINKEDIN_STATUSES,
     ProspectUploadSource,
 )
-from app import db, celery
+from app import db, celery, add_together
 from src.segment.models import Segment
 from src.slack.models import SlackNotificationType
 from src.slack.slack_notification_center import (
@@ -1633,6 +1633,7 @@ def add_prospect(
     segment_id: Optional[int] = None,
     prospect_location: Optional[str] = None,
     company_location: Optional[str] = None,
+    override: Optional[bool] = False,
 ) -> Union[int, None]:
     """Adds a Prospect to the database.
 
@@ -1682,6 +1683,8 @@ def add_prospect(
         prospect_persona = ClientArchetype.query.filter_by(
             id=prospect_exists.archetype_id
         ).first()
+        if override:
+            return prospect_exists.id
         if (
             archetype_id
             and prospect_exists.archetype_id != archetype_id
@@ -1700,7 +1703,7 @@ def add_prospect(
             return prospect_exists.id
 
         # No good reason to have duplicate. Return None
-        return prospect_exists.id
+        return None
 
     if linkedin_url and len(linkedin_url) > 0:
         linkedin_url = linkedin_url.replace("https://www.", "")
