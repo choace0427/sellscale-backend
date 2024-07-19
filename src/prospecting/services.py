@@ -294,6 +294,38 @@ def get_prospects(
     return {"total_count": total_count, "prospects": prospects}
 
 
+def get_prospect_duplicate_details(
+    prospect_id: int
+) -> dict:
+    """
+
+    :param prospect_id:
+    :return:
+    Gets prospects Full name, company, title, SDR name, segment, campaign, current state"
+    """
+    query = """
+    SELECT prospect.full_name, prospect.company, prospect.title, 
+    client_sdr.name, segment.segment_title, client_archetype.archetype, prospect.overall_status AS status
+    FROM prospect
+    LEFT JOIN client_sdr ON client_sdr.id = prospect.client_sdr_id
+    LEFT JOIN segment ON segment.id = prospect.segment_id
+    LEFT JOIN client_archetype ON client_archetype.id = prospect.archetype_id
+    WHERE prospect.id = :prospect_id
+    """
+
+    result = db.session.execute(query, {"prospect_id": prospect_id}).fetchone()
+
+    if result:
+        return {
+            "full_name": result.full_name,
+            "company": result.company,
+            "title": result.title,
+            "sdr": result.name,
+            "archetype": result.archetype,
+            "status": result.status,
+        }
+
+
 def get_prospects_for_icp_table(
     client_sdr_id: int,
     client_archetype_id: int,
@@ -1931,6 +1963,51 @@ def create_prospect_from_linkedin_link(
         return False, "Prospect already exists"
     except Exception as e:
         raise self.retry(exc=e, countdown=2**self.request.retries)
+
+
+def get_duplicate_prospects_from_csv_payload(client_sdr_id: int,
+                                             csv_payload: list):
+    """Check for duplicate prospects from CSV payload (given as JSON)
+    This will return a list of duplicate prospects, and will allow the users to
+    Select whether this prospect will be overridden
+    We add 1 more column to the csv_payload, which will have the override status
+    """
+    # Store the raw csv in the database
+    validated, reason = validate_prospect_json_payload(csv_payload)
+
+    if not validated:
+        return reason, 400
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    if not client_sdr:
+        return "Client SDR not found", 400
+
+    return_list = []
+
+    # Get the prospect uploads
+    for i in range(len(csv_payload)):
+        prospect = csv_payload[i]
+        full_name = prospect.get("full_name")
+        first_name = prospect.get("first_name")
+        last_name = prospect.get("last_name")
+
+        if not full_name:
+            full_name = first_name + " " + last_name
+
+        full_name = full_name.title()
+
+        existing_prospect = prospect_exists_for_client(full_name=full_name, client_id=client_sdr.client_id)
+
+        if existing_prospect:
+            prospect_details = get_prospect_duplicate_details(existing_prospect.id)
+            prospect_details["row"] = i
+            prospect_details["override"] = False
+            return_list.append(
+                prospect_details
+            )
+
+    return jsonify({"message": "Success", "data": return_list}), 200
 
 
 def mark_prospects_as_queued_for_outreach(

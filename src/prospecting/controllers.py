@@ -12,7 +12,8 @@ from src.prospecting.champions.services import (
     mark_prospects_as_champion,
     refresh_job_data_for_all_champions,
 )
-from src.prospecting.services import move_all_revival_prospects_back_to_previous_status
+from src.prospecting.services import move_all_revival_prospects_back_to_previous_status, prospect_exists_for_client, \
+    get_prospect_duplicate_details, get_duplicate_prospects_from_csv_payload
 from src.prospecting.models import ExistingContact, ProspectUploadSource
 from src.segment.models import Segment
 from src.segment.services import (
@@ -1056,6 +1057,18 @@ def add_prospect_from_apollo_query_id(client_sdr_id: int):
         return "OK", 200
 
     return "Failed to create prospect", 400
+
+
+@PROSPECTING_BLUEPRINT.route("/check_duplicate_prospects_from_csv_payload", methods=["POST"])
+@require_user
+def check_duplicate_prospects_from_csv_payload(client_sdr_id: int):
+    csv_payload = get_request_parameter(
+        "csv_payload", request, json=True, required=True, parameter_type=list
+    )
+
+    return get_duplicate_prospects_from_csv_payload(client_sdr_id=client_sdr_id,
+                                                    csv_payload=csv_payload)
+
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])
 @require_user

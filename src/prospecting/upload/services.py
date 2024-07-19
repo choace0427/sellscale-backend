@@ -11,12 +11,12 @@ from src.prospecting.models import (
     ProspectUploads,
     ProspectUploadsStatus,
     ProspectUploadsErrorType,
-    Prospect,
+    Prospect, ProspectStatus, ProspectOverallStatus,
 )
 from src.prospecting.services import (
     get_linkedin_slug_from_url,
     get_navigator_slug_from_url,
-    add_prospect,
+    add_prospect, prospect_exists_for_client,
 )
 from src.research.account_research import generate_prospect_research
 from src.research.models import IScraperPayloadType
@@ -563,6 +563,8 @@ def create_prospect_from_linkedin_link(
         linkedin_url = prospect_upload.data.get("linkedin_url", None)
         is_lookalike_profile = prospect_upload.data.get("is_lookalike_profile", False)
 
+        override = prospect_upload.data.get("override", None)
+
         # If don't have a li_url but we have an email (and name, company?), search for the li_url
         if not linkedin_url and email:
             company = prospect_upload.data.get("company", "")
@@ -756,11 +758,31 @@ def create_prospect_from_linkedin_link(
 
             return True, new_prospect_id
         else:
-            prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
-            prospect_upload.error_type = ProspectUploadsErrorType.DUPLICATE
-            db.session.add(prospect_upload)
-            db.session.commit()
-            return False, prospect_upload_id
+            if override:
+                prospect: Prospect = prospect_exists_for_client(
+                    full_name=full_name, client_id=prospect_upload.client_id
+                )
+                # We want to reset prospect, and add them to new segment id, and archetype
+                prospect.approved_prospect_email_id = None
+                prospect.approved_outreach_message_id = None
+                prospect.status = ProspectStatus.PROSPECTED
+                prospect.overall_status = ProspectOverallStatus.PROSPECTED
+                prospect.archetype_id = prospect_upload.client_archetype_id
+                prospect.client_sdr_id = prospect_upload.client_sdr_id
+                prospect.segment_id = segment_id
+
+                prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
+
+                db.session.add(prospect_upload)
+                db.session.commit()
+
+                return True, prospect.id
+            else:
+                prospect_upload.status = ProspectUploadsStatus.DISQUALIFIED
+                prospect_upload.error_type = ProspectUploadsErrorType.DUPLICATE
+                db.session.add(prospect_upload)
+                db.session.commit()
+                return False, prospect_upload_id
     except Exception as e:
         db.session.rollback()
         prospect_upload: ProspectUploads = ProspectUploads.query.get(prospect_upload_id)
