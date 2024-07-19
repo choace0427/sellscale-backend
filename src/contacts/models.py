@@ -8,6 +8,8 @@ class SavedApolloQuery(db.Model):
 
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
     custom_name = db.Column(db.String, nullable=True)
+    value_proposition = db.Column(db.String, nullable=True)
+    segment_description = db.Column(db.String, nullable=True)
     name_query = db.Column(db.String, nullable=False)
     data = db.Column(db.JSON, nullable=False)
     results = db.Column(db.JSON, nullable=True)
@@ -18,6 +20,8 @@ class SavedApolloQuery(db.Model):
         return {
             "id": self.id,
             "custom_name": self.custom_name,
+            "value_proposition": self.value_proposition,
+            "segment_description": self.segment_description,
             "client_sdr_id": self.client_sdr_id,
             "name_query": self.name_query,
             "data": self.data,
