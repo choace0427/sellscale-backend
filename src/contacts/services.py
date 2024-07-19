@@ -410,7 +410,6 @@ def apollo_get_contacts_for_page(
     )
     db.session.add(saved_query)
     db.session.commit()
-
     saved_query_id = saved_query.id
 
     return results, data, saved_query_id
@@ -954,3 +953,15 @@ def save_apollo_query(domain):
     print(response.text)
 
     return response.json()
+
+def get_apollo_queries_under_sdr(client_sdr_id: int):
+    
+    #has a custom_name, for this new version
+    queries: list[SavedApolloQuery] = SavedApolloQuery.query.filter(
+        SavedApolloQuery.client_sdr_id == client_sdr_id,
+        SavedApolloQuery.is_prefilter == True,
+        SavedApolloQuery.custom_name.isnot(None)
+    ).all()
+
+
+    return [query.to_dict() for query in queries]

@@ -10,6 +10,7 @@ from src.contacts.services import (
     apollo_get_pre_filters,
     get_territories,
     predict_filters_needed,
+    get_apollo_queries_under_sdr,
 )
 from src.company.services import find_company, find_company_name_from_url
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -286,3 +287,12 @@ def get_apollo_get_pre_filters(client_sdr_id: int):
             "data": data,
         }
     )
+
+@CONTACTS_BLUEPRINT.route("/all_prefilters", methods=["GET"])
+@require_user
+def get_apollo_queries(client_sdr_id: int):
+    queries = get_apollo_queries_under_sdr(client_sdr_id)
+    return jsonify({
+        "status": "success",
+        "data": queries,
+    })
