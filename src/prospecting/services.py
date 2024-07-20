@@ -323,6 +323,7 @@ def get_prospect_duplicate_details(
             "sdr": result.name,
             "archetype": result.archetype,
             "status": result.status,
+            "segment_title": result.status
         }
 
 
