@@ -1066,8 +1066,12 @@ def check_duplicate_prospects_from_csv_payload(client_sdr_id: int):
         "csv_payload", request, json=True, required=True, parameter_type=list
     )
 
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=True, required=False, parameter_type=int
+    )
+
     return get_duplicate_prospects_from_csv_payload(client_sdr_id=client_sdr_id,
-                                                    csv_payload=csv_payload)
+                                                    csv_payload=csv_payload, archetype_id=archetype_id)
 
 
 @PROSPECTING_BLUEPRINT.route("/add_prospect_from_csv_payload", methods=["POST"])

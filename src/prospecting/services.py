@@ -1969,7 +1969,7 @@ def create_prospect_from_linkedin_link(
 
 
 def get_duplicate_prospects_from_csv_payload(client_sdr_id: int,
-                                             csv_payload: list):
+                                             csv_payload: list, archetype_id: Optional[int] = None):
     """Check for duplicate prospects from CSV payload (given as JSON)
     This will return a list of duplicate prospects, and will allow the users to
     Select whether this prospect will be overridden
@@ -2006,6 +2006,11 @@ def get_duplicate_prospects_from_csv_payload(client_sdr_id: int,
             prospect_details = get_prospect_duplicate_details(existing_prospect.id)
             prospect_details["row"] = i
             prospect_details["override"] = False
+
+            if archetype_id:
+                if existing_prospect.archetype_id == archetype_id:
+                    prospect_details["same_archetype"] = True
+
             return_list.append(
                 prospect_details
             )
