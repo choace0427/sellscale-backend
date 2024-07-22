@@ -275,6 +275,7 @@ def apollo_get_contacts(
     filter_name: Optional[str] = None,
     segment_description: Optional[str] = None,
     value_proposition: Optional[str] = None,
+    saved_apollo_query_id: Optional[int] = None,
 ):
     breadcrumbs = None  # grab from first result
     partial_results_only = None  # grab from first result
@@ -345,6 +346,13 @@ def apollo_get_contacts(
     contacts = add_match_reasons(contacts, breadcrumbs)
     people = add_match_reasons(people, breadcrumbs)
 
+    # if saved_apollo_query_id (one we're editing), update the query data in the DB and delete the old one
+    if saved_apollo_query_id:
+        saved_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)
+        saved_query.data = data
+        db.session.commit()
+        # optionally delete the old query here.
+
     return {
         "breadcrumbs": breadcrumbs,
         "partial_results_only": partial_results_only,
@@ -353,7 +361,7 @@ def apollo_get_contacts(
         "pagination": pagination,
         "contacts": contacts,
         "people": people,
-        "saved_query_id": saved_query_id,
+        "saved_query_id": saved_apollo_query_id if saved_apollo_query_id else saved_query_id,
         "data": data,
     }
 

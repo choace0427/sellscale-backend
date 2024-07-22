@@ -116,6 +116,14 @@ def index(client_sdr_id: int):
         required=False,
         default_value=None,
     )
+    saved_apollo_query_id = get_request_parameter(
+        "saved_apollo_query_id",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+        parameter_type=int,
+    )
 
     is_prefilter = get_request_parameter(
         "is_prefilter",
@@ -146,6 +154,7 @@ def index(client_sdr_id: int):
         organization_department_or_subdepartment_counts=organization_department_or_subdepartment_counts,
         is_prefilter=is_prefilter,
         q_organization_keyword_tags=q_organization_keyword_tags,
+        saved_apollo_query_id=saved_apollo_query_id,
     )
 
     predicted_segment_name = ""
