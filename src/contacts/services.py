@@ -1,7 +1,8 @@
 import json
+from flask import jsonify
 import yaml
 import os
-from typing import Optional
+from typing import Dict, List, Optional
 from app import db
 import requests
 from src.apollo.services import get_apollo_cookies, get_fuzzy_company_list
@@ -9,7 +10,7 @@ from src.client.models import ClientArchetype, ClientSDR
 from src.company.services import find_company_name_from_url
 from src.contacts.models import SavedApolloQuery
 
-from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.ml.openai_wrappers import DEFAULT_TEMPERATURE, wrapped_chat_gpt_completion
 from src.ml.services import simple_perplexity_response
 from src.prospecting.controllers import add_prospect_from_csv_payload
 from src.prospecting.models import ProspectUploadSource
@@ -177,15 +178,10 @@ ALLOWED_FILTERS_APOLLO = {
         "output_type": "list",
         "prompt": "Extract the organization industry tag IDs from the query. The values should be a list of strings.",
     },
-    "per_page": {
-        "summary": "(int) Number of results per page",
-        "output_type": "integer",
-        "prompt": "Extract the number of results per page from the query. THE VALUE SHOULD ALWAYS BE 100.",
-    },
     "person_locations": {
         "summary": "(list) List of person locations",
         "output_type": "list",
-        "prompt": "Extract the person locations from the query. The values should be a list of strings, including a choice of, if relevant: ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']",
+        "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be strictly from these: ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']",
     },
     "person_titles": {
         "summary": "(list) List of person titles",
@@ -205,7 +201,7 @@ ALLOWED_FILTERS_APOLLO = {
     "revenue_range": {
         "summary": "(dict) Range of revenue",
         "output_type": "dict",
-        "prompt": "Extract the revenue range from the query. The value should be a dictionary with keys 'min' and 'max' and values as integers.",
+        "prompt": "Extract the revenue range from the query. The value should be a dictionary with keys 'min' and 'max' and values as integers. The values should be reasonable, be clever about it.",
     },
 }
 
@@ -276,6 +272,9 @@ def apollo_get_contacts(
     organization_department_or_subdepartment_counts: Optional[list] = None,
     is_prefilter: bool = False,
     q_organization_keyword_tags: Optional[list] = None,
+    filter_name: Optional[str] = None,
+    segment_description: Optional[str] = None,
+    value_proposition: Optional[str] = None,
 ):
     breadcrumbs = None  # grab from first result
     partial_results_only = None  # grab from first result
@@ -313,6 +312,9 @@ def apollo_get_contacts(
                 organization_department_or_subdepartment_counts,
                 is_prefilter=is_prefilter,
                 q_organization_keyword_tags=q_organization_keyword_tags,
+                filter_name=filter_name,
+                segment_description=segment_description,
+                value_proposition=value_proposition,
             )
 
             print(
@@ -424,6 +426,9 @@ def apollo_get_contacts_for_page(
     organization_department_or_subdepartment_counts: Optional[dict] = None,
     is_prefilter: bool = False,
     q_organization_keyword_tags: Optional[list] = None,
+    filter_name: Optional[str] = None,
+    segment_description: Optional[str] = None,
+    value_proposition: Optional[str] = None,
 ):
     data = {
         "api_key": APOLLO_API_KEY,
@@ -460,6 +465,9 @@ def apollo_get_contacts_for_page(
     hash = generate_uuid(base=f"{name} {formatted_date}")[0:6]
 
     saved_query = SavedApolloQuery(
+        custom_name=filter_name,
+        value_proposition=value_proposition,
+        segment_description=segment_description,
         name_query=f"[{name}] Query on {formatted_date} [{hash}]",
         data=data,
         results=results,
@@ -847,6 +855,7 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
     allowed_filters = ALLOWED_FILTERS_APOLLO if use_apollo_filters else ALLOWED_FILTERS
     filter_types = predict_filters_types_needed(query, use_apollo_filters=use_apollo_filters)
 
+    print('needed filters', filter_types)
     overall_filters = {}
 
     #always come up with some technology they might be using
@@ -890,6 +899,8 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
         )
 
         completion = completion.replace("`", "").replace("json", "")
+
+        print('completion is', completion)
 
         data = yaml.safe_load(completion)
 
@@ -1104,3 +1115,103 @@ def get_apollo_queries_under_sdr(client_sdr_id: int):
 
 
     return [query.to_dict() for query in queries]
+
+
+def handle_chat_icp(client_sdr_id: int, chat_content: list[dict], prompt: str) -> Dict[str, str]:
+    """
+    Generate sales segments based on chat content and the latest message.
+    There are two stages to the chat gpt completions, one is desginated for CSV generation, the other is for chatting.
+    This is due to hallucinations that can occur in the chat gpt completions.
+    We can switch our models for either of these completions if we need to.
+    """
+
+    system_message_response = {"role": "system", "content": "You are an AI that will generate three things for a sales segment: a descriptive segment name, descriptive segment description, and the descriptive and clever segment's value proposition separated by a delimiter of 3 hashes: ###."}
+
+
+    nicely_formatted_message_history_string = '\n'.join([f"{msg['sender']}: {msg.get('query', '')}" for msg in chat_content]) + "\nlast message from user: " + prompt
+
+    print('string is', nicely_formatted_message_history_string)
+
+    query = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message as: a descriptive segment name, descriprive segment description, and the descriptive and clever segmens value proposition separated by a delimiter of 3 hashes: ###, for example: [SEGMENT NAME]###[SEGMENT DESCRIPTION]###[SEGMENT VALUE PROPOSITION]\n IMPORTANT: make sure you have those three sections!\n\nOUTPUT:\n\n'
+
+    # Prepare the messages for the chat response
+    query = [system_message_response] + [{"role": "user", "content": query}]
+
+
+    import concurrent.futures
+
+    def get_response_content_response(query, temperature, max_tokens):
+        return wrapped_chat_gpt_completion(
+            model='gpt-4o',
+            messages=query,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+    
+
+    def get_response_content_response_2(nicely_formatted_message_history_string, temperature, max_tokens):
+        return wrapped_chat_gpt_completion(
+            model='gpt-4o',
+            messages=[{"role": "user", "content": nicely_formatted_message_history_string + '\n \n given that conversation, Please come up with back a friendly message acknowledging the customer request.  Only that reply, make it brief.\nOutput:'}],
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        future_response_1 = executor.submit(get_response_content_response, query, DEFAULT_TEMPERATURE, 500)
+        future_response_2 = executor.submit(get_response_content_response_2, nicely_formatted_message_history_string, DEFAULT_TEMPERATURE, 500)
+
+        response_content_response = future_response_1.result()
+        response_content_response_2 = future_response_2.result()
+
+    response_content_response = response_content_response.replace("`", "").replace("json", "").replace('[', '').replace(']', '')
+
+    # Try to split the response into 3 parts, retrying up to 3 times if necessary
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        response_parts = response_content_response.split('###')
+        if len(response_parts) == 3:
+            segment_name, segment_description, segment_value_proposition = response_parts
+            break
+        if attempt == max_attempts - 1:
+            return {"response": response_content_response_2, "data": {}, "makers": "", "industry": "", "pain_point": ""}
+        response_content_response = future_response_1.result().replace("`", "").replace("json", "").replace('[', '').replace(']', '')
+
+    print('data is', segment_name, segment_description, segment_value_proposition)
+    
+    filters = predict_filters_needed('here is some message history for the user who is trying to build the segment' + nicely_formatted_message_history_string + ' based on this, please create a detailed segment', use_apollo_filters=True)
+
+    data = apollo_get_contacts(
+    filter_name=segment_name,
+    segment_description=segment_description,
+    value_proposition=segment_value_proposition,
+    client_sdr_id=client_sdr_id,
+    num_contacts=filters.get("num_contacts", 100),
+    person_titles=filters.get("person_titles", []),
+    person_not_titles=filters.get("person_not_titles", []),
+    q_person_title=filters.get("q_person_title", ""),
+    q_person_name=filters.get("q_person_name", ""),
+    organization_industry_tag_ids=filters.get("organization_industry_tag_ids", []),
+    organization_num_employees_ranges=filters.get("organization_num_employees_ranges", None),
+    person_locations=filters.get("person_locations", []),
+    organization_ids=filters.get("organization_ids", None),
+    revenue_range=filters.get("revenue_range", {"min": None, "max": None}),
+    organization_latest_funding_stage_cd=filters.get("organization_latest_funding_stage_cd", []),
+    currently_using_any_of_technology_uids=filters.get("currently_using_any_of_technology_uids", []),
+    event_categories=filters.get("event_categories", None),
+    published_at_date_range=filters.get("published_at_date_range", None),
+    person_seniorities=filters.get("person_seniorities", None),
+    q_organization_search_list_id=filters.get("q_organization_search_list_id", None),
+    q_organization_keyword_tags=filters.get("q_organization_keyword_tags", None),
+    organization_department_or_subdepartment_counts=filters.get("organization_department_or_subdepartment_counts", None),
+    is_prefilter=True
+    )
+
+    
+    return {
+        "response": response_content_response_2,
+        "data": json.loads(jsonify(data).get_data(as_text=True)),
+        "makers": segment_name,
+        "industry": segment_description,
+        "pain_point": segment_value_proposition
+    }

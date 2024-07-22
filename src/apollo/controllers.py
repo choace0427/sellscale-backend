@@ -143,15 +143,18 @@ def save_query(client_sdr_id):
 @require_user
 def get_all_saved_queries(client_sdr_id):
     """
-    Gets all saved Apollo queries for a client SDR where custom_name is not null.
+    Gets all saved Apollo queries for a client SDR where custom_name is not null,
+    ordered by updated_at.
     """
-    queries = SavedApolloQuery.query.filter(
+    queries: list[SavedApolloQuery] = SavedApolloQuery.query.filter(
         SavedApolloQuery.client_sdr_id == client_sdr_id,
-        SavedApolloQuery.custom_name.isnot(None)
-    ).all()
+        SavedApolloQuery.custom_name.isnot(None),
+        SavedApolloQuery.value_proposition.isnot(None),
+        SavedApolloQuery.segment_description.isnot(None)
+    ).order_by(SavedApolloQuery.updated_at.desc()).all()
 
     result = [
-        {"custom_name": query.custom_name, "num_results": query.num_results, "id": query.id}
+        query.to_dict()
         for query in queries
     ]
 
@@ -183,3 +186,30 @@ def delete_saved_query(client_sdr_id, saved_query_id):
     db.session.commit()
 
     return jsonify({"status": "success", "message": "Pre-filter deleted successfully"}), 200
+
+
+@APOLLO_REQUESTS.route("/update_segment", methods=["PUT"])
+@require_user
+def update_segment(client_sdr_id):
+    """
+    Updates a specific field of an existing segment for a client SDR.
+    """
+    data = request.get_json()
+    segment_id = data.get("id")
+    field = data.get("field")
+    value = data.get("value")
+
+    print('updating field data', value, 'for field', field)   
+
+    if not segment_id or not field:
+        return jsonify({"status": "error", "message": "Segment ID and field are required."}), 400
+
+    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=segment_id, client_sdr_id=client_sdr_id).first()
+    if not query:
+        return jsonify({"status": "error", "message": "Segment not found."}), 404
+
+    setattr(query, field, value)
+
+    db.session.commit()
+
+    return jsonify({"status": "success", "message": "Segment updated successfully."}), 200

@@ -9,6 +9,7 @@ from src.contacts.services import (
     apollo_get_organizations,
     apollo_get_pre_filters,
     get_territories,
+    handle_chat_icp,
     predict_filters_needed,
     get_apollo_queries_under_sdr,
 )
@@ -334,3 +335,31 @@ def query_then_search(client_sdr_id: int):
     )
 
     return jsonify(data)
+
+@CONTACTS_BLUEPRINT.route("/chat-icp", methods=["POST"])
+@require_user
+def post_chat_icp(client_sdr_id: int):
+    """
+    Handle chat ICP requests
+    """
+    prompt = get_request_parameter(
+        "prompt", request, json=True, required=True, parameter_type=str
+    )
+    chat_content = get_request_parameter(
+        "chatContent", request, json=True, required=True, parameter_type=list
+    )
+
+    current_csv = get_request_parameter(
+        "currentCSV", request, json=True, required=False, parameter_type=str
+    )
+    #if current csv is not provided, it will be set to ''
+    if not current_csv:
+        current_csv = ''
+
+    # Assuming the function handle_chat_icp is defined in src/ml/services.py
+    response = handle_chat_icp(client_sdr_id=client_sdr_id,prompt=prompt, chat_content=chat_content)
+
+    if not response:
+        return jsonify({"message": "Error handling chat ICP"}), 400
+
+    return jsonify(response), 200
