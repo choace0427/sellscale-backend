@@ -16,7 +16,7 @@ from src.ml.ai_researcher_services import (
     personalize_email,
 )
 from src.ml.campaign_curator import curate_campaigns
-from src.ml.services import one_shot_linkedin_sequence_generation, find_contacts_from_serp
+from src.ml.services import generate_strategy_copilot_response, one_shot_linkedin_sequence_generation, find_contacts_from_serp
 from src.ml.openai_wrappers import (
     NEWEST_CHAT_GP_MODEL,
     wrapped_chat_gpt_completion,
@@ -867,3 +867,19 @@ def put_few_shot(client_sdr_id: int):
         return jsonify({}), 200
 
     return jsonify(success), 200
+
+
+@ML_BLUEPRINT.route("/strategy_copilot", methods=["POST"])
+@require_user
+def post_strategy_copilot(client_sdr_id: int):
+    chat_content = get_request_parameter(
+        "chat_content", request, json=True, parameter_type=str
+    )
+
+    response = generate_strategy_copilot_response(chat_content)
+
+    if not response:
+        return jsonify({"message": "Error generating a strategy"}), 400
+
+    return jsonify(response), 200
+

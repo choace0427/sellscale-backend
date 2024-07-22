@@ -28,11 +28,11 @@ def post_create_strategy(client_sdr_id: int):
     )
 
     start_date = get_request_parameter(
-        "start_date", request, json=True, required=True, parameter_type=str
+        "start_date", request, json=True, required=False, parameter_type=str
     )
 
     end_date = get_request_parameter(
-        "end_date", request, json=True, required=True, parameter_type=str
+        "end_date", request, json=True, required=False, parameter_type=str
     )
 
     strategy = create_strategy(

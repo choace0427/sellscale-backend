@@ -23,7 +23,7 @@ from src.ml.models import (
     AIResearcherQuestion,
     AIVoice,
     FewShot,
-    TextGeneration,
+    TextGeneration, LLM,
 )
 import traceback
 
@@ -1814,3 +1814,49 @@ Output:"""
         )
 
     return links
+
+
+def generate_strategy_copilot_response(chat_content: List[Dict[str, str]]):
+    """
+    Generate a response for the Strategy Copilot based on the chat content.
+    We will grab our user prompt from the llm table and have that be our initial prompt.
+    :param chat_content: a list of dictionaries that contain the chat content
+    the keys will be:
+    sender: "assistant" or "user"
+    query: <the message>
+    id: <message_id>
+    :return: {"response": response}
+    """
+    # Grabbing initial user prompt from database
+    llm = LLM.query.filter_by(name='strategies_copilot').first()
+    initial_prompt = llm.user
+    model = llm.model
+    max_tokens = llm.max_tokens
+
+    chat_log = [{"role": "user", "content": initial_prompt}]
+
+    # print('params are', chat_content, prompt, current_csv)
+    # Ensure chat_content is a list of dictionaries
+    if isinstance(chat_content, str):
+        chat_content = eval(chat_content)
+
+    for index in range(len(chat_content)):
+        chat = chat_content[index]
+
+        if index == len(chat_content) - 1:
+            chat_log.append({"role": chat.get("sender"), "content": f"User's last message: {chat.get('query')}"})
+            break
+        else:
+            chat_log.append({"role": chat.get("sender"), "content": chat.get("query")})
+
+    chat_gpt_response = wrapped_chat_gpt_completion(
+        model=model,
+        messages=chat_log,
+        temperature=DEFAULT_TEMPERATURE,
+        max_tokens=max_tokens
+    )
+
+    response = chat_gpt_response.strip()
+
+    return {"response": response}
+
