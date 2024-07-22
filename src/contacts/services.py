@@ -366,6 +366,8 @@ def apollo_get_contacts(
         db.session.delete(temp_saved_query)  # optionally delete the old query here.
         db.session.commit()
 
+        print("Updated the saved query with ID", saved_apollo_query_id, 'and deleted the old one. with id', saved_query_id)
+
     return {
         "breadcrumbs": breadcrumbs,
         "partial_results_only": partial_results_only,

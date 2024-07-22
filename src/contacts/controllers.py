@@ -117,7 +117,7 @@ def index(client_sdr_id: int):
         default_value=None,
     )
     saved_apollo_query_id = get_request_parameter(
-        "saved_query_id",
+        "saved_apollo_query_id",
         request,
         json=True,
         required=False,
@@ -132,6 +132,8 @@ def index(client_sdr_id: int):
         required=False,
         default_value=None,
     )
+
+    print('saved query id is', saved_apollo_query_id)
 
     data = apollo_get_contacts(
         client_sdr_id=client_sdr_id,
