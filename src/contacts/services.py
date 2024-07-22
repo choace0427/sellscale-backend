@@ -348,10 +348,23 @@ def apollo_get_contacts(
 
     # if saved_apollo_query_id (one we're editing), update the query data in the DB and delete the old one
     if saved_apollo_query_id:
-        saved_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)
-        saved_query.data = data
-        db.session.commit()
+        saved_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_apollo_query_id)  # this is like a temporary object
+        saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_apollo_query_id).first()  # object we want to modify
+
+        #commented ones should stay the same
+
+        # saved_apollo_query.client_sdr_id = saved_query.client_sdr_id
+        # saved_apollo_query.custom_name = saved_query.custom_name
+        # saved_apollo_query.value_proposition = saved_query.value_proposition
+        # saved_apollo_query.segment_description = saved_query.segment_description
+        saved_apollo_query.name_query = saved_query.name_query
+        saved_apollo_query.data = saved_query.data
+        saved_apollo_query.results = saved_query.results
+        saved_apollo_query.is_prefilter = True
+        saved_apollo_query.num_results = saved_query.num_results
         # optionally delete the old query here.
+        db.session.delete(saved_query)
+        db.session.commit()
 
     return {
         "breadcrumbs": breadcrumbs,
