@@ -1218,6 +1218,7 @@ def add_prospects_from_saved_apollo_query_id(
             )
             
     print(len(all_contacts))
+    return True
 
 
 def add_prospect_from_csv_payload(

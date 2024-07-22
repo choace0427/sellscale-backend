@@ -4,7 +4,10 @@ import requests
 
 from src.apollo.services import save_apollo_cookies, get_apollo_cookies, get_fuzzy_company_list
 from src.authentication.decorators import require_user
+from src.client.models import ClientSDR
 from src.contacts.models import SavedApolloQuery
+from src.prospecting.models import Prospect
+from src.segment.models import Segment
 from src.utils.request_helpers import get_request_parameter
 from src.apollo.models import ApolloCookies
 
@@ -213,3 +216,37 @@ def update_segment(client_sdr_id):
     db.session.commit()
 
     return jsonify({"status": "success", "message": "Segment updated successfully."}), 200
+
+
+@APOLLO_REQUESTS.route("/segments", methods=["GET"])
+@require_user
+def get_segments(client_sdr_id: int):
+    """
+    Retrieves segments and their associated prospect counts for a client SDR.
+    """
+    segments = db.session.query(
+        Segment.id,
+        Segment.segment_title,
+        db.func.count(db.distinct(Prospect.id))
+    ).join(
+        ClientSDR, ClientSDR.id == Segment.client_sdr_id
+    ).outerjoin(
+        Prospect, Prospect.segment_id == Segment.id
+    ).filter(
+        Segment.client_sdr_id == client_sdr_id
+    ).group_by(
+        Segment.id, Segment.segment_title
+    ).order_by(
+        Segment.segment_title
+    ).all()
+
+    result = [
+        {
+            "id": segment,
+            "segment_title": segment_title,
+            "prospect_count": prospect_count
+        }
+        for segment, segment_title, prospect_count in segments
+    ]
+
+    return jsonify({"status": "success", "data": result}), 200
