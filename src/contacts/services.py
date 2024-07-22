@@ -346,7 +346,7 @@ def apollo_get_contacts(
     contacts = add_match_reasons(contacts, breadcrumbs)
     people = add_match_reasons(people, breadcrumbs)
 
-    # if saved_apollo_query_id (one we're editing), update the query data in the DB and delete the old one
+    # if saved_apollo_query_id (one we want to be editing), update the query data in the DB and delete the old one
     if saved_apollo_query_id:
         temp_saved_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_query_id)  # this is like a temporary object
         saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_apollo_query_id).first()  # object we want to modify
@@ -362,8 +362,8 @@ def apollo_get_contacts(
         saved_apollo_query.results = temp_saved_query.results
         saved_apollo_query.is_prefilter = True
         saved_apollo_query.num_results = temp_saved_query.num_results
-        # optionally delete the old query here.
-        db.session.delete(temp_saved_query)
+        db.session.commit()  # commit the changes to the non-temp object
+        db.session.delete(temp_saved_query)  # optionally delete the old query here.
         db.session.commit()
 
     return {
