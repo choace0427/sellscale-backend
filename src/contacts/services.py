@@ -351,7 +351,7 @@ def apollo_get_contacts(
         temp_saved_query: SavedApolloQuery = SavedApolloQuery.query.get(saved_query_id)  # this is like a temporary object
         saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_apollo_query_id).first()  # object we want to modify
 
-        #commented ones should stay the same
+        # commented ones should stay the same
 
         # saved_apollo_query.client_sdr_id = saved_query.client_sdr_id
         # saved_apollo_query.custom_name = saved_query.custom_name
