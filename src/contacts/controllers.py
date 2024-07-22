@@ -117,7 +117,7 @@ def index(client_sdr_id: int):
         default_value=None,
     )
     saved_apollo_query_id = get_request_parameter(
-        "saved_apollo_query_id",
+        "saved_query_id",
         request,
         json=True,
         required=False,
