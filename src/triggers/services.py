@@ -957,7 +957,7 @@ def athelas_job_listing_sonar_test():
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": "🎯 SellScale Sonar: >5 Medical Scribe Listings",
+                            "text": "🎯 New 'Medical Scribe' listings detected!",
                             "emoji": True
                         }
                     },
@@ -992,7 +992,7 @@ def athelas_job_listing_sonar_test():
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "*Medical Scribe - Bilingual Spanish Required*\nNew York"
+                            "text": "*Medical Scribe | 5 days ago*\nNew York"
                         },
                         "accessory": {
                             "type": "button",
@@ -1005,27 +1005,11 @@ def athelas_job_listing_sonar_test():
                         }
                     },
                     {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*Float Medical Scribe $2k Sign on Bonus*\nNew York"
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "View"
-                            },
-                            "url": "https://www.linkedin.com/jobs/view/3927501203"
-                        }
-                    },
-                    {
                         "type": "context",
                         "elements": [
                             {
                                 "type": "mrkdwn",
-                                "text": "🔎 *Detected 74+ relevant professionals*"
+                                "text": "🔎 *Detected 74+ relevant stakeholders*"
                             }
                         ]
                     },
@@ -1036,48 +1020,7 @@ def athelas_job_listing_sonar_test():
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "*Jordan Allen*\nVP, Strategy & Operations (New York)"
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "View"
-                            },
-                            "url": "https://www.linkedin.com/in/jordan-allen-9106022b"
-                        }
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*Carlibi Mha/Mba/Fsa*\nSr Practice Manager (New York)"
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "View"
-                            },
-                            "url": "https://www.linkedin.com/in/carlibirojas"
-                        }
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*Charlotte Turovsky*\nVP, Clinical Operations (New York)"
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "View"
-                            },
-                            "url": "https://www.linkedin.com/in/charlotte-turovsky-0267a544"
+                            "text": "- *Jordan Allen* / VP, Strategy & Operations (New York)\n- *Carlibi Mha* / Sr Practice Manager (New York)\n- *Charlotte Turovsky* / VP, Clinical Operations (New York)"
                         }
                     },
                     {
@@ -1090,7 +1033,7 @@ def athelas_job_listing_sonar_test():
                                 "type": "button",
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "Engage with contacts",
+                                    "text": "Send message",
                                     "emoji": True
                                 },
                                 "url": "https://app.sellscale.com",
