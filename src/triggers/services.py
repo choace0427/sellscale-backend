@@ -539,7 +539,7 @@ def qualify_prospect_titles(
         chat_message = [
             {
                 "role": "user",
-                "content": f"Does the role '{row.title}' match any of these roles: {titles}?\nOnly respond with 'true' or 'false'.\nResponse:",
+                "content": f"Does the role '{row.title}' match any of these roles: {titles}?\nOnly respond with 'True' or 'false'.\nResponse:",
             }
         ]
 
@@ -547,7 +547,7 @@ def qualify_prospect_titles(
         role_match_response = wrapped_chat_gpt_completion(chat_message)
 
         # Determine if the role matches (True/False)
-        correct_role = "true" in role_match_response.lower()
+        correct_role = "True" in role_match_response.lower()
         if correct_role:
             result_prospects.append(row)
 
@@ -745,7 +745,7 @@ def qualify_companies(
         chat_message = [
             {
                 "role": "user",
-                "content": f"{qualifying_question}\n Event: {row.article_title}. Company: {row.company_name}.\nOnly respond with 'true' or 'false'.\nResponse:",
+                "content": f"{qualifying_question}\n Event: {row.article_title}. Company: {row.company_name}.\nOnly respond with 'True' or 'false'.\nResponse:",
             }
         ]
 
@@ -753,7 +753,7 @@ def qualify_companies(
         qualification_response = wrapped_chat_gpt_completion(chat_message)
 
         # Determine qualification (True/False)
-        qualified = "true" in qualification_response.lower()
+        qualified = "True" in qualification_response.lower()
 
         if qualified:
             results.append(row)
@@ -776,7 +776,7 @@ def qualify_prospects(
         chat_message = [
             {
                 "role": "user",
-                "content": f"{qualifying_question}\n Prospect title: {row.title}. Company: {row.company}.\nOnly respond with 'true' or 'false'.\nResponse:",
+                "content": f"{qualifying_question}\n Prospect title: {row.title}. Company: {row.company}.\nOnly respond with 'True' or 'false'.\nResponse:",
             }
         ]
 
@@ -784,7 +784,7 @@ def qualify_prospects(
         qualification_response = wrapped_chat_gpt_completion(chat_message)
 
         # Determine qualification (True/False)
-        qualified = "true" in qualification_response.lower()
+        qualified = "True" in qualification_response.lower()
 
         if qualified:
             results.append(row)
@@ -898,8 +898,8 @@ def experiment_athelas_trigger():
     from src.contacts.services import apollo_get_contacts
 
     # find on Google
-    TITLES = ["CIO", "CTO", "COO", "Clinical Director"]
-    ROLES = ["Clinical Scribe"]
+    TITLES = ["CIO", "CTO", "COO", "Clinical Director", "VP"]
+    ROLES = ["Clinical Scribe", "Medical Scribe"]
     CLIENT_SDR_ID = 215 # Nick Jones; Athelas
 
     PAGES = 1
@@ -945,3 +945,158 @@ def experiment_athelas_trigger():
     return {
         'results': results,
     }
+
+def athelas_job_listing_sonar_test():
+    client: Client = Client.query.get(82)
+    webhook_url = client.pipeline_notifications_webhook_url
+    send_slack_message(
+        message="testing",
+        webhook_urls=[webhook_url],
+        blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "🎯 SellScale Sonar: >5 Medical Scribe Listings",
+                            "emoji": True
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Company: *Oak Street Health*\nEmployees: *5,001 - 10,000*\nLocation: *Chicago, IL*\nConditions: *(✅ is hospital) (✅ 100 - 100k size)*"
+                        },
+                        "accessory": {
+                            "type": "image",
+                            "image_url": "https://logo.clearbit.com/oakstreethealth.com",
+                            "alt_text": "oak street health logo"
+                        }
+                    },
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "🚨 *Detected 8+ job listings for 'Medical Scribes'*"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Medical Scribe - Bilingual Spanish Required*\nNew York"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "View"
+                            },
+                            "url": "https://www.linkedin.com/jobs/view/3972563779"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Float Medical Scribe $2k Sign on Bonus*\nNew York"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "View"
+                            },
+                            "url": "https://www.linkedin.com/jobs/view/3927501203"
+                        }
+                    },
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "🔎 *Detected 74+ relevant professionals*"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Jordan Allen*\nVP, Strategy & Operations (New York)"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "View"
+                            },
+                            "url": "https://www.linkedin.com/in/jordan-allen-9106022b"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Carlibi Mha/Mba/Fsa*\nSr Practice Manager (New York)"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "View"
+                            },
+                            "url": "https://www.linkedin.com/in/carlibirojas"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Charlotte Turovsky*\nVP, Clinical Operations (New York)"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "View"
+                            },
+                            "url": "https://www.linkedin.com/in/charlotte-turovsky-0267a544"
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Engage with contacts",
+                                    "emoji": True
+                                },
+                                "url": "https://app.sellscale.com",
+                                "action_id": "actionId-0"
+                            }
+                        ]
+                    }
+                ]
+    )
