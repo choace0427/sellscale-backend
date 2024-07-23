@@ -3,8 +3,9 @@ from flask import jsonify
 import yaml
 import os
 from typing import Dict, List, Optional
-from app import db
+from app import db, app
 import requests
+from src.apollo.controllers import fetch_tags
 from src.apollo.services import get_apollo_cookies, get_fuzzy_company_list
 from src.client.models import ClientArchetype, ClientSDR
 from src.company.services import find_company_name_from_url
@@ -159,39 +160,39 @@ ALLOWED_FILTERS_APOLLO = {
         "prompt": "Extract the technology UIDs currently in use from the query. The values should be a list of strings.",
     },
     "event_categories": {
-        "summary": "(list) List of event categories",
+        "summary": "(list) List of event categories i.e. news event types, for example, ['leadership', 'acquisition']",
         "output_type": "list",
-        "prompt": "Extract the event categories from the query. The values should be a list of strings.",
+        "prompt": "relate these event types to the query ask. The values should be a list of strings. The values should be one or more of these: 'leadership', 'acquisition', 'expansion', 'new_offering', 'investment', cost_cutting', 'partnership', 'recognition', 'contract', 'corporate_challenges', 'relational'. The values should be a list of strings. eg. ['leadership', 'acquisition']",
     },
-    "num_contacts": {
-        "summary": "(int) Number of contacts",
-        "output_type": "integer",
-        "prompt": "Extract the number of contacts from the query. The value should be an integer.",
-    },
-    "organization_ids": {
-        "summary": "(list) List of organization IDs",
+    # "organization_industry_tag_ids": {
+    #     "summary": "(list) List of certain industries related to this sales segment",
+    #     "output_type": "list",
+    #     "prompt": "Infer what different types of industries might be relevant for this sales segment. The values should be a list of strings.",
+    # },
+    "organization_latest_funding_stage_cd": {
+        "summary": "(list) List of organization last funding stage codes, for example, ['0', '1', '2']",
         "output_type": "list",
-        "prompt": "Extract the organization IDs from the query. The values should be a list of strings.",
+        "prompt": "Extract the organization last funding stage codes from the query. The values should be a list of strings. The options are: Seed:'0', Angel:'1', Venture:'10', Series A:'2', Series B:'3', Series C:'4', Series D:'5', Series E:'6', Series F:'7', Debt Financing:'13', Equity Crowdfunding:'14', Convertible Note:'15', Private Equity:'11', Other:'12'. The values should be the only values, do not include the labels at all. e.b. ['0', '1', '2']",
     },
-    "organization_industry_tag_ids": {
-        "summary": "(list) List of organization industry tag IDs",
+    "organization_ids":{
+        "summary": "(list) List of company names. Please always include this.",
         "output_type": "list",
-        "prompt": "Extract the organization industry tag IDs from the query. The values should be a list of strings.",
+        "prompt": "From this description of a sales segment, come up with 20 different company names that would be relevant to this segment, be clever. The values should be a list of strings.",
     },
     "person_locations": {
         "summary": "(list) List of person locations",
         "output_type": "list",
-        "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be strictly from these: ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']",
+        "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be one or more of these (if applicable): ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']",
     },
     "person_titles": {
-        "summary": "(list) List of person titles",
+        "summary": "(list) List of person titles. Please always include this",
         "output_type": "list",
-        "prompt": "Extract the person titles from the query. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 5 related job titles that may be synonymous with my target audience. Not plural",
+        "prompt": "Infer some person titles from this sales segment. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 7 related job titles that may be synonymous with my target audience. Not plural",
     },
     "published_at_date_range": {
         "summary": "(dict) Date range for company news",
         "output_type": "dict",
-        "prompt": "Extract the date range for published content from the query. The value should be a dictionary with keys 'min' and 'max' and values as strings.",
+        "prompt": "Extract the date range for published content from the query. The value should be a dictionary with a 'min' a a string, exclusively with '_days_ago' post-pended. eg {'min': '30_days_ago'}",
     },
     "q_person_name": {
         "summary": "(str) Person name query",
@@ -201,7 +202,7 @@ ALLOWED_FILTERS_APOLLO = {
     "revenue_range": {
         "summary": "(dict) Range of revenue",
         "output_type": "dict",
-        "prompt": "Extract the revenue range from the query. The value should be a dictionary with keys 'min' and 'max' and values as integers. The values should be reasonable, be clever about it.",
+        "prompt": "The query you are given is describing a sales segment. Be clever and come up with a likely revenue range from the query, for this sales segment. The value should be a dictionary with keys 'min' and 'max' and values as integers. The values should be reasonable, only the object. e.g. {'min': 5000000, 'max': 10000000}",
     },
 }
 
@@ -836,6 +837,82 @@ def get_technology_uids(query: str) -> list:
                 ret.append(response_json['tags'][0]['uid'])
     return ret
 
+def get_industry_tag_ids(query: str) -> list:
+    # Validate it's a list
+    def get_data(query):
+        completion = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Here is a user conversation: {query}, please give me a python list of one word short strings of at most 7 different industries that may apply to this sales segment. They can be specific, please return only the python list".format(
+                        query=query,
+                    ),
+                }
+            ],
+            max_tokens=100,
+            model="gpt-4o",
+        )
+        completion = completion.replace("`", "").replace("python", "").replace('json','')
+        data = yaml.safe_load(completion)
+        return data
+
+    attempts = 0
+    data = []
+    while attempts < 3:
+        try:
+            data = get_data(query)
+            break
+        except:
+            attempts += 1
+            if attempts == 3:
+                data = []
+                break
+    if (len(data) == 0):
+        return []
+    tag_ids = []
+    import concurrent.futures
+
+    def process_query(query, cookies, csrf_token):
+        tags = []
+        last_successful_tags = []
+        for i in range(1, len(query) + 1):
+            partial_query = query[:i]
+            try:
+                response, status_code = fetch_tags(partial_query, (cookies, csrf_token))
+            except ValueError as e:
+                continue
+            if status_code != 200:
+                continue
+            response_json = response.get("data", {})
+            tags = response_json.get('tags', [])
+            if len(tags) == 1:
+                return tags[0]['id']
+            if tags:
+                last_successful_tags = tags
+        if not tags and last_successful_tags :
+            return last_successful_tags[0]['id']
+        return None
+    
+    queries = data
+
+    cookies, csrf_token = get_apollo_cookies()
+
+    with app.app_context():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            results = list(executor.map(lambda query: process_query(query, cookies, csrf_token), queries))
+
+        tag_ids = [result for result in results if result is not None]
+    return tag_ids
+
+def get_company_ids(query: str, client_sdr_id: int) -> list:
+    #loop through the data array
+    tags = apollo_get_organizations(
+        client_sdr_id=client_sdr_id,
+        company_prompt='here is a sales segment. please give me the top companies related to it: ' + query
+    )
+    tag_ids_only = [tag['id'] for tag in tags]
+    return tag_ids_only
+
 
 def predict_filters_types_needed(query: str, use_apollo_filters=False) -> list:
     allowed_filters = ALLOWED_FILTERS_APOLLO if use_apollo_filters else ALLOWED_FILTERS
@@ -863,24 +940,47 @@ def predict_filters_types_needed(query: str, use_apollo_filters=False) -> list:
         ),
     )
 
-    completion = wrapped_chat_gpt_completion(
-        messages=[{"role": "user", "content": prompt}], max_tokens=300, model="gpt-4o"
-    )
+    attempts = 0
+    data = None
+    while attempts < 3:
+        try:
+            completion = wrapped_chat_gpt_completion(
+                messages=[{"role": "user", "content": prompt}], max_tokens=300, model="gpt-4o"
+            )
+            completion = completion.replace("`", "").replace("json", "")
+            completion = completion.replace("`", "").replace("json", "")
 
-    completion = completion.replace("`", "").replace("json", "")
+            completion = completion.replace("`", "").replace("json", "")
 
-    data = yaml.safe_load(completion)
+            data = yaml.safe_load(completion)
+            break
+        except Exception as e:
+            attempts += 1
+            if attempts == 3:
+                return []
 
-    return data["filters"]
+    return data["filters"] if data else []
 
 
-def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
+def predict_filters_needed(query: str, use_apollo_filters=False, client_sdr_id: int = None) -> dict:
     allowed_filters = ALLOWED_FILTERS_APOLLO if use_apollo_filters else ALLOWED_FILTERS
     filter_types = predict_filters_types_needed(query, use_apollo_filters=use_apollo_filters)
-
-    print('needed filters', filter_types)
     overall_filters = {}
 
+    # Rebuild the filter_types array based on allowed_filters. sometimes the chat gpt response is not consisent
+    filter_types_array_stringified = json.dumps(filter_types)
+
+    rebuilt_filter_types = []
+    for filter_key in allowed_filters.keys():
+        if filter_key in filter_types_array_stringified:
+            rebuilt_filter_types.append(filter_key)
+    
+    filter_types = rebuilt_filter_types
+
+
+    print('use apollo filters', use_apollo_filters)
+
+    print('predicted filter types needed:', filter_types)
     #always come up with some technology they might be using
     if use_apollo_filters:
         if "currently_using_any_of_technology_uids" in filter_types:
@@ -888,6 +988,22 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
             overall_filters["currently_using_any_of_technology_uids"] = technology_uids
             #remove the technology_uids from the filter_types because the job is done.
             filter_types.remove("currently_using_any_of_technology_uids")
+
+    if use_apollo_filters:
+        if "organization_industry_tag_ids" in filter_types:
+            #pass in the array of industry tags e.g. 
+            industry_tags = get_industry_tag_ids(query)
+            print('industry_tags', industry_tags)
+            overall_filters["organization_industry_tag_ids"] = industry_tags
+            filter_types.remove("organization_industry_tag_ids")
+
+    if use_apollo_filters:
+        if "organization_ids" in filter_types:
+            print('getting company ids')
+            #pass in the array of company names
+            companies = get_company_ids(query, client_sdr_id)
+            overall_filters["organization_ids"] = companies
+            filter_types.remove("organization_ids")
 
 
     import concurrent.futures
@@ -909,7 +1025,7 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
             messages=[
                 {
                     "role": "user",
-                    "content": "You are extracting data from the query. Follow the instructions carefully, no nested objects: \n\nQuery: {query}\n\nFilter Name: {filter_name}\n\nInstruction:\n{instruction}\nOutput Type: {output_type}\n\nImportant: Return the output as a JSON with the key 'data': and value in the given format. No nested objects unless told dict. \n\nOutput:".format(
+                    "content": "You are extracting data from the query. Follow the instructions carefully, no nested objects: \n\nQuery: {query}\n\nFilter Name: {filter_name}\n\nInstruction:\n{instruction}\nOutput Type: {output_type}\n\nImportant: If JSON, Return the output as a JSON with the key 'data': and value in the given format. No nested objects unless told dict. \n\nOutput:".format(
                         query=query,
                         filter_name=filter_type,
                         instruction=instruction,
@@ -921,9 +1037,7 @@ def predict_filters_needed(query: str, use_apollo_filters=False) -> dict:
             model="gpt-4o",
         )
 
-        completion = completion.replace("`", "").replace("json", "")
-
-        print('completion is', completion)
+        completion = completion.replace("`", "").replace("json", "").replace("python", "")
 
         data = yaml.safe_load(completion)
 
@@ -1153,13 +1267,18 @@ def handle_chat_icp(client_sdr_id: int, chat_content: list[dict], prompt: str) -
 
     nicely_formatted_message_history_string = '\n'.join([f"{msg['sender']}: {msg.get('query', '')}" for msg in chat_content]) + "\nlast message from user: " + prompt
 
-    print('string is', nicely_formatted_message_history_string)
+    #clip this to only be the last 400 tokens
 
-    query = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message as: a descriptive segment name, descriprive segment description, and the descriptive and clever segmens value proposition separated by a delimiter of 3 hashes: ###, for example: [SEGMENT NAME]###[SEGMENT DESCRIPTION]###[SEGMENT VALUE PROPOSITION]\n IMPORTANT: make sure you have those three sections!\n\nOUTPUT:\n\n'
+    nicely_formatted_message_history_string = nicely_formatted_message_history_string[-400:]
+
+    print('nicely_formatted_message_history_string:', nicely_formatted_message_history_string)
+
+    query = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message as: a descriptive segment name, descriprive segment description, and the descriptive and clever segmens value proposition separated by a delimiter of 3 hashes: ###, e.g.: [SEGMENT NAME]###[SEGMENT DESCRIPTION]###[SEGMENT VALUE PROPOSITION]\n IMPORTANT: make sure you have those three sections! Do not explicity say the name of each section, just have the sections with delimiters.\n\nOUTPUT:\n\n'
 
     # Prepare the messages for the chat response
     query = [system_message_response] + [{"role": "user", "content": query}]
 
+    print('query:', query)
 
     import concurrent.futures
 
@@ -1200,9 +1319,9 @@ def handle_chat_icp(client_sdr_id: int, chat_content: list[dict], prompt: str) -
             return {"response": response_content_response_2, "data": {}, "makers": "", "industry": "", "pain_point": ""}
         response_content_response = future_response_1.result().replace("`", "").replace("json", "").replace('[', '').replace(']', '')
 
-    print('data is', segment_name, segment_description, segment_value_proposition)
-    
-    filters = predict_filters_needed('here is some message history for the user who is trying to build the segment' + nicely_formatted_message_history_string + ' based on this, please create a detailed segment', use_apollo_filters=True)
+
+    filters = predict_filters_needed('here is a user conversation: ' + nicely_formatted_message_history_string + ' given that conversation, please create the segment.', use_apollo_filters=True, client_sdr_id=client_sdr_id)
+    print('filters:', filters)
 
     data = apollo_get_contacts(
     filter_name=segment_name,

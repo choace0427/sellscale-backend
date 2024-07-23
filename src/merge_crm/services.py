@@ -274,6 +274,7 @@ def get_crm_users(client_sdr_id: int) -> list[dict]:
 
     return [user.dict() for user in users]
 
+@celery.task
 def poll_crm_contacts():
     # Get all client ids, loop through them and get all contacts
     client_ids = db.session.query(Client.id).all()

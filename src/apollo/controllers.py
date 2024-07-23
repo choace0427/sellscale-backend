@@ -1,3 +1,4 @@
+from typing import Optional
 from app import db
 from flask import Blueprint, jsonify, request
 import requests
@@ -59,20 +60,13 @@ def post_save_apollo_cookies():
 
     return jsonify({"status": "success", "message": "Apollo cookies saved."}), 200
 
-@APOLLO_REQUESTS.route("/tags/search", methods=["GET"])
-def search_tags():
-    """
-    Searches for tags on Apollo.
-    """
-    q_tag_fuzzy_name = get_request_parameter(
-        "q_tag_fuzzy_name", request, json=False, required=True, parameter_type=str
-    )
-    cookies, csrf_token = get_apollo_cookies()
+def fetch_tags(q_tag_fuzzy_name, cookies: Optional[tuple] = None):
     if not cookies:
-        return (
-            jsonify({"status": "error", "message": "Error getting Apollo cookies."}),
-            500,
-        )
+        cookies, csrf_token = get_apollo_cookies()
+    else:
+        csrf_token = cookies[1]
+        cookies = cookies[0]
+
     headers = {
         "x-csrf-token": csrf_token,
         "cookie": cookies,
@@ -87,11 +81,20 @@ def search_tags():
         "https://app.apollo.io/api/v1/tags/search", headers=headers, params=params
     )
     if response.status_code != 200:
-        return (
-            jsonify({"status": "error", "message": "Error searching tags."}),
-            response.status_code,
-        )
-    return jsonify({"status": "success", "data": response.json()}), 200
+        return {"status": "error", "message": "Error searching tags."}, response.status_code
+
+    return {"status": "success", "data": response.json()}, 200
+
+@APOLLO_REQUESTS.route("/tags/search", methods=["GET"])
+def search_tags():
+    """
+    Searches for tags on Apollo.
+    """
+    q_tag_fuzzy_name = get_request_parameter(
+        "q_tag_fuzzy_name", request, json=False, required=True, parameter_type=str
+    )
+    result, status_code = fetch_tags(q_tag_fuzzy_name)
+    return jsonify(result), status_code
 
 @APOLLO_REQUESTS.route("/tags/searchTechnology", methods=["GET"])
 def search_technology_tags():

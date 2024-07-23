@@ -1140,7 +1140,7 @@ def add_prospects_from_saved_apollo_query_id(
     ).first()
     if not saved_apollo_query:
         return "Saved Apollo Query not found", 400
-    
+        
     saved_apollo_query_client_sdr_id =saved_apollo_query.client_sdr_id
     saved_apollo_query_client_sdr = ClientSDR.query.get(saved_apollo_query_client_sdr_id)
     current_client_sdr = ClientSDR.query.get(client_sdr_id)
@@ -1165,7 +1165,7 @@ def add_prospects_from_saved_apollo_query_id(
         return "Segment does not belong to user", 400
     
     payload = saved_apollo_query.data
-    num_pages = num_contacts // 100
+    num_pages = (num_contacts // 100) or 1
     all_contacts = []
     for page in range(1, num_pages + 1):
         print("Processesing page: ", page)
@@ -1208,6 +1208,9 @@ def add_prospects_from_saved_apollo_query_id(
         new_contacts = contacts + people
         all_contacts = all_contacts + new_contacts
 
+        # (at the top) create a Prospect Upload History entry
+        # create `prospect_uploads` entries for each contact (in bulk using SQLAlchemy bulk insert)
+
         for contact in new_contacts:
             add_prospect_from_apollo.delay(
                 current_client_sdr.client_id,
@@ -1215,6 +1218,9 @@ def add_prospects_from_saved_apollo_query_id(
                 client_sdr_id,
                 contact,
                 segment_id,
+                # include propsect_uploads.id in this call
+                    # within the call, update prospect_uploads status to SUCCESS if successful and update prospect_upload_history's processed counts
+
             )
             
     print(len(all_contacts))

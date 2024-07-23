@@ -1332,6 +1332,7 @@ def get_client_archetype_overview(client_archetype_id):
         "meta_data": meta_data,
         "ai_researcher_id": ai_researcher_id,
         "ai_voice_id": ai_voice_id,
+        "template_mode": archetype.template_mode,
     }
 
 def get_total_contacts_for_archetype(client_archetype_id):

@@ -24,6 +24,7 @@ from src.ml.openai_wrappers import (
 )
 from src.ml.ai_researcher_services import run_ai_researcher_question #for celery task registration
 from src.li_conversation.services import detect_demo_set #for celery task registration
+from src.merge_crm.services import poll_crm_contacts
 from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user

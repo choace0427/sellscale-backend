@@ -219,6 +219,66 @@ def get_company(client_sdr_id: int):
         }
     )
 
+@CONTACTS_BLUEPRINT.route("/test", methods=["POST"])
+def test():
+    query = '''
+    Sales Segment: Technology Startups in the AI and Machine Learning Sector
+
+    Description:
+    This sales segment targets technology startups that are focused on developing and implementing artificial intelligence (AI) and machine learning (ML) solutions. These companies are typically in the early to mid-stages of their lifecycle, ranging from seed-funded startups to those in Series B or C funding rounds. They are characterized by their innovative approaches to solving complex problems using AI and ML technologies, and they often operate in dynamic and fast-paced environments.
+
+    Key Characteristics:
+    1. Company Size: Small to medium-sized enterprises (SMEs) with employee counts ranging from 10 to 200.
+    2. Funding Stage: Seed, Series A, Series B, and Series C funding stages.
+    3. Industry Focus: Primarily focused on AI and ML applications across various industries such as healthcare, finance, retail, and autonomous vehicles.
+    4. Geographic Location: Predominantly located in tech hubs such as Silicon Valley, New York, Boston, London, Berlin, and Tel Aviv.
+    5. Technology Stack: Utilizes advanced AI and ML frameworks and tools such as TensorFlow, PyTorch, scikit-learn, and cloud platforms like AWS, Google Cloud, and Azure.
+
+    Pain Points:
+    1. Talent Acquisition: Difficulty in hiring skilled AI and ML engineers and data scientists.
+    2. Scalability: Challenges in scaling AI models and infrastructure to handle increasing data volumes and user demands.
+    3. Funding: Need for continuous funding to support R&D and operational expenses.
+    4. Market Penetration: Struggles with gaining market traction and customer acquisition in a competitive landscape.
+    5. Regulatory Compliance: Navigating complex regulatory requirements related to data privacy and AI ethics.
+
+    Decision Makers:
+    1. Chief Executive Officer (CEO)
+    2. Chief Technology Officer (CTO)
+    3. Head of Data Science
+    4. Product Managers
+    5. Investors and Venture Capitalists
+
+    Sales Strategy:
+    1. Personalized Outreach: Tailor communication to address the specific needs and pain points of each startup.
+    2. Thought Leadership: Provide valuable insights and thought leadership content on AI and ML trends, best practices, and case studies.
+    3. Product Demos: Offer live demonstrations and free trials of AI and ML solutions to showcase value and build trust.
+    4. Networking: Engage with decision-makers at industry events, conferences, and through professional networks like LinkedIn.
+    5. Partnership Opportunities: Explore potential partnerships and collaborations to co-develop AI solutions or integrate with existing platforms.
+
+    Key Metrics:
+    1. Customer Acquisition Cost (CAC)
+    2. Lifetime Value (LTV) of customers
+    3. Conversion Rate from trials to paid customers
+    4. Customer Retention Rate
+    5. Revenue Growth Rate
+
+    Competitive Landscape:
+    The AI and ML sector is highly competitive with numerous startups and established tech giants vying for market share. Key competitors include other AI-focused startups, as well as large companies like Google, Microsoft, IBM, and Amazon that offer AI and ML services.
+
+    Unique Selling Proposition (USP):
+    Emphasize the unique capabilities of your AI and ML solutions, such as superior model accuracy, ease of integration, scalability, and dedicated customer support. Highlight success stories and testimonials from existing clients to build credibility and trust.
+
+    Conclusion:
+    By understanding the unique challenges and opportunities within the AI and ML startup ecosystem, you can effectively tailor your sales approach to meet the needs of this dynamic and innovative segment. Focus on building strong relationships, demonstrating value, and positioning your solutions as essential tools for their growth and success.
+    '''
+    filters = predict_filters_needed(
+        query=query,
+        use_apollo_filters=True,
+        client_sdr_id=1
+    )
+    print('filters are', filters)
+    return jsonify(filters)
+
 
 @CONTACTS_BLUEPRINT.route("/predict_contact_filters", methods=["POST"])
 @require_user
@@ -227,6 +287,7 @@ def predict_contact_filters(client_sdr_id: int):
 
     filters = predict_filters_needed(
         query=query,
+        client_sdr_id=client_sdr_id
     )
 
     return jsonify(filters)
@@ -318,16 +379,15 @@ def get_apollo_queries(client_sdr_id: int):
 @require_user
 def query_then_search(client_sdr_id: int):
     query = get_request_parameter("query", request, json=True, required=True)
-    filters = predict_filters_needed(query, use_apollo_filters=True)
+    filters = predict_filters_needed(query, use_apollo_filters=True, client_sdr_id=client_sdr_id)
 
-    print('filters are', filters)
 
     data = apollo_get_contacts(
         client_sdr_id=client_sdr_id,
         num_contacts=filters.get("num_contacts", 100),
         person_titles=filters.get("person_titles", []),
         person_not_titles=filters.get("person_not_titles", []),
-        q_person_title=filters.get("q_person_title", ""),
+        q_person_title=filters.get("person_titles", []),
         q_person_name=filters.get("q_person_name", ""),
         organization_industry_tag_ids=filters.get("organization_industry_tag_ids", []),
         organization_num_employees_ranges=filters.get("organization_num_employees_ranges", None),
