@@ -55,6 +55,13 @@ def get_li_convo(client_sdr_id: int):
             .order_by(Simulation.created_at.desc())
             .first()
         )
+        if not simulation:
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            archetype_id = prospect.archetype_id
+            simulation_id = create_simulation(
+                client_sdr_id, archetype_id, prospect_id, SimulationType.LI_CONVERSATION
+            )
+            simulation = Simulation.query.get(simulation_id)
     else:
         return jsonify({"message": "Invalid request"}), 400
 
