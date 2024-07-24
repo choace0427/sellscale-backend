@@ -15,6 +15,7 @@ from src.personas.services import (
 )
 from src.prospecting.models import Prospect
 from src.client.services import (
+    campaign_voices_generation,
     create_archetype_asset,
     create_client_archetype_reason_mapping,
     delete_archetype_asset,
@@ -529,7 +530,7 @@ def create_archetype(client_sdr_id: int):
         "email_to_linkedin_connection", request, json=True, required=False
     )
     purpose = get_request_parameter("purpose", request, json=True, required=False)
-    
+
 
     # Get client ID from client SDR ID.
     client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
@@ -555,6 +556,55 @@ def create_archetype(client_sdr_id: int):
     )
     if not ca:
         return "Client not found", 404
+
+    return ca
+
+
+@CLIENT_BLUEPRINT.route("/archetype_from_voice", methods=["POST"])
+@require_user
+def create_archetype_from_voice(client_sdr_id: int):
+    archetype = get_request_parameter("archetype", request, json=True, required=True)
+    filters = get_request_parameter("filters", request, json=True, required=False)
+    voice_id = get_request_parameter("voice_id", request, json=True, required=True)
+    with_cta = get_request_parameter("with_cta", request, json=True, required=True)
+    with_voice = get_request_parameter("with_voice", request, json=True, required=True)
+    with_follow_up = get_request_parameter("with_follow_up", request, json=True, required=True)
+    context = get_request_parameter("context", request, json=True, required=True)
+    disable_ai_after_prospect_engaged = get_request_parameter(
+        "disable_ai_after_prospect_engaged", request, json=True, required=True
+    )
+
+    # Get client ID from client SDR ID.
+    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    if not client_sdr or not client_sdr.client_id:
+        return "Failed to find client ID from auth token", 500
+
+    client = Client.query.get(client_sdr.client_id)
+
+    if client:
+        archetype = archetype + " - " + client.company
+
+    # We want to creat the client archetype
+
+    # We want to clone the voice entry and assign the archetype id
+    # We want to clone the cta and assign the archetype id
+    # We want to clone the follow up and assign the archetype id
+    # For all of those, we want to sanitize the name that contains the original client name
+    ca: object = create_client_archetype(
+        client_id=client_sdr.client_id,
+        client_sdr_id=client_sdr_id,
+        filters=filters,
+        archetype=archetype,
+        voice_id=voice_id,
+        with_cta=with_cta,
+        with_voice=with_voice,
+        with_follow_up=with_follow_up,
+        disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
+        context=context,
+    )
+
+    if not ca:
+        return "Cannot Create Client Archetype", 400
 
     return ca
 

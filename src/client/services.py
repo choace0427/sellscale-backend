@@ -4,6 +4,7 @@ import random
 import sqlalchemy
 from src.ai_requests.services import create_ai_requests
 from src.automation.orchestrator import add_process_for_future
+from src.bump_framework.services import create_bump_framework
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.client.sdr.services_client_sdr import (
@@ -22,10 +23,12 @@ from src.bump_framework.default_frameworks.services import (
     create_default_bump_frameworks,
 )
 from src.li_conversation.models import LinkedinInitialMessageTemplate
+from src.message_generation.services import create_cta
 from src.ml.ai_researcher_services import (
     auto_assign_ai_researcher_to_client_archetype,
     create_default_ai_researcher,
 )
+from src.ml.models import LLM
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
@@ -114,14 +117,14 @@ def get_client(client_id: int):
 
 
 def create_client(
-    company: str,
-    company_website: str,
-    contact_name: str,
-    contact_email: str,
-    linkedin_outbound_enabled: bool,
-    email_outbound_enabled: bool,
-    tagline: Optional[str] = None,
-    description: Optional[str] = None,
+        company: str,
+        company_website: str,
+        contact_name: str,
+        contact_email: str,
+        linkedin_outbound_enabled: bool,
+        email_outbound_enabled: bool,
+        tagline: Optional[str] = None,
+        description: Optional[str] = None,
 ):
     c: Client = Client.query.filter_by(company=company).first()
     if c:
@@ -174,16 +177,16 @@ def create_client(
 
 
 def update_client_details(
-    client_id: int,
-    company: Optional[str] = None,
-    company_website: Optional[str] = None,
-    tagline: Optional[str] = None,
-    description: Optional[str] = None,
-    value_prop_key_points: Optional[str] = None,
-    tone_attributes: Optional[list[str]] = None,
-    mission: Optional[str] = None,
-    case_study: Optional[str] = None,
-    contract_size: Optional[int] = None,
+        client_id: int,
+        company: Optional[str] = None,
+        company_website: Optional[str] = None,
+        tagline: Optional[str] = None,
+        description: Optional[str] = None,
+        value_prop_key_points: Optional[str] = None,
+        tone_attributes: Optional[list[str]] = None,
+        mission: Optional[str] = None,
+        case_study: Optional[str] = None,
+        contract_size: Optional[int] = None,
 ):
     c: Client = Client.query.get(client_id)
     if not c:
@@ -221,17 +224,17 @@ def update_client_details(
 
 
 def update_client_sdr_details(
-    client_sdr_id: int,
-    name: Optional[str] = None,
-    title: Optional[str] = None,
-    email: Optional[str] = None,
-    disable_ai_on_prospect_respond: Optional[bool] = None,
-    disable_ai_on_message_send: Optional[bool] = None,
-    ai_outreach: Optional[bool] = None,
-    browser_extension_ui_overlay: Optional[bool] = None,
-    auto_archive_convos: Optional[bool] = None,
-    role: Optional[str] = None,
-    meta_data: Optional[dict] = None,
+        client_sdr_id: int,
+        name: Optional[str] = None,
+        title: Optional[str] = None,
+        email: Optional[str] = None,
+        disable_ai_on_prospect_respond: Optional[bool] = None,
+        disable_ai_on_message_send: Optional[bool] = None,
+        ai_outreach: Optional[bool] = None,
+        browser_extension_ui_overlay: Optional[bool] = None,
+        auto_archive_convos: Optional[bool] = None,
+        role: Optional[str] = None,
+        meta_data: Optional[dict] = None,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -265,7 +268,7 @@ def update_client_sdr_details(
 
 
 def complete_client_sdr_onboarding(
-    client_sdr_id: int,
+        client_sdr_id: int,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -280,7 +283,7 @@ def complete_client_sdr_onboarding(
 
 
 def toggle_is_onboarding(
-    client_sdr_id: int,
+        client_sdr_id: int,
 ):
     csdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not csdr:
@@ -347,7 +350,7 @@ def get_client_archetypes_for_entire_client(client_sdr_id: int):
 
 
 def get_client_archetype_prospects(
-    client_sdr_id: int, archetype_id: int, query: Optional[str] = ""
+        client_sdr_id: int, archetype_id: int, query: Optional[str] = ""
 ) -> list:
     """Gets the prospects in an archetype
 
@@ -376,7 +379,7 @@ def get_client_archetype_prospects(
 
 
 def get_client_archetype_performance(
-    client_sdr_id: int, client_archetype_id: int, simple: bool = False
+        client_sdr_id: int, client_archetype_id: int, simple: bool = False
 ) -> dict:
     """Gets the performance of a Client Archetype
 
@@ -427,34 +430,39 @@ def get_client_archetype(client_archetype_id: int):
 
 
 def create_client_archetype(
-    client_id: int,
-    client_sdr_id: int,
-    archetype: str,
-    filters: any,
-    base_archetype_id: Optional[int] = None,
-    disable_ai_after_prospect_engaged: bool = False,
-    persona_fit_reason: str = "",
-    icp_matching_prompt: str = "",
-    persona_contact_objective: str = "",
-    is_unassigned_contact_archetype: bool = False,
-    active: bool = True, #campaigns default active
-    persona_contract_size: Optional[int] = None,
-    cta_blanks_company: Optional[str] = None,
-    cta_blanks_persona: Optional[str] = None,
-    cta_blanks_solution: Optional[str] = None,
-    persona_filters: Optional[str] = None,
-    common_use_cases: Optional[str] = None,
-    lookalike_1: Optional[str] = None,
-    lookalike_2: Optional[str] = None,
-    lookalike_3: Optional[str] = None,
-    lookalike_4: Optional[str] = None,
-    lookalike_5: Optional[str] = None,
-    template_mode: Optional[bool] = False,
-    li_bump_amount: Optional[int] = 0,
-    linkedin_active: Optional[bool] = False,
-    email_active: Optional[bool] = False,
-    connection_type: Optional[EmailToLinkedInConnection] = None,
-    purpose: Optional[str] = None,
+        client_id: int,
+        client_sdr_id: int,
+        archetype: str,
+        filters: any,
+        base_archetype_id: Optional[int] = None,
+        disable_ai_after_prospect_engaged: bool = False,
+        persona_fit_reason: str = "",
+        icp_matching_prompt: str = "",
+        persona_contact_objective: str = "",
+        is_unassigned_contact_archetype: bool = False,
+        active: bool = True,  #campaigns default active
+        persona_contract_size: Optional[int] = None,
+        cta_blanks_company: Optional[str] = None,
+        cta_blanks_persona: Optional[str] = None,
+        cta_blanks_solution: Optional[str] = None,
+        persona_filters: Optional[str] = None,
+        common_use_cases: Optional[str] = None,
+        lookalike_1: Optional[str] = None,
+        lookalike_2: Optional[str] = None,
+        lookalike_3: Optional[str] = None,
+        lookalike_4: Optional[str] = None,
+        lookalike_5: Optional[str] = None,
+        template_mode: Optional[bool] = False,
+        li_bump_amount: Optional[int] = 0,
+        linkedin_active: Optional[bool] = False,
+        email_active: Optional[bool] = False,
+        connection_type: Optional[EmailToLinkedInConnection] = None,
+        purpose: Optional[str] = None,
+        voice_id: Optional[int] = None,
+        with_cta: Optional[bool] = False,
+        with_voice: Optional[bool] = False,
+        with_follow_up: Optional[bool] = False,
+        context: Optional[str] = "",
 ):
     c: Client = get_client(client_id=client_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -500,10 +508,10 @@ def create_client_archetype(
         persona_lookalike_profile_3=lookalike_3,
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
-        template_mode=True,
+        template_mode=True if not voice_id else False,
         transformer_blocklist=transformer_blocklist,
         transformer_blocklist_initial=transformer_blocklist,
-        testing_volume= 2**31 - 1, #max int,
+        testing_volume=2 ** 31 - 1,  #max int,
         setup_status="SETUP",
     )
     db.session.add(client_archetype)
@@ -514,16 +522,29 @@ def create_client_archetype(
     webhook_url: str = client.pipeline_notifications_webhook_url
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     campaign_url = (
-        "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
-        + client_sdr.auth_token
-        + "&redirect=campaigns"
+            "https://app.sellscale.com/authenticate?stytch_token_type=direct&token="
+            + client_sdr.auth_token
+            + "&redirect=campaigns"
     )
 
+    # Getting the original client
+    # Getting the original client's name
+    original_archetype = ClientArchetype.query.get(voice_id)
+    original_client = Client.query.get(original_archetype.client_id)
+    original_company_name = original_client.company
+
+    # Current client
+    current_client = Client.query.get(client_id)
+    current_company_name = current_client.company
+
     # Create default bump frameworks for this Archetype
-    create_default_bump_frameworks(
-        client_sdr_id=client_sdr_id,
-        client_archetype_id=archetype_id,
-    )
+    # If we are using voice_id, then we want to clone the voice_id and assign it to
+    # this archetype_id and client_sdr_id
+    if not voice_id:
+        create_default_bump_frameworks(
+            client_sdr_id=client_sdr_id,
+            client_archetype_id=archetype_id,
+        )
 
     predict_archetype_emoji(
         archetype_id=archetype_id,
@@ -583,6 +604,34 @@ def create_client_archetype(
             purpose
         )
 
+    if voice_id:
+        # campaign_voices_generation.delay(
+        #     archetype=archetype,
+        #     with_cta=with_cta,
+        #     with_voice=with_voice,
+        #     with_follow_up=with_follow_up,
+        #     archetype_id=archetype_id,
+        #     client_id=client_id,
+        #     client_sdr_id=client_sdr_id,
+        #     original_company_name=original_company_name,
+        #     current_company_name=current_company_name,
+        #     voice_id=voice_id,
+        #     additional_context=context,
+        # )
+        campaign_voices_generation(
+            archetype=archetype,
+            with_cta=with_cta,
+            with_voice=with_voice,
+            with_follow_up=with_follow_up,
+            archetype_id=archetype_id,
+            client_id=client_id,
+            client_sdr_id=client_sdr_id,
+            original_company_name=original_company_name,
+            current_company_name=current_company_name,
+            voice_id=voice_id,
+            campaign_additional_context=context,
+        )
+
     # TODO: Create bump frameworks if the SDR specified bump frameworks to create
     # template = LinkedinInitialMessageTemplate(
     #     title="Simple Connection",
@@ -600,6 +649,293 @@ def create_client_archetype(
     # db.session.commit()
 
     return {"client_archetype_id": client_archetype.id}
+
+
+@celery.task
+def campaign_voices_generation(
+        archetype: str,
+        with_cta: bool,
+        with_voice: bool,
+        with_follow_up: bool,
+        archetype_id: int,
+        client_id: int,
+        client_sdr_id: int,
+        original_company_name: str,
+        current_company_name: str,
+        voice_id: int,
+        campaign_additional_context: str,
+):
+    client_archetype = ClientArchetype.query.get(archetype_id)
+    # This is V1, so the sample replacement is hardcoded.
+    # In a V2, we will be able to create instructions for replacement, through the creation of a new table
+    replacement_voice_id_to_value = {1024: {"from_replace": "FMC",
+                                            "to_replace": ["ACME", "SalesCon", "DevCon", "TechCon", "TechExpo",
+                                                           "Computex", "AICon"]}
+                                     }
+
+    client = Client.query.get(client_id)
+
+    # Getting the Company info
+    company = client.company
+    tagline = client.tagline
+    description = client.description
+
+    company_brain = f"Company name: {company}, Company Tagline: {tagline}, Company description: {description}"
+
+    if with_follow_up:
+        # Getting the llm prompt for the followup
+        llm = LLM.query.filter(
+            LLM.name == "create_campaign_with_follow_up"
+        ).first()
+
+        if llm:
+            prompt = llm.user
+        else:
+            prompt = ""
+
+        prompt = prompt.replace("[[client_info]]", company_brain).replace("[[additional_context]]", campaign_additional_context)
+
+        # Getting all the bump framework from our reference archetype
+        bump_frameworks = BumpFramework.query.filter(
+            db.and_(
+                BumpFramework.client_archetype_id == voice_id,
+                db.or_(
+                    BumpFramework.overall_status == ProspectOverallStatus.BUMPED,
+                    BumpFramework.overall_status == ProspectOverallStatus.ACCEPTED,
+                )
+            )
+        )
+
+        for bump in bump_frameworks:
+            # Create new bump framework for this archetype
+            if bump.title:
+                title = bump.title.replace(original_company_name, current_company_name)
+            else:
+                title = archetype
+
+            if bump.description:
+                description = bump.description.replace(original_company_name, current_company_name)
+            else:
+                description = "description"
+
+            bump_prompt = prompt.replace("[[sequence]]", description)
+
+            answer = wrapped_chat_gpt_completion(messages=[
+                {
+                    "role": "user",
+                    "content": bump_prompt,
+                }
+            ], model='gpt-4o', max_tokens=1000)
+
+            if bump.bump_framework_template_name:
+                bump_framework_template_name = bump.bump_framework_template_name.replace(original_company_name,
+                                                                                         current_company_name)
+            else:
+                bump_framework_template_name = None
+
+            if bump.bump_framework_human_readable_prompt:
+                bump_framework_human_readable_prompt = bump.bump_framework_human_readable_prompt.replace(
+                    original_company_name, current_company_name)
+            else:
+                bump_framework_human_readable_prompt = None
+
+            if bump.additional_context:
+                additional_context = bump.additional_context.replace(original_company_name, current_company_name)
+            else:
+                additional_context = None
+
+            create_bump_framework(
+                client_sdr_id=client_sdr_id,
+                client_archetype_id=archetype_id,
+                title=title,
+                description=answer,
+                overall_status=bump.overall_status,
+                length=bump.bump_length,
+                additional_instructions=bump.additional_instructions,
+                bumped_count=bump.bumped_count,
+                bump_delay_days=bump.bump_delay_days,
+                active=bump.active,
+                default=bump.default,
+                substatus=bump.substatus,
+                asset_ids=[],  # We are not copying over the asset ids for now
+                sellscale_default_generated=bump.sellscale_default_generated,
+                use_account_research=bump.use_account_research,
+                bump_framework_template_name=bump_framework_template_name,
+                bump_framework_human_readable_prompt=bump_framework_human_readable_prompt,
+                additional_context=additional_context,
+                transformer_blocklist=bump.transformer_blocklist,
+            )
+
+        client_archetype.li_bump_amount = len(bump_frameworks.all())
+        # db.session.add(client_archetype)
+        db.session.commit()
+
+    if with_cta:
+        # Getting the LLM prompt for CTAs
+        llm = LLM.query.filter(
+            LLM.name == "create_campaign_with_ctas"
+        ).first()
+
+        if llm:
+            prompt = llm.user
+        else:
+            prompt = ""
+
+        prompt = prompt.replace("[[client_info]]", company_brain).replace("[[additional_context]]", campaign_additional_context)
+
+        original_ctas = GeneratedMessageCTA.query.filter(
+            GeneratedMessageCTA.archetype_id == voice_id
+        )
+
+        prompt_string = ""
+        count = 1
+        for original_cta in original_ctas:
+            if original_cta.text_value:
+                prompt_string += f"prompt_{count}-{original_cta.cta_type}:\n{original_cta.text_value}\n"
+                count += 1
+
+        cta_prompt = prompt.replace("[[cta_strings]]", prompt_string)
+
+        answer = wrapped_chat_gpt_completion(messages=[
+            {
+                "role": "user",
+                "content": cta_prompt,
+            }
+        ], model='gpt-4o', max_tokens=1000)
+
+        answer = answer.replace("```", "").replace("json", "").strip()
+        json_response = json.loads(answer)
+
+        new_ctas = json_response["new_ctas"]
+
+        for index in range(len(new_ctas)):
+            new_cta = new_ctas[index]
+
+            create_cta(
+                expiration_date=None,
+                archetype_id=archetype_id,
+                text_value=new_cta,
+                cta_type=original_ctas[index].cta_type,
+                active=original_ctas[index].active,
+                auto_mark_as_scheduling_on_acceptance=original_ctas[index].auto_mark_as_scheduling_on_acceptance,
+                asset_ids=[],  # We are not copying over the asset ids for now
+            )
+
+    if with_voice:
+        original_srmgc = StackRankedMessageGenerationConfiguration.query.filter(
+            StackRankedMessageGenerationConfiguration.archetype_id == voice_id
+        ).first()
+
+        replace_values = replacement_voice_id_to_value[voice_id]
+        replace_from_value = replace_values["from_replace"]
+        replace_to_values = replace_values["to_replace"]
+
+        if original_srmgc:
+            name = f"Conference Campaign - {current_company_name}"
+
+            if original_srmgc.instruction:
+                new_computed_prompt = original_srmgc.instruction + "\n ## Here are a couple of examples\n--\n"
+            else:
+                new_computed_prompt = ""
+
+            new_prompt_1 = None
+            new_prompt_2 = None
+            new_prompt_3 = None
+            new_prompt_4 = None
+            new_prompt_5 = None
+            new_prompt_6 = None
+            new_prompt_7 = None
+
+            new_completion_1 = None
+            new_completion_2 = None
+            new_completion_3 = None
+            new_completion_4 = None
+            new_completion_5 = None
+            new_completion_6 = None
+            new_completion_7 = None
+
+            if original_srmgc.prompt_1:
+                new_prompt_1 = original_srmgc.prompt_1.replace(replace_from_value, replace_to_values[0].replace(original_company_name, current_company_name))
+                new_computed_prompt += f'prompt:{new_prompt_1}\n'
+
+            if original_srmgc.completion_1:
+                new_completion_1 = original_srmgc.completion_1.replace(replace_from_value, replace_to_values[0]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_1}\n\n--\n\n'
+
+            if original_srmgc.prompt_2:
+                new_prompt_2 = original_srmgc.prompt_2.replace(replace_from_value, replace_to_values[1]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'prompt:{new_prompt_2}\n'
+            if original_srmgc.completion_2:
+                new_completion_2 = original_srmgc.completion_2.replace(replace_from_value, replace_to_values[1]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_2}\n\n--\n\n'
+
+            if original_srmgc.prompt_3:
+                new_prompt_3 = original_srmgc.prompt_3.replace(replace_from_value, replace_to_values[2]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'prompt:{new_prompt_3}\n'
+
+            if original_srmgc.completion_3:
+                new_completion_3 = original_srmgc.completion_3.replace(replace_from_value, replace_to_values[2]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_3}\n\n--\n\n'
+
+            if original_srmgc.prompt_4:
+                new_prompt_4 = original_srmgc.prompt_4.replace(replace_from_value, replace_to_values[3]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'prompt:{new_prompt_4}\n'
+            if original_srmgc.completion_4:
+                new_completion_4 = original_srmgc.completion_4.replace(replace_from_value, replace_to_values[3]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_4}\n\n--\n\n'
+
+            if original_srmgc.prompt_5:
+                new_prompt_5 = original_srmgc.prompt_5.replace(replace_from_value, replace_to_values[4]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'prompt:{new_prompt_5}\n'
+            if original_srmgc.completion_5:
+                new_completion_5 = original_srmgc.completion_5.replace(replace_from_value, replace_to_values[4]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_5}\n\n--\n\n'
+
+            if original_srmgc.prompt_6:
+                new_prompt_6 = original_srmgc.prompt_6.replace(replace_from_value, replace_to_values[5]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'prompt:{new_prompt_6}\n'
+            if original_srmgc.completion_6:
+                new_completion_6 = original_srmgc.completion_6.replace(replace_from_value, replace_to_values[5]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_6}\n\n--\n\n'
+
+            if original_srmgc.prompt_7:
+                new_prompt_7 = original_srmgc.prompt_7.replace(replace_from_value, replace_to_values[6]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'prompt:{new_prompt_7}\n'
+            if original_srmgc.completion_7:
+                new_completion_7 = original_srmgc.completion_7.replace(replace_from_value, replace_to_values[6]).replace(original_company_name, current_company_name)
+                new_computed_prompt += f'response:{new_completion_7}\n\n--\n\n'
+
+            new_computed_prompt += 'prompt: {prompt}\ncompletion:\n'
+
+            srmgc: StackRankedMessageGenerationConfiguration = (
+                StackRankedMessageGenerationConfiguration(
+                    configuration_type=original_srmgc.configuration_type,
+                    research_point_types=original_srmgc.research_point_types,
+                    instruction=original_srmgc.instruction,
+                    computed_prompt=new_computed_prompt,
+                    name=name,
+                    client_id=client_id,
+                    archetype_id=archetype_id,
+                    generated_message_type=original_srmgc.generated_message_type,
+                    priority=original_srmgc.priority,
+                    prompt_1=new_prompt_1,
+                    completion_1=new_completion_1,
+                    prompt_2=new_prompt_2,
+                    completion_2=new_completion_2,
+                    prompt_3=new_prompt_3,
+                    completion_3=new_completion_3,
+                    prompt_4=new_prompt_4,
+                    completion_4=new_completion_4,
+                    prompt_5=new_prompt_5,
+                    completion_5=new_completion_5,
+                    prompt_6=new_prompt_6,
+                    completion_6=new_completion_6,
+                    prompt_7=new_prompt_7,
+                    completion_7=new_completion_7,
+                )
+            )
+            db.session.add(srmgc)
+            db.session.commit()
 
 
 def predict_titles_from_archetype_name(archetype: str, retries=3):
@@ -638,16 +974,16 @@ def get_client_sdr(client_sdr_id: int) -> dict:
 
 
 def create_client_sdr(
-    client_id: int,
-    name: str,
-    email: str,
-    create_managed_inboxes: bool = False,
-    include_connect_li_card: bool = False,
-    include_connect_slack_card: bool = False,
-    include_input_pre_filters_card: bool = False,
-    include_add_dnc_filters_card: bool = False,
-    include_add_calendar_link_card: bool = False,
-    linkedin_url: Optional[str] = None,
+        client_id: int,
+        name: str,
+        email: str,
+        create_managed_inboxes: bool = False,
+        include_connect_li_card: bool = False,
+        include_connect_slack_card: bool = False,
+        include_input_pre_filters_card: bool = False,
+        include_add_dnc_filters_card: bool = False,
+        include_add_calendar_link_card: bool = False,
+        linkedin_url: Optional[str] = None,
 ):
     from src.client.services_unassigned_contacts_archetype import (
         create_unassigned_contacts_archetype,
@@ -775,9 +1111,9 @@ def deactivate_client_sdr(client_sdr_id: int, email: str) -> bool:
 
 
 def activate_client_sdr(
-    client_sdr_id: int,
-    li_target: Optional[int] = None,
-    email_target: Optional[int] = None,
+        client_sdr_id: int,
+        li_target: Optional[int] = None,
+        email_target: Optional[int] = None,
 ) -> bool:
     """Activates a Client SDR and sets their SLAs
 
@@ -846,7 +1182,7 @@ def toggle_client_sdr_auto_send_linkedin_campaign(client_sdr_id: int):
 
 
 def toggle_client_sdr_auto_send_email_campaign(
-    client_sdr_id: int, enabled: bool
+        client_sdr_id: int, enabled: bool
 ) -> bool:
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not sdr:
@@ -1222,7 +1558,7 @@ def get_cta_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
 
 
 def get_prospect_upload_stats_by_upload_id(
-    client_sdr_id: int, prospect_uploads_raw_csv_id: int
+        client_sdr_id: int, prospect_uploads_raw_csv_id: int
 ) -> dict:
     """Get the basic stats for a prospect upload
 
@@ -1284,7 +1620,7 @@ def get_prospect_upload_stats_by_upload_id(
 
 
 def get_transformers_by_archetype_id(
-    client_sdr_id: int, archetype_id: int, email: bool
+        client_sdr_id: int, archetype_id: int, email: bool
 ) -> dict:
     """Gets all transformers belonging to an Archetype, alongside stats.
 
@@ -1354,7 +1690,7 @@ def get_transformers_by_archetype_id(
 
 
 def get_prospect_upload_details_by_upload_id(
-    client_sdr_id: int, prospect_uploads_raw_csv_id: int
+        client_sdr_id: int, prospect_uploads_raw_csv_id: int
 ) -> dict:
     """Get the individual prospect details of the prospect upload
 
@@ -1572,7 +1908,7 @@ def get_nylas_all_events(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     response = requests.get(
         # Only events in the next 70 days
-        f"https://api.nylas.com/events?starts_after={int(time.time())}&starts_before={int(time.time()+6048000)}&limit=200",
+        f"https://api.nylas.com/events?starts_after={int(time.time())}&starts_before={int(time.time() + 6048000)}&limit=200",
         headers={
             "Authorization": f"Bearer {client_sdr.nylas_auth_code}",
             "Content-Type": "application/json",
@@ -1784,10 +2120,10 @@ def populate_prospect_events(client_sdr_id: int, prospect_id: int):
 
             current_time = int(time.time())
             if (
-                s_start_time != 0
-                and e_start_time != 0
-                and s_start_time > e_start_time
-                and s_start_time > current_time
+                    s_start_time != 0
+                    and e_start_time != 0
+                    and s_start_time > e_start_time
+                    and s_start_time > current_time
             ):
                 soonest_event = event
         else:
@@ -1862,7 +2198,7 @@ def convert_nylas_date(event):
         end_time = start_time
 
     if event.get("when", {}).get("start_date") and event.get("when", {}).get(
-        "end_date"
+            "end_date"
     ):
         date_object_start = datetime.strptime(
             event.get("when", {}).get("start_date"), "%Y-%m-%d"
@@ -1924,23 +2260,23 @@ def get_unused_linkedin_and_email_prospect_for_persona(client_archetype_id: int)
 
 
 def update_persona_brain_details(
-    client_sdr_id: int,
-    client_archetype_id: int,
-    updated_persona_name: Optional[str],
-    updated_persona_fit_reason: Optional[str],
-    updated_persona_icp_matching_prompt: Optional[str],
-    updated_persona_contact_objective: Optional[str],
-    updated_persona_contract_size: Optional[int],
-    updated_cta_framework_company: Optional[str],
-    updated_cta_framework_persona: Optional[str],
-    updated_cta_framework_action: Optional[str],
-    updated_use_cases: Optional[str],
-    updated_filters: Optional[str],
-    updated_lookalike_profile_1: Optional[str],
-    updated_lookalike_profile_2: Optional[str],
-    updated_lookalike_profile_3: Optional[str],
-    updated_lookalike_profile_4: Optional[str],
-    updated_lookalike_profile_5: Optional[str],
+        client_sdr_id: int,
+        client_archetype_id: int,
+        updated_persona_name: Optional[str],
+        updated_persona_fit_reason: Optional[str],
+        updated_persona_icp_matching_prompt: Optional[str],
+        updated_persona_contact_objective: Optional[str],
+        updated_persona_contract_size: Optional[int],
+        updated_cta_framework_company: Optional[str],
+        updated_cta_framework_persona: Optional[str],
+        updated_cta_framework_action: Optional[str],
+        updated_use_cases: Optional[str],
+        updated_filters: Optional[str],
+        updated_lookalike_profile_1: Optional[str],
+        updated_lookalike_profile_2: Optional[str],
+        updated_lookalike_profile_3: Optional[str],
+        updated_lookalike_profile_4: Optional[str],
+        updated_lookalike_profile_5: Optional[str],
 ):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     if not client_archetype or client_archetype.client_sdr_id != client_sdr_id:
@@ -1984,12 +2320,12 @@ def update_persona_brain_details(
 
 
 def update_sdr_conversion_percentages(
-    client_sdr_id: int,
-    active_convo: float,
-    scheduling: float,
-    demo_set: float,
-    demo_won: float,
-    not_interested: float,
+        client_sdr_id: int,
+        active_convo: float,
+        scheduling: float,
+        demo_set: float,
+        demo_won: float,
+        not_interested: float,
 ):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:
@@ -2010,7 +2346,7 @@ def update_sdr_conversion_percentages(
 
 
 def predict_persona_fit_reason(
-    client_sdr_id: int, client_archetype_id: int
+        client_sdr_id: int, client_archetype_id: int
 ) -> tuple[bool, str]:
     """
     Based on the company's name, archetype's name, company's tagline, and company's description, predict the reason why the archetype would purchase the product
@@ -2023,9 +2359,9 @@ def predict_persona_fit_reason(
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     client: Client = Client.query.get(client_sdr.client_id)
     if (
-        not client_sdr
-        or not client_archetype
-        or client_archetype.client_sdr_id != client_sdr.id
+            not client_sdr
+            or not client_archetype
+            or client_archetype.client_sdr_id != client_sdr.id
     ):
         return False, "Unauthorized access"
 
@@ -2071,7 +2407,7 @@ def generate_persona_buy_reason_helper(client_sdr_id: int, persona_name: str):
 
 
 def generate_persona_buy_reason(
-    client_sdr_id: int, persona_name: str, retries: int = 3
+        client_sdr_id: int, persona_name: str, retries: int = 3
 ):
     """
     Generate a persona buy reason for a persona
@@ -2095,9 +2431,9 @@ def generate_persona_buy_reason(
 
 
 def generate_persona_icp_matching_prompt_helper(
-    client_sdr_id: int,
-    persona_name: str,
-    persona_buy_reason: str = "",
+        client_sdr_id: int,
+        persona_name: str,
+        persona_buy_reason: str = "",
 ):
     """
     Generate a persona ICP matching prompt for a persona
@@ -2146,10 +2482,10 @@ ICP Scoring Prompt:
 
 
 def generate_persona_icp_matching_prompt(
-    client_sdr_id: int,
-    persona_name: str,
-    persona_buy_reason: str = "",
-    retries: int = 3,
+        client_sdr_id: int,
+        persona_name: str,
+        persona_buy_reason: str = "",
+        retries: int = 3,
 ):
     """
     Generate a persona ICP matching prompt for a persona
@@ -2197,7 +2533,7 @@ def daily_pb_launch_schedule_update():
 
 @celery.task()
 def update_phantom_buster_launch_schedule(
-    client_sdr_id: int, custom_volume: Optional[int] = None
+        client_sdr_id: int, custom_volume: Optional[int] = None
 ):
     # Get the ClientSDR
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -2228,7 +2564,7 @@ def update_phantom_buster_launch_schedule(
                 (
                     "✅"
                     if result.get("actual_target")
-                    >= client_sdr.weekly_li_outbound_target
+                       >= client_sdr.weekly_li_outbound_target
                     else "❌"
                 ),
                 client_sdr.weekly_li_outbound_target,
@@ -2247,15 +2583,15 @@ def update_phantom_buster_launch_schedule(
 
 
 def update_do_not_contact_filters(
-    client_id: int,
-    do_not_contact_keywords_in_company_names: list[str],
-    do_not_contact_company_names: list[str],
-    do_not_contact_industries: list[str],
-    do_not_contact_location_keywords: list[str],
-    do_not_contact_titles: list[str],
-    do_not_contact_prospect_location_keywords: list[str],
-    do_not_contact_people_names: list[str],
-    do_not_contact_emails: list[str],
+        client_id: int,
+        do_not_contact_keywords_in_company_names: list[str],
+        do_not_contact_company_names: list[str],
+        do_not_contact_industries: list[str],
+        do_not_contact_location_keywords: list[str],
+        do_not_contact_titles: list[str],
+        do_not_contact_prospect_location_keywords: list[str],
+        do_not_contact_people_names: list[str],
+        do_not_contact_emails: list[str],
 ):
     """Update the do not contact keywords list for a Client
 
@@ -2315,15 +2651,15 @@ def get_do_not_contact_filters(client_id: int):
 
 
 def update_sdr_do_not_contact_filters(
-    client_sdr_id: int,
-    do_not_contact_keywords_in_company_names: list[str],
-    do_not_contact_company_names: list[str],
-    do_not_contact_industries: list[str],
-    do_not_contact_location_keywords: list[str],
-    do_not_contact_titles: list[str],
-    do_not_contact_prospect_location_keywords: list[str],
-    do_not_contact_people_names: list[str],
-    do_not_contact_emails: list[str],
+        client_sdr_id: int,
+        do_not_contact_keywords_in_company_names: list[str],
+        do_not_contact_company_names: list[str],
+        do_not_contact_industries: list[str],
+        do_not_contact_location_keywords: list[str],
+        do_not_contact_titles: list[str],
+        do_not_contact_prospect_location_keywords: list[str],
+        do_not_contact_people_names: list[str],
+        do_not_contact_emails: list[str],
 ):
     """Update the do not contact keywords list for a Client SDR
 
@@ -2383,14 +2719,14 @@ def get_sdr_do_not_contact_filters(client_sdr_id: int):
 
 
 def submit_demo_feedback(
-    client_sdr_id: int,
-    client_id: int,
-    prospect_id: int,
-    status: str,
-    rating: str,
-    feedback: str,
-    next_demo_date: Optional[datetime] = None,
-    ai_adjustments: Optional[str] = None,
+        client_sdr_id: int,
+        client_id: int,
+        prospect_id: int,
+        status: str,
+        rating: str,
+        feedback: str,
+        next_demo_date: Optional[datetime] = None,
+        ai_adjustments: Optional[str] = None,
 ):
     """Submits demo feedback.
 
@@ -2530,8 +2866,8 @@ def send_demo_feedback_email_reminder(prospect_id: int, email: str):
     prospect_demo_date_formatted = prospect.demo_date.strftime("%B %d, %Y")
     prospect_linkedin_url = prospect.linkedin_url
     if (
-        "https://" not in prospect_linkedin_url
-        or "http://" not in prospect_linkedin_url
+            "https://" not in prospect_linkedin_url
+            or "http://" not in prospect_linkedin_url
     ):
         prospect_linkedin_url = f"https://{prospect_linkedin_url}"
 
@@ -2721,13 +3057,13 @@ def get_demo_feedback(client_sdr_id: int, prospect_id: int) -> list[DemoFeedback
 
 
 def edit_demo_feedback(
-    client_sdr_id: int,
-    demo_feedback_id: int,
-    status: Optional[str] = None,
-    rating: Optional[str] = None,
-    feedback: Optional[str] = None,
-    next_demo_date: Optional[datetime] = None,
-    ai_adjustments: Optional[str] = None,
+        client_sdr_id: int,
+        demo_feedback_id: int,
+        status: Optional[str] = None,
+        rating: Optional[str] = None,
+        feedback: Optional[str] = None,
+        next_demo_date: Optional[datetime] = None,
+        ai_adjustments: Optional[str] = None,
 ) -> bool:
     """Edit demo feedback
 
@@ -2893,14 +3229,14 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         return None
 
     if (
-        not client.do_not_contact_company_names
-        and not client.do_not_contact_keywords_in_company_names
-        and not client.do_not_contact_industries
-        and not client.do_not_contact_location_keywords
-        and not client.do_not_contact_titles
-        and not client.do_not_contact_prospect_location_keywords
-        and not client.do_not_contact_people_names
-        and not client.do_not_contact_emails
+            not client.do_not_contact_company_names
+            and not client.do_not_contact_keywords_in_company_names
+            and not client.do_not_contact_industries
+            and not client.do_not_contact_location_keywords
+            and not client.do_not_contact_titles
+            and not client.do_not_contact_prospect_location_keywords
+            and not client.do_not_contact_people_names
+            and not client.do_not_contact_emails
     ):
         return []
 
@@ -2914,39 +3250,39 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
             Prospect.overall_status.in_(allStatuses),
             or_(
                 *(
-                    [
-                        Prospect.company == company
-                        for company in client.do_not_contact_company_names
-                    ]
-                    + [
-                        Prospect.company.ilike(f"%{keyword}%")
-                        for keyword in client.do_not_contact_keywords_in_company_names
-                    ]
-                    + [
-                        Prospect.industry.ilike(f"%{industry}%")
-                        for industry in client.do_not_contact_industries or []
-                    ]
-                    + [
-                        Prospect.title.ilike(f"%{title}%")
-                        for title in client.do_not_contact_titles or []
-                    ]
-                    + [
-                        Prospect.company_location.ilike(f"%{location}%")
-                        for location in client.do_not_contact_location_keywords or []
-                    ]
-                    + [
-                        Prospect.prospect_location.ilike(f"%{location}%")
-                        for location in client.do_not_contact_prospect_location_keywords
-                        or []
-                    ]
-                    + [
-                        Prospect.email.ilike(f"%{email}%")
-                        for email in client.do_not_contact_emails or []
-                    ]
-                    + [
-                        Prospect.full_name.ilike(f"%{name}%")
-                        for name in client.do_not_contact_people_names or []
-                    ]
+                        [
+                            Prospect.company == company
+                            for company in client.do_not_contact_company_names
+                        ]
+                        + [
+                            Prospect.company.ilike(f"%{keyword}%")
+                            for keyword in client.do_not_contact_keywords_in_company_names
+                        ]
+                        + [
+                            Prospect.industry.ilike(f"%{industry}%")
+                            for industry in client.do_not_contact_industries or []
+                        ]
+                        + [
+                            Prospect.title.ilike(f"%{title}%")
+                            for title in client.do_not_contact_titles or []
+                        ]
+                        + [
+                            Prospect.company_location.ilike(f"%{location}%")
+                            for location in client.do_not_contact_location_keywords or []
+                        ]
+                        + [
+                            Prospect.prospect_location.ilike(f"%{location}%")
+                            for location in client.do_not_contact_prospect_location_keywords
+                                            or []
+                        ]
+                        + [
+                            Prospect.email.ilike(f"%{email}%")
+                            for email in client.do_not_contact_emails or []
+                        ]
+                        + [
+                            Prospect.full_name.ilike(f"%{name}%")
+                            for name in client.do_not_contact_people_names or []
+                        ]
                 )
             ),
         )
@@ -2967,70 +3303,70 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
         if client.do_not_contact_company_names:
             for company in client.do_not_contact_company_names:
                 if (
-                    prospect_dict["company"]
-                    and company
-                    and prospect_dict["company"].lower() == company.lower()
+                        prospect_dict["company"]
+                        and company
+                        and prospect_dict["company"].lower() == company.lower()
                 ):
                     matched_filters.append("Company Name")
                     matched_filter_words.append("Company: " + company)
         if client.do_not_contact_keywords_in_company_names:
             for keyword in client.do_not_contact_keywords_in_company_names:
                 if (
-                    prospect_dict["company"]
-                    and keyword
-                    and keyword.lower() in prospect_dict["company"].lower()
+                        prospect_dict["company"]
+                        and keyword
+                        and keyword.lower() in prospect_dict["company"].lower()
                 ):
                     matched_filters.append("Company Keyword")
                     matched_filter_words.append("Keyword: " + keyword)
         if client.do_not_contact_industries:
             for industry in client.do_not_contact_industries:
                 if (
-                    prospect_dict["industry"]
-                    and industry
-                    and industry.lower() in prospect_dict["industry"].lower()
+                        prospect_dict["industry"]
+                        and industry
+                        and industry.lower() in prospect_dict["industry"].lower()
                 ):
                     matched_filters.append("Industry")
                     matched_filter_words.append("Industry: " + industry)
         if client.do_not_contact_titles:
             for title in client.do_not_contact_titles:
                 if (
-                    prospect_dict["title"]
-                    and title
-                    and title.lower() in prospect_dict["title"].lower()
+                        prospect_dict["title"]
+                        and title
+                        and title.lower() in prospect_dict["title"].lower()
                 ):
                     matched_filters.append("Title")
                     matched_filter_words.append("Title: " + title)
         if client.do_not_contact_location_keywords:
             for location in client.do_not_contact_location_keywords:
                 if (
-                    prospect_dict["company_location"]
-                    and location.lower() in prospect_dict["company_location"].lower()
+                        prospect_dict["company_location"]
+                        and location.lower() in prospect_dict["company_location"].lower()
                 ):
                     matched_filters.append("Location")
                     matched_filter_words.append("Company Location: " + location)
         if client.do_not_contact_prospect_location_keywords:
             for location in client.do_not_contact_prospect_location_keywords:
                 if (
-                    prospect_dict["prospect_location"]
-                    and location.lower() in prospect_dict["prospect_location"].lower()
+                        prospect_dict["prospect_location"]
+                        and location.lower() in prospect_dict["prospect_location"].lower()
                 ):
                     matched_filters.append("Prospect Location")
                     matched_filter_words.append("Prospect Location: " + location)
         if client.do_not_contact_emails:
             for email in client.do_not_contact_emails:
                 if (
-                    prospect_dict["email"]
-                    and email
-                    and email.lower() in prospect_dict["email"].lower()
+                        prospect_dict["email"]
+                        and email
+                        and email.lower() in prospect_dict["email"].lower()
                 ):
                     matched_filters.append("Email")
                     matched_filter_words.append("Email: " + email)
         if client.do_not_contact_people_names:
             for name in client.do_not_contact_people_names:
                 if (
-                    prospect_dict["full_name"]
-                    and name
-                    and name.lower() in prospect_dict["full_name"].lower()
+                        prospect_dict["full_name"]
+                        and name
+                        and name.lower() in prospect_dict["full_name"].lower()
                 ):
                     matched_filters.append("Name")
                     matched_filter_words.append("Name: " + name)
@@ -3083,14 +3419,14 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
     if (
-        not client_sdr.do_not_contact_company_names
-        and not client_sdr.do_not_contact_keywords_in_company_names
-        and not client_sdr.do_not_contact_industries
-        and not client_sdr.do_not_contact_location_keywords
-        and not client_sdr.do_not_contact_titles
-        and not client_sdr.do_not_contact_prospect_location_keywords
-        and not client_sdr.do_not_contact_people_names
-        and not client_sdr.do_not_contact_emails
+            not client_sdr.do_not_contact_company_names
+            and not client_sdr.do_not_contact_keywords_in_company_names
+            and not client_sdr.do_not_contact_industries
+            and not client_sdr.do_not_contact_location_keywords
+            and not client_sdr.do_not_contact_titles
+            and not client_sdr.do_not_contact_prospect_location_keywords
+            and not client_sdr.do_not_contact_people_names
+            and not client_sdr.do_not_contact_emails
     ):
         return []
 
@@ -3102,39 +3438,39 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         Prospect.overall_status.in_(allStatuses),
         or_(
             *(
-                [
-                    Prospect.company == company
-                    for company in client_sdr.do_not_contact_company_names
-                ]
-                + [
-                    Prospect.company.ilike(f"%{keyword}%")
-                    for keyword in client_sdr.do_not_contact_keywords_in_company_names
-                ]
-                + [
-                    Prospect.industry.ilike(f"%{industry}%")
-                    for industry in client_sdr.do_not_contact_industries or []
-                ]
-                + [
-                    Prospect.title.ilike(f"%{title}%")
-                    for title in client_sdr.do_not_contact_titles or []
-                ]
-                + [
-                    Prospect.company_location.ilike(f"%{location}%")
-                    for location in client_sdr.do_not_contact_location_keywords or []
-                ]
-                + [
-                    Prospect.prospect_location.ilike(f"%{location}%")
-                    for location in client_sdr.do_not_contact_prospect_location_keywords
-                    or []
-                ]
-                + [
-                    Prospect.email.ilike(f"%{email}%")
-                    for email in client_sdr.do_not_contact_emails or []
-                ]
-                + [
-                    Prospect.full_name.ilike(f"%{name}%")
-                    for name in client_sdr.do_not_contact_people_names or []
-                ]
+                    [
+                        Prospect.company == company
+                        for company in client_sdr.do_not_contact_company_names
+                    ]
+                    + [
+                        Prospect.company.ilike(f"%{keyword}%")
+                        for keyword in client_sdr.do_not_contact_keywords_in_company_names
+                    ]
+                    + [
+                        Prospect.industry.ilike(f"%{industry}%")
+                        for industry in client_sdr.do_not_contact_industries or []
+                    ]
+                    + [
+                        Prospect.title.ilike(f"%{title}%")
+                        for title in client_sdr.do_not_contact_titles or []
+                    ]
+                    + [
+                        Prospect.company_location.ilike(f"%{location}%")
+                        for location in client_sdr.do_not_contact_location_keywords or []
+                    ]
+                    + [
+                        Prospect.prospect_location.ilike(f"%{location}%")
+                        for location in client_sdr.do_not_contact_prospect_location_keywords
+                                        or []
+                    ]
+                    + [
+                        Prospect.email.ilike(f"%{email}%")
+                        for email in client_sdr.do_not_contact_emails or []
+                    ]
+                    + [
+                        Prospect.full_name.ilike(f"%{name}%")
+                        for name in client_sdr.do_not_contact_people_names or []
+                    ]
             )
         ),
     ).all()
@@ -3170,16 +3506,16 @@ def list_prospects_caught_by_sdr_client_filters(client_sdr_id: int):
         if client_sdr.do_not_contact_location_keywords:
             for location in client_sdr.do_not_contact_location_keywords:
                 if (
-                    prospect_dict["company_location"]
-                    and location.lower() in prospect_dict["company_location"].lower()
+                        prospect_dict["company_location"]
+                        and location.lower() in prospect_dict["company_location"].lower()
                 ):
                     matched_filters.append("Location")
                     matched_filter_words.append(location)
         if client_sdr.do_not_contact_prospect_location_keywords:
             for location in client_sdr.do_not_contact_prospect_location_keywords:
                 if (
-                    prospect_dict["prospect_location"]
-                    and location.lower() in prospect_dict["prospect_location"].lower()
+                        prospect_dict["prospect_location"]
+                        and location.lower() in prospect_dict["prospect_location"].lower()
                 ):
                     matched_filters.append("Prospect Location")
                     matched_filter_words.append(location)
@@ -3449,12 +3785,12 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
 
 
 def add_client_product(
-    client_sdr_id: int,
-    name: str,
-    description: str,
-    how_it_works: Optional[str],
-    use_cases: Optional[str],
-    product_url: Optional[str],
+        client_sdr_id: int,
+        name: str,
+        description: str,
+        how_it_works: Optional[str],
+        use_cases: Optional[str],
+        product_url: Optional[str],
 ):
     """Adds a client product"""
 
@@ -3475,13 +3811,13 @@ def add_client_product(
 
 
 def update_client_product(
-    client_sdr_id: int,
-    client_product_id: int,
-    name: Optional[str],
-    description: Optional[str],
-    how_it_works: Optional[str],
-    use_cases: Optional[str],
-    product_url: Optional[str],
+        client_sdr_id: int,
+        client_product_id: int,
+        name: Optional[str],
+        description: Optional[str],
+        how_it_works: Optional[str],
+        use_cases: Optional[str],
+        product_url: Optional[str],
 ):
     """Updates a client product"""
 
@@ -3926,7 +4262,7 @@ def propagate_contract_value(client_id: int, new_value: int):
 
 
 def write_client_pre_onboarding_survey(
-    client_sdr_id: int, client_id: int, key: str, value: str, retries_left: int = 3
+        client_sdr_id: int, client_id: int, key: str, value: str, retries_left: int = 3
 ):
     """Writes a client pre-onboarding survey response to the database"""
     try:
@@ -4078,7 +4414,7 @@ def get_all_sdrs_from_emails(emails: list[str]):
 
 
 def import_pre_onboarding(
-    client_sdr_id: int,
+        client_sdr_id: int,
 ):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
@@ -4254,9 +4590,9 @@ def import_pre_onboarding(
 
 
 def update_client_sdr_cc_bcc_emails(
-    client_sdr_id: int,
-    cc_emails: Optional[list[str]],
-    bcc_emails: Optional[list[str]],
+        client_sdr_id: int,
+        cc_emails: Optional[list[str]],
+        bcc_emails: Optional[list[str]],
 ):
     """
     Updates the CC and BCC emails for a client SDR
@@ -4272,8 +4608,8 @@ def update_client_sdr_cc_bcc_emails(
 
 
 def update_client_auto_generate_li_messages_setting(
-    client_sdr_id: int,
-    auto_generate_li_messages: bool,
+        client_sdr_id: int,
+        auto_generate_li_messages: bool,
 ):
     """
     Updates the auto generate LI messages setting for a client SDR
@@ -4286,8 +4622,8 @@ def update_client_auto_generate_li_messages_setting(
 
 
 def update_client_auto_send_li_messages(
-    client_sdr_id: int,
-    auto_send_li_messages: bool,
+        client_sdr_id: int,
+        auto_send_li_messages: bool,
 ):
     """
     Updates the auto send LI messages setting for a client SDR
@@ -4300,8 +4636,8 @@ def update_client_auto_send_li_messages(
 
 
 def update_client_auto_generate_email_messages_setting(
-    client_sdr_id: int,
-    auto_generate_email_messages: bool,
+        client_sdr_id: int,
+        auto_generate_email_messages: bool,
 ):
     """
     Updates the auto generate email messages setting for a client SDR
@@ -4652,12 +4988,12 @@ def msg_analytics_report(client_sdr_id: int):
 
 
 def get_available_times_via_calendly(
-    calendly_url: str,
-    dt: datetime,
-    tz: str = "America/Los_Angeles",
-    start_time: int = 8,
-    end_time: int = 18,
-    max_days: int = 14,
+        calendly_url: str,
+        dt: datetime,
+        tz: str = "America/Los_Angeles",
+        start_time: int = 8,
+        end_time: int = 18,
+        max_days: int = 14,
 ):
     """
     Returns a list of available times from a Calendly link
@@ -4751,7 +5087,7 @@ def create_do_not_contact_filters_operator_dashboard_card(client_sdr_id: int):
 
 
 def create_rep_intervention_needed_operator_dashboard_card(
-    client_sdr_id: int, prospect_id: int, reason: str
+        client_sdr_id: int, prospect_id: int, reason: str
 ):
     prospect: Prospect = Prospect.query.get(prospect_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -4866,15 +5202,15 @@ def update_client_sdr_territory_name(client_sdr_id: int, territory_name: str):
 
 
 def create_archetype_asset(
-    client_sdr_id: Optional[int],
-    client_id: int,
-    client_archetype_ids: list[int],
-    asset_key: str, #deprecated
-    asset_value: str,
-    asset_type: ClientAssetType,
-    asset_tags: list[str],
-    asset_raw_value: str,
-    send_notification: bool = True,
+        client_sdr_id: Optional[int],
+        client_id: int,
+        client_archetype_ids: list[int],
+        asset_key: str,  #deprecated
+        asset_value: str,
+        asset_type: ClientAssetType,
+        asset_tags: list[str],
+        asset_raw_value: str,
+        send_notification: bool = True,
 ):
     """
     Creates an asset for a client archetype
@@ -4882,8 +5218,11 @@ def create_archetype_asset(
 
     #chat completion for title
     messages = [
-        {"role": "user", "content": "You are an assistant to help me with my work. I need help with creating a short title that summarizes a message"},
-        {"role": "assistant", "content": 'Here is the text: "The content of the template is: {asset_value}. Give me a 4-5 word output for a good short title for it. Title:'.format(asset_value=asset_value)}
+        {"role": "user",
+         "content": "You are an assistant to help me with my work. I need help with creating a short title that summarizes a message"},
+        {"role": "assistant",
+         "content": 'Here is the text: "The content of the template is: {asset_value}. Give me a 4-5 word output for a good short title for it. Title:'.format(
+             asset_value=asset_value)}
     ]
     response = wrapped_chat_gpt_completion(messages=messages, max_tokens=10)
     title = response.replace('"', '')
@@ -4908,7 +5247,8 @@ def create_archetype_asset(
                 "client_sdr_id": client_sdr_id,
                 "client_archetype_ids": client_archetype_ids,
                 "asset_name": title,
-                "asset_type": asset_tags,  # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
+                "asset_type": asset_tags,
+                # This may be confusing, but tags are "Research, Website, etc.". Type is "CSV, TEXT, etc." For our purposes we want the "asset_type" to really show which of the tags it is. Refactor may be necessary in the future.
                 "ai_summary": asset_value,
             },
         )
@@ -4951,13 +5291,13 @@ def delete_archetype_asset(asset_id: int, client_sdr_id: int):
 
 
 def update_asset(
-    asset_id: int,
-    client_sdr_id: int,
-    asset_key: Optional[str] = None,
-    asset_value: Optional[str] = None,
-    asset_type: Optional[ClientAssetType] = None,
-    asset_tags: Optional[list[str]] = None,
-    asset_raw_value: Optional[str] = None,
+        asset_id: int,
+        client_sdr_id: int,
+        asset_key: Optional[str] = None,
+        asset_value: Optional[str] = None,
+        asset_type: Optional[ClientAssetType] = None,
+        asset_tags: Optional[list[str]] = None,
+        asset_raw_value: Optional[str] = None,
 ):
     """
     Updates an asset for a client archetype
@@ -4984,8 +5324,8 @@ def update_asset(
 
 
 def delete_client_asset_archetype_mapping(
-    client_archetype_id: int,
-    asset_id: int,
+        client_archetype_id: int,
+        asset_id: int,
 ):
     """
     Deletes an asset for a client archetype
@@ -5012,10 +5352,10 @@ def delete_client_asset_archetype_mapping(
 
 
 def create_client_archetype_reason_mapping(
-    client_archetype_id: int,
-    asset_id: int,
-    reason: str,
-    step_number: Optional[int] = None,
+        client_archetype_id: int,
+        asset_id: int,
+        reason: str,
+        step_number: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Creates a reason for a client archetype
@@ -5058,9 +5398,9 @@ def create_client_archetype_reason_mapping(
 
 
 def modify_client_archetype_reason_mapping(
-    client_asset_archetype_reason_mapping_id: int,
-    new_reason: str,
-    step_number: Optional[int] = None,
+        client_asset_archetype_reason_mapping_id: int,
+        new_reason: str,
+        step_number: Optional[int] = None,
 ) -> bool:
     """
     Modifies a reason for a client archetype
@@ -5091,12 +5431,13 @@ def get_testing_volume(client_archetype_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
     return client_archetype.testing_volume
 
+
 def get_spending(client_id, client_sdr_id):
     client_sdr = ClientSDR.query.get(client_sdr_id)
 
     if client_sdr.client_id != 1 and client_sdr.client_id != client_id:
         return "You are not authorized to view this information"
-        
+
     def get_apollo_spending(client_id):
         query = """
             select 
@@ -5254,6 +5595,8 @@ def get_spending(client_id, client_sdr_id):
     }
 
     return spending
+
+
 def get_all_clients(client_sdr_id: int):
     client_sdr = ClientSDR.query.get(client_sdr_id)
     if client_sdr.client_id != 1:
