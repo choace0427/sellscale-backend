@@ -320,9 +320,9 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     if len(contacts) > 1:
         person_job_title_sub_role = deep_get(person_payload, "job_title_sub_role")
         if person_job_title_sub_role:
-            for c in contacts:
-                if c['title'] == person_job_title_sub_role:
-                    contact = c
+            for person in contacts:
+                if person['title'] == person_job_title_sub_role or person_job_title_sub_role.lower() in person['title'].lower():
+                    contact = person
                     break
         if not contact and len(contacts) < 5:
             contact = contacts[0]
@@ -374,7 +374,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     webhook_url = client.pipeline_notifications_webhook_url
 
     webhook_urls = [URL_MAP["sales-visitors"]]
-    if webhook_url:
+    if webhook_url and client_id != 47:
         webhook_urls.append(webhook_url)
 
     send_slack_message(
