@@ -28,6 +28,7 @@ class TrackEvent(db.Model):
     window_location = db.Column(db.String, nullable=False)
     ip_address = db.Column(db.String, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"))
+    prospect_id = db.Column(db.Integer, db.ForeignKey("prospect.id"), nullable=True)
 
     company_identify_api = db.Column(db.String, nullable=True)
     company_identify_payload = db.Column(db.JSON, nullable=True)
