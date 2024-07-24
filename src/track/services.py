@@ -190,8 +190,6 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     client_sdr_id = 34
 
-    import pdb; pdb.set_trace()
-
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
 
     if not track_event or track_event.company_identify_api != "peopledatalabs" or not track_event.company_identify_payload:
