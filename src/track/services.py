@@ -190,10 +190,36 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     client_sdr_id = 34
 
+    import pdb; pdb.set_trace()
+
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
 
     if not track_event or track_event.company_identify_api != "peopledatalabs" or not track_event.company_identify_payload:
         return "Track event not found or not identified by People Data Labs"
+    
+    
+    # Check if there's already a deanonymized contact for the same IP address
+    existing_contact = DeanonymizedContact.query.join(TrackEvent).filter(
+        TrackEvent.ip_address == track_event.ip_address,
+        DeanonymizedContact.track_event_id == TrackEvent.id
+    ).first()
+
+    if existing_contact:
+        new_contact = DeanonymizedContact(
+            name=existing_contact.name,
+            company=existing_contact.company,
+            title=existing_contact.title,
+            visited_date=track_event.created_at,
+            linkedin=existing_contact.linkedin,
+            email=None,
+            tag=None,
+            prospect_id=existing_contact.prospect_id,
+            location=existing_contact.location,
+            track_event_id=track_event.id,
+            company_size=existing_contact.company_size
+        )
+        db.session.add(new_contact)
+        db.session.commit()
     
     # confidence score
     p_confidence = deep_get(track_event.company_identify_payload, "data.person.confidence")
@@ -208,6 +234,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     person_payload = deep_get(track_event.company_identify_payload, "data.person", {})
     job_title_role = deep_get(person_payload, "job_title_role")
     job_title_levels = deep_get(person_payload, "job_title_levels")
+    ip_location = deep_get(track_event.company_identify_payload, "data.ip.location.region")
 
     if p_confidence and c_confidence:
         pass
@@ -267,7 +294,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
                     "10001",
                 ],
             organization_ids=None,
-            person_locations=[location],
+            person_locations=[ip_location],
             revenue_range={
                     "min": None,
                     "max": None,
@@ -299,7 +326,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
                     "10001",
                 ],
             organization_ids=None,
-            person_locations=[],
+            person_locations=[location],
             revenue_range={
                     "min": None,
                     "max": None,
