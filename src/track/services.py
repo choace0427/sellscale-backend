@@ -28,9 +28,6 @@ def create_track_event(
     track_key: str,
 ):
     
-    #test kill this ip address
-    db.session.query(TrackEvent).filter_by(ip_address='174.249.148.145').delete()
-    db.session.commit()
     #track_source, the link to our client. 
     track_source: TrackSource = TrackSource.query.filter_by(track_key=track_key).first()
 
@@ -81,17 +78,8 @@ def create_track_event(
         db.session.add(track_event)
         db.session.commit()
 
-        #these are populated by the find_company_from_people_labs function
-        track_event = TrackEvent(
-            track_source_id=track_source_id,
-            event_type=event_type,
-            window_location=window_location,
-            ip_address=ip_address,
-            company_id=company_id,
-        )
-
     # find_company_from_orginfo.delay(track_event.id)
-    find_company_from_people_labs(
+    find_company_from_people_labs.delay(
         track_event_id=track_event.id
     )
 
@@ -132,7 +120,7 @@ def find_company_from_orginfo(track_event_id):
 
     return f"Track event updated with company ID: {prospect.company_id}"
 
-# @celery.task
+@celery.task
 def find_company_from_people_labs(track_event_id):
     import requests
 
@@ -143,7 +131,10 @@ def find_company_from_people_labs(track_event_id):
         return "Track event not found or already identified"
 
     # check if any track event exists with given IP address and has company_identification_payload
+    track_source: TrackSource = TrackSource.query.filter_by(id=track_event.track_source_id).first()
+
     other_event = TrackEvent.query.filter(
+        TrackEvent.track_source_id == track_source.id,
         TrackEvent.ip_address == track_event.ip_address,
         TrackEvent.company_identify_payload != None,
         TrackEvent.id != track_event_id,
@@ -188,6 +179,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     from src.contacts.services import apollo_org_search, save_apollo_query
 
     client_sdr_id = 34
+    #TO-DO: DONT DO THIS.
 
     print('got here')
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
@@ -326,7 +318,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
         person_job_title_sub_role = deep_get(person_payload, "job_title_sub_role")
         if person_job_title_sub_role:
             for person in contacts:
-                if person['title'] == person_job_title_sub_role or person_job_title_sub_role.lower() in person['title'].lower():
+                if person['title'] and person_job_title_sub_role and (person['title'].lower() == person_job_title_sub_role.lower() or person_job_title_sub_role.lower() in person['title'].lower()):
                     contact = person
                     break
         if not contact and len(contacts) < 5:
@@ -419,7 +411,7 @@ def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track
         prospect: Prospect = Prospect.query.get(prospect_id)
         icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
         track_event: TrackEvent = TrackEvent.query.get(track_event_id)
-        webhook_urls = [URL_MAP["eng-sandbox"]]
+        webhook_urls = [URL_MAP["sales-visitors"]]
 
         send_slack_message(
         message=f"*🔗 LinkedIn*: {prospect.linkedin_url}\n*👥 Name*: {prospect.full_name}\n*♣ Title*: {prospect.title}\n*📸 Photo*: {prospect.img_url}\n*🌆 Organization*: {prospect.company}\n*👾 Website*: {prospect.company_url}\n*🌎 Location*: {prospect.prospect_location}",
@@ -787,15 +779,10 @@ Icp Route Id #:"""
 
     print('gpt response: ', gpt_response)
 
-    icp_route_id = int(gpt_response)
-
-    icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
-    if not icp_route:
-        return "ICP Route not found"
-    
     successful = True
 
     print('got here 2')
+    icp_route_id = int(gpt_response)
 
     if (successful):
         send_successful_icp_route_message(prospect_id, icp_route_id, track_event_id)
@@ -806,5 +793,11 @@ Icp Route Id #:"""
         prospect.client_sdr_id = segment.client_sdr_id if segment else prospect.client_sdr_id
         db.session.add(prospect)
         db.session.commit()
+
+    
+
+    icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
+    if not icp_route:
+        return "ICP Route not found"
 
     return icp_route_id
