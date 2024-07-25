@@ -100,7 +100,7 @@ class ICPRouting(db.Model):
     filter_title = db.Column(db.String, nullable=False)
     filter_location = db.Column(db.String, nullable=False)
     filter_company_size = db.Column(db.String, nullable=False)
-    ai_mode = db.Column(db.Boolean, nullable=False, default=True)
+    ai_mode = db.Column(db.Boolean, nullable=True, default=True)
     rules = db.Column(db.ARRAY(db.JSON), nullable=True)
 
     segment_id = db.Column(db.Integer, db.ForeignKey("segment.id"), nullable=True)
