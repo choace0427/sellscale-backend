@@ -11,6 +11,8 @@ from src.contacts.services import apollo_get_contacts
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import simple_perplexity_response
 from src.prospecting.models import Prospect
+from src.prospecting.services import add_prospect
+from src.segment.models import Segment
 from src.track.models import DeanonymizedContact, TrackEvent, TrackSource, ICPRouting
 from app import db, celery
 from src.utils.abstract.attr_utils import deep_get
@@ -25,9 +27,15 @@ def create_track_event(
     page: str,
     track_key: str,
 ):
+    
+    #test kill this ip address
+    db.session.query(TrackEvent).filter_by(ip_address='174.249.148.145').delete()
+    db.session.commit()
+    #track_source, the link to our client. 
     track_source: TrackSource = TrackSource.query.filter_by(track_key=track_key).first()
 
     if not track_source:
+        print("Track source not found")
         return False
 
     track_source_id = track_source.id
@@ -36,23 +44,49 @@ def create_track_event(
     ip_address = ip
     company_id = None
 
-    track_event = TrackEvent(
-        track_source_id=track_source_id,
-        event_type=event_type,
-        window_location=window_location,
-        ip_address=ip_address,
-        company_id=company_id,
-    )
+    #have we tracked this event before?
+    existing_track_event: TrackEvent = TrackEvent.query.filter_by(ip_address=ip_address, track_source_id=track_source.id).first()
+    print('existing track event: ', existing_track_event)
+    if existing_track_event:
+        #check if there is a prospect associated with this event. if there is, then regenerate the track event and return
+        if existing_track_event.prospect_id:
+            track_event = TrackEvent(
+                track_source_id=track_source_id,
+                event_type=event_type,
+                window_location=window_location,
+                ip_address=ip_address,
+                company_id=company_id,
+                prospect_id=existing_track_event.prospect_id,
+                company_identify_api=existing_track_event.company_identify_api,
+                company_identify_payload=existing_track_event.company_identify_payload,
+            )
+            db.session.add(track_event)
+            db.session.commit()
+            return True
+        #if no prospect id for existing track event on this client, People Data Labs or Apollo failed to identify the person
+        else:
+            print("People Data Labs or Apollo failed to identify the person")
+            return False
 
-    db.session.add(track_event)
-    db.session.commit()
+            #bring back return false.
+    else:
+        track_event = TrackEvent(
+            track_source_id=track_source_id,
+            event_type=event_type,
+            window_location=window_location,
+            ip_address=ip_address,
+            company_id=company_id,
+        )
+
+        db.session.add(track_event)
+        db.session.commit()
 
     # send_slack_message(
     #     message=f"Track event created: ```{track_event.to_dict()}```",
     #     webhook_urls=[URL_MAP["eng-sandbox"]],
     # )
 
-    find_company_from_orginfo.delay(track_event.id)
+    # find_company_from_orginfo.delay(track_event.id)
     find_company_from_people_labs(
         track_event_id=track_event.id
     )
@@ -94,13 +128,14 @@ def find_company_from_orginfo(track_event_id):
 
     return f"Track event updated with company ID: {prospect.company_id}"
 
-@celery.task
+# @celery.task
 def find_company_from_people_labs(track_event_id):
     import requests
 
-    track_event = TrackEvent.query.get(track_event_id)
+    track_event: TrackEvent = TrackEvent.query.get(track_event_id)
 
     if track_event is None or track_event.company_identify_api:
+        print("Track event not found or already identified")
         return "Track event not found or already identified"
 
     # check if any track event exists with given IP address and has company_identification_payload
@@ -114,7 +149,7 @@ def find_company_from_people_labs(track_event_id):
         track_event.company_identify_payload = other_event.company_identify_payload
         db.session.add(track_event)
         db.session.commit()
-        db.session.close()
+        print('company identification payload: ', other_event.company_identify_payload)
         return "Company already identified by another event"
 
     url = "https://api.peopledatalabs.com/v5/ip/enrich?ip={ip_address}&return_ip_location=true&return_ip_metadata=false&return_person=true&return_if_unmatched=false&titlecase=true&pretty=true"
@@ -134,9 +169,10 @@ def find_company_from_people_labs(track_event_id):
     track_event.company_identify_payload = response.json()
     db.session.add(track_event)
     db.session.commit()
+
+    print('company identification payload: ', response.json())
     
     deanonymize_track_events_for_people_labs(track_event_id)
-
     return response.json()
 
 # last 100 track events
@@ -144,80 +180,17 @@ def get_track_events():
     track_events = TrackEvent.query.order_by(TrackEvent.created_at.desc()).limit(5000).all()
     return track_events
 
-def process_deanonymized_contact(deanon_contact_id):
-    from src.prospecting.services import add_prospect
-
-    deanon_contact: DeanonymizedContact = DeanonymizedContact.query.get(deanon_contact_id)
-    track_event: TrackEvent = TrackEvent.query.get(deanon_contact.track_event_id)
-    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
-    client_id = track_source.client_id
-    random_unassigned_client_archetype: ClientArchetype = ClientArchetype.query.filter(
-        ClientArchetype.client_id == client_id,
-        ClientArchetype.is_unassigned_contact_archetype == True,
-    ).first()
-    archetype_id = random_unassigned_client_archetype.id
-    client_sdr_id = random_unassigned_client_archetype.client_sdr_id
-
-    current_company = deanon_contact.company
-    name = deanon_contact.name
-    stripped_linkedin_url = deanon_contact.linkedin
-    title = deanon_contact.title
-    twitter_url = ''
-    segment_id = None
-
-    prospect_id = add_prospect(
-        client_id=client_id,
-        archetype_id=archetype_id,
-        client_sdr_id=client_sdr_id,
-        company=current_company,
-        full_name=name,
-        linkedin_url=stripped_linkedin_url,
-        title=title,
-        twitter_url=twitter_url,
-        segment_id=segment_id,
-    )
-
-    deanon_contact.prospect_id = prospect_id
-    db.session.add(deanon_contact)
-    db.session.commit()
-
-    return prospect_id
-
-
-
 def deanonymize_track_events_for_people_labs(track_event_id):
     from src.contacts.services import apollo_org_search, save_apollo_query
 
     client_sdr_id = 34
 
+    print('got here')
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
 
     if not track_event or track_event.company_identify_api != "peopledatalabs" or not track_event.company_identify_payload:
+        print("Track event not found or not identified by People Data Labs", track_event.company_identify_api, track_event.company_identify_payload)
         return "Track event not found or not identified by People Data Labs"
-    
-    
-    # Check if there's already a deanonymized contact for the same IP address
-    existing_contact = DeanonymizedContact.query.join(TrackEvent).filter(
-        TrackEvent.ip_address == track_event.ip_address,
-        DeanonymizedContact.track_event_id == TrackEvent.id
-    ).first()
-
-    if existing_contact:
-        new_contact = DeanonymizedContact(
-            name=existing_contact.name,
-            company=existing_contact.company,
-            title=existing_contact.title,
-            visited_date=track_event.created_at,
-            linkedin=existing_contact.linkedin,
-            email=None,
-            tag=None,
-            prospect_id=existing_contact.prospect_id,
-            location=existing_contact.location,
-            track_event_id=track_event.id,
-            company_size=existing_contact.company_size
-        )
-        db.session.add(new_contact)
-        db.session.commit()
     
     # confidence score
     p_confidence = deep_get(track_event.company_identify_payload, "data.person.confidence")
@@ -234,9 +207,12 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     job_title_levels = deep_get(person_payload, "job_title_levels")
     ip_location = deep_get(track_event.company_identify_payload, "data.ip.location.region")
 
+    print('data from track event: ', p_confidence, c_confidence, company_name, company_website, company_size, employee_count, job_title_role, job_title_levels, ip_location)
+
     if p_confidence and c_confidence:
         pass
     else:
+        print("Low confidence")
         return "Low confidence"
 
     print("Attempting search for details:\ncompany_name: {}\ncompany_website: {}\ncompany_size: {}\nemployee_count: {}\njob_title_role: {}\njob_title_levels: {}".format(
@@ -340,7 +316,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     if not contacts:
         return "No contacts"
-    
+    print('first contact is', contacts[0])
     contact = None
     if len(contacts) > 1:
         person_job_title_sub_role = deep_get(person_payload, "job_title_sub_role")
@@ -354,8 +330,9 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     elif len(contacts) > 0:
         contact = contacts[0]
-
+    print("Contact: ", contact)
     if not contact:
+        print("No contact found sad")
         return "No contact found"
 
     linkedin_url = deep_get(contact, "linkedin_url") 
@@ -377,24 +354,30 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     ):
         return "Company name or website do not match"
     
-    deanon_contact: DeanonymizedContact = DeanonymizedContact(
-        name=name,
-        company=org_name,
-        title=title,
-        visited_date=track_event.created_at,
-        linkedin=linkedin_url,
-        email=None,
-        tag=None,
-        prospect_id=None,
-        location=location,
-        track_event_id=track_event.id,
-        company_size=company_size
-    )
-    db.session.add(deanon_contact)
-    db.session.commit()
-
     track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
     client_id = track_source.client_id
+    
+    prospect_id = add_prospect(
+        client_id=client_id,
+        archetype_id=None,
+        client_sdr_id=client_sdr_id,
+        company=org_name,
+        prospect_location=location,
+        company_url=org_website,
+        full_name=name,
+        linkedin_url=linkedin_url,
+        title=title,
+        override=True,
+        img_url=photo_url,
+        segment_id=None,
+    )
+
+    #immediately attach prospect id to the track event
+    track_event.prospect_id = prospect_id
+    db.session.add(track_event)
+    db.session.commit()
+
+
     client: Client = Client.query.get(client_id)
     webhook_url = client.pipeline_notifications_webhook_url
 
@@ -402,63 +385,8 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     if webhook_url and client_id != 47:
         webhook_urls.append(webhook_url)
 
-    send_slack_message(
-        message="*🔗 LinkedIn*: {}\n*👥 Name*: {}\n*♣ Title*: {}\n*📸 Photo*: {}\n*🌆 Organization*: {}\n*👾 Website*: {}\n*🌎 Location*: {}".format(
-            linkedin_url, name, title, photo_url, org_name, org_website, location
-        ),
-        blocks=[
-		{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "💡 {name} visited your website.".format(name=name),
-				"emoji": True
-			}
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "*🔗 LinkedIn*: {linkedin_url}\n*♣️ Title:* {title}\n*🌆 Organization*: {org_name}\n*👾 Website*: {org_website}\n*🌎 Location*: {location}".format(
-                    linkedin_url=linkedin_url, org_name=org_name, org_website=org_website, location=location, title=title
-                )
-			},
-			"accessory": {
-				"type": "image",
-				"image_url": "{photo_url}".format(photo_url=photo_url),
-				"alt_text": "profile_picture"
-			}
-		},
-		{
-			"type": "context",
-			"elements": [
-				{
-					"type": "mrkdwn",
-					"text": "Visited {website_viewed} on {date}".format(website_viewed=website_viewed, date=track_event.created_at.strftime("%Y-%m-%d %H:%M:%S"))
-				}
-			]
-		},
-		{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "Engage with {name}".format(name=name),
-						"emoji": True
-					},
-					"value": linkedin_url,
-					"action_id": "actionId-0"
-				}
-			]
-		}
-	],
-        webhook_urls=webhook_urls,
-    )
-
-    process_deanonymized_contact(deanon_contact.id)
-    categorize_deanonyomized_contact(deanon_contact.id)
+    # process_deanonymized_contact(deanon_contact.id)
+    categorize_prospect(prospect_id, track_event_id)
 
     return contacts
 
@@ -481,6 +409,64 @@ def get_website_tracking_script(client_sdr_id: int):
     !function(){function t(){fetch("https://api.ipify.org/?format=json").then(t=>t.json()).then(t=>{var e,n,o,i;e=t.ip,o=JSON.stringify({ip:e,page:n=window.location.href,track_key:"''' + track_source.track_key + '''"}),(i=new XMLHttpRequest).open("POST","https://sellscale-api-prod.onrender.com/track/webpage",!0),i.setRequestHeader("Content-Type","application/json"),i.send(o)}).catch(t=>console.error("Error fetching IP:",t))}t(),window.onpopstate=function(e){t()},new MutationObserver(function(e){e.forEach(function(e){"childList"===e.type&&t()})}).observe(document.body,{childList:!0,subtree:!0})}();
 </script>
     '''
+
+def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track_event_id: int):
+        
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
+        track_event: TrackEvent = TrackEvent.query.get(track_event_id)
+        webhook_urls = [URL_MAP["eng-sandbox"]]
+
+        send_slack_message(
+        message=f"*🔗 LinkedIn*: {prospect.linkedin_url}\n*👥 Name*: {prospect.full_name}\n*♣ Title*: {prospect.title}\n*📸 Photo*: {prospect.img_url}\n*🌆 Organization*: {prospect.company}\n*👾 Website*: {prospect.company_url}\n*🌎 Location*: {prospect.prospect_location}",
+        blocks=[
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": f"💡 {prospect.full_name} visited your website.",
+				"emoji": True
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": f"*🔗 LinkedIn*: {prospect.linkedin_url}\n*♣️ Title:* {prospect.title}\n*🌆 Organization*: {prospect.company}\n*👾 Website*: {prospect.company_url}\n*🌎 Location*: {prospect.prospect_location}"
+			},
+			"accessory": {
+				"type": "image",
+				"image_url": f"{prospect.img_url}",
+				"alt_text": "profile_picture"
+			}
+		},
+		{
+			"type": "context",
+			"elements": [
+				{
+					"type": "mrkdwn",
+					"text": f"Visited {track_event.window_location} on {track_event.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+				}
+			]
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": f"Engage with {prospect.full_name}",
+						"emoji": True
+					},
+					"value": prospect.linkedin_url,
+					"action_id": "actionId-0"
+				}
+			]
+		}
+	],
+        webhook_urls=webhook_urls,
+    )
 
 def get_most_recent_track_event(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -719,29 +705,30 @@ def get_icp_route_details(client_sdr_id: int, icp_route_id: int):
 
     return icp_route.to_dict()
 
-def categorize_deanonymized_contacts(deanonymized_contact_ids: list[int], async_=True):
-    for deanon_contact_id in deanonymized_contact_ids:
+def categorize_deanonyomized_prospects(prospect_ids: list[int], async_=True):
+    for prospect_id in prospect_ids:
         if async_:
-            categorize_deanonyomized_contact.delay(deanon_contact_id)
+            categorize_prospect.delay(prospect_id)
         else:
-            categorize_deanonyomized_contact(deanon_contact_id)
+            categorize_prospect(prospect_id)
 
     return True
 
 @celery.task
-def categorize_deanonyomized_contact(deanon_contact_id: int):
-    deanon_contact: DeanonymizedContact = DeanonymizedContact.query.get(deanon_contact_id)
-    track_event: TrackEvent = TrackEvent.query.get(deanon_contact.track_event_id)
-    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
-    client_id = track_source.client_id
+def categorize_prospect(prospect_id: int, track_event_id: int):
+
+    print('categorizing prospect', prospect_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    client_id = prospect.client_id
+    track_event: TrackEvent = TrackEvent.query.get(track_event_id)
     
     icp_routings: list[ICPRouting] = ICPRouting.query.filter(
         ICPRouting.client_id == client_id,
         ICPRouting.active == True
     ).all()
 
-    company_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the company called {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include what they do, what they sell, who they serve.".format(deanon_contact.company))
-    prospect_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the person named {} who works at {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include their role, responsibilities, and any other relevant information.".format(deanon_contact.name, deanon_contact.company))
+    company_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the company called {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include what they do, what they sell, who they serve.".format(prospect.company))
+    prospect_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the person named {} who works at {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include their role, responsibilities, and any other relevant information.".format(prospect.full_name, prospect.company))
 
     prompt = """
 You are an ICP categorizer. Here are the options for the different ICPs you have access to:
@@ -777,14 +764,14 @@ Icp Route Id #:"""
                 "role": "user",
                 "content": prompt.format(
                     icp_routes="\n".join([f"{route.id}: {route.title} - {route.description}" for route in icp_routings] + ["-1: None of the above"]),
-                    name=deanon_contact.name,
-                    company=deanon_contact.company,
-                    title=deanon_contact.title,
-                    visited_date=deanon_contact.visited_date,
-                    linkedin=deanon_contact.linkedin,
-                    email=deanon_contact.email,
-                    location=deanon_contact.location,
-                    company_size=deanon_contact.company_size,
+                    name=prospect.full_name,
+                    company=prospect.company,
+                    title=prospect.title,
+                    visited_date=track_event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    linkedin=prospect.linkedin_url,
+                    email=prospect.email,
+                    location=prospect.prospect_location,
+                    company_size=prospect.company_size,
                     prospect_information=prospect_information[0],
                     company_information=company_information[0]
                 )
@@ -794,15 +781,26 @@ Icp Route Id #:"""
         model='gpt-4o'
     )
 
+    print('gpt response: ', gpt_response)
+
     icp_route_id = int(gpt_response)
 
     icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
     if not icp_route:
         return "ICP Route not found"
     
-    deanon_contact.icp_route_id = icp_route_id
-    deanon_contact.tag = icp_route.title
-    db.session.add(deanon_contact)
-    db.session.commit()
+    successful = True
+
+    print('got here 2')
+
+    if (successful):
+        send_successful_icp_route_message(prospect_id, icp_route_id, track_event_id)
+        segment: Segment = Segment.query.get(icp_route.segment_id)
+        prospect.segment_id = segment.id if segment else None
+        prospect.archetype_id = segment.client_archetype_id if segment else prospect.archetype_id
+        #set that prospect to be assigned to the client_sdr_id of the icp_route
+        prospect.client_sdr_id = segment.client_sdr_id if segment else prospect.client_sdr_id
+        db.session.add(prospect)
+        db.session.commit()
 
     return icp_route_id

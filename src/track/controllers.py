@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 from src.track.models import ICPRouting
-from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes, get_icp_route_details, categorize_deanonyomized_contact, categorize_deanonymized_contacts
+from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes, get_icp_route_details, categorize_prospect, categorize_deanonyomized_prospects
 from src.track.services import find_company_from_orginfo
 
 from src.utils.request_helpers import get_request_parameter
@@ -16,6 +16,9 @@ def create():
     track_key = get_request_parameter("track_key", request, json=True, required=True)
 
     success = create_track_event(ip=ip, page=page, track_key=track_key)
+
+    if track_key != 'X8492aa92JOIp2XXMV1382':
+        return "ERROR", 400
 
     if not success:
         return "ERROR", 400
@@ -148,9 +151,10 @@ def get_icp_route_details_endpoint(client_sdr_id: int, icp_route_id: int):
 @TRACK_BLUEPRINT.route("/auto_classify_deanonymized_contacts", methods=["POST"])
 @require_user
 def auto_classify_deanonymized_contacts(client_sdr_id: int):
+    #todo, change these to prospect ids.
     deanonymized_contact_ids = get_request_parameter("deanonymized_contact_ids", request, json=True, required=True)
 
-    success = categorize_deanonymized_contacts(deanonymized_contact_ids, True)
+    success = categorize_deanonyomized_prospects(deanonymized_contact_ids, True)
 
     if not success:
         return "ERROR", 400
