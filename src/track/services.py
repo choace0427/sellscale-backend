@@ -81,10 +81,14 @@ def create_track_event(
         db.session.add(track_event)
         db.session.commit()
 
-    # send_slack_message(
-    #     message=f"Track event created: ```{track_event.to_dict()}```",
-    #     webhook_urls=[URL_MAP["eng-sandbox"]],
-    # )
+        #these are populated by the find_company_from_people_labs function
+        track_event = TrackEvent(
+            track_source_id=track_source_id,
+            event_type=event_type,
+            window_location=window_location,
+            ip_address=ip_address,
+            company_id=company_id,
+        )
 
     # find_company_from_orginfo.delay(track_event.id)
     find_company_from_people_labs(
@@ -381,9 +385,9 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     client: Client = Client.query.get(client_id)
     webhook_url = client.pipeline_notifications_webhook_url
 
-    webhook_urls = [URL_MAP["sales-visitors"]]
-    if webhook_url and client_id != 47:
-        webhook_urls.append(webhook_url)
+    # webhook_urls = [URL_MAP["sales-visitors"]]
+    # if webhook_url and client_id != 47:
+    #     webhook_urls.append(webhook_url)
 
     # process_deanonymized_contact(deanon_contact.id)
     categorize_prospect(prospect_id, track_event_id)
