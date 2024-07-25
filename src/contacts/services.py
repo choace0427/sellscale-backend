@@ -164,6 +164,11 @@ ALLOWED_FILTERS_APOLLO = {
         "output_type": "list",
         "prompt": "relate these event types to the query ask. The values should be a list of strings. The values should be one or more of these: 'leadership', 'acquisition', 'expansion', 'new_offering', 'investment', cost_cutting', 'partnership', 'recognition', 'contract', 'corporate_challenges', 'relational'. The values should be a list of strings. eg. ['leadership', 'acquisition']",
     },
+    "person_seniorities": {
+        "summary": "(list) List of job title seniorities to include",
+        "output_type": "list",
+        "prompt": "Extract the seniorities to include from the query. The allowed values are: 'owner', 'founder', 'c_suite', 'partner', 'vp', 'head', 'director', 'manager'. 'senior', 'entry', 'intern'",
+    },
     # "organization_industry_tag_ids": {
     #     "summary": "(list) List of certain industries related to this sales segment",
     #     "output_type": "list",
@@ -187,7 +192,7 @@ ALLOWED_FILTERS_APOLLO = {
     "person_titles": {
         "summary": "(list) List of person titles. Please always include this",
         "output_type": "list",
-        "prompt": "Infer some person titles from this sales segment. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 7 related job titles that may be synonymous with my target audience. Not plural",
+        "prompt": "Infer some person titles from this sales segment. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 7 related job titles that may be synonymous with my target audience. Not plural. Also don't be too speciic, i.e. VP of clinical affairs is too specific, Clinical Affairs is better. Only output the list of strings.",
     },
     "published_at_date_range": {
         "summary": "(dict) Date range for company news",
