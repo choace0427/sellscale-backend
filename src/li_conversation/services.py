@@ -1559,7 +1559,7 @@ def scrape_conversations_inbox():
         # new_date = datetime.utcnow() + timedelta(days=1)
         next_time = (
             datetime.utcnow()
-            + timedelta(hours=3)
+            + timedelta(hours=1)
             + timedelta(seconds=random.randint(-scrape_time_offset, scrape_time_offset))
         )
         next_datetime = datetime(

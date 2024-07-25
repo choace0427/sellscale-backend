@@ -968,12 +968,12 @@ def athelas_job_listing_sonar_test():
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "Company: *Oak Street Health*\nEmployees: *5,001 - 10,000*\nLocation: *Chicago, IL*\nConditions: *(✅ is hospital) (✅ 100 - 100k size)*"
+                            "text": "Company: *Envision Healthcare*\nEmployees: *10,000*\nLocation: *Tennessee, IL*\nConditions: *(✅ is hospital) (✅ 100 - 100k size)*"
                         },
                         "accessory": {
                             "type": "image",
-                            "image_url": "https://logo.clearbit.com/oakstreethealth.com",
-                            "alt_text": "oak street health logo"
+                            "image_url": "https://logo.clearbit.com/www.envisionhealth.com",
+                            "alt_text": "company logo"
                         }
                     },
                     {
@@ -981,7 +981,7 @@ def athelas_job_listing_sonar_test():
                         "elements": [
                             {
                                 "type": "mrkdwn",
-                                "text": "🚨 *Detected 8+ job listings for 'Medical Scribes'*"
+                                "text": "🚨 *Detected 5+ job listings for 'Medical Scribes'*"
                             }
                         ]
                     },
@@ -992,7 +992,7 @@ def athelas_job_listing_sonar_test():
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "*Medical Scribe | 5 days ago*\nNew York"
+                            "text": "*CIM / MEDICAL SCRIBE - ELLENVILLE, NY | 3 days ago*\nNew York"
                         },
                         "accessory": {
                             "type": "button",
@@ -1001,7 +1001,7 @@ def athelas_job_listing_sonar_test():
                                 "emoji": True,
                                 "text": "View"
                             },
-                            "url": "https://www.linkedin.com/jobs/view/3972563779"
+                            "url": "https://www.linkedin.com/jobs/view/3959190170"
                         }
                     },
                     {
@@ -1009,7 +1009,7 @@ def athelas_job_listing_sonar_test():
                         "elements": [
                             {
                                 "type": "mrkdwn",
-                                "text": "🔎 *Detected 74+ relevant stakeholders*"
+                                "text": "🔎 *Detected 32+ relevant stakeholders*"
                             }
                         ]
                     },
@@ -1020,7 +1020,7 @@ def athelas_job_listing_sonar_test():
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "- *Jordan Allen* / VP, Strategy & Operations (New York)\n- *Carlibi Mha* / Sr Practice Manager (New York)\n- *Charlotte Turovsky* / VP, Clinical Operations (New York)"
+                            "text": "- *Patricia Hennelly* / Vice President Operations (New York)\n- *Nicole Caponetto* / Director of Operations (New York)\n- *Jim Pepe* / Manager, HR Employee Relations (New York)"
                         }
                     },
                     {
