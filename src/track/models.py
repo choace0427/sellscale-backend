@@ -113,6 +113,8 @@ class ICPRouting(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
+            "ai_mode": self.ai_mode,
+            "rules": self.rules,
             "filter_company": self.filter_company,
             "filter_title": self.filter_title,
             "filter_location": self.filter_location,
