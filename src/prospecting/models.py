@@ -533,6 +533,9 @@ class Prospect(db.Model):
         db.Integer, db.ForeignKey("prospect_uploads.id"), nullable=True
     )
 
+    reveal_phone_number = db.Column(db.Boolean, nullable=True)
+    phone_number = db.Column(db.String, nullable=True)
+
     __table_args__ = (db.Index("idx_li_urn_id", "li_urn_id"),)
 
     def regenerate_uuid(self) -> str:
