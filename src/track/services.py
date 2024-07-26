@@ -1,5 +1,6 @@
 import datetime
 from http import client
+import json
 from typing import Optional
 from flask_socketio import send
 from regex import D
@@ -26,6 +27,7 @@ def create_track_event(
     ip: str,
     page: str,
     track_key: str,
+    force_track_again: Optional[bool] = False,
 ):
     
     #track_source, the link to our client. 
@@ -44,7 +46,7 @@ def create_track_event(
     #have we tracked this event before?
     existing_track_event: TrackEvent = TrackEvent.query.filter_by(ip_address=ip_address, track_source_id=track_source.id).first()
     print('existing track event: ', existing_track_event)
-    if existing_track_event:
+    if not force_track_again and existing_track_event:
         #check if there is a prospect associated with this event. if there is, then regenerate the track event and return
         if existing_track_event.prospect_id:
             track_event = TrackEvent(
@@ -79,8 +81,10 @@ def create_track_event(
         db.session.commit()
 
     # find_company_from_orginfo.delay(track_event.id)
+    #move back to delay after.
     find_company_from_people_labs.delay(
-        track_event_id=track_event.id
+        track_event_id=track_event.id,
+        force_retrack_event=force_track_again
     )
 
     return True
@@ -121,7 +125,7 @@ def find_company_from_orginfo(track_event_id):
     return f"Track event updated with company ID: {prospect.company_id}"
 
 @celery.task
-def find_company_from_people_labs(track_event_id):
+def find_company_from_people_labs(track_event_id, force_retrack_event=False):
     import requests
 
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
@@ -139,12 +143,12 @@ def find_company_from_people_labs(track_event_id):
         TrackEvent.company_identify_payload != None,
         TrackEvent.id != track_event_id,
     ).first()
-    if other_event:
+    if not force_retrack_event and other_event:
         track_event.company_identify_api = "peopledatalabs"
         track_event.company_identify_payload = other_event.company_identify_payload
         db.session.add(track_event)
         db.session.commit()
-        print('company identification payload: ', other_event.company_identify_payload)
+        print('company identification payload for other event: ', other_event.company_identify_payload)
         return "Company already identified by another event"
 
     url = "https://api.peopledatalabs.com/v5/ip/enrich?ip={ip_address}&return_ip_location=true&return_ip_metadata=false&return_person=true&return_if_unmatched=false&titlecase=true&pretty=true"
@@ -166,6 +170,7 @@ def find_company_from_people_labs(track_event_id):
     db.session.commit()
 
     print('company identification payload: ', response.json())
+    print('now we will deanonymize the track event')
     
     deanonymize_track_events_for_people_labs(track_event_id)
     return response.json()
@@ -178,11 +183,21 @@ def get_track_events():
 def deanonymize_track_events_for_people_labs(track_event_id):
     from src.contacts.services import apollo_org_search, save_apollo_query
 
-    client_sdr_id = 34
-    #TO-DO: DONT DO THIS.
 
-    print('got here')
+    print('deanonymizing track event')
+    #get client id from track event
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
+    track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
+
+    client_id = track_source.client_id
+    #get the admin account from the client id
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(client_id=client_id, role='Admin').first()
+    
+    #if no admin, just pick a random sdr under the client
+    if not client_sdr:
+        client_sdr = ClientSDR.query.filter_by(client_id=client_id).first()
+    client_sdr_id = client_sdr.id
+    
 
     if not track_event or track_event.company_identify_api != "peopledatalabs" or not track_event.company_identify_payload:
         print("Track event not found or not identified by People Data Labs", track_event.company_identify_api, track_event.company_identify_payload)
@@ -246,7 +261,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     # find prospects from apollo
     data = apollo_get_contacts(
-            client_sdr_id=1,
+            client_sdr_id=client_sdr_id,
             num_contacts=100,
             person_titles=[job_title_role],
             person_not_titles=[],
@@ -278,7 +293,7 @@ def deanonymize_track_events_for_people_labs(track_event_id):
 
     if not contacts:
         data = apollo_get_contacts(
-            client_sdr_id=1,
+            client_sdr_id=client_sdr_id,
             num_contacts=100,
             person_titles=[job_title_role],
             person_not_titles=[],
@@ -352,21 +367,29 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     
     track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
     client_id = track_source.client_id
-    
-    prospect_id = add_prospect(
-        client_id=client_id,
-        archetype_id=None,
-        client_sdr_id=client_sdr_id,
-        company=org_name,
-        prospect_location=location,
-        company_url=org_website,
-        full_name=name,
-        linkedin_url=linkedin_url,
-        title=title,
-        override=True,
-        img_url=photo_url,
-        segment_id=None,
-    )
+
+    #first check if the prospect already exists with the name under the client id
+    existing_prospect = Prospect.query.filter(
+        Prospect.client_id == client_id,
+        Prospect.full_name == name,
+    ).first()
+    if existing_prospect:
+        prospect_id = existing_prospect.id
+    else:
+        prospect_id = add_prospect(
+            client_id=client_id,
+            archetype_id=None,
+            client_sdr_id=client_sdr_id,
+            company=org_name,
+            prospect_location=location,
+            company_url=org_website,
+            full_name=name,
+            linkedin_url=linkedin_url,
+            title=title,
+            override=True,
+            img_url=photo_url,
+            segment_id=None,
+        )
 
     #immediately attach prospect id to the track event
     track_event.prospect_id = prospect_id
@@ -377,9 +400,6 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     client: Client = Client.query.get(client_id)
     webhook_url = client.pipeline_notifications_webhook_url
 
-    # webhook_urls = [URL_MAP["sales-visitors"]]
-    # if webhook_url and client_id != 47:
-    #     webhook_urls.append(webhook_url)
 
     # process_deanonymized_contact(deanon_contact.id)
     categorize_prospect(prospect_id, track_event_id)
@@ -411,6 +431,18 @@ def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track
         prospect: Prospect = Prospect.query.get(prospect_id)
         icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
         track_event: TrackEvent = TrackEvent.query.get(track_event_id)
+
+        segment_id = icp_route.segment_id
+        segment_name = "Unassigned"
+        if (segment_id):
+            segment: Segment = Segment.query.get(segment_id)
+            segment_name = segment.segment_title
+
+        #for now we'll pipe all notifications internally.
+        # webhook_urls = [URL_MAP["sales-visitors"]]
+        # if webhook_url and client_id != 47:
+        #     webhook_urls.append(webhook_url)
+
         webhook_urls = [URL_MAP["sales-visitors"]]
 
         send_slack_message(
@@ -420,7 +452,7 @@ def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": f"💡 {prospect.full_name} visited your website.",
+				"text": f"💡 {prospect.full_name} visited your website and was bucketed into segment \"{segment_name}\".",
 				"emoji": True
 			}
 		},
@@ -732,49 +764,95 @@ def categorize_deanonyomized_prospects(prospect_ids: list[int], async_=True):
 
     return True
 
+def categorize_and_send_message(prospect_id: int, icp_route_id: int, track_event_id: int):
+    # Categorize the prospect
+    icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
+    prospect: Prospect = Prospect.query.get(prospect_id)
+
+    send_successful_icp_route_message(prospect_id, icp_route_id, track_event_id)
+    segment: Segment = Segment.query.get(icp_route.segment_id)
+
+    #assign the prospect to the segment and the archetype
+    prospect.segment_id = segment.id if segment else None
+    prospect.archetype_id = segment.client_archetype_id if segment else prospect.archetype_id
+    prospect.client_sdr_id = segment.client_sdr_id if segment else prospect.client_sdr_id
+    db.session.add(prospect)
+    db.session.commit()
+    return "Categorization and message sending successful"
+
+
 @celery.task
 def categorize_prospect(prospect_id: int, track_event_id: int):
-
-    print('categorizing prospect', prospect_id)
+    print('categorizing prospect')
     prospect: Prospect = Prospect.query.get(prospect_id)
     client_id = prospect.client_id
     track_event: TrackEvent = TrackEvent.query.get(track_event_id)
+
+    #first let's pass the prospect through our rule-based routes.
+    rule_based_icp_routes: list[ICPRouting] = ICPRouting.query.filter(
+        ICPRouting.client_id == client_id,
+        ICPRouting.active == True,
+        ICPRouting.ai_mode == False
+    ).all()
+    print('rule based icp routes: ', rule_based_icp_routes)
+    for rule_route in rule_based_icp_routes:
+        icp_route_id = categorize_via_rules(prospect_id, rule_route.id, client_id)
+        if icp_route_id != -1:
+            print('categorizing via rules was successful. prospect id: ', prospect_id, ' icp route id: ', icp_route_id)
+            categorize_and_send_message(prospect_id, icp_route_id, track_event_id)
+            return True
+
+    #if no rule-based route categorizes the prospect, we'll try the AI-based routes.
+    icp_route_id = categorize_via_gpt(prospect.id, track_event.id, client_id)
     
+    if icp_route_id != -1:
+        print('categorizing via gpt was successful. prospect id: ', prospect_id, ' icp route id: ', icp_route_id)
+        categorize_and_send_message(prospect_id, icp_route_id, track_event_id)
+        return True
+
+    return False
+
+def categorize_via_gpt(prospect_id: int, track_event_id: int, client_id: int) -> int:
+
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    track_event: TrackEvent = TrackEvent.query.get(track_event_id)
+
     icp_routings: list[ICPRouting] = ICPRouting.query.filter(
         ICPRouting.client_id == client_id,
-        ICPRouting.active == True
+        ICPRouting.active == True,
+        ICPRouting.ai_mode == True
     ).all()
 
     company_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the company called {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include what they do, what they sell, who they serve.".format(prospect.company))
     prospect_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the person named {} who works at {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include their role, responsibilities, and any other relevant information.".format(prospect.full_name, prospect.company))
 
     prompt = """
-You are an ICP categorizer. Here are the options for the different ICPs you have access to:
-{icp_routes}
+    You are an ICP categorizer. Here are the options for the different ICPs you have access to:
+    {icp_routes}
 
-Here is information about the prospect we are considering.
-Name: {name}
-Company: {company}
-Title: {title}
-Visited Date: {visited_date}
-LinkedIn: {linkedin}
-Email: {email}
-Location: {location}
-Company Size: {company_size}
+    Here is information about the prospect we are considering.
+    Name: {name}
+    Company: {company}
+    Title: {title}
+    Visited Date: {visited_date}
+    LinkedIn: {linkedin}
+    Email: {email}
+    Location: {location}
+    Company Size: {company_size}
 
-Short summary about prospect:
-{prospect_information}
+    Short summary about prospect:
+    {prospect_information}
 
-Short summary about company: 
-{company_information}
+    Short summary about company: 
+    {company_information}
 
-Which route should we categorize this prospect under? 
+    Which route should we categorize this prospect under? 
 
-IMPORTANT: Only respond with the ICP Route Id # and absolutely nothing else.
-ex. 1
-ex. 3
+    IMPORTANT: Only respond with the ICP Route Id # and absolutely nothing else.
+    ex. 1
+    ex. 3
 
-Icp Route Id #:"""
+    Icp Route Id #:"""
 
     gpt_response = wrapped_chat_gpt_completion(
         messages=[
@@ -800,26 +878,67 @@ Icp Route Id #:"""
     )
 
     print('gpt response: ', gpt_response)
+    return int(gpt_response)
 
-    successful = True
+def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) -> int:
 
-    print('got here 2')
-    icp_route_id = int(gpt_response)
-
-    if (successful):
-        send_successful_icp_route_message(prospect_id, icp_route_id, track_event_id)
-        segment: Segment = Segment.query.get(icp_route.segment_id)
-        prospect.segment_id = segment.id if segment else None
-        prospect.archetype_id = segment.client_archetype_id if segment else prospect.archetype_id
-        #set that prospect to be assigned to the client_sdr_id of the icp_route
-        prospect.client_sdr_id = segment.client_sdr_id if segment else prospect.client_sdr_id
-        db.session.add(prospect)
-        db.session.commit()
-
-    
-
+    print('parameters are', prospect_id, icp_route_id, client_id)
     icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
-    if not icp_route:
-        return "ICP Route not found"
+    track_event: TrackEvent = TrackEvent.query.filter_by(prospect_id=prospect_id).first()
+    prospect: Prospect = Prospect.query.get(prospect_id)
 
-    return icp_route_id
+    webpage_click = track_event.window_location.lower()
+    prospect_title = prospect.title.lower()
+    prospect_company = prospect.company.lower()
+    prospect_name = prospect.full_name.lower()
+
+    print(f"Categorizing prospect: {prospect_name} from company: {prospect_company} with title: {prospect_title}")
+    print(f"Webpage clicked: {webpage_click}")
+
+    rules = icp_route.rules  # Assuming rules are stored in the icp_route object
+    all_conditions_met = True
+    
+    print('rules are;, ', rules)
+
+    if not rules or len(rules) == 0:
+        print("No rules found for ICP Route")
+        return -1
+
+    for rule in rules:
+        condition = rule.get("condition")
+        value = rule.get("value").lower()
+
+        print(f"Evaluating rule: {condition} with value: {value}")
+
+        if condition == "title_contains":
+            if value not in prospect_title:
+                print(f"Condition 'title_contains' not met: {value} not in {prospect_title}")
+                all_conditions_met = False
+                break
+        elif condition == "title_not_contains":
+            if value in prospect_title:
+                print(f"Condition 'title_not_contains' not met: {value} in {prospect_title}")
+                all_conditions_met = False
+                break
+        elif condition == "company_name_is":
+            if value != prospect_company:
+                print(f"Condition 'company_name_is' not met: {value} != {prospect_company}")
+                all_conditions_met = False
+                break
+        elif condition == "person_name_is":
+            if value != prospect_name:
+                print(f"Condition 'person_name_is' not met: {value} != {prospect_name}")
+                all_conditions_met = False
+                break
+        elif condition == "has_clicked_on_page":
+            if value not in webpage_click:
+                print(f"Condition 'has_clicked_on_page' not met: {value} not in {webpage_click}")
+                all_conditions_met = False
+                break
+
+    if all_conditions_met:
+        print(f"All conditions met for ICP Route ID: {icp_route_id}")
+        return icp_route_id
+
+    print("Conditions not met for any ICP Route")
+    return -1

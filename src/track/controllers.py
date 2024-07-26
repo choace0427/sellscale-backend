@@ -18,9 +18,6 @@ def create():
     ip = get_request_parameter("ip", request, json=True, required=True)
     page = get_request_parameter("page", request, json=True, required=True)
     track_key = get_request_parameter("track_key", request, json=True, required=True)
-    
-    if track_key != 'X8492aa92JOIp2XXMV1382':
-        return "ERROR", 400
 
     success = create_track_event(ip=ip, page=page, track_key=track_key)
 
@@ -28,6 +25,18 @@ def create():
     if not success:
         return "ERROR", 400
     return "OK", 200
+
+# def test_track_event():
+#     page = "hunter test"
+#     track_key = "X8492aa92JOIp2XXMV1382"
+#     ips = [
+#         "66.75.74.9",
+#     ]
+#     for ip in ips:
+#         success = create_track_event(ip=ip, page=page, track_key=track_key, force_track_again=True)
+#         print(f'success for IP {ip} is', success)
+    
+#     print('done')
 
 @TRACK_BLUEPRINT.route("/get_script", methods=["GET"])
 @require_user
