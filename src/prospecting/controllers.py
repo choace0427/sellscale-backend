@@ -269,18 +269,33 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
     last_name = prospect.last_name
     company = prospect.company
 
-    response = requests.post("https://api.apollo.io/v1/people/match", json={
+    initial_response = requests.post("https://api.apollo.io/v1/people/match", json={
         "first_name": first_name,
         "last_name": last_name,
         "organization_name": company,
-        "reveal_phone_number": True,
-        "webhook_url": f"https://sellscale-api-prod.onrender.com/webhooks/prospect/find-phone-number/{client_sdr_id}/{prospect_id}"
     }, headers={
         'Content-Type': 'application/json',
         'X-Api-Key': APOLLO_API_KEY,
     })
 
-    response_data = response.json()
+    initial_response_data = initial_response.json()
+
+    if (initial_response_data and initial_response_data.get("person") and initial_response_data.get("person").get("contact")
+            and initial_response_data.get("person").get("contact").get("phone_numbers")):
+        response_data = initial_response_data
+    else:
+        response = requests.post("https://api.apollo.io/v1/people/match", json={
+            "first_name": first_name,
+            "last_name": last_name,
+            "organization_name": company,
+            "reveal_phone_number": True,
+            "webhook_url": f"https://sellscale-api-prod.onrender.com/webhooks/prospect/find-phone-number/{client_sdr_id}/{prospect_id}"
+        }, headers={
+            'Content-Type': 'application/json',
+            'X-Api-Key': APOLLO_API_KEY,
+        })
+
+        response_data = response.json()
 
     if (response_data and response_data.get("person") and response_data.get("person").get("contact")
             and response_data.get("person").get("contact").get("phone_numbers")):
