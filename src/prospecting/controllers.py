@@ -253,7 +253,7 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
     )
 
 
-@PROSPECTING_BLUEPRINT.route("/get-phone-number/$<prospect_id>", methods=["GET"])
+@PROSPECTING_BLUEPRINT.route("/get-phone-number/<prospect_id>", methods=["GET"])
 @require_user
 def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
     prospect = Prospect.query.filter(
@@ -268,7 +268,7 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
     last_name = prospect.last_name
     company = prospect.company
 
-    response = requests.post("https://api.apollo.io/v1/mixed_people/search", json={
+    response = requests.post("https://api.apollo.io/v1/people/match", json={
         "first_name": first_name,
         "last_name": last_name,
         "organization_name": company,
@@ -278,8 +278,8 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
 
     response_data = response.json()
 
-    if response_data and response_data["contact"] and response_data["contact"]["phone_numbers"]:
-        phone_numbers = response_data["contact"]["phone_numbers"]
+    if response_data and response_data.get("contact") and response_data.get("contact").get("phone_numbers"):
+        phone_numbers = response_data.get("contact").get("phone_numbers")
     else:
         return jsonify({"message": "We are fetching the number in the background. It might take a while", "fetching": True}), 200
 
