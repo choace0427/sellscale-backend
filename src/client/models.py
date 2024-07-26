@@ -517,6 +517,7 @@ class ClientSDR(db.Model):
     li_health_profile_photo = db.Column(db.Boolean, nullable=True)
     li_health_premium = db.Column(db.Boolean, nullable=True)
     li_at_token = db.Column(db.String, nullable=True)
+    last_li_at_token = db.Column(db.String, nullable=True)
     last_li_conversation_scrape_date = db.Column(db.DateTime, nullable=True)
     li_cookies = db.Column(db.String, nullable=True)
     li_cover_img_url = db.Column(db.String, nullable=True)
