@@ -258,3 +258,51 @@ def set_on_demo_set_webhook(client_sdr_id: int):
     db.session.commit()
 
     return "Webhook set successfully", 200
+
+
+@WEBHOOKS_BLUEPRINT.route("/prospect/find-phone-number/<client_sdr_id>/<prospect_id>", methods=["GET"])
+def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
+    from src.prospecting.models import Prospect
+    prospect = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.id == prospect_id,
+    ).first()
+
+    if not prospect:
+        return
+
+    data = request.json
+
+    if not data:
+        return
+
+    if not data["contacts"] or not data["contacts"]["phone_numbers"]:
+        return
+
+    from src.utils.slack import send_slack_message
+    from src.utils.slack import URL_MAP
+    send_slack_message(
+        message=f"SLACKBOT: Received apollo webhook. phone_number: ${data['contacts']['phone_numbers']}",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
+    phone_numbers = data["contacts"]["phone_numbers"]
+
+    # For now only supporting mobile number
+    for phone_number in phone_numbers:
+        if phone_number["type"] == "mobile":
+            prospect.phone_number = phone_number["sanitized_number"]
+            prospect.reveal_phone_number = True
+
+            db.session.add(prospect)
+            db.session.commit()
+
+            return
+
+    # If we get here, we did not find the phone number successfully
+
+    prospect.reveal_phone_number = True
+    db.session.add(prospect)
+    db.session.commit()
+
+    return

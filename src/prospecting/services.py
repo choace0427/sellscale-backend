@@ -2416,6 +2416,10 @@ def get_prospect_details(client_sdr_id: int, prospect_id: int) -> dict:
                 "li_profile": p.linkedin_url,
             },
             "email": {"email": p.email, "email_status": ""},
+            "phone": {
+                "phone_number": p.phone_number if p.phone_number is not None else None,
+                "reveal_phone_number": p.reveal_phone_number if  p.reveal_phone_number is not None else False,
+            },
             "company": {
                 "logo": company_logo,
                 "name": company_name,

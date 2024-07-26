@@ -2,6 +2,7 @@ from typing import List
 
 from typing import Optional
 
+import requests
 from src.automation.orchestrator import add_process_for_future
 from src.contacts.models import SavedApolloQuery
 from src.daily_notifications.services import get_engagement_feed_items_for_prospect
@@ -250,6 +251,52 @@ def get_prospect_details_endpoint(client_sdr_id: int, prospect_id: int):
         ),
         200,
     )
+
+
+@PROSPECTING_BLUEPRINT.route("/get-phone-number/$<prospect_id>", methods=["GET"])
+@require_user
+def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
+    prospect = Prospect.query.filter(
+        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.id == prospect_id,
+        ).first()
+
+    if not prospect:
+        return jsonify({"message": "This prospect does not belong to you."}), 400
+
+    first_name = prospect.first_name
+    last_name = prospect.last_name
+    company = prospect.company
+
+    response = requests.post("https://api.apollo.io/v1/mixed_people/search", json={
+        "first_name": first_name,
+        "last_name": last_name,
+        "organization_name": company,
+        "reveal_phone_number": True,
+        "webhook_url": f"https://sellscale-api-prod.onrender.com/webhooks/prospect/find-phone-number/{client_sdr_id}/{prospect_id}"
+    })
+
+    response_data = response.json()
+
+    if response_data and response_data["contact"] and response_data["contact"]["phone_numbers"]:
+        phone_numbers = response_data["contact"]["phone_numbers"]
+    else:
+        return jsonify({"message": "We are fetching the number in the background. It might take a while", "fetching": True}), 200
+
+    for phone_number in phone_numbers:
+        if phone_number["type"] == "mobile":
+            prospect.phone_number = phone_number["sanitized_number"]
+            prospect.reveal_phone_number = True
+
+            db.session.add(prospect)
+            db.session.commit()
+
+            return jsonify({"message": "Successfully fetched the number.", "fetching": False}), 200
+
+    return jsonify({"message": "We cannot fetch a relevant number", "fetching": False}), 400
+
+
+
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/shallow", methods=["GET"])

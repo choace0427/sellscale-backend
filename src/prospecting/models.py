@@ -614,6 +614,8 @@ class Prospect(db.Model):
             "merge_lead_id": self.merge_lead_id,
             "merge_note_id": self.merge_note_id,
             "is_champion": self.is_champion,
+            "phone_number": self.phone_number if self.phone_number is not None else None,
+            "reveal_phone_number": self.reveal_phone_number if self.reveal_phone_number is not None else False,
         }
 
     def to_dict(
@@ -717,6 +719,8 @@ class Prospect(db.Model):
                 "merge_contact_id": self.merge_contact_id,
                 "merge_opportunity_id": self.merge_opportunity_id,
                 "merge_lead_id": self.merge_lead_id,
+                "phone_number": self.phone_number if self.phone_number is not None else None,
+                "reveal_phone_number": self.reveal_phone_number if self.reveal_phone_number is not None else False,
             }
 
         # Get generated message if it exists and is requested
@@ -873,6 +877,8 @@ class Prospect(db.Model):
             "merge_contact_id": self.merge_contact_id,
             "merge_opportunity_id": self.merge_opportunity_id,
             "merge_lead_id": self.merge_lead_id,
+            "phone_number": self.phone_number if self.phone_number is not None else None,
+            "reveal_phone_number": self.reveal_phone_number if self.reveal_phone_number is not None else False,
         }
 
 
