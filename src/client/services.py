@@ -529,9 +529,10 @@ def create_client_archetype(
 
     # Getting the original client
     # Getting the original client's name
-    original_archetype = ClientArchetype.query.get(voice_id)
-    original_client = Client.query.get(original_archetype.client_id)
-    original_company_name = original_client.company
+    if voice_id:
+        original_archetype = ClientArchetype.query.get(voice_id)
+        original_client = Client.query.get(original_archetype.client_id)
+        original_company_name = original_client.company
 
     # Current client
     current_client = Client.query.get(client_id)
