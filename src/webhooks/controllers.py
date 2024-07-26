@@ -273,25 +273,16 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
 
     data = request.json
 
-    print(data)
-
     if not data:
         return
 
-    if not data.get("person") or data.get("person").get("contact") or not data.get("person").get("contact").get("phone_numbers"):
+    if not data.get("person") or not data.get("person").get("contact") or not data.get("person").get("contact").get("phone_numbers"):
         prospect.reveal_phone_number = True
 
         db.session.add(prospect)
         db.session.commit()
 
-        return
-
-    from src.utils.slack import send_slack_message
-    from src.utils.slack import URL_MAP
-    send_slack_message(
-        message=f"SLACKBOT: Received apollo webhook. phone_number: ${data['person']['contact']['phone_numbers']}",
-        webhook_urls=[URL_MAP["eng-sandbox"]],
-    )
+        return "Webhook set successfully", 200
 
     phone_numbers = data["person"]["contact"]["phone_numbers"]
 
@@ -304,7 +295,7 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
             db.session.add(prospect)
             db.session.commit()
 
-            return
+            return "Webhook set successfully", 200
 
     # If we get here, we did not find the phone number successfully
 
@@ -312,4 +303,4 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
     db.session.add(prospect)
     db.session.commit()
 
-    return
+    return "Webhook set successfully", 200
