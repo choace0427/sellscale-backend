@@ -19,8 +19,13 @@ def create():
     page = get_request_parameter("page", request, json=True, required=True)
     track_key = get_request_parameter("track_key", request, json=True, required=True)
 
+    if track_key != 'X8492aa92JOIp2XXMV1382':
+        return "ERROR", 400
+
+
     success = create_track_event(ip=ip, page=page, track_key=track_key)
 
+    
 
     if not success:
         return "ERROR", 400
