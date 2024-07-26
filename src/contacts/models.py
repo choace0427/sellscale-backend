@@ -10,6 +10,7 @@ class SavedApolloQuery(db.Model):
     custom_name = db.Column(db.String, nullable=True)
     value_proposition = db.Column(db.String, nullable=True)
     segment_description = db.Column(db.String, nullable=True)
+    is_icp_filter = db.Column(db.Boolean, nullable=True)
     name_query = db.Column(db.String, nullable=False)
     data = db.Column(db.JSON, nullable=False)
     results = db.Column(db.JSON, nullable=True)
@@ -20,6 +21,7 @@ class SavedApolloQuery(db.Model):
         return {
             "id": self.id,
             "custom_name": self.custom_name,
+            "is_icp_filter": self.is_icp_filter,
             "value_proposition": self.value_proposition,
             "segment_description": self.segment_description,
             "client_sdr_id": self.client_sdr_id,
