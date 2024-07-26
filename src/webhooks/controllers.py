@@ -260,7 +260,7 @@ def set_on_demo_set_webhook(client_sdr_id: int):
     return "Webhook set successfully", 200
 
 
-@WEBHOOKS_BLUEPRINT.route("/prospect/find-phone-number/<client_sdr_id>/<prospect_id>", methods=["GET"])
+@WEBHOOKS_BLUEPRINT.route("/prospect/find-phone-number/<client_sdr_id>/<prospect_id>", methods=["POST"])
 def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
     from src.prospecting.models import Prospect
     prospect = Prospect.query.filter(
@@ -272,6 +272,8 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
         return
 
     data = request.json
+
+    print(data)
 
     if not data:
         return
