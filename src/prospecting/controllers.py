@@ -265,6 +265,9 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
     if not prospect:
         return jsonify({"message": "This prospect does not belong to you."}), 400
 
+    if prospect.reveal_phone_number:
+        return jsonify({"message": "You have already revealed your prospect's phone number."}), 400
+
     first_name = prospect.first_name
     last_name = prospect.last_name
     company = prospect.company
@@ -301,6 +304,10 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
             and response_data.get("person").get("contact").get("phone_numbers")):
         phone_numbers = response_data.get("person").get("contact").get("phone_numbers")
     else:
+        prospect.reveal_phone_number = True
+
+        db.session.add(prospect)
+        db.session.commit()
         return jsonify({"message": "We are fetching the number in the background. It might take a while", "fetching": True}), 200
 
     for phone_number in phone_numbers:
@@ -312,6 +319,11 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
             db.session.commit()
 
             return jsonify({"message": "Successfully fetched the number.", "fetching": False}), 200
+
+    prospect.reveal_phone_number = True
+
+    db.session.add(prospect)
+    db.session.commit()
 
     return jsonify({"message": "We cannot fetch a relevant number", "fetching": False}), 400
 
