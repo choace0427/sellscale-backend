@@ -276,7 +276,7 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
     if not data:
         return
 
-    if not data.get("contact") and not data.get("contact").get("phone_numbers"):
+    if not data.get("person") or data.get("person").get("contact") or not data.get("person").get("contact").get("phone_numbers"):
         return
 
     from src.utils.slack import send_slack_message
@@ -286,7 +286,7 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
         webhook_urls=[URL_MAP["eng-sandbox"]],
     )
 
-    phone_numbers = data["contacts"]["phone_numbers"]
+    phone_numbers = data["person"]["contacts"]["phone_numbers"]
 
     # For now only supporting mobile number
     for phone_number in phone_numbers:

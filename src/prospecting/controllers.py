@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from typing import Optional
@@ -133,7 +134,7 @@ from src.prospecting.prospect_email.services import (
 
 
 PROSPECTING_BLUEPRINT = Blueprint("prospect", __name__)
-
+APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY")
 
 @PROSPECTING_BLUEPRINT.route("/", methods=["GET"])
 def get_prospect_by_uuids():
@@ -274,12 +275,16 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
         "organization_name": company,
         "reveal_phone_number": True,
         "webhook_url": f"https://sellscale-api-prod.onrender.com/webhooks/prospect/find-phone-number/{client_sdr_id}/{prospect_id}"
+    }, headers={
+        'Content-Type': 'application/json',
+        'X-Api-Key': APOLLO_API_KEY,
     })
 
     response_data = response.json()
 
-    if response_data and response_data.get("contact") and response_data.get("contact").get("phone_numbers"):
-        phone_numbers = response_data.get("contact").get("phone_numbers")
+    if (response_data and response_data.get("person") and response_data.get("person").get("contact")
+            and response_data.get("person").get("contact").get("phone_numbers")):
+        phone_numbers = response_data.get("person").get("contact").get("phone_numbers")
     else:
         return jsonify({"message": "We are fetching the number in the background. It might take a while", "fetching": True}), 200
 
@@ -294,9 +299,6 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
             return jsonify({"message": "Successfully fetched the number.", "fetching": False}), 200
 
     return jsonify({"message": "We cannot fetch a relevant number", "fetching": False}), 400
-
-
-
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/shallow", methods=["GET"])
