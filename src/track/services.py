@@ -614,6 +614,8 @@ def create_icp_route(
     title: str,
     description: str,
     filter_company: str,
+    ai_mode: bool,
+    rules: list[dict],
     filter_title: str,
     filter_location: str,
     filter_company_size: str,
@@ -624,6 +626,8 @@ def create_icp_route(
     icp_route = ICPRouting(
         client_id=client_sdr.client_id,
         title=title,
+        ai_mode=ai_mode,
+        rules=rules,
         description=description,
         filter_company=filter_company,
         filter_title=filter_title,
@@ -645,6 +649,8 @@ def update_icp_route(
     title: Optional[str] = None,
     description: Optional[str] = None,
     filter_company: Optional[str] = None,
+    ai_mode: Optional[bool] = None,
+    rules: Optional[list[dict]] = None,
     filter_title: Optional[str] = None,
     filter_location: Optional[str] = None,
     filter_company_size: Optional[str] = None,
@@ -653,13 +659,18 @@ def update_icp_route(
     active: Optional[bool] = None,
 ):
     client_sd: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    icp_route = ICPRouting.query.get(icp_route_id)
+    icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
 
     if not icp_route or icp_route.client_id != client_sd.client_id:
         return "ICP Route not found"
 
     if title:
         icp_route.title = title
+    if ai_mode is not None:
+        icp_route.ai_mode = ai_mode
+    if rules:
+        print('rules are', rules)
+        icp_route.rules = rules
     if description:
         icp_route.description = description
     if filter_company:
@@ -683,11 +694,22 @@ def update_icp_route(
 
 def get_all_icp_routes(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    icp_routes = ICPRouting.query.filter(
+    icp_routes: list[ICPRouting] = ICPRouting.query.filter(
         ICPRouting.client_id == client_sdr.client_id
     ).order_by(ICPRouting.created_at.desc()).all()
 
-    return icp_routes
+    # Expand segment_id to the segment itself
+    expanded_icp_routes = []
+    for icp_route in icp_routes:
+        icp_route_dict = icp_route.to_dict()
+        if icp_route_dict['segment_id']:
+            segment: Segment = Segment.query.get(icp_route_dict['segment_id'])
+            if segment:
+                icp_route_dict['segment_title'] = segment.segment_title
+        expanded_icp_routes.append(icp_route_dict)
+
+    return expanded_icp_routes
+
 
 def get_icp_route_details(client_sdr_id: int, icp_route_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
