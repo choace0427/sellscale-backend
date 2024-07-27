@@ -924,6 +924,7 @@ class ProspectStatusRecords(db.Model):
     from_status = db.Column(db.Enum(ProspectStatus), nullable=True)
     to_status = db.Column(db.Enum(ProspectStatus), nullable=True)
     automated = db.Column(db.Boolean, nullable=True)
+    additional_context = db.Column(db.String, nullable=True)
 
 
 class ProspectNote(db.Model):

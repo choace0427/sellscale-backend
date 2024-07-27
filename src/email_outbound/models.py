@@ -398,6 +398,7 @@ class ProspectEmailStatusRecords(db.Model):
     prospect_email_id = db.Column(db.Integer, db.ForeignKey("prospect_email.id"))
     from_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
     to_status = db.Column(db.Enum(ProspectEmailOutreachStatus), nullable=False)
+    additional_context = db.Column(db.String, nullable=True)
 
     sales_engagement_interaction_ss_id = db.Column(
         db.Integer, db.ForeignKey("sales_engagement_interaction_ss.id"), nullable=True
