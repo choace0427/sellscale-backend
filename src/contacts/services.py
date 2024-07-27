@@ -282,6 +282,7 @@ def apollo_get_contacts(
     segment_description: Optional[str] = None,
     value_proposition: Optional[str] = None,
     saved_apollo_query_id: Optional[int] = None,
+    is_icp_filter: Optional[bool] = False,
 ):
     breadcrumbs = None  # grab from first result
     partial_results_only = None  # grab from first result
@@ -322,6 +323,7 @@ def apollo_get_contacts(
                 filter_name=filter_name,
                 segment_description=segment_description,
                 value_proposition=value_proposition,
+                is_icp_filter=is_icp_filter,
             )
 
             print(
@@ -458,6 +460,7 @@ def apollo_get_contacts_for_page(
     filter_name: Optional[str] = None,
     segment_description: Optional[str] = None,
     value_proposition: Optional[str] = None,
+    is_icp_filter: Optional[bool] = False,
 ):
     data = {
         "api_key": APOLLO_API_KEY,
@@ -494,6 +497,7 @@ def apollo_get_contacts_for_page(
     hash = generate_uuid(base=f"{name} {formatted_date}")[0:6]
 
     saved_query = SavedApolloQuery(
+        is_icp_filter=is_icp_filter,
         custom_name=filter_name,
         value_proposition=value_proposition,
         segment_description=segment_description,

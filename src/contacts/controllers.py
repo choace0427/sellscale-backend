@@ -133,6 +133,14 @@ def index(client_sdr_id: int):
         default_value=None,
     )
 
+    is_icp_filter = get_request_parameter(
+        "is_icp_filter",
+        request,
+        json=True,
+        required=False,
+        default_value=None,
+    )
+
     print('saved query id is', saved_apollo_query_id)
 
     data = apollo_get_contacts(
@@ -157,6 +165,7 @@ def index(client_sdr_id: int):
         is_prefilter=is_prefilter,
         q_organization_keyword_tags=q_organization_keyword_tags,
         saved_apollo_query_id=saved_apollo_query_id,
+        is_icp_filter=is_icp_filter,
     )
 
     predicted_segment_name = ""

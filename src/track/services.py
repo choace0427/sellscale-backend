@@ -8,6 +8,7 @@ import requests
 from sqlalchemy import or_
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.company.models import Company
+from src.contacts.models import SavedApolloQuery
 from src.contacts.services import apollo_get_contacts
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import simple_perplexity_response
@@ -896,9 +897,7 @@ def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) ->
     print(f"Webpage clicked: {webpage_click}")
 
     rules = icp_route.rules  # Assuming rules are stored in the icp_route object
-    all_conditions_met = True
-    
-    print('rules are;, ', rules)
+    any_condition_met = False
 
     if not rules or len(rules) == 0:
         print("No rules found for ICP Route")
@@ -911,33 +910,76 @@ def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) ->
         print(f"Evaluating rule: {condition} with value: {value}")
 
         if condition == "title_contains":
-            if value not in prospect_title:
-                print(f"Condition 'title_contains' not met: {value} not in {prospect_title}")
-                all_conditions_met = False
+            if value in prospect_title:
+                print(f"Condition 'title_contains' met: {value} in {prospect_title}")
+                any_condition_met = True
                 break
         elif condition == "title_not_contains":
-            if value in prospect_title:
-                print(f"Condition 'title_not_contains' not met: {value} in {prospect_title}")
-                all_conditions_met = False
+            if value not in prospect_title:
+                print(f"Condition 'title_not_contains' met: {value} not in {prospect_title}")
+                any_condition_met = True
                 break
         elif condition == "company_name_is":
-            if value != prospect_company:
-                print(f"Condition 'company_name_is' not met: {value} != {prospect_company}")
-                all_conditions_met = False
+            if value in prospect_company:
+                print(f"Condition 'company_name_is' met: {value} == {prospect_company}")
+                any_condition_met = True
+                break
+        elif condition == "company_name_is_not":
+            if value not in prospect_company:
+                print(f"Condition 'company_name_is_not' met: {value} != {prospect_company}")
+                any_condition_met = True
                 break
         elif condition == "person_name_is":
-            if value != prospect_name:
-                print(f"Condition 'person_name_is' not met: {value} != {prospect_name}")
-                all_conditions_met = False
+            if value in prospect_name:
+                print(f"Condition 'person_name_is' met: {value} == {prospect_name}")
+                any_condition_met = True
                 break
         elif condition == "has_clicked_on_page":
+            if value in webpage_click:
+                print(f"Condition 'has_clicked_on_page' met: {value} in {webpage_click}")
+                any_condition_met = True
+                break
+        elif condition == "has_not_clicked_on_page":
             if value not in webpage_click:
-                print(f"Condition 'has_clicked_on_page' not met: {value} not in {webpage_click}")
-                all_conditions_met = False
+                print(f"Condition 'has_not_clicked_on_page' met: {value} not in {webpage_click}")
+                any_condition_met = True
+                break
+        elif condition == "filter_matches" and value:
+            # value is a string, needs to be converted into an int first
+            value = int(value)
+            # search up savedApolloQuery of value
+            saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(value)
+            if not saved_apollo_query:
+                print(f"Condition 'filter_matches' not met: SavedApolloQuery with id {value} not found")
+                continue
+            breadcrumbs = saved_apollo_query["breadcrumbs"]
+
+            company_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "companies"]
+            management_level_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "management level"]
+            title_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "titles"]
+
+            # Check if all existing breadcrumb conditions are met
+            all_conditions_met = True
+
+            if title_breadcrumbs:
+                if not any([breadcrumb.get("value").lower() in prospect_title.lower() for breadcrumb in title_breadcrumbs]):
+                    all_conditions_met = False
+
+            if management_level_breadcrumbs:
+                if not any([breadcrumb.get("value").lower() in prospect_title.lower() for breadcrumb in management_level_breadcrumbs]):
+                    all_conditions_met = False
+
+            if company_breadcrumbs:
+                if not any([breadcrumb.get("value").lower() in prospect_company.lower() for breadcrumb in company_breadcrumbs]):
+                    all_conditions_met = False
+
+            if all_conditions_met:
+                print(f"Condition 'filter_matches' met: All conditions satisfied for prospect")
+                any_condition_met = True
                 break
 
-    if all_conditions_met:
-        print(f"All conditions met for ICP Route ID: {icp_route_id}")
+    if any_condition_met:
+        print(f"At least one condition met for ICP Route ID: {icp_route_id}")
         return icp_route_id
 
     print("Conditions not met for any ICP Route")

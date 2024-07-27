@@ -156,7 +156,28 @@ def get_all_saved_queries(client_sdr_id):
         SavedApolloQuery.client_sdr_id == client_sdr_id,
         SavedApolloQuery.custom_name.isnot(None),
         SavedApolloQuery.value_proposition.isnot(None),
-        SavedApolloQuery.segment_description.isnot(None)
+        SavedApolloQuery.segment_description.isnot(None),
+        SavedApolloQuery.is_icp_filter.isnot(True)
+    ).order_by(SavedApolloQuery.updated_at.desc()).all()
+
+    result = [
+        query.to_dict()
+        for query in queries
+    ]
+
+    return jsonify({"status": "success", "data": result}), 200
+
+@APOLLO_REQUESTS.route("/get_all_icp_queries", methods=["GET"])
+@require_user
+def get_all_icp_queries(client_sdr_id):
+    """
+    Gets all saved Apollo queries for a client SDR where custom_name is not null,
+    ordered by updated_at.
+    """
+    queries: list[SavedApolloQuery] = SavedApolloQuery.query.filter(
+        SavedApolloQuery.client_sdr_id == client_sdr_id,
+        SavedApolloQuery.custom_name.isnot(None),
+        SavedApolloQuery.is_icp_filter==True
     ).order_by(SavedApolloQuery.updated_at.desc()).all()
 
     result = [
