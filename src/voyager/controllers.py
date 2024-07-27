@@ -22,6 +22,7 @@ from src.message_generation.services import (
     add_generated_msg_queue,
     send_sent_by_sellscale_notification,
 )
+from src.voyager.services import reconnect_disconnected_linkedins
 
 from src.merge_crm.services import add_contact_to_db # for celery task registration
 

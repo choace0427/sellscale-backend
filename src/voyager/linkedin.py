@@ -144,7 +144,7 @@ class LinkedIn(object):
 
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr.id)
             if sdr:
-                if sdr.li_at_token != "INVALID":
+                if sdr.li_at_token != "INVALID" and not sdr.last_li_at_token:
                     send_slack_message(
                         message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
                         webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
@@ -191,7 +191,7 @@ class LinkedIn(object):
 
             sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
             if sdr:
-                if sdr.li_at_token != "INVALID":
+                if sdr.li_at_token != "INVALID" and not sdr.last_li_at_token:
                     send_slack_message(
                         message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
                         webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],

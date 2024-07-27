@@ -286,6 +286,7 @@ def update_linkedin_cookies(client_sdr_id: int, cookies: str, user_agent: str):
 
     li_at_token = json.loads(cookies).get("li_at")
     sdr.li_at_token = li_at_token
+    sdr.last_li_at_token = li_at_token
 
     sdr.user_agent = user_agent
 
@@ -365,6 +366,7 @@ def clear_linkedin_cookies(client_sdr_id: int):
         return "No client sdr found with this id", 400
 
     sdr.li_at_token = None
+    sdr.last_li_at_token = None
 
     db.session.add(sdr)
     db.session.commit()
@@ -1412,3 +1414,54 @@ def send_generated_message_for_sdr(client_sdr_id: int, li_url: str, msg: str):
     success = api.add_connection(public_id, msg)
 
     return success
+
+def attempt_li_at_token_reconnection(client_sdr_id: int):
+    try:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not sdr:
+            return False
+
+        if sdr.li_at_token == 'INVALID' and sdr.last_li_at_token:
+            sdr.li_at_token = sdr.last_li_at_token
+            sdr.last_li_at_token = None
+
+            db.session.add(sdr)
+            db.session.commit()
+
+        li: LinkedIn = LinkedIn(client_sdr_id)
+        profile = li.get_profile()
+
+        if profile:
+            sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+            if sdr.li_at_token and sdr.li_at_token != 'INVALID':
+                sdr.last_li_at_token = sdr.li_at_token
+            db.session.add(sdr)
+            db.session.commit()
+    except:
+        sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        sdr.li_at_token = 'INVALID'
+        db.session.add(sdr)
+        db.session.commit()
+
+    return True
+
+@celery.task
+def reconnect_disconnected_linkedins():
+    query = """
+        select id
+        from client_sdr
+        where
+            client_sdr.li_at_token = 'INVALID'
+            and client_sdr.last_li_at_token is not null;
+    """
+
+    result = db.session.execute(query).fetchall()
+
+    for row in result:
+        client_sdr_id = row[0]
+        try:
+            attempt_li_at_token_reconnection(client_sdr_id)
+        except Exception as e:
+            print(f"Failed to reconnect client_sdr_id {client_sdr_id}: {e}")
+
+    return True

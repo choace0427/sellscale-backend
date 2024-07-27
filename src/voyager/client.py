@@ -114,6 +114,7 @@ class Client(object):
                     cookie_jar = cookiejar_from_dict(json.loads(client_sdr.li_cookies))
                     if cookie_jar and cookie_jar.get("li_at"):
                         client_sdr.li_at_token = cookie_jar.get("li_at")
+                        client_sdr.last_li_at_token = cookie_jar.get("li_at")
                         db.session.commit()
                         cookies = self._get_cookies_for_sdr_store(
                             cookie_jar.get("li_at")

@@ -517,6 +517,12 @@ def run_hourly_move_all_revival_prospects_back_to_previous_status():
     if is_scheduling_instance():
         move_all_revival_prospects_back_to_previous_status.delay()
 
+def run_reconnect_disconnected_linkedins():
+    from src.voyager.services import reconnect_disconnected_linkedins
+
+    if is_scheduling_instance():
+        reconnect_disconnected_linkedins.delay()
+
 daily_trigger = CronTrigger(hour=9, timezone=timezone("America/Los_Angeles"))
 daily_2am_trigger = CronTrigger(hour=2, timezone=timezone("America/Los_Angeles"))
 daily_5pm_trigger = CronTrigger(hour=17, timezone=timezone("America/Los_Angeles"))
@@ -565,6 +571,9 @@ scheduler.add_job(func=icp_scoring_job, trigger="interval", minutes=5)
 scheduler.add_job(func=run_handle_all_domain_setups, trigger="interval", minutes=5)
 scheduler.add_job(
     auto_mark_uninterested_bumped_prospects_job, trigger="interval", minutes=10
+)
+scheduler.add_job(
+    run_reconnect_disconnected_linkedins, trigger="interval", minutes=10
 )
 scheduler.add_job(auto_upload_from_apollo_job, trigger="interval", minutes=30)
 

@@ -97,6 +97,7 @@ def test_update_li_conversation_extractor_phantom(
     client = basic_client()
     client_sdr = basic_client_sdr(client)
     client_sdr.li_at_token = "123123"
+    client_sdr.last_li_at_token = "123123"
     db.session.add(client_sdr)
     db.session.commit()
     client_sdr_id = client_sdr.id

@@ -380,6 +380,7 @@ def create_new_auto_connect_phantom(
     if not client_sdr:
         return None, None
     client_sdr.li_at_token = linkedin_session_cookie
+    client_sdr.last_li_at_token = linkedin_session_cookie
     client: Client = Client.query.filter(Client.id == client_sdr.client_id).first()
     client_id = client.id
 
@@ -477,6 +478,7 @@ def update_phantom_buster_li_at(client_sdr_id: int, li_at: str, user_agent: str 
         return "No client sdr found with this id", 400
 
     sdr.li_at_token = li_at
+    sdr.last_li_at_token = li_at
 
     if user_agent:
         sdr.user_agent = user_agent
