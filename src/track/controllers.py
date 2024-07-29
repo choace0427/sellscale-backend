@@ -2,7 +2,7 @@ import os
 from flask import Blueprint, jsonify, request, current_app
 from src.authentication.decorators import require_user
 from src.client.models import ClientSDR
-from app import db
+from app import app, db
 from src.prospecting.models import Prospect
 from src.prospecting.services import add_prospect, get_linkedin_slug_from_url, get_navigator_slug_from_url
 from src.research.linkedin.services import research_personal_profile_details
@@ -19,11 +19,10 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 limiter = Limiter(
-    get_remote_address,
+    key_func=get_remote_address,
     storage_uri=os.environ.get("CELERY_REDIS_URL"),
-    storage_options={"socket_connect_timeout": 30},
-    strategy="fixed-window"
 )
+limiter.init_app(app)
 
 @TRACK_BLUEPRINT.route("/webpage", methods=["POST"])
 @limiter.limit("1 per 3 seconds")
