@@ -18,36 +18,28 @@ TRACK_BLUEPRINT = Blueprint("track", __name__)
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-def create_limiter(app):
-    return Limiter(
-        get_remote_address,
-        app=app,
-        storage_uri=os.environ.get("CELERY_REDIS_URL"),
-        storage_options={"socket_connect_timeout": 30},
-        strategy="fixed-window"
-    )
+limiter = Limiter(
+    get_remote_address,
+    storage_uri=os.environ.get("CELERY_REDIS_URL"),
+    storage_options={"socket_connect_timeout": 30},
+    strategy="fixed-window"
+)
 
 @TRACK_BLUEPRINT.route("/webpage", methods=["POST"])
+@limiter.limit("1 per 3 seconds")
 def create():
-    with current_app.app_context():
-        limiter = create_limiter(current_app._get_current_object())
-        @limiter.limit("1 per 3 seconds")
-        def limited_create():
-            ip = get_request_parameter("ip", request, json=True, required=True)
-            page = get_request_parameter("page", request, json=True, required=True)
-            track_key = get_request_parameter("track_key", request, json=True, required=True)
+    ip = get_request_parameter("ip", request, json=True, required=True)
+    page = get_request_parameter("page", request, json=True, required=True)
+    track_key = get_request_parameter("track_key", request, json=True, required=True)
 
-            if track_key != 'X8492aa92JOIp2XXMV1382':
-                return "ERROR", 400
+    if track_key != 'X8492aa92JOIp2XXMV1382':
+        return "ERROR", 400
 
-            success = create_track_event(ip=ip, page=page, track_key=track_key)
+    success = create_track_event(ip=ip, page=page, track_key=track_key)
 
-            if not success:
-                return "ERROR", 400
-            return "OK", 200
-        
-        return limited_create()
-    
+    if not success:
+        return "ERROR", 400
+    return "OK", 200
 
 @TRACK_BLUEPRINT.route("/simulate_linkedin_bucketing", methods=["POST"])
 @require_user
