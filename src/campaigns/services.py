@@ -2204,7 +2204,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
 
                 count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') num_accepted,
-                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%') num_replied,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demo
             from prospect
@@ -2277,7 +2277,7 @@ def get_account_based_data(client_sdr_id: int, offset: int):
 
                 count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'ACCEPTED') num_accepted,
-                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied,
+                    count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%') num_replied,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply,
                     count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demo
             from prospect

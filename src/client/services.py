@@ -3701,7 +3701,7 @@ def get_personas_page_campaigns(client_sdr_id: int) -> dict:
             client_archetype.emoji,
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'SENT_OUTREACH' OR prospect_status_records.to_status = 'SENT_OUTREACH') "TOTAL-SENT",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'EMAIL_OPENED' OR prospect_status_records.to_status = 'ACCEPTED') "TOTAL-OPENED",
-            count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status = 'ACTIVE_CONVO' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
+            count(DISTINCT prospect.id) FILTER (WHERE cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%' OR prospect_status_records.to_status = 'ACTIVE_CONVO') "TOTAL-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_QUESTION') or prospect_email_status_records.to_status in ('ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS', 'ACTIVE_CONVO_SCHEDULING')) "TOTAL-POS-REPLY",
             count(DISTINCT prospect.id) FILTER (WHERE prospect_email_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOST') OR prospect_status_records.to_status in ('DEMO_SET', 'DEMO_WON', 'DEMO_LOSS')) "TOTAL-DEMO",
             count(DISTINCT prospect.id) "TOTAL-PROSPECTS",

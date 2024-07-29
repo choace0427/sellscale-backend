@@ -38,7 +38,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
     select 
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent_all_time,
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'EMAIL_OPENED') num_opened_all_time,
-        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied_all_time,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%') num_replied_all_time,
         count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply_all_time,
             count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demos_all_time,
         
@@ -77,7 +77,7 @@ def generate_weekly_report_data_payload(client_sdr_id: int) -> WeeklyReportData:
         count(distinct prospect.id) filter (where prospect.overall_status = 'PROSPECTED') prospects_left,
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' or prospect_email_status_records.to_status = 'SENT_OUTREACH') num_sent_all_time,
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED' or prospect_email_status_records.to_status = 'EMAIL_OPENED') num_opened_all_time,
-        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or prospect_email_status_records.to_status = 'ACTIVE_CONVO') num_replied_all_time,
+        count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACTIVE_CONVO' or cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%') num_replied_all_time,
         count(distinct prospect.id) filter (where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or prospect_email_status_records.to_status = 'DEMO_SET') num_positive_reply_all_time,
         count(distinct prospect.id) filter (where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET') num_demo_all_time
             

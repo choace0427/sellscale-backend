@@ -155,7 +155,7 @@ def get_all_campaign_analytics_for_client(
                 ) num_opens,
                 count(distinct prospect.id) filter (
                     where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
-                        prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+                        cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%'
                 ) num_replies,
                 count (distinct prospect.id) filter (
                     where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
@@ -272,7 +272,7 @@ def get_all_campaign_analytics_for_client(
                     ) num_opens,
                     count(distinct prospect.id) filter (
                         where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
-                            prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+                            cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%'
                     ) num_replies,
                     count (distinct prospect.id) filter (
                         where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
@@ -391,7 +391,7 @@ def get_outreach_over_time(
             ) opened,
             count(distinct prospect.id) filter (
                 where prospect_status_records.to_status = 'ACTIVE_CONVO' or 
-                    prospect_email_status_records.to_status = 'ACTIVE_CONVO'
+                    cast(prospect_email_status_records.to_status as varchar) ilike '%ACTIVE_CONVO_%'
             ) active_convo,
             count(distinct prospect.id) filter (
                 where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or
