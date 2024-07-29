@@ -14,7 +14,7 @@ from src.prospecting.icp_score.services import update_icp_filters
 from src.prospecting.models import (
     Prospect,
     ProspectOverallStatus,
-    ProspectUploadHistory, ProspectStatus,
+    ProspectUploadHistory, ProspectStatus, ProspectStatusRecords,
 )
 from src.segment.models import Segment
 from src.segment.models import SegmentTags
@@ -112,19 +112,31 @@ def get_prospects_ids_no_active_convo(
     return retval
 
 
-def reset_prospect_contacts(convo_reset_prospect_ids: list[int]):
+def reset_prospect_contacts(convo_reset_prospect_ids: list[int], new_segment_name: str):
     for prospect_id in convo_reset_prospect_ids:
         # reset_prospect_task(prospect_id)
-        reset_prospect_task.delay(prospect_id)
+        reset_prospect_task.delay(prospect_id, new_segment_name)
 
 
 @celery.task
-def reset_prospect_task(prospect_id: int):
+def reset_prospect_task(prospect_id: int, new_segment_name: str):
     prospect = Prospect.query.get(prospect_id)
     prospect.approved_prospect_email_id = None
     prospect.approved_outreach_message_id = None
     prospect.status = ProspectStatus.PROSPECTED
     prospect.overall_status = ProspectOverallStatus.PROSPECTED
+
+    latest_status_record = ProspectStatusRecords.query.filter_by(prospect_id=prospect_id).order_by(ProspectStatusRecords.created_at.desc()).first()
+
+    if latest_status_record:
+        new_status_record = ProspectStatusRecords(
+            prospect_id=prospect_id,
+            from_status=latest_status_record.to_status,
+            to_status=ProspectStatus.PROSPECTED,
+            additional_context="Resetting prospect to PROSPECTED status, to segment: " + new_segment_name
+        )
+
+        db.session.add(new_status_record)
 
     db.session.commit()
 

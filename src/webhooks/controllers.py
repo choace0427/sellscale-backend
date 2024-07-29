@@ -1,6 +1,9 @@
+import json
+
 from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 from src.utils.request_helpers import get_request_parameter
+from src.utils.slack import send_slack_message, URL_MAP
 from src.webhooks.models import NylasWebhookProcessingStatus, NylasWebhookType
 from src.webhooks.nylas.account_invalid import process_deltas_account_invalid
 from src.webhooks.nylas.event_update import process_deltas_event_update
@@ -273,6 +276,11 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
 
     data = request.json
 
+    send_slack_message(
+        message=f"Find phone number webhook called: {json.dumps(data)}",
+        webhook_urls=[URL_MAP["eng-sandbox"]],
+    )
+
     if not data:
         return
 
@@ -282,7 +290,7 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
         db.session.add(prospect)
         db.session.commit()
 
-        return "Webhook set successfully", 200
+        return "Webhook set successfully", 400
 
     phone_numbers = data["person"]["contact"]["phone_numbers"]
 
@@ -300,7 +308,8 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
     # If we get here, we did not find the phone number successfully
 
     prospect.reveal_phone_number = True
+    prospect.phone_number = None
     db.session.add(prospect)
     db.session.commit()
 
-    return "Webhook set successfully", 200
+    return "Webhook set successfully", 400

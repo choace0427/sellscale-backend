@@ -2878,7 +2878,7 @@ def get_prospect_li_history(prospect_id: int):
             for c in convo_history
         ],
         "statuses": [
-            {"from": s.from_status.value, "to": s.to_status.value, "date": s.created_at}
+            {"from": s.from_status.value, "to": s.to_status.value, "date": s.created_at, "additional_context": s.additional_context}
             for s in status_history
         ],
         "demo_feedback": (

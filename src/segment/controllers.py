@@ -135,7 +135,7 @@ def post_reset_segment_convo_count(client_sdr_id: int):
     prospect_ids = get_prospects_ids_no_active_convo(segment_id)
 
     # Reset the prospect
-    reset_prospect_contacts(prospect_ids)
+    reset_prospect_contacts(prospect_ids, new_segment_title)
 
     # Create new Segment with new segment title
     new_segment = create_new_segment(

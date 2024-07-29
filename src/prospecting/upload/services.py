@@ -11,7 +11,7 @@ from src.prospecting.models import (
     ProspectUploads,
     ProspectUploadsStatus,
     ProspectUploadsErrorType,
-    Prospect, ProspectStatus, ProspectOverallStatus,
+    Prospect, ProspectStatus, ProspectOverallStatus, ProspectStatusRecords,
 )
 from src.prospecting.services import (
     get_linkedin_slug_from_url,
@@ -725,6 +725,10 @@ def create_prospect_from_linkedin_link(
         if new_prospect_id is not None:
             if override:
                 prospect: Prospect = Prospect.query.get(new_prospect_id)
+
+                old_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
+                new_archetype: ClientArchetype = ClientArchetype.query.get(prospect_upload.client_archetype_id)
+
                 # We want to reset prospect, and add them to new segment id, and archetype
                 prospect.approved_prospect_email_id = None
                 prospect.approved_outreach_message_id = None
@@ -735,6 +739,25 @@ def create_prospect_from_linkedin_link(
                 prospect.segment_id = segment_id
 
                 prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
+
+                latest_status_record = ProspectStatusRecords.query.filter_by(prospect_id=prospect.id).order_by(ProspectStatusRecords.created_at.desc()).first()
+                if latest_status_record:
+                    if old_archetype and new_archetype:
+                        new_status_record = ProspectStatusRecords(
+                            prospect_id=prospect.id,
+                            from_status=latest_status_record.to_status,
+                            to_status=ProspectStatus.PROSPECTED,
+                            additional_context=f"Resetting prospect. Transferring from campaign: {old_archetype.archetype} to: {new_archetype.archetype}"
+                        )
+                    else:
+                        new_status_record = ProspectStatusRecords(
+                            prospect_id=prospect.id,
+                            from_status=latest_status_record.to_status,
+                            to_status=ProspectStatus.PROSPECTED,
+                            additional_context=f"Resetting prospect. Transferring to new campaign."
+                        )
+
+                    db.session.add(new_status_record)
 
                 db.session.add(prospect_upload)
                 db.session.commit()

@@ -107,7 +107,7 @@ from src.prospecting.upload.services import (
 from src.slack.models import SlackNotificationType
 from src.slack.notifications.email_multichanneled import EmailMultichanneledNotification
 from src.slack.slack_notification_center import (
-    create_and_send_slack_notification_class_message,
+    create_and_send_slack_notification_class_message, slack_bot_send_message,
 )
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.datetime.dateparse_utils import convert_string_to_datetime_or_none
@@ -263,14 +263,30 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
         ).first()
 
     if not prospect:
-        return jsonify({"message": "This prospect does not belong to you."}), 400
+        return jsonify({"message": "This prospect does not belong to you.", "status": 400}), 400
 
     if prospect.reveal_phone_number:
-        return jsonify({"message": "You have already revealed your prospect's phone number."}), 400
+        return jsonify({"message": "You have already revealed your prospect's phone number.", "status": 400}), 400
 
     first_name = prospect.first_name
     last_name = prospect.last_name
     company = prospect.company
+
+    slack_bot_send_message(
+        notification_type=SlackNotificationType.LINKEDIN_PROSPECT_RESPONDED,
+        client_id=prospect.client_id,
+        base_message=f"Trying to find phone number for prospect: {prospect.full_name}",
+        client_sdr_id=client_sdr_id,
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "SellScale will try to find the prospect's phone number."
+                }
+            }
+        ]
+    )
 
     initial_response = requests.post("https://api.apollo.io/v1/people/match", json={
         "first_name": first_name,
@@ -305,10 +321,11 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
         phone_numbers = response_data.get("person").get("contact").get("phone_numbers")
     else:
         prospect.reveal_phone_number = True
+        prospect.phone_number = "finding"
 
         db.session.add(prospect)
         db.session.commit()
-        return jsonify({"message": "We are fetching the number in the background. It might take a while", "fetching": True}), 200
+        return jsonify({"message": "We are fetching the number in the background. It might take a while", "fetching": True, "status": 200}), 200
 
     for phone_number in phone_numbers:
         if phone_number["type"] == "mobile":
@@ -318,14 +335,14 @@ def get_prospect_phone_number(client_sdr_id: int, prospect_id: int):
             db.session.add(prospect)
             db.session.commit()
 
-            return jsonify({"message": "Successfully fetched the number.", "fetching": False}), 200
+            return jsonify({"message": "Successfully fetched the number.", "fetching": False, "status": 200}), 200
 
     prospect.reveal_phone_number = True
 
     db.session.add(prospect)
     db.session.commit()
 
-    return jsonify({"message": "We cannot fetch a relevant number", "fetching": False}), 400
+    return jsonify({"message": "We cannot fetch a relevant number", "fetching": False, "status": 400}), 400
 
 
 @PROSPECTING_BLUEPRINT.route("/<prospect_id>/shallow", methods=["GET"])
