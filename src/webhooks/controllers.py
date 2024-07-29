@@ -284,15 +284,16 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
     if not data:
         return
 
-    if not data.get("person") or not data.get("person").get("contact") or not data.get("person").get("contact").get("phone_numbers"):
+    if not data.get("people") or not data.get("people").get("phone_numbers"):
         prospect.reveal_phone_number = True
+        prospect.phone_number = None
 
         db.session.add(prospect)
         db.session.commit()
 
         return "Webhook set successfully", 400
 
-    phone_numbers = data["person"]["contact"]["phone_numbers"]
+    phone_numbers = data["people"]["phone_numbers"]
 
     # For now only supporting mobile number
     for phone_number in phone_numbers:
