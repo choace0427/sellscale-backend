@@ -559,6 +559,7 @@ class Prospect(db.Model):
             "full_name": self.full_name,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "icp_routing_id": self.icp_routing_id,
             "company": self.company,
             "company_size": self.company_size,
             "title": self.title,

@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request
+import os
+from flask import Blueprint, jsonify, request, current_app
 from src.authentication.decorators import require_user
 from src.client.models import ClientSDR
 from app import db
@@ -11,25 +12,38 @@ from src.track.services import find_company_from_orginfo
 from src.utils.request_helpers import get_request_parameter
 
 TRACK_BLUEPRINT = Blueprint("track", __name__)
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
+def create_limiter(app):
+    return Limiter(
+        get_remote_address,
+        app=app,
+        storage_uri=os.environ.get("CELERY_REDIS_URL"),
+        storage_options={"socket_connect_timeout": 30},
+        strategy="fixed-window"
+    )
 
 @TRACK_BLUEPRINT.route("/webpage", methods=["POST"])
 def create():
-    ip = get_request_parameter("ip", request, json=True, required=True)
-    page = get_request_parameter("page", request, json=True, required=True)
-    track_key = get_request_parameter("track_key", request, json=True, required=True)
+    with current_app.app_context():
+        limiter = create_limiter(current_app._get_current_object())
+        @limiter.limit("1 per 3 seconds")
+        def limited_create():
+            ip = get_request_parameter("ip", request, json=True, required=True)
+            page = get_request_parameter("page", request, json=True, required=True)
+            track_key = get_request_parameter("track_key", request, json=True, required=True)
 
-    if track_key != 'X8492aa92JOIp2XXMV1382':
-        return "ERROR", 400
+            if track_key != 'X8492aa92JOIp2XXMV1382':
+                return "ERROR", 400
 
+            success = create_track_event(ip=ip, page=page, track_key=track_key)
 
-    success = create_track_event(ip=ip, page=page, track_key=track_key)
-
-    
-
-    if not success:
-        return "ERROR", 400
-    return "OK", 200
+            if not success:
+                return "ERROR", 400
+            return "OK", 200
+        
+        return limited_create()
 
 # def test_track_event():
 #     page = "hunter test"
@@ -141,6 +155,18 @@ def delete_icp_route_endpoint(client_sdr_id: int, icp_route_id: int):
 
     return jsonify({"message": "ICP Route deleted successfully"}), 200
 
+@TRACK_BLUEPRINT.route("/fetch_user_buckets", methods=["GET"])
+@require_user
+def fetch_user_buckets(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return "ClientSDR not found", 404
+
+    client_id = client_sdr.client_id
+    buckets = ICPRouting.query.filter_by(client_id=client_id).all()
+    return jsonify([bucket.to_dict() for bucket in buckets]), 200
+
+
 
 @TRACK_BLUEPRINT.route("/get_user_web_visits", methods=["GET"])
 @require_user
@@ -157,6 +183,7 @@ def get_user_web_visits(client_sdr_id: int):
         Prospect.title,
         Prospect.img_url,
         Prospect.linkedin_url,
+        Prospect.icp_routing_id,
         db.func.count(TrackEvent.id).label('num_visits'),
         db.func.array_agg(db.distinct(TrackEvent.window_location)).label('window_locations'),
         db.func.max(TrackEvent.created_at).label('most_recent_visit'),
@@ -175,19 +202,68 @@ def get_user_web_visits(client_sdr_id: int):
 
     # Format the result
     formatted_prospects = []
+    from collections import defaultdict
+
+    grouped_prospects = defaultdict(lambda: {
+        "id": None,
+        "full_name": None,
+        "img_url": None,
+        "company": None,
+        "icp_routing_id": None,
+        "title": None,
+        "linkedin_url": None,
+        "num_visits": 0,
+        "window_locations": set(),
+        "most_recent_visit": None,
+        "segment_name": None
+    })
+
     for prospect in prospects:
-        formatted_prospects.append({
-            "id": prospect.id,
-            "full_name": prospect.full_name,
-            "img_url": prospect.img_url,
-            "company": prospect.company,
-            "title": prospect.title,
-            "linkedin_url": prospect.linkedin_url,
-            "num_visits": prospect.num_visits,
-            "window_locations": prospect.window_locations,
-            "most_recent_visit": prospect.most_recent_visit,
-            "segment_name": prospect.segment_name
-        })
+
+        full_name = prospect.full_name
+        grouped = grouped_prospects[full_name]
+
+        if grouped["id"] is None:
+            grouped["id"] = prospect.id
+        if grouped["full_name"] is None:
+            grouped["full_name"] = full_name
+        if grouped["img_url"] is None:
+            grouped["img_url"] = prospect.img_url
+        if grouped["company"] is None:
+            grouped["company"] = prospect.company
+        if grouped["icp_routing_id"] is None:
+            grouped["icp_routing_id"] = prospect.icp_routing_id
+        if grouped["title"] is None:
+            grouped["title"] = prospect.title
+        if grouped["linkedin_url"] is None:
+            grouped["linkedin_url"] = prospect.linkedin_url
+
+        grouped["num_visits"] += prospect.num_visits
+        grouped["window_locations"].update(prospect.window_locations)
+        
+        if not grouped["most_recent_visit"] or prospect.most_recent_visit > grouped["most_recent_visit"]:
+            grouped["most_recent_visit"] = prospect.most_recent_visit
+        
+        if prospect.segment_name and grouped["segment_name"] is None:
+            grouped["segment_name"] = prospect.segment_name
+
+
+    formatted_prospects = [
+        {
+            "id": value["id"],
+            "full_name": value["full_name"],
+            "img_url": value["img_url"],
+            "company": value["company"],
+            "icp_routing_id": value["icp_routing_id"],
+            "title": value["title"],
+            "linkedin_url": value["linkedin_url"],
+            "num_visits": value["num_visits"],
+            "window_locations": list(value["window_locations"]),
+            "most_recent_visit": value["most_recent_visit"],
+            "segment_name": value["segment_name"]
+        }
+        for value in grouped_prospects.values()
+    ]
 
     return jsonify(formatted_prospects), 200
 

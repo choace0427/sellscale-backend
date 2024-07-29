@@ -770,13 +770,18 @@ def categorize_and_send_message(prospect_id: int, icp_route_id: int, track_event
     icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
     prospect: Prospect = Prospect.query.get(prospect_id)
 
-    send_successful_icp_route_message(prospect_id, icp_route_id, track_event_id)
+    if (icp_route.send_slack):
+        send_successful_icp_route_message(prospect_id, icp_route_id, track_event_id)
+        
     segment: Segment = Segment.query.get(icp_route.segment_id)
 
-    #assign the prospect to the segment and the archetype
-    prospect.segment_id = segment.id if segment else None
+    # Assign the prospect to the segment and the archetype
+    if segment:
+        prospect.segment_id = segment.id if segment else None
     prospect.archetype_id = segment.client_archetype_id if segment else prospect.archetype_id
     prospect.client_sdr_id = segment.client_sdr_id if segment else prospect.client_sdr_id
+    prospect.icp_routing_id = icp_route_id  
+
     db.session.add(prospect)
     db.session.commit()
     return "Categorization and message sending successful"

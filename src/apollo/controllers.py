@@ -155,8 +155,8 @@ def get_all_saved_queries(client_sdr_id):
     queries: list[SavedApolloQuery] = SavedApolloQuery.query.filter(
         SavedApolloQuery.client_sdr_id == client_sdr_id,
         SavedApolloQuery.custom_name.isnot(None),
-        SavedApolloQuery.value_proposition.isnot(None),
-        SavedApolloQuery.segment_description.isnot(None),
+        # SavedApolloQuery.value_proposition.isnot(None),
+        # SavedApolloQuery.segment_description.isnot(None),
         SavedApolloQuery.is_icp_filter.isnot(True)
     ).order_by(SavedApolloQuery.updated_at.desc()).all()
 
