@@ -528,6 +528,8 @@ class Prospect(db.Model):
 
     is_champion = db.Column(db.Boolean, nullable=True)
 
+    icp_routing_id = db.Column(db.Integer, db.ForeignKey("icp_routing.id"), nullable=True)
+
     # Upload information
     prospect_upload_id = db.Column(
         db.Integer, db.ForeignKey("prospect_uploads.id"), nullable=True
