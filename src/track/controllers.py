@@ -4,10 +4,13 @@ from src.authentication.decorators import require_user
 from src.client.models import ClientSDR
 from app import db
 from src.prospecting.models import Prospect
+from src.prospecting.services import add_prospect, get_linkedin_slug_from_url, get_navigator_slug_from_url
+from src.research.linkedin.services import research_personal_profile_details
 from src.segment.models import Segment
 from src.track.models import DeanonymizedContact, ICPRouting, TrackEvent
 from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes, get_icp_route_details, categorize_prospect, categorize_deanonyomized_prospects
 from src.track.services import find_company_from_orginfo
+from src.utils.abstract.attr_utils import deep_get
 
 from src.utils.request_helpers import get_request_parameter
 
@@ -44,6 +47,95 @@ def create():
             return "OK", 200
         
         return limited_create()
+    
+
+@TRACK_BLUEPRINT.route("/simulate_linkedin_bucketing", methods=["POST"])
+@require_user
+def simulate_linkedin_bucketing(client_sdr_id: int):
+    # get the linkedin url from the request
+    linkedin_url = get_request_parameter("linkedin_url", request, json=True, required=True)
+
+    slug = None
+    if "/in/" in linkedin_url:
+        slug = get_linkedin_slug_from_url(linkedin_url)
+    elif "/lead/" in linkedin_url:
+        slug = get_navigator_slug_from_url(linkedin_url)
+    # could optionally use iscraper payload cache.
+    if not slug:
+        return "ERROR", 400
+    print('simulating linkedin lookup with slug', slug)
+    payload = research_personal_profile_details(profile_id=slug)
+    
+    # Assign variables to relevant data about this person
+    first_name = payload.get("first_name")
+    last_name = payload.get("last_name")
+    profile_picture = payload.get("profile_picture")
+    industry = payload.get("industry")
+    location = payload.get("location", {}).get("default")
+    connections_count = payload.get("network_info", {}).get("connections_count")
+    skills = payload.get("skills", [])
+    position_groups = payload.get("position_groups", [])
+
+    print('extracted data is: ', first_name, last_name, profile_picture, industry, location, connections_count, skills, position_groups)
+    
+    # Add prospect using the extracted data
+    company_name = deep_get(payload, "position_groups.0.company.name")
+    company_url = deep_get(payload, "position_groups.0.company.url")
+    employee_count = (
+        str(deep_get(payload, "position_groups.0.company.employees.start"))
+        + "-"
+        + str(deep_get(payload, "position_groups.0.company.employees.end"))
+    )
+    full_name = f"{first_name} {last_name}"
+    linkedin_url = f"linkedin.com/in/{slug}"
+    linkedin_bio = deep_get(payload, "summary")
+    title = deep_get(payload, "sub_title")
+    twitter_url = None
+
+    education_1 = deep_get(payload, "education.0.school.name")
+    education_2 = deep_get(payload, "education.1.school.name")
+
+    prospect_location = "{}, {}, {}".format(
+        deep_get(payload, "location.city", default="") or "",
+        deep_get(payload, "location.state", default="") or "",
+        deep_get(payload, "location.country", default="") or "",
+    )
+    company_location = deep_get(
+        payload, "position_groups.0.profile_positions.0.location", default=""
+    )
+
+    # Health Check fields
+    followers_count = deep_get(payload, "network_info.followers_count") or 0
+
+    new_prospect_id = add_prospect(
+        client_id=client_sdr_id,
+        archetype_id=None,
+        client_sdr_id=client_sdr_id,
+        company=company_name,
+        company_url=company_url,
+        employee_count=employee_count,
+        full_name=full_name,
+        industry=industry,
+        synchronous_research=False,
+        linkedin_url=linkedin_url,
+        linkedin_bio=linkedin_bio,
+        title=title,
+        twitter_url=twitter_url,
+        email=None,
+        linkedin_num_followers=followers_count,
+        allow_duplicates=True,
+        segment_id=None,
+        education_1=education_1,
+        education_2=education_2,
+        prospect_location=prospect_location,
+        company_location=company_location,
+        is_lookalike_profile=False,
+        override=False,
+    )
+
+    return jsonify({"prospect_id": new_prospect_id}), 200
+
+
 
 # def test_track_event():
 #     page = "hunter test"
