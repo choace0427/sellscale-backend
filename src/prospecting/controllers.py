@@ -42,6 +42,7 @@ from src.prospecting.services import (
     fetch_company_details,
     add_prospect_from_apollo,
 )
+from src.internal_default_voices.models import InternalDefaultVoices
 from src.prospecting.models import ProspectNote
 from src.prospecting.services import send_to_purgatory
 from src.prospecting.nylas.services import (
