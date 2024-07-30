@@ -1,3 +1,4 @@
+import datetime
 import os
 from flask import Blueprint, jsonify, request, current_app
 from src.authentication.decorators import require_user
@@ -8,7 +9,7 @@ from src.prospecting.services import add_prospect, get_linkedin_slug_from_url, g
 from src.research.linkedin.services import research_personal_profile_details
 from src.segment.models import Segment
 from src.track.models import DeanonymizedContact, ICPRouting, TrackEvent
-from src.track.services import create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes, get_icp_route_details, categorize_prospect, categorize_deanonyomized_prospects
+from src.track.services import categorize_via_gpt_direct, categorize_via_rules_direct, create_track_event, deanonymized_contacts, get_client_track_source_metadata, get_most_recent_track_event, get_website_tracking_script, top_locations, track_event_history, verify_track_source, create_icp_route, update_icp_route, get_all_icp_routes, get_icp_route_details, categorize_prospect, categorize_deanonyomized_prospects
 from src.track.services import find_company_from_orginfo
 from src.utils.abstract.attr_utils import deep_get
 
@@ -46,6 +47,8 @@ def simulate_linkedin_bucketing(client_sdr_id: int):
     # get the linkedin url from the request
     linkedin_url = get_request_parameter("linkedin_url", request, json=True, required=True)
 
+    visited_page = get_request_parameter("visited_page", request, json=True, parameter_type=str, required=False) or ''
+
     slug = None
     if "/in/" in linkedin_url:
         slug = get_linkedin_slug_from_url(linkedin_url)
@@ -66,8 +69,6 @@ def simulate_linkedin_bucketing(client_sdr_id: int):
     connections_count = payload.get("network_info", {}).get("connections_count")
     skills = payload.get("skills", [])
     position_groups = payload.get("position_groups", [])
-
-    print('extracted data is: ', first_name, last_name, profile_picture, industry, location, connections_count, skills, position_groups)
     
     # Add prospect using the extracted data
     company_name = deep_get(payload, "position_groups.0.company.name")
@@ -98,33 +99,111 @@ def simulate_linkedin_bucketing(client_sdr_id: int):
     # Health Check fields
     followers_count = deep_get(payload, "network_info.followers_count") or 0
 
-    new_prospect_id = add_prospect(
-        client_id=client_sdr_id,
-        archetype_id=None,
-        client_sdr_id=client_sdr_id,
-        company=company_name,
-        company_url=company_url,
-        employee_count=employee_count,
-        full_name=full_name,
-        industry=industry,
-        synchronous_research=False,
-        linkedin_url=linkedin_url,
-        linkedin_bio=linkedin_bio,
-        title=title,
-        twitter_url=twitter_url,
-        email=None,
-        linkedin_num_followers=followers_count,
-        allow_duplicates=True,
-        segment_id=None,
-        education_1=education_1,
-        education_2=education_2,
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if not client_sdr:
+        return "ClientSDR not found", 404
+    client_id = client_sdr.client_id
+
+    rule_based_icp_routes: list[ICPRouting] = ICPRouting.query.filter(
+        ICPRouting.client_id == client_id,
+        ICPRouting.active == True,
+        ICPRouting.ai_mode == False
+    ).all()
+
+    met_conditions = None
+    for rule in rule_based_icp_routes: 
+        route, met_conditions = categorize_via_rules_direct(
+            prospect_name=full_name,
+            prospect_company=company_name,
+            prospect_title=title,
+            webpage_click=visited_page,
+            icp_route_id=rule.id
+        )
+        if route != -1:
+            route : ICPRouting = ICPRouting.query.get(route)
+            return jsonify({
+                "icp_route": route.to_dict(),
+                "prospect": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "full_name": full_name,
+                    "profile_picture": profile_picture,
+                    "industry": industry,
+                    "location": location,
+                    "connections_count": connections_count,
+                    "skills": skills,
+                    "position_groups": position_groups,
+                    "company_name": company_name,
+                    "company_url": company_url,
+                    "employee_count": employee_count,
+                    "linkedin_url": linkedin_url,
+                    "linkedin_bio": linkedin_bio,
+                    "title": title,
+                    "twitter_url": twitter_url,
+                    "education_1": education_1,
+                    "education_2": education_2,
+                    "prospect_location": prospect_location,
+                    "company_location": company_location,
+                    "followers_count": followers_count
+                },
+                "met_conditions": met_conditions
+            }), 200
+
+    #look up if there are active ai icp routes
+
+    ai_icp_routes: list[ICPRouting] = ICPRouting.query.filter(
+        ICPRouting.client_id == client_id,
+        ICPRouting.active == True,
+        ICPRouting.ai_mode == True
+    ).all()
+
+    if not ai_icp_routes:
+        return "No active ICP routes found", 404
+
+    gpt_route_id = categorize_via_gpt_direct(
+        prospect_name=full_name,
+        prospect_company=company_name,
+        prospect_title=title,
+        prospect_linkedin=linkedin_url,
+        prospect_email='Not available',
         prospect_location=prospect_location,
-        company_location=company_location,
-        is_lookalike_profile=False,
-        override=False,
+        prospect_company_size=employee_count,
+        track_event_created_at=datetime.datetime.now(),
+        client_id=client_id
     )
 
-    return jsonify({"prospect_id": new_prospect_id}), 200
+    if gpt_route_id != -1:
+        route : ICPRouting = ICPRouting.query.get(gpt_route_id)
+        return jsonify({
+            "icp_route": route.to_dict(),
+            "prospect": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "full_name": full_name,
+                "profile_picture": profile_picture,
+                "industry": industry,
+                "location": location,
+                "connections_count": connections_count,
+                "skills": skills,
+                "position_groups": position_groups,
+                "company_name": company_name,
+                "company_url": company_url,
+                "employee_count": employee_count,
+                "linkedin_url": linkedin_url,
+                "linkedin_bio": linkedin_bio,
+                "title": title,
+                "twitter_url": twitter_url,
+                "education_1": education_1,
+                "education_2": education_2,
+                "prospect_location": prospect_location,
+                "company_location": company_location,
+                "followers_count": followers_count
+            }
+        }), 200
+
+    return "Route not found", 404
+
+
 
 
 

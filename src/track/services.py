@@ -887,7 +887,6 @@ def categorize_via_gpt(prospect_id: int, track_event_id: int, client_id: int) ->
     return int(gpt_response)
 
 def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) -> int:
-
     print('parameters are', prospect_id, icp_route_id, client_id)
     icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
     track_event: TrackEvent = TrackEvent.query.filter_by(prospect_id=prospect_id).first()
@@ -901,53 +900,101 @@ def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) ->
     print(f"Categorizing prospect: {prospect_name} from company: {prospect_company} with title: {prospect_title}")
     print(f"Webpage clicked: {webpage_click}")
 
+    icp_route_id, _ = categorize_via_rules_direct(
+        prospect_name=prospect_name,
+        prospect_company=prospect_company,
+        prospect_title=prospect_title,
+        webpage_click=webpage_click,
+        icp_route_id=icp_route_id
+    )
+
+    return icp_route_id
+
+def clean_company_name(name):
+    # Define a list of terms to be stripped from the company name
+    strip_terms = [
+        'inc.', 'inc', 'llc', 'ltd', 'gmbh', 'corp.', 'corp', 'co.', 'co', 'plc', 'ag', 'kg', 's.a.', 's.a', 
+        'pvt.', 'pvt', 'nv', 'lp', 'llp', 'group', 'holding', 'holdings', 'international', 'intl', 'company', 
+        'com', 'services', 'service', 'systems', 'system', 'technologies', 'technology', 'software', 'solutions', 
+        'associates', 'consulting', 'consultants', 'enterprise', 'enterprises', 'industries', 'industry', 'products', 
+        'product', 'factory', 'factories', 'manufacturing', 'corporation', 'partners', 'ventures', 'capital', 
+        'investment', 'investments', 'invest', 'investor', 'investors', 'realty', 'real estate', 'estate', 'properties',
+        'property' ]
+    # Remove any whitespace and convert to lowercase
+    name = name.lower().strip()
+    # Remove each term in strip_terms from the company name
+    for term in strip_terms:
+        name = name.replace(term, '').strip()
+    return name
+
+
+def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prospect_title: str, webpage_click: str, icp_route_id: int) -> tuple[int, list[str]]:
+    icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
+
+    print(f"Categorizing prospect: {prospect_name} from company: {prospect_company} with title: {prospect_title}")
+    print(f"Webpage clicked: {webpage_click}")
+
     rules = icp_route.rules  # Assuming rules are stored in the icp_route object
     any_condition_met = False
+    met_conditions = []
 
     if not rules or len(rules) == 0:
         print("No rules found for ICP Route")
-        return -1
+        return -1, met_conditions
 
     for rule in rules:
         condition = rule.get("condition")
-        value = rule.get("value").lower()
+        value = rule.get("value")
+        if isinstance(value, str):
+            value = value.lower()
+
+        if not value:
+            print(f"Value not found for condition: {condition}")
+            continue
 
         print(f"Evaluating rule: {condition} with value: {value}")
 
         if condition == "title_contains":
-            if value in prospect_title:
+            if value in prospect_title.lower():
                 print(f"Condition 'title_contains' met: {value} in {prospect_title}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "title_not_contains":
-            if value not in prospect_title:
+            if value not in prospect_title.lower():
                 print(f"Condition 'title_not_contains' met: {value} not in {prospect_title}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "company_name_is":
-            if value in prospect_company:
+            if value in prospect_company.lower():
                 print(f"Condition 'company_name_is' met: {value} == {prospect_company}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "company_name_is_not":
-            if value not in prospect_company:
+            if value not in prospect_company.lower():
                 print(f"Condition 'company_name_is_not' met: {value} != {prospect_company}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "person_name_is":
-            if value in prospect_name:
+            if value in prospect_name.lower():
                 print(f"Condition 'person_name_is' met: {value} == {prospect_name}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "has_clicked_on_page":
-            if value in webpage_click:
+            if value in webpage_click.lower():
                 print(f"Condition 'has_clicked_on_page' met: {value} in {webpage_click}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "has_not_clicked_on_page":
-            if value not in webpage_click:
+            if value not in webpage_click.lower():
                 print(f"Condition 'has_not_clicked_on_page' met: {value} not in {webpage_click}")
                 any_condition_met = True
+                met_conditions.append(condition)
                 break
         elif condition == "filter_matches" and value:
             # value is a string, needs to be converted into an int first
@@ -957,35 +1004,153 @@ def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) ->
             if not saved_apollo_query:
                 print(f"Condition 'filter_matches' not met: SavedApolloQuery with id {value} not found")
                 continue
-            breadcrumbs = saved_apollo_query["breadcrumbs"]
+            # print('saved apollo query is', saved_apollo_query.results)
+            breadcrumbs = saved_apollo_query.results.get("breadcrumbs")
 
-            company_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "companies"]
+            company_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("signal_field_name").lower() == "organization_ids"]
+
+            # print('companies were looking for are ', company_breadcrumbs)
+            transformed_company_breadcrumbs = []
+            for breadcrumb in company_breadcrumbs:
+                value = breadcrumb.get("value", [])
+                if not value:
+                    continue
+                
+                # Fetch companies based on UUIDs
+                companies: list[Company] = Company.query.filter(Company.apollo_uuid.in_(value)).all()
+                
+                for company in companies:
+                    transformed_company_breadcrumbs.append({
+                        "display_name": company.name,
+                        "apollo_uuid": company.apollo_uuid
+                    })
+                
+            company_breadcrumbs = transformed_company_breadcrumbs
+            # Clean the company names in the breadcrumbs
+            for breadcrumb in company_breadcrumbs:
+                breadcrumb["display_name"] = clean_company_name(breadcrumb["display_name"])
+
+            #clean the prospect company name
+            prospect_company = clean_company_name(prospect_company)
+
             management_level_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "management level"]
             title_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "titles"]
 
             # Check if all existing breadcrumb conditions are met
-            all_conditions_met = True
+            filter_condition_met = False
 
-            if title_breadcrumbs:
-                if not any([breadcrumb.get("value").lower() in prospect_title.lower() for breadcrumb in title_breadcrumbs]):
-                    all_conditions_met = False
+            print('all company display names are', [breadcrumb["display_name"] for breadcrumb in company_breadcrumbs])
+            relevant_breadcrumbs = {
+                "title_breadcrumbs": title_breadcrumbs,
+                "management_level_breadcrumbs": management_level_breadcrumbs,
+                "company_breadcrumbs": company_breadcrumbs
+            }
 
-            if management_level_breadcrumbs:
-                if not any([breadcrumb.get("value").lower() in prospect_title.lower() for breadcrumb in management_level_breadcrumbs]):
-                    all_conditions_met = False
+            if relevant_breadcrumbs.get("title_breadcrumbs"):
+                for breadcrumb in relevant_breadcrumbs["title_breadcrumbs"]:
+                    if breadcrumb["display_name"].lower() in prospect_title.lower():
+                        filter_condition_met = True
+                        met_conditions.append({
+                            "condition": condition,
+                            "title_breadcrumbs": breadcrumb["display_name"]
+                        })
+                        break
 
-            if company_breadcrumbs:
-                if not any([breadcrumb.get("value").lower() in prospect_company.lower() for breadcrumb in company_breadcrumbs]):
-                    all_conditions_met = False
+            if relevant_breadcrumbs.get("management_level_breadcrumbs"):
+                if relevant_breadcrumbs["management_level_breadcrumbs"]:
+                    for breadcrumb in relevant_breadcrumbs["management_level_breadcrumbs"]:
+                        if breadcrumb["display_name"].lower() in prospect_title.lower():
+                            filter_condition_met = True
+                            met_conditions.append({
+                                "condition": condition,
+                                "management_level_breadcrumbs": breadcrumb["display_name"]
+                            })
+                            break
 
-            if all_conditions_met:
-                print(f"Condition 'filter_matches' met: All conditions satisfied for prospect")
+            if relevant_breadcrumbs.get("company_breadcrumbs"):
+                for breadcrumb in relevant_breadcrumbs["company_breadcrumbs"]:
+                    if breadcrumb["display_name"].strip().lower() == prospect_company.strip().lower():
+                        print('matched on company breadcrumbs', breadcrumb["display_name"].lower())
+                        filter_condition_met = True
+                        met_conditions.append({
+                            "condition": condition,
+                            "company_breadcrumbs": breadcrumb["display_name"]
+                        })
+                        break
+
+            if filter_condition_met:
+                print(f"Condition 'filter_matches' met: At least one condition satisfied for prospect")
                 any_condition_met = True
                 break
 
     if any_condition_met:
         print(f"At least one condition met for ICP Route ID: {icp_route_id}")
-        return icp_route_id
+        return icp_route_id, met_conditions
 
     print("Conditions not met for any ICP Route")
-    return -1
+    return -1, met_conditions
+
+def categorize_via_gpt_direct(prospect_name: str, prospect_company: str, prospect_title: str, prospect_linkedin: str, prospect_email: str, prospect_location: str, prospect_company_size: str, track_event_created_at: datetime, client_id: int) -> int:
+    icp_routings: list[ICPRouting] = ICPRouting.query.filter(
+        ICPRouting.client_id == client_id,
+        ICPRouting.active == True,
+        ICPRouting.ai_mode == True
+    ).all()
+
+    company_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the company called {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include what they do, what they sell, who they serve.".format(prospect_company))
+    prospect_information = simple_perplexity_response("llama-3-sonar-large-32k-online", "Tell me about the person named {} who works at {}. Respond in 1 succinct paragraph, 2-4 sentences max. Include their role, responsibilities, and any other relevant information.".format(prospect_name, prospect_company))
+
+    prompt = """
+    You are an ICP categorizer. Here are the options for the different ICPs you have access to:
+    {icp_routes}
+
+    Here is information about the prospect we are considering.
+    Name: {name}
+    Company: {company}
+    Title: {title}
+    Visited Date: {visited_date}
+    LinkedIn: {linkedin}
+    Email: {email}
+    Location: {location}
+    Company Size: {company_size}
+
+    Short summary about prospect:
+    {prospect_information}
+
+    Short summary about company: 
+    {company_information}
+
+    Which route should we categorize this prospect under? 
+
+    IMPORTANT: Only respond with the ICP Route Id # and absolutely nothing else.
+    ex. 1
+    ex. 3
+
+    Icp Route Id #:"""
+
+    gpt_response = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt.format(
+                    icp_routes="\n".join([f"{route.id}: {route.title} - {route.description}" for route in icp_routings] + ["-1: None of the above"]),
+                    name=prospect_name,
+                    company=prospect_company,
+                    title=prospect_title,
+                    visited_date=track_event_created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    linkedin=prospect_linkedin,
+                    email=prospect_email,
+                    location=prospect_location,
+                    company_size=prospect_company_size,
+                    prospect_information=prospect_information[0],
+                    company_information=company_information[0]
+                )
+            }
+        ],
+        max_tokens=30,
+        model='gpt-4o'
+    )
+
+    print('gpt response: ', gpt_response)
+    return int(gpt_response)
+

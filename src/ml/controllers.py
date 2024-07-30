@@ -22,6 +22,7 @@ from src.ml.openai_wrappers import (
     wrapped_chat_gpt_completion,
     wrapped_create_completion,
 )
+from src.contacts.services import add_companies_to_db
 from src.track.services import find_company_from_people_labs #for celery task registration
 from src.ml.ai_researcher_services import run_ai_researcher_question #for celery task registration
 from src.li_conversation.services import detect_demo_set #for celery task registration

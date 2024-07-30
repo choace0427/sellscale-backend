@@ -6,6 +6,7 @@ from src.authentication.decorators import require_user
 
 from src.contacts.services import (
     apollo_get_contacts,
+    add_companies_to_db,
     apollo_get_organizations,
     apollo_get_pre_filters,
     get_territories,
@@ -61,6 +62,9 @@ def index(client_sdr_id: int):
     organization_ids = get_request_parameter(
         "organization_ids", request, json=True, required=False, default_value=None
     )
+    company_names = get_request_parameter(
+        "companyName", request, json=True, required=False, default_value=None
+    ) # company names alongside IDs to map to our DB
     revenue_range = get_request_parameter(
         "revenue_range",
         request,
@@ -142,6 +146,11 @@ def index(client_sdr_id: int):
     )
 
     print('saved query id is', saved_apollo_query_id)
+
+    if company_names and organization_ids:
+        #sometimes apollo is weird when you have a BUNCH of companies, so we need to add them to the db
+        #this will map the company names to the organization ids
+        add_companies_to_db.delay(company_names, organization_ids)
 
     data = apollo_get_contacts(
         client_sdr_id=client_sdr_id,

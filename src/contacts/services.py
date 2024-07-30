@@ -3,11 +3,12 @@ from flask import jsonify
 import yaml
 import os
 from typing import Dict, List, Optional
-from app import db, app
+from app import db, app, celery
 import requests
 from src.apollo.controllers import fetch_tags
 from src.apollo.services import get_apollo_cookies, get_fuzzy_company_list
 from src.client.models import ClientArchetype, ClientSDR
+from src.company.models import Company
 from src.company.services import find_company_name_from_url
 from src.contacts.models import SavedApolloQuery
 
@@ -255,6 +256,21 @@ def get_contacts_from_predicted_query_filters(query: str, retries=3):
             return get_contacts_from_predicted_query_filters(query, retries=retries - 1)
         else:
             raise e
+@celery.task
+def add_companies_to_db(company_names, organization_ids):
+    companies_to_add = []
+    existing_companies = {c.apollo_uuid: c for c in Company.query.filter(Company.apollo_uuid.in_(organization_ids)).all()}
+    
+    for company_name, organization_id in zip(company_names, organization_ids):
+        if organization_id in existing_companies:
+            existing_companies[organization_id].name = company_name
+        else:
+            companies_to_add.append(Company(name=company_name, apollo_uuid=organization_id))
+    
+    if companies_to_add:
+        db.session.bulk_save_objects(companies_to_add)
+        db.session.commit()
+    return
 
 
 def apollo_get_contacts(
