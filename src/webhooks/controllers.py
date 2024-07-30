@@ -297,7 +297,7 @@ def apollo_set_number_webhook(client_sdr_id: int, prospect_id: int):
 
     # For now only supporting mobile number
     for phone_number in phone_numbers:
-        if phone_number["type_cd"] == "mobile":
+        if phone_number["type_cd"] == "mobile" or phone_number["type_cd"] == "other":
             prospect.phone_number = phone_number["sanitized_number"]
             prospect.reveal_phone_number = True
 
