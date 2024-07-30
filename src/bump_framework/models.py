@@ -26,6 +26,9 @@ class BumpFramework(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
 
+    internal_default_voice_id = db.Column(
+        db.Integer, db.ForeignKey("internal_default_voices.id"), nullable=True)
+
     overall_status = db.Column(db.Enum(ProspectOverallStatus), nullable=True)
     substatus = db.Column(db.String(255), nullable=True)
 

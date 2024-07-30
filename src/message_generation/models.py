@@ -1,4 +1,5 @@
 from src.bump_framework.models import BumpLength
+from sqlalchemy import CheckConstraint
 from app import db
 import enum
 import sqlalchemy as sa
@@ -236,8 +237,12 @@ class GeneratedMessageCTA(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), nullable=False
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
+
+    internal_default_voice_id = db.Column(
+        db.Integer, db.ForeignKey("internal_default_voices.id"), nullable=True)
+
     text_value = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean, nullable=True)
 
@@ -246,6 +251,13 @@ class GeneratedMessageCTA(db.Model):
     expiration_date = db.Column(db.DateTime, nullable=True)  # in UTC
     auto_mark_as_scheduling_on_acceptance = db.Column(
         db.Boolean, nullable=True, default=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            'archetype_id IS NOT NULL OR internal_default_voice_id IS NOT NULL',
+            name='archetype_id_or_internal_default_voice_id_not_null'
+        ),
     )
 
     def get_active_ctas_for_archetype(archetype_id):
@@ -374,6 +386,9 @@ class StackRankedMessageGenerationConfiguration(db.Model):
     archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
+    internal_default_voice_id = db.Column(
+        db.Integer, db.ForeignKey("internal_default_voices.id"), nullable=True)
+
     priority = db.Column(
         db.Integer, nullable=True
     )  # lower = less priority; higher = more priority
