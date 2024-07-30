@@ -1,6 +1,6 @@
 import datetime
 import os
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request
 from src.authentication.decorators import require_user
 from src.client.models import ClientSDR
 from app import app, db
@@ -29,12 +29,14 @@ limiter.init_app(app)
 @TRACK_BLUEPRINT.route("/webpage", methods=["POST"])
 @limiter.limit("1 per 3 seconds")
 def create():
-    ip = get_request_parameter("ip", request, json=True, required=True)
+    def get_client_ip():
+        if 'X-Forwarded-For' in request.headers:
+            return request.headers['X-Forwarded-For'].split(',')[0]
+        else:
+            return request.remote_addr
+    ip = get_client_ip()
     page = get_request_parameter("page", request, json=True, required=True)
     track_key = get_request_parameter("track_key", request, json=True, required=True)
-
-    if track_key != 'X8492aa92JOIp2XXMV1382':
-        return "ERROR", 400
 
     success = create_track_event(ip=ip, page=page, track_key=track_key)
 
