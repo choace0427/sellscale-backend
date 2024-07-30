@@ -54,12 +54,22 @@ def create_review_card(campaign_id: dict):
     print("⚡️ AUTO ACTION: create_review_card({})".format(campaign_id))
     return {"success": True}
 
+def create_strategy(description: str):
+    print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
+    return {"success": True}
+
+def create_task(title: str, description: str):
+    print("⚡️ AUTO ACTION: create_task('{}', '{}')".format(title, description))
+    return {"success": True}
+
 
 ACTION_MAP = {
     "create_campaign": create_campaign,
     "find_prospects": find_prospects,
     "generate_sequence": generate_sequence,
     "create_review_card": create_review_card,
+    "create_strategy": create_strategy,
+    "create_task": create_task
 }
 
 
@@ -184,4 +194,6 @@ def chat_with_assistant(assistant_id):
 
 
 # Example usage
-chat_with_assistant("asst_uJJtKPGaVeVYQjgqCquTL3Bq")
+# chat_with_assistant("asst_uJJtKPGaVeVYQjgqCquTL3Bq")
+# create_strategy OR select_existing_strategy
+# 2. create_tasks
