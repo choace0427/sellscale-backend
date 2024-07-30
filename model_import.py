@@ -137,3 +137,4 @@ from src.contacts.models import SavedApolloQuery
 from src.client.models import ClientAssets, ClientAssetArchetypeReasonMapping
 from src.strategies.models import Strategies, StrategyClientArchetypeMapping
 from src.track.models import TrackEvent, DeanonymizedContact, ICPRouting
+from src.chatbot.models import SelixSession, SelixSessionStatus, SelixSessionTask, SelixSessionTaskStatus
