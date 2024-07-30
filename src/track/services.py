@@ -421,11 +421,10 @@ def get_website_tracking_script(client_sdr_id: int):
         db.session.add(track_source)
         db.session.commit()
 
-    return '''
-<script>
-    !function(){function t(){fetch("https://api.ipify.org/?format=json").then(t=>t.json()).then(t=>{var e,n,o,i;e=t.ip,o=JSON.stringify({ip:e,page:n=window.location.href,track_key:"''' + track_source.track_key + '''"}),(i=new XMLHttpRequest).open("POST","https://sellscale-api-prod.onrender.com/track/webpage",!0),i.setRequestHeader("Content-Type","application/json"),i.send(o)}).catch(t=>console.error("Error fetching IP:",t))}t(),window.onpopstate=function(e){t()},new MutationObserver(function(e){e.forEach(function(e){"childList"===e.type&&t()})}).observe(document.body,{childList:!0,subtree:!0})}();
+    return '''<script>
+!function(){var trackKey = "''' + track_source.track_key + '''";var script = document.createElement('script');script.src = "https://elasticbeanstalk-us-east-2-265676777690.s3.us-east-2.amazonaws.com/track.js";script.onload = function(){trackPage(trackKey);};document.head.appendChild(script);}();
 </script>
-    '''
+'''
 
 def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track_event_id: int):
         
