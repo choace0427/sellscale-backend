@@ -1,7 +1,12 @@
+import datetime
 import json
+from typing import Optional
 import requests
 import os
 import time
+from app import db
+
+from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, SelixSessionTaskStatus
 
 from src.contacts.services import get_contacts_from_predicted_query_filters
 
@@ -111,6 +116,53 @@ def get_assistant_reply(thread_id):
     except:
         return ""
 
+def get_last_n_messages(thread_id):
+    import time
+    from requests.exceptions import RequestException
+
+    all_messages = []
+    params = {
+        "limit": 100,
+        "order": "desc",
+    }
+
+    def fetch_messages_with_retry(url, headers, params, retries=3, timeout=2):
+        for attempt in range(retries):
+            try:
+                response = requests.get(url, headers=headers, params=params)
+                response.raise_for_status()
+                return response
+            except RequestException as e:
+                if attempt < retries - 1:
+                    time.sleep(timeout)
+                else:
+                    raise e
+
+    while True:
+        response = fetch_messages_with_retry(
+            f"{API_URL}/threads/{thread_id}/messages", headers=HEADERS, params=params
+        )
+        
+        messages = response.json().get("data", [])
+        
+        all_messages.extend([
+            {
+                "role": message["role"],
+                "message": message["content"][0]["text"]["value"],
+                "created_time": message["created_at"]
+            }
+            for message in messages
+        ])
+
+        has_more = response.json().get("has_more", False)
+        if not has_more:
+            break
+
+        # Update the 'before' parameter to fetch the next set of messages
+        params["before"] = messages[-1]["created_at"]
+
+    return all_messages
+
 
 def retrieve_actions_needed(thread_id, run_id):
     response = requests.get(
@@ -164,9 +216,36 @@ def submit_tool_outputs(thread_id, run_id, tool_outputs):
     return response.json()
 
 
-def chat_with_assistant(assistant_id):
+def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None):
     print("Starting conversation with the assistant. Type 'quit' to end.")
-    thread_id = create_thread()
+    assistant_id = "asst_uJJtKPGaVeVYQjgqCquTL3Bq" # Selix AI OpenAI Assistant ID
+
+    thread_id = None
+
+    if session_id:
+        selix_session: SelixSession = SelixSession.query.get(session_id)
+        thread_id = selix_session.thread_id
+
+        # get the last N messages and print them out
+        messages = get_last_n_messages(thread_id)
+        print("\n\n#############\n\n")
+        for message in messages:
+            print(f"{message['role']}: {message['message']}\n")
+
+    if not session_id:
+        thread_id = create_thread()
+        selix_session: SelixSession = SelixSession(
+            client_sdr_id=client_sdr_id,
+            session_name="",
+            status=SelixSessionStatus.ACTIVE,
+            memory={},
+            estimated_completion_time=datetime.datetime.now() + datetime.timedelta(hours=24),
+            actual_completion_time=None,
+            assistant_id=assistant_id,
+            thread_id=thread_id
+        )
+        db.session.add(selix_session)
+        db.session.commit()
 
     while True:
         user_input = input("\n\n#############\n\n😎 You: ")
@@ -197,3 +276,6 @@ def chat_with_assistant(assistant_id):
 # chat_with_assistant("asst_uJJtKPGaVeVYQjgqCquTL3Bq")
 # create_strategy OR select_existing_strategy
 # 2. create_tasks
+
+# DECK:
+# https://docs.google.com/presentation/d/1AVmn12UGnUQMhwPuFzI7b9stos50cqJRfYFTbG5NfpA/edit#slide=id.g279d89168bd_0_108
