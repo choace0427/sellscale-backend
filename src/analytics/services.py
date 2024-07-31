@@ -11,6 +11,8 @@ from src.email_outbound.models import *
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_, not_, func, distinct
 
+from src.sockets.services import send_socket_message
+
 
 def get_weekly_client_sdr_outbound_goal_map():
     results = db.session.execute(
@@ -131,7 +133,7 @@ def flag_is_value(feature: str, value: int) -> bool:
 
 
 def get_all_campaign_analytics_for_client(
-    client_id: int, client_archetype_id: Optional[int] = None, start_date: Optional[str] = None, end_date: Optional[str] = None, verbose: bool = False
+    client_id: int, client_archetype_id: Optional[int] = None, start_date: Optional[str] = None, end_date: Optional[str] = None, verbose: bool = False, room_id: Optional[int] = None
 ):
     date_filter = ""
     if start_date and end_date:
@@ -253,7 +255,9 @@ def get_all_campaign_analytics_for_client(
         )
 
     if verbose and start_date and end_date:
-        print(start_date, end_date)
+        if room_id:
+            print("Sending socket message")
+            send_socket_message('+1', {"message": "+1", "room_id": room_id}, room_id)
         
         verbose_query = f"""
             with d as (
@@ -732,10 +736,10 @@ def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: Optional[int] 
     from datetime import datetime, timedelta
 
     def get_monday(date):
-        return date - timedelta(days=date.weekday())
+        return date - timedelta(days=date.weekday()) if date.weekday() > 0 else date
 
-    def get_friday(date):
-        return date + timedelta(days=(4 - date.weekday()))
+    def get_sunday(date):
+        return date + timedelta(days=(6 - date.weekday())) if date.weekday() < 6 else date
 
     if campaign_id is not None:
         client_archetype: ClientArchetype = ClientArchetype.query.filter_by(id=campaign_id).first()
@@ -755,21 +759,25 @@ def get_cycle_dates_for_campaign(client_sdr_id: int, campaign_id: Optional[int] 
             return []
 
     # Fetching cycle dates from all outbound campaigns
-    cycle_dates = []
-    seen_dates = set()
+    cycle_dates = {}
     for outbound_campaign in outbound_campaigns:
-        start_date = outbound_campaign.campaign_start_date
-        end_date = outbound_campaign.campaign_end_date
+        start_date = outbound_campaign.campaign_start_date + timedelta(days=1)
+        end_date = outbound_campaign.campaign_end_date + timedelta(days=1)
 
-        monday = get_monday(start_date).date()
-        friday = get_friday(end_date).date()
+        current_date = start_date
+        while current_date <= end_date:
+            monday = get_monday(current_date).date()
+            sunday = get_sunday(current_date).date()
 
-        date_tuple = (monday, friday)
-        if date_tuple not in seen_dates:
-            seen_dates.add(date_tuple)
-            cycle_dates.append({"start": date_tuple[0].isoformat(), "end": date_tuple[1].isoformat()})
+            date_tuple = (monday, sunday)
+            if date_tuple not in cycle_dates:
+                cycle_dates[date_tuple] = {"start": date_tuple[0].isoformat(), "end": date_tuple[1].isoformat()}
 
-    return sorted(cycle_dates, key=lambda x: x['start'], reverse=True)
+            current_date += timedelta(days=7)  # Move to the next week
+
+    return sorted(cycle_dates.values(), key=lambda x: x['start'], reverse=True)
+
+    # return sorted(cycle_dates, key=lambda x: x['start'], reverse=True)
 
 #template analytics endpoint
 

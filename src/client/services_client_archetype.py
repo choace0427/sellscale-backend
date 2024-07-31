@@ -1215,7 +1215,7 @@ def get_sent_volume_during_time_period(client_sdr_id, start_date, end_date, camp
         print(f"Error occurred: {e}")
         return None
 
-def get_client_archetype_analytics(client_archetype_id=None, start_date=None, end_date=None, verbose=False, client_sdr_id=None):
+def get_client_archetype_analytics(client_archetype_id=None, start_date=None, end_date=None, verbose=False, client_sdr_id=None, room_id=None):
 
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
@@ -1244,7 +1244,7 @@ def get_client_archetype_analytics(client_archetype_id=None, start_date=None, en
             analytics.append(get_all_campaign_analytics_for_client(client_id = client_sdr.client_id, 
                                                             client_archetype_id = matched_campaign,
                                                               start_date = start_date,
-                                                               end_date = end_date, verbose = True))
+                                                               end_date = end_date, verbose = True, room_id=room_id))
         return analytics
         
 
@@ -1253,7 +1253,8 @@ def get_client_archetype_analytics(client_archetype_id=None, start_date=None, en
         client_archetype_id=int(client_archetype_id) if client_archetype_id is not None else None,
         start_date=start_date,
         end_date=end_date,
-        verbose=verbose
+        verbose=verbose,
+        room_id=room_id,
     )
 
     if verbose:

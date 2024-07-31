@@ -3323,6 +3323,9 @@ def get_campaign_analytics(client_sdr_id: int):
     verbose: bool = get_request_parameter(
         "verbose", request, json=False, required=False
     )
+    room_id: int = get_request_parameter(
+        "room_id", request, json=False, required=False
+    )
     if verbose is None:
         verbose = False
     else:
@@ -3333,7 +3336,7 @@ def get_campaign_analytics(client_sdr_id: int):
     # if not ca or ca.client_sdr_id != client_sdr_id:
     #     return "Unauthorized or persona not found", 403
 
-    analytics = get_client_archetype_analytics(client_archetype_id, start_date, end_date, verbose, client_sdr_id=client_sdr_id)
+    analytics = get_client_archetype_analytics(client_archetype_id, start_date, end_date, verbose, client_sdr_id=client_sdr_id, room_id=room_id)
     return jsonify(analytics), 200
 
 @CLIENT_BLUEPRINT.route("/sent_volume_during_period", methods=["POST"])
