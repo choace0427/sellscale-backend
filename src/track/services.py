@@ -398,8 +398,6 @@ def deanonymize_track_events_for_people_labs(track_event_id):
     db.session.commit()
 
 
-    client: Client = Client.query.get(client_id)
-    webhook_url = client.pipeline_notifications_webhook_url
 
 
     # process_deanonymized_contact(deanon_contact.id)
@@ -432,6 +430,15 @@ def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track
         icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
         track_event: TrackEvent = TrackEvent.query.get(track_event_id)
 
+        track_source: TrackSource = TrackSource.query.get(track_event.track_source_id)
+        client_id = track_source.client_id
+        client: Client = Client.query.get(client_id)
+        webhook_urls = [client.pipeline_notifications_webhook_url]
+
+        #newtonx
+        if client.id == 47:
+            webhook_urls = ['https://hooks.slack.com/services/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']
+
         segment_id = icp_route.segment_id
         segment_name = "Unassigned"
         if (segment_id):
@@ -443,7 +450,7 @@ def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track
         # if webhook_url and client_id != 47:
         #     webhook_urls.append(webhook_url)
 
-        webhook_urls = [URL_MAP["sales-visitors"]]
+        # webhook_urls = [URL_MAP["sales-visitors"]]
 
         send_slack_message(
         message=f"*🔗 LinkedIn*: {prospect.linkedin_url}\n*👥 Name*: {prospect.full_name}\n*♣ Title*: {prospect.title}\n*📸 Photo*: {prospect.img_url}\n*🌆 Organization*: {prospect.company}\n*👾 Website*: {prospect.company_url}\n*🌎 Location*: {prospect.prospect_location}",

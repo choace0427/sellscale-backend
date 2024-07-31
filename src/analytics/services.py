@@ -311,6 +311,7 @@ def get_all_campaign_analytics_for_client(
 
         top_icp_query = f"""
             select 
+                prospect.id,
                 prospect.full_name,
                 prospect.icp_fit_score,
                 prospect_status_records.created_at as status_created_at,
@@ -328,10 +329,11 @@ def get_all_campaign_analytics_for_client(
         top_icp_people = db.session.execute(top_icp_query).fetchall()
         top_icp_people_list = [
             {
-                "full_name": row[0],
-                "icp_fit_score": row[1],
-                "status_created_at": row[2],
-                "email_status_created_at": row[3]
+                "id": row[0],
+                "full_name": row[1],
+                "icp_fit_score": row[2],
+                "status_created_at": row[3],
+                "email_status_created_at": row[4]
             } 
             for row in top_icp_people
         ]
