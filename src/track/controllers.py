@@ -352,15 +352,18 @@ def get_user_web_visits(client_sdr_id: int):
         db.func.count(TrackEvent.id).label('num_visits'),
         db.func.array_agg(db.distinct(TrackEvent.window_location)).label('window_locations'),
         db.func.max(TrackEvent.created_at).label('most_recent_visit'),
-        Segment.segment_title.label('segment_name')
+        Segment.segment_title.label('segment_name'),
+        ICPRouting.title.label('icp_routing_title')
     ).join(TrackEvent, TrackEvent.prospect_id == Prospect.id
     ).outerjoin(Segment, Segment.id == Prospect.segment_id
+    ).outerjoin(ICPRouting, ICPRouting.id == Prospect.icp_routing_id
     ).filter(
         TrackEvent.prospect_id != None,
         Prospect.client_id == client_sdr.client_id
     ).group_by(
         Prospect.id,
-        Segment.segment_title
+        Segment.segment_title,
+        ICPRouting.title
     ).order_by(
         db.func.max(TrackEvent.created_at).desc()
     ).all()
@@ -375,6 +378,7 @@ def get_user_web_visits(client_sdr_id: int):
         "img_url": None,
         "company": None,
         "icp_routing_id": None,
+        "icp_routing_title": None,
         "title": None,
         "linkedin_url": None,
         "num_visits": 0,
@@ -398,6 +402,8 @@ def get_user_web_visits(client_sdr_id: int):
             grouped["company"] = prospect.company
         if grouped["icp_routing_id"] is None:
             grouped["icp_routing_id"] = prospect.icp_routing_id
+        if grouped["icp_routing_title"] is None:
+            grouped["icp_routing_title"] = prospect.icp_routing_title
         if grouped["title"] is None:
             grouped["title"] = prospect.title
         if grouped["linkedin_url"] is None:
@@ -420,6 +426,7 @@ def get_user_web_visits(client_sdr_id: int):
             "img_url": value["img_url"],
             "company": value["company"],
             "icp_routing_id": value["icp_routing_id"],
+            "icp_routing_title": value["icp_routing_title"],
             "title": value["title"],
             "linkedin_url": value["linkedin_url"],
             "num_visits": value["num_visits"],

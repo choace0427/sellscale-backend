@@ -452,7 +452,7 @@ def send_successful_icp_route_message(prospect_id: int, icp_route_id: int, track
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": f"💡 {prospect.full_name} visited your website and was bucketed into segment \"{segment_name}\".",
+				"text": f"💡 {prospect.full_name} visited your website and was bucketed into bucket \"{icp_route.title}\".",
 				"emoji": True
 			}
 		},
@@ -538,10 +538,10 @@ def track_event_history(client_sdr_id: int, days=14):
         select 
             to_char(track_event.created_at, 'YYYY-MM-DD') created_at,
             count(distinct track_event.ip_address) "distinct_visits",
-            count(distinct deanonymized_contact.linkedin) "distinct_deanonymized_visits"
+            count(distinct prospect.full_name) "distinct_deanonymized_visits"
         from track_event
             join track_source on track_source.id = track_event.track_source_id
-            left join deanonymized_contact on deanonymized_contact.track_event_id = track_event.id
+            left join prospect on prospect.id = track_event.prospect_id
         where
             track_source.client_id = {client_id}
             and track_event.created_at > NOW() - '14 days'::INTERVAL
@@ -732,8 +732,28 @@ def get_all_icp_routes(client_sdr_id: int):
 
     # Expand segment_id to the segment itself
     expanded_icp_routes = []
+    icp_route_ids = [icp_route.id for icp_route in icp_routes]
+
+    # Get all prospects for the given client and filter by icp_routing_id in one query
+    prospects: list[Prospect] = Prospect.query.filter(
+        Prospect.client_id == client_sdr.client_id,
+        Prospect.icp_routing_id.in_(icp_route_ids)
+    ).all()
+
+    # Group prospects by icp_routing_id and then by full_name
+    from collections import defaultdict, Counter
+
+    icp_route_prospect_counts = defaultdict(Counter)
+    for prospect in prospects:
+        icp_route_prospect_counts[prospect.icp_routing_id][prospect.full_name] += 1
+
     for icp_route in icp_routes:
         icp_route_dict = icp_route.to_dict()
+        icp_route_id = icp_route_dict['id']
+        if icp_route_id in icp_route_prospect_counts:
+            icp_route_dict['count'] = sum(icp_route_prospect_counts[icp_route_id].values())
+        else:
+            icp_route_dict['count'] = 0
         if icp_route_dict['segment_id']:
             segment: Segment = Segment.query.get(icp_route_dict['segment_id'])
             if segment:
@@ -763,6 +783,45 @@ def categorize_deanonyomized_prospects(prospect_ids: list[int], async_=True):
             categorize_prospect(prospect_id)
 
     return True
+
+def rerun_prospect_bucketing(client_id: int):
+    input("Warning: This operation is expensive. Has potential to burn lots of perplexity credits. Press return to proceed.")
+    
+    track_events = TrackEvent.query.filter(
+        TrackEvent.prospect_id.isnot(None)
+    ).all()
+    track_events_with_prospects = []
+    for event in track_events:
+        event_dict = event.to_dict()
+        prospect = Prospect.query.filter_by(id=event.prospect_id, client_id=client_id).first()
+        if prospect:
+            event_dict['prospects'] = [prospect.simple_to_dict()]
+        else:
+            event_dict['prospects'] = []
+        track_events_with_prospects.append(event_dict)
+    
+    # Group by distinct prospect full_name
+    grouped_events = {}
+    for event in track_events_with_prospects:
+        for prospect in event['prospects']:
+            full_name = prospect['full_name']
+            if full_name not in grouped_events:
+                grouped_events[full_name] = []
+            grouped_events[full_name].append(event)
+    #print all prospect names
+    print('all prospect names: ', grouped_events.keys())
+
+    # Run categorize_prospect for each prospect
+    processed_prospects = set()
+    for full_name, events in grouped_events.items():
+        for event in events:
+            for prospect in event['prospects']:
+                if prospect['full_name'] not in processed_prospects and prospect['full_name'] != 'Ricardo Moura':
+                    categorize_prospect(prospect['id'], event['id'])
+                    processed_prospects.add(prospect['full_name'])
+
+    return None
+
 
 def categorize_and_send_message(prospect_id: int, icp_route_id: int, track_event_id: int):
     # Categorize the prospect
@@ -934,8 +993,9 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
     print(f"Webpage clicked: {webpage_click}")
 
     rules = icp_route.rules  # Assuming rules are stored in the icp_route object
-    any_condition_met = False
+    all_conditions_met = True
     met_conditions = []
+    attempted_conditions = []
 
     if not rules or len(rules) == 0:
         print("No rules found for ICP Route")
@@ -944,101 +1004,83 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
     for rule in rules:
         condition = rule.get("condition")
         value = rule.get("value")
+        attempted_conditions.append(condition)
         if isinstance(value, str):
             value = value.lower()
 
         if not value:
             print(f"Value not found for condition: {condition}")
+            all_conditions_met = False
             continue
 
         print(f"Evaluating rule: {condition} with value: {value}")
 
+        condition_met = False
+
         if condition == "title_contains":
             if value in prospect_title.lower():
                 print(f"Condition 'title_contains' met: {value} in {prospect_title}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "title_not_contains":
             if value not in prospect_title.lower():
                 print(f"Condition 'title_not_contains' met: {value} not in {prospect_title}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "company_name_is":
             if value in prospect_company.lower():
                 print(f"Condition 'company_name_is' met: {value} == {prospect_company}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "company_name_is_not":
             if value not in prospect_company.lower():
                 print(f"Condition 'company_name_is_not' met: {value} != {prospect_company}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "person_name_is":
             if value in prospect_name.lower():
                 print(f"Condition 'person_name_is' met: {value} == {prospect_name}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "has_clicked_on_page":
             if value in webpage_click.lower():
                 print(f"Condition 'has_clicked_on_page' met: {value} in {webpage_click}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "has_not_clicked_on_page":
             if value not in webpage_click.lower():
                 print(f"Condition 'has_not_clicked_on_page' met: {value} not in {webpage_click}")
-                any_condition_met = True
-                met_conditions.append(condition)
-                break
+                condition_met = True
         elif condition == "filter_matches" and value:
-            # value is a string, needs to be converted into an int first
             value = int(value)
-            # search up savedApolloQuery of value
             saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(value)
             if not saved_apollo_query:
                 print(f"Condition 'filter_matches' not met: SavedApolloQuery with id {value} not found")
+                all_conditions_met = False
                 continue
-            # print('saved apollo query is', saved_apollo_query.results)
-            breadcrumbs = saved_apollo_query.results.get("breadcrumbs")
 
+            breadcrumbs = saved_apollo_query.results.get("breadcrumbs")
             company_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("signal_field_name").lower() == "organization_ids"]
 
-            # print('companies were looking for are ', company_breadcrumbs)
             transformed_company_breadcrumbs = []
             for breadcrumb in company_breadcrumbs:
                 value = breadcrumb.get("value", [])
                 if not value:
                     continue
-                
-                # Fetch companies based on UUIDs
+
                 companies: list[Company] = Company.query.filter(Company.apollo_uuid.in_(value)).all()
-                
+
                 for company in companies:
                     transformed_company_breadcrumbs.append({
                         "display_name": company.name,
                         "apollo_uuid": company.apollo_uuid
                     })
-                
+
             company_breadcrumbs = transformed_company_breadcrumbs
-            # Clean the company names in the breadcrumbs
             for breadcrumb in company_breadcrumbs:
                 breadcrumb["display_name"] = clean_company_name(breadcrumb["display_name"])
 
-            #clean the prospect company name
             prospect_company = clean_company_name(prospect_company)
 
             management_level_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "management level"]
             title_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "titles"]
 
-            # Check if all existing breadcrumb conditions are met
-            filter_condition_met = False
+            filter_condition_met = True
 
-            print('all company display names are', [breadcrumb["display_name"] for breadcrumb in company_breadcrumbs])
             relevant_breadcrumbs = {
                 "title_breadcrumbs": title_breadcrumbs,
                 "management_level_breadcrumbs": management_level_breadcrumbs,
@@ -1048,7 +1090,6 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
             if relevant_breadcrumbs.get("title_breadcrumbs"):
                 for breadcrumb in relevant_breadcrumbs["title_breadcrumbs"]:
                     if breadcrumb["display_name"].lower() in prospect_title.lower():
-                        filter_condition_met = True
                         met_conditions.append({
                             "condition": condition,
                             "title_breadcrumbs": breadcrumb["display_name"]
@@ -1056,37 +1097,46 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
                         break
 
             if relevant_breadcrumbs.get("management_level_breadcrumbs"):
-                if relevant_breadcrumbs["management_level_breadcrumbs"]:
-                    for breadcrumb in relevant_breadcrumbs["management_level_breadcrumbs"]:
-                        if breadcrumb["display_name"].lower() in prospect_title.lower():
-                            filter_condition_met = True
-                            met_conditions.append({
-                                "condition": condition,
-                                "management_level_breadcrumbs": breadcrumb["display_name"]
-                            })
-                            break
+                for breadcrumb in relevant_breadcrumbs["management_level_breadcrumbs"]:
+                    if breadcrumb["display_name"].lower() in prospect_title.lower():
+                        met_conditions.append({
+                            "condition": condition,
+                            "management_level_breadcrumbs": breadcrumb["display_name"]
+                        })
+                        break
 
             if relevant_breadcrumbs.get("company_breadcrumbs"):
                 for breadcrumb in relevant_breadcrumbs["company_breadcrumbs"]:
                     if breadcrumb["display_name"].strip().lower() == prospect_company.strip().lower():
                         print('matched on company breadcrumbs', breadcrumb["display_name"].lower())
-                        filter_condition_met = True
                         met_conditions.append({
                             "condition": condition,
                             "company_breadcrumbs": breadcrumb["display_name"]
                         })
                         break
 
-            if filter_condition_met:
-                print(f"Condition 'filter_matches' met: At least one condition satisfied for prospect")
-                any_condition_met = True
-                break
+            if not filter_condition_met:
+                all_conditions_met = False
 
-    if any_condition_met:
-        print(f"At least one condition met for ICP Route ID: {icp_route_id}")
+        if not condition_met and condition != "filter_matches":
+            all_conditions_met = False
+
+        if condition_met:
+                met_conditions.append({
+                    "condition": condition,
+                    "value": value
+                })
+    
+    if (len(met_conditions) == 0):
+        print("No conditions met")
+        return -1, met_conditions
+
+    print(f"Attempted conditions: {attempted_conditions}")
+    if all_conditions_met:
+        print(f"All conditions met for ICP Route ID: {icp_route_id}")
         return icp_route_id, met_conditions
 
-    print("Conditions not met for any ICP Route")
+    print("Not all conditions met for ICP Route")
     return -1, met_conditions
 
 def categorize_via_gpt_direct(prospect_name: str, prospect_company: str, prospect_title: str, prospect_linkedin: str, prospect_email: str, prospect_location: str, prospect_company_size: str, track_event_created_at: datetime, client_id: int) -> int:
