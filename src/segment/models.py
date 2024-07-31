@@ -26,6 +26,8 @@ class Segment(db.Model):
 
     attached_segment_tag_ids = db.Column(db.ARRAY(db.Integer), default=[])
 
+    is_market_map = db.Column(db.Boolean, nullable=True, default=False)
+
     def __repr__(self):
         return f"<Segment {self.id}>"
 
@@ -49,6 +51,7 @@ class Segment(db.Model):
             "apollo_query": apollo_query.to_dict() if apollo_query else None,
             "autoscrape_enabled": self.autoscrape_enabled,
             "current_scrape_page": self.current_scrape_page,
+            "is_market_map": self.is_market_map,
         }
         
 class SegmentTags(db.Model):
