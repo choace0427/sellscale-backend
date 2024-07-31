@@ -527,17 +527,6 @@ def create_client_archetype(
             + "&redirect=campaigns"
     )
 
-    # Getting the original client
-    # Getting the original client's name
-    if voice_id:
-        original_archetype = ClientArchetype.query.get(voice_id)
-        original_client = Client.query.get(original_archetype.client_id)
-        original_company_name = original_client.company
-
-    # Current client
-    current_client = Client.query.get(client_id)
-    current_company_name = current_client.company
-
     # Create default bump frameworks for this Archetype
     # If we are using voice_id, then we want to clone the voice_id and assign it to
     # this archetype_id and client_sdr_id
@@ -627,8 +616,6 @@ def create_client_archetype(
             archetype_id=archetype_id,
             client_id=client_id,
             client_sdr_id=client_sdr_id,
-            original_company_name=original_company_name,
-            current_company_name=current_company_name,
             voice_id=voice_id,
             campaign_additional_context=context,
         )
@@ -661,18 +648,12 @@ def campaign_voices_generation(
         archetype_id: int,
         client_id: int,
         client_sdr_id: int,
-        original_company_name: str,
-        current_company_name: str,
         voice_id: int,
         campaign_additional_context: str,
 ):
     client_archetype = ClientArchetype.query.get(archetype_id)
     # This is V1, so the sample replacement is hardcoded.
     # In a V2, we will be able to create instructions for replacement, through the creation of a new table
-    replacement_voice_id_to_value = {1024: {"from_replace": "FMC",
-                                            "to_replace": ["ACME", "SalesCon", "DevCon", "TechCon", "TechExpo",
-                                                           "Computex", "AICon"]}
-                                     }
 
     client = Client.query.get(client_id)
 
@@ -699,7 +680,7 @@ def campaign_voices_generation(
         # Getting all the bump framework from our reference archetype
         bump_frameworks = BumpFramework.query.filter(
             db.and_(
-                BumpFramework.client_archetype_id == voice_id,
+                BumpFramework.internal_default_voice_id == voice_id,
                 db.or_(
                     BumpFramework.overall_status == ProspectOverallStatus.BUMPED,
                     BumpFramework.overall_status == ProspectOverallStatus.ACCEPTED,
@@ -710,12 +691,12 @@ def campaign_voices_generation(
         for bump in bump_frameworks:
             # Create new bump framework for this archetype
             if bump.title:
-                title = bump.title.replace(original_company_name, current_company_name)
+                title = bump.title + f" - {company}"
             else:
                 title = archetype
 
             if bump.description:
-                description = bump.description.replace(original_company_name, current_company_name)
+                description = bump.description
             else:
                 description = "description"
 
@@ -729,19 +710,17 @@ def campaign_voices_generation(
             ], model='gpt-4o', max_tokens=1000)
 
             if bump.bump_framework_template_name:
-                bump_framework_template_name = bump.bump_framework_template_name.replace(original_company_name,
-                                                                                         current_company_name)
+                bump_framework_template_name = bump.bump_framework_template_name
             else:
                 bump_framework_template_name = None
 
             if bump.bump_framework_human_readable_prompt:
-                bump_framework_human_readable_prompt = bump.bump_framework_human_readable_prompt.replace(
-                    original_company_name, current_company_name)
+                bump_framework_human_readable_prompt = bump.bump_framework_human_readable_prompt
             else:
                 bump_framework_human_readable_prompt = None
 
             if bump.additional_context:
-                additional_context = bump.additional_context.replace(original_company_name, current_company_name)
+                additional_context = bump.additional_context
             else:
                 additional_context = None
 
@@ -785,7 +764,7 @@ def campaign_voices_generation(
         prompt = prompt.replace("[[client_info]]", company_brain).replace("[[additional_context]]", campaign_additional_context)
 
         original_ctas = GeneratedMessageCTA.query.filter(
-            GeneratedMessageCTA.archetype_id == voice_id
+            GeneratedMessageCTA.internal_default_voice_id == voice_id
         )
 
         prompt_string = ""
@@ -823,16 +802,12 @@ def campaign_voices_generation(
             )
 
     if with_voice:
-        original_srmgc = StackRankedMessageGenerationConfiguration.query.filter(
-            StackRankedMessageGenerationConfiguration.archetype_id == voice_id
+        original_srmgc: StackRankedMessageGenerationConfiguration = StackRankedMessageGenerationConfiguration.query.filter(
+            StackRankedMessageGenerationConfiguration.internal_default_voice_id == voice_id
         ).first()
 
-        replace_values = replacement_voice_id_to_value[voice_id]
-        replace_from_value = replace_values["from_replace"]
-        replace_to_values = replace_values["to_replace"]
-
         if original_srmgc:
-            name = f"Conference Campaign - {current_company_name}"
+            name = f"{original_srmgc.name} - {company}"
 
             if original_srmgc.instruction:
                 new_computed_prompt = original_srmgc.instruction + "\n ## Here are a couple of examples\n--\n"
@@ -856,54 +831,54 @@ def campaign_voices_generation(
             new_completion_7 = None
 
             if original_srmgc.prompt_1:
-                new_prompt_1 = original_srmgc.prompt_1.replace(replace_from_value, replace_to_values[0].replace(original_company_name, current_company_name))
+                new_prompt_1 = original_srmgc.prompt_1
                 new_computed_prompt += f'prompt:{new_prompt_1}\n'
 
             if original_srmgc.completion_1:
-                new_completion_1 = original_srmgc.completion_1.replace(replace_from_value, replace_to_values[0]).replace(original_company_name, current_company_name)
+                new_completion_1 = original_srmgc.completion_1
                 new_computed_prompt += f'response:{new_completion_1}\n\n--\n\n'
 
             if original_srmgc.prompt_2:
-                new_prompt_2 = original_srmgc.prompt_2.replace(replace_from_value, replace_to_values[1]).replace(original_company_name, current_company_name)
+                new_prompt_2 = original_srmgc.prompt_2
                 new_computed_prompt += f'prompt:{new_prompt_2}\n'
             if original_srmgc.completion_2:
-                new_completion_2 = original_srmgc.completion_2.replace(replace_from_value, replace_to_values[1]).replace(original_company_name, current_company_name)
+                new_completion_2 = original_srmgc.completion_2
                 new_computed_prompt += f'response:{new_completion_2}\n\n--\n\n'
 
             if original_srmgc.prompt_3:
-                new_prompt_3 = original_srmgc.prompt_3.replace(replace_from_value, replace_to_values[2]).replace(original_company_name, current_company_name)
+                new_prompt_3 = original_srmgc.prompt_3
                 new_computed_prompt += f'prompt:{new_prompt_3}\n'
 
             if original_srmgc.completion_3:
-                new_completion_3 = original_srmgc.completion_3.replace(replace_from_value, replace_to_values[2]).replace(original_company_name, current_company_name)
+                new_completion_3 = original_srmgc.completion_3
                 new_computed_prompt += f'response:{new_completion_3}\n\n--\n\n'
 
             if original_srmgc.prompt_4:
-                new_prompt_4 = original_srmgc.prompt_4.replace(replace_from_value, replace_to_values[3]).replace(original_company_name, current_company_name)
+                new_prompt_4 = original_srmgc.prompt_4
                 new_computed_prompt += f'prompt:{new_prompt_4}\n'
             if original_srmgc.completion_4:
-                new_completion_4 = original_srmgc.completion_4.replace(replace_from_value, replace_to_values[3]).replace(original_company_name, current_company_name)
+                new_completion_4 = original_srmgc.completion_4
                 new_computed_prompt += f'response:{new_completion_4}\n\n--\n\n'
 
             if original_srmgc.prompt_5:
-                new_prompt_5 = original_srmgc.prompt_5.replace(replace_from_value, replace_to_values[4]).replace(original_company_name, current_company_name)
+                new_prompt_5 = original_srmgc.prompt_5
                 new_computed_prompt += f'prompt:{new_prompt_5}\n'
             if original_srmgc.completion_5:
-                new_completion_5 = original_srmgc.completion_5.replace(replace_from_value, replace_to_values[4]).replace(original_company_name, current_company_name)
+                new_completion_5 = original_srmgc.completion_5
                 new_computed_prompt += f'response:{new_completion_5}\n\n--\n\n'
 
             if original_srmgc.prompt_6:
-                new_prompt_6 = original_srmgc.prompt_6.replace(replace_from_value, replace_to_values[5]).replace(original_company_name, current_company_name)
+                new_prompt_6 = original_srmgc.prompt_6
                 new_computed_prompt += f'prompt:{new_prompt_6}\n'
             if original_srmgc.completion_6:
-                new_completion_6 = original_srmgc.completion_6.replace(replace_from_value, replace_to_values[5]).replace(original_company_name, current_company_name)
+                new_completion_6 = original_srmgc.completion_6
                 new_computed_prompt += f'response:{new_completion_6}\n\n--\n\n'
 
             if original_srmgc.prompt_7:
-                new_prompt_7 = original_srmgc.prompt_7.replace(replace_from_value, replace_to_values[6]).replace(original_company_name, current_company_name)
+                new_prompt_7 = original_srmgc.prompt_7
                 new_computed_prompt += f'prompt:{new_prompt_7}\n'
             if original_srmgc.completion_7:
-                new_completion_7 = original_srmgc.completion_7.replace(replace_from_value, replace_to_values[6]).replace(original_company_name, current_company_name)
+                new_completion_7 = original_srmgc.completion_7
                 new_computed_prompt += f'response:{new_completion_7}\n\n--\n\n'
 
             new_computed_prompt += 'prompt: {prompt}\ncompletion:\n'

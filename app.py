@@ -241,6 +241,7 @@ def register_blueprints(app):
     from src.automation.phantom_buster.controllers import PHANTOM_BUSTER_BLUEPRINT
     from src.individual.controllers import INDIVIDUAL_BLUEPRINT
     from src.prospecting.icp_score.controllers import ICP_SCORING_BLUEPRINT
+    from src.internal_default_voices.controllers import INTERNAL_VOICES_BLUEPRINT
     from src.message_generation.email.controllers import (
         MESSAGE_GENERATION_EMAIL_BLUEPRINT,
     )
@@ -286,6 +287,7 @@ def register_blueprints(app):
     from src.apollo.controllers import APOLLO_REQUESTS
     from src.strategies.controllers import STRATEGIES_BLUEPRINT
 
+    app.register_blueprint(INTERNAL_VOICES_BLUEPRINT, url_prefix="/internal_voices")
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
     app.register_blueprint(WEBHOOKS_BLUEPRINT, url_prefix="/webhooks")
     app.register_blueprint(ECHO_BLUEPRINT, url_prefix="/echo")
