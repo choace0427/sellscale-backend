@@ -3,7 +3,8 @@ from flask import Blueprint, jsonify, request, Response
 from app import db
 from src.bump_framework.models import BumpFramework
 from src.internal_default_voices.models import InternalDefaultVoices
-from src.message_generation.models import GeneratedMessageCTA, StackRankedMessageGenerationConfiguration
+from src.message_generation.models import GeneratedMessageCTA, StackRankedMessageGenerationConfiguration, \
+    GeneratedMessageAutoBump, GeneratedMessage
 from src.utils.request_helpers import get_request_parameter
 
 INTERNAL_VOICES_BLUEPRINT = Blueprint("internal_voices", __name__)
@@ -317,6 +318,8 @@ def patch_internal_default_voice():
             bump_to_update.transformer_blocklist = bump["transformer_blocklist"]
             db.session.commit()
 
+    return jsonify({"message": "Internal voice updated successfully"}), 200
+
 
 @INTERNAL_VOICES_BLUEPRINT.route("/", methods=["GET"])
 def get_internal_default_voices():
@@ -339,11 +342,18 @@ def delete_internal_default_voice(internal_default_voice_id: int):
         db.session.delete(cta)
         db.session.commit()
     for bump in bumps:
+        generated_messages = GeneratedMessageAutoBump.query.filter_by(bump_framework_id=bump.id).all()
+        for generated_message in generated_messages:
+            db.session.delete(generated_message)
+            db.session.commit()
+
         db.session.delete(bump)
         db.session.commit()
     for stack in stacks:
-        db.session.delete(stack)
+        stack.internal_default_voice_id = None
         db.session.commit()
 
     db.session.delete(internal_voice)
     db.session.commit()
+
+    return jsonify({"message": "Internal voice deleted successfully"}), 200
