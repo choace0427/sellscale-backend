@@ -12,7 +12,7 @@ def send_socket_message(event: str, payload: dict, room_id: Optional[str] = None
     with lock:
         try:
             response = requests.post(
-                "https://socket-service-t6ln.onrender.com",
+                "https://socket-service-t6ln.onrender.com/send-message",
                 json={
                     "sdr_id": -1,
                     "event": event,
