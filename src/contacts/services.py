@@ -193,7 +193,7 @@ ALLOWED_FILTERS_APOLLO = {
     "person_titles": {
         "summary": "(list) List of person titles. Please always include this",
         "output_type": "list",
-        "prompt": "Infer some person titles from this sales segment. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 7 related job titles that may be synonymous with my target audience. Not plural. Also don't be too speciic, i.e. VP of clinical affairs is too specific, Clinical Affairs is better. Only output the list of strings.",
+        "prompt": "Infer some person titles from this sales segment. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 7 related job titles that may be synonymous with my target audience. Not plural. Also don't be too speciic, i.e. VP of clinical affairs is too specific, Clinical Affairs is better. Do not include the word manager. Only output the list of strings.",
     },
     "published_at_date_range": {
         "summary": "(dict) Date range for company news",
