@@ -51,7 +51,7 @@ class Segment(db.Model):
             "apollo_query": apollo_query.to_dict() if apollo_query else None,
             "autoscrape_enabled": self.autoscrape_enabled,
             "current_scrape_page": self.current_scrape_page,
-            "is_market_map": self.is_market_map,
+            "is_market_map": self.is_market_map if self.is_market_map is not None else False,
         }
         
 class SegmentTags(db.Model):
