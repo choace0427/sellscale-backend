@@ -57,6 +57,8 @@ def create_segment(client_sdr_id: int):
     )
     filters = get_request_parameter("filters", request, json=True, required=True)
 
+    is_market_map = get_request_parameter("is_market_map", request, json=True, required=True)
+
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=False
     )
@@ -69,13 +71,32 @@ def create_segment(client_sdr_id: int):
         segment_title=segment_title,
         filters=filters,
         campaign_id=campaign_id,
-        saved_apollo_query_id=saved_apollo_query_id
+        saved_apollo_query_id=saved_apollo_query_id,
+        is_market_map=is_market_map,
     )
 
     if segment:
         return segment.to_dict(), 200
     else:
         return "Segment creation failed", 400
+
+
+@SEGMENT_BLUEPRINT.route("/<int:segment_id>/prospects", methods=["GET"])
+@require_user
+def get_prospects_by_segment(client_sdr_id: int, segment_id: int):
+    segment = Segment.query.filter(
+        Segment.client_sdr_id == client_sdr_id,
+        Segment.id == segment_id
+    ).first()
+
+    if not segment:
+        return "Segment not found", 404
+
+    prospects = Prospect.query.filter(
+        Prospect.segment_id == segment_id,
+    ).all()
+
+    return jsonify({"prospects": [prospect.to_dict() for prospect in prospects]}), 200
 
 
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>", methods=["GET"])
@@ -100,6 +121,8 @@ def get_segments(client_sdr_id: int):
     tag_filter: bool = get_request_parameter(
         "tag_filter", request, json=False, required=False
     )
+
+
     segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client, tag_filter=tag_filter)
 
     return {"segments": segments}, 200

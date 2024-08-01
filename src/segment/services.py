@@ -23,7 +23,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 
 def create_new_segment(
-    client_sdr_id: int, segment_title: str, filters: dict, campaign_id: int = None, saved_apollo_query_id: Optional[int] = None, attached_segment_tag_ids = [],
+    client_sdr_id: int, segment_title: str, filters: dict, campaign_id: int = None, saved_apollo_query_id: Optional[int] = None, attached_segment_tag_ids = [], is_market_map: bool = False
 ) -> Segment or None:
     existing_segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, segment_title=segment_title
@@ -41,6 +41,7 @@ def create_new_segment(
         filters=filters,
         saved_apollo_query_id=saved_apollo_query_id,
         attached_segment_tag_ids=attached_segment_tag_ids,
+        is_market_map=is_market_map,
     )
 
     db.session.add(new_segment)
@@ -54,6 +55,7 @@ def create_new_segment(
             filters=filters,
             client_archetype_id=campaign_id,
             attached_segment_tag_ids=attached_segment_tag_ids,
+            is_market_map=is_market_map,
         )
 
     return new_segment
@@ -164,6 +166,7 @@ def get_segments_for_sdr(
             s.segment_title,
             s.filters,
             s.parent_segment_id,
+            s.is_market_map,
             s.saved_apollo_query_id,
             count(distinct p.id) as num_prospected,
             count(distinct p.id) filter (where p.approved_prospect_email_id is not null or p.approved_outreach_message_id is not null) as num_contacted,
@@ -175,7 +178,7 @@ def get_segments_for_sdr(
         left join saved_apollo_query saq on s.saved_apollo_query_id = saq.id
         left join prospect p on s.id = p.segment_id and p.client_id = :client_id
         where s.client_sdr_id in :sdr_ids
-        group by s.id, csdr.client_id, csdr.name, csdr.img_url, saq.num_results, archetype.archetype, archetype.emoji
+        group by s.id, s.is_market_map, csdr.client_id, csdr.name, csdr.img_url, saq.num_results, archetype.archetype, archetype.emoji
     """
 
     segments_data = db.session.execute(
@@ -187,6 +190,7 @@ def get_segments_for_sdr(
         segment_dict = {
             "id": row["id"],
             "segment_title": row["segment_title"],
+            "is_market_map": row["is_market_map"],
             "filters": row["filters"],
             "parent_segment_id": row["parent_segment_id"],
             "saved_apollo_query_id": row["saved_apollo_query_id"],
@@ -263,6 +267,7 @@ def update_segment(
     filters: dict,
     client_archetype_id: Optional[int] = None,
     attached_segment_tag_ids: Optional[list[int]] = None,
+    is_market_map: Optional[bool] = False,
 ) -> Segment:
     segment: Segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, id=segment_id
@@ -282,6 +287,9 @@ def update_segment(
 
     if attached_segment_tag_ids:
         segment.attached_segment_tag_ids = attached_segment_tag_ids
+
+    if is_market_map is not None:
+        segment.is_market_map = is_market_map
 
     db.session.add(segment)
     db.session.commit()
