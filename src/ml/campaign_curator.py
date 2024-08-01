@@ -1,3 +1,4 @@
+from typing import Optional
 from model_import import ClientSDR, Client
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.onboarding.onboarding_generation import get_summary_from_website
@@ -5,6 +6,8 @@ from src.research.website.serp_helpers import search_google_news_raw
 from datetime import datetime
 from app import db
 import json
+
+from src.sockets.services import send_socket_message
 
 CAMPAIGN_CURATOR_PROMPT = """
 You are Selina, SellScale's AI assistant for ideating on new campaigns to create. I am going to give you context about a business including:
@@ -15,7 +18,7 @@ You are Selina, SellScale's AI assistant for ideating on new campaigns to create
 - top colleague campaigns: Campaigns that the colleagues of our user has run that have worked well for replies + demos
 - campaigns I already ran: a list of campaigns that I've already run in the past with basic performance indicators.
 
-Using this information, respond with 5-6 new campaign ideas that we can run for our User.
+Using this information, respond with 1 new campaign idea that we can run for our User.
 
 ---------
 
@@ -45,7 +48,7 @@ Using this information, respond with 5-6 new campaign ideas that we can run for 
 
 Leverage the information provided above to come up with compelling strategy for me.
 
-Generate 5-6 new campaign ideas for me to target. Respond with a JSON list of objects. In each object, the keys should be:
+Generate 1 new campaign idea for me. Respond with a JSON object. in the object, the keys should be:
 - emoji (str): come up with one simple emoji to describe this campaign
 - campaign_title (str): a 5-7 word title describing the campaign. (ex. "Healthcare Executives in Louisiana - Coffee Chat"). Generally structure is "[2-3 words about customer profile] ([other details]) - [offer / strategy]"
 - icp_target (str): be hyper descriptive about the ICP. Include company location, titles, seniority, types of companies (or exact company names), company size, and other relevant details in 2-3 sentences.
@@ -227,7 +230,8 @@ def get_past_campaigns(client_sdr_id):
 
 def curate_campaigns(
     client_sdr_id: int,
-    additional_instructions: str
+    additional_instructions: str,
+    room_id: Optional[str] = None
 ):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client_id = client_sdr.client_id
@@ -261,21 +265,37 @@ def curate_campaigns(
         additional_instructions=additional_instructions
     )
 
-    response = wrapped_chat_gpt_completion(
-        max_tokens=3000,
-        messages=[
-            {
-                'role': 'system',
-                'content': prompt
-            }
-        ],
-        model='gpt-4o'
-    )
-    response = response.replace('```', '').replace('json', '').strip()
-    response = json.loads(response)
+    result = []
+
+    for i in range(0,5):
+        print(f"Running campaign curator for {client_sdr_id} iteration {i}")
+        try: 
+            response = wrapped_chat_gpt_completion(
+                max_tokens=3000,
+                messages=[
+                    {
+                        'role': 'system',
+                        'content': prompt
+                    }
+                ],
+                model='gpt-4o'
+            )
+            response = response.replace('```', '').replace('json', '').strip()
+            response = json.loads(response)
+            if room_id:
+                response['room_id'] = room_id
+                print(f"Sending message to room {room_id}")
+                send_socket_message('stream-answers', response, room_id)
+            result.append(response)
+
+        except Exception as e:
+            print(f"Error in campaign curator: {e}")
+
+    if (room_id):
+        send_socket_message('stream-answers', {"message":"done", "room_id": room_id}, room_id)
 
     return {
-        'response': response,
+        'response': result,
         'data': {
             'company_name': company_name,
             'tagline': tagline,

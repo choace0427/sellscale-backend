@@ -340,7 +340,10 @@ def post_campaign_curator(client_sdr_id: int):
         required=False,
         parameter_type=str,
     )
-    data = curate_campaigns(client_sdr_id, additional_instructions)
+    room_id = get_request_parameter(
+        "room_id", request, json=True, required=False, parameter_type=str
+    )
+    data = curate_campaigns(client_sdr_id, additional_instructions, room_id=room_id)
     return jsonify(data), 200
 
 
