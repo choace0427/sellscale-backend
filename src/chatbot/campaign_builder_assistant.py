@@ -216,7 +216,7 @@ def submit_tool_outputs(thread_id, run_id, tool_outputs):
     return response.json()
 
 
-def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None):
+def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None, in_terminal: Optional[bool] = True, room_id: Optional[int] = None):
     print("Starting conversation with the assistant. Type 'quit' to end.")
     assistant_id = "asst_uJJtKPGaVeVYQjgqCquTL3Bq" # Selix AI OpenAI Assistant ID
 
@@ -236,7 +236,7 @@ def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None):
         thread_id = create_thread()
         selix_session: SelixSession = SelixSession(
             client_sdr_id=client_sdr_id,
-            session_name="",
+            session_name="New Session",
             status=SelixSessionStatus.ACTIVE,
             memory={},
             estimated_completion_time=datetime.datetime.now() + datetime.timedelta(hours=24),
@@ -247,30 +247,32 @@ def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None):
         db.session.add(selix_session)
         db.session.commit()
 
-    while True:
+    while True and in_terminal:
         user_input = input("\n\n#############\n\n😎 You: ")
         if user_input.lower() == "quit":
             break
 
         add_message_to_thread(thread_id, user_input)
-        run_id = run_thread(thread_id, assistant_id)
+        handle_run_thread(thread_id)
+        reply = get_assistant_reply(thread_id)
 
-        # Simple polling mechanism
+        print("🤖 Assistant:", reply)
 
-        while True:
-            run_status = requests.get(
-                f"{API_URL}/threads/{thread_id}/runs/{run_id}", headers=HEADERS
-            ).json()["status"]
-            # print(run_status)
-            if run_status in ["completed", "failed"]:
-                break
-            if run_status == "requires_action":
-                print("🧩 Requires action")
-                retrieve_actions_needed(thread_id, run_id)
-            time.sleep(1)  # Sleep to avoid hitting the API rate limits too hard
+def handle_run_thread(thread_id):
+    run_id = run_thread(thread_id, 'asst_uJJtKPGaVeVYQjgqCquTL3Bq')
 
-        print("🤖 Assistant:", get_assistant_reply(thread_id))
-
+    # Simple polling mechanism
+    while True:
+        run_status = requests.get(
+            f"{API_URL}/threads/{thread_id}/runs/{run_id}", headers=HEADERS
+        ).json()["status"]
+        # print(run_status)
+        if run_status in ["completed", "failed"]:
+            break
+        if run_status == "requires_action":
+            print("🧩 Requires action")
+            retrieve_actions_needed(thread_id, run_id)
+        time.sleep(1)  # Sleep to avoid hitting the API rate limits too hard
 
 # Example usage
 # chat_with_assistant("asst_uJJtKPGaVeVYQjgqCquTL3Bq")
