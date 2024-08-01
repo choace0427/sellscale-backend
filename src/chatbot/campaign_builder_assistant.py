@@ -59,7 +59,7 @@ def create_review_card(campaign_id: dict):
     print("⚡️ AUTO ACTION: create_review_card({})".format(campaign_id))
     return {"success": True}
 
-def create_strategy(description: str):
+def create_strategy(description: str, session_id: int):
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
     return {"success": True}
 
