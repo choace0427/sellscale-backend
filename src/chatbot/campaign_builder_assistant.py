@@ -1,5 +1,7 @@
 import datetime
+from http import client
 import json
+from tracemalloc import start
 from typing import Optional
 import requests
 import os
@@ -7,8 +9,12 @@ import time
 from app import db
 
 from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, SelixSessionTaskStatus
+from src.client.models import ClientSDR
 
 from src.contacts.services import get_contacts_from_predicted_query_filters
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.ml.services import generate_strategy_copilot_response
+from src.strategies.models import Strategies, StrategyStatuses
 
 OPENAI_API_KEY = "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"
 
@@ -61,6 +67,64 @@ def create_review_card(campaign_id: dict):
 
 def create_strategy(description: str, session_id: int):
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
+
+    title = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                Based on the description, give me a 3-5 word strategy title.
+
+                Examples:
+                Input: "Expand market reach through social media campaigns."
+                Output: "Social Media Market Expansion"
+
+                Input: "Increase customer retention by improving support services."
+                Output: "Enhanced Customer Support Retention"
+
+                Important:
+                - Only return the strategy title. No Yapping.
+                - No quotations or special characters. Just the simple 3-5 word title.
+                
+                Description: {}
+                Strategy Title:""".format(
+                    description
+                ),
+            }
+        ],
+        model="gpt-4",
+    )
+
+    chat_content = [
+        {"sender": "user", "query": description, "id": 1}
+    ]
+    strategy_response = generate_strategy_copilot_response(chat_content)
+    strategy_title = strategy_response.get("response", "").strip()
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(session.client_sdr_id)
+
+    strategy: Strategies = Strategies(
+        title=title,
+        description=strategy_title,
+        tagged_campaigns=None,
+        status=StrategyStatuses.NOT_STARTED,
+        start_date=None,
+        end_date=None,
+        client_id=client_sdr.client_id,
+        created_by=session.client_sdr_id
+    )
+    db.session.add(strategy)
+    db.session.commit()
+
+    from sqlalchemy.orm.attributes import flag_modified
+    
+    session: SelixSession = SelixSession.query.get(session_id)
+    session.memory["strategy_id"] = strategy.id
+    flag_modified(session, "memory")
+    db.session.add(session)
+    db.session.commit()
+
     return {"success": True}
 
 def create_task(title: str, description: str, session_id: int):
