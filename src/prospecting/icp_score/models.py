@@ -54,6 +54,10 @@ class ICPScoringRuleset(db.Model):
         db.Integer, db.ForeignKey("client_archetype.id"), primary_key=True
     )
 
+    segment_id = db.Column(
+        db.Integer, db.ForeignKey("segment.id"), nullable=True
+    )
+
     # individual related
     included_individual_title_keywords = db.Column(db.ARRAY(db.String), nullable=True)
     excluded_individual_title_keywords = db.Column(db.ARRAY(db.String), nullable=True)
@@ -124,6 +128,7 @@ class ICPScoringRuleset(db.Model):
     def to_dict(self):
         return {
             "client_archetype_id": self.client_archetype_id,
+            "segment_id": self.segment_id,
             "included_individual_title_keywords": self.included_individual_title_keywords,
             "excluded_individual_title_keywords": self.excluded_individual_title_keywords,
             "included_individual_industry_keywords": self.included_individual_industry_keywords,
