@@ -10,7 +10,7 @@ from src.client.models import ClientArchetype, ClientSDR
 from src.contacts.models import SavedApolloQuery
 from src.ml.services import get_text_generation
 from src.prospecting.icp_score.models import ICPScoringRuleset
-from src.prospecting.icp_score.services import update_icp_filters
+from src.prospecting.icp_score.services import update_icp_filters, update_icp_scoring_ruleset
 from src.prospecting.models import (
     Prospect,
     ProspectOverallStatus,
@@ -650,6 +650,97 @@ def wipe_segment_ids_from_prospects_in_segment(segment_id: int):
     db.session.commit()
 
     return True, "Prospects removed from segment"
+
+def add_apollo_filters_to_icp_scoring_ruleset_for_campaign(
+    saved_apollo_query_id: int,
+    campaign_id: int,
+):
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(
+        id=saved_apollo_query_id
+    ).first()
+    if not saved_apollo_query:
+        return False, "Apollo query not found"
+    
+    #delete the existing ruleset if it exists
+    if campaign_id:
+        ICPScoringRuleset.query.filter(ICPScoringRuleset.client_archetype_id == campaign_id).delete()
+        db.session.commit()
+
+    #extract filters from apollo query
+    included_title_keywords = saved_apollo_query.data.get("person_titles")
+    excluded_title_keywords = saved_apollo_query.data.get("person_not_titles")
+    included_seniority_keywords = saved_apollo_query.data.get("person_seniorities")
+    excluded_seniority_keywords = saved_apollo_query.data.get("person_not_seniorities")
+    included_company_keywords = saved_apollo_query.data.get("organization_names")
+    excluded_company_keywords = saved_apollo_query.data.get("organization_not_names")
+    included_education_keywords = saved_apollo_query.data.get("education_keywords")
+    excluded_education_keywords = saved_apollo_query.data.get("education_not_keywords")
+    included_bio_keywords = saved_apollo_query.data.get("bio_keywords")
+    excluded_bio_keywords = saved_apollo_query.data.get("bio_not_keywords")
+    included_location_keywords = saved_apollo_query.data.get("person_locations")
+    excluded_location_keywords = saved_apollo_query.data.get("person_not_locations")
+    included_skills_keywords = saved_apollo_query.data.get("skills_keywords")
+    excluded_skills_keywords = saved_apollo_query.data.get("skills_not_keywords")
+    years_of_experience_start = saved_apollo_query.data.get("years_of_experience_start")
+    years_of_experience_end = saved_apollo_query.data.get("years_of_experience_end")
+    included_company_size = saved_apollo_query.data.get("organization_num_employees_ranges")
+    included_industry_keywords = saved_apollo_query.data.get("organization_industry_tag_ids")
+    excluded_industry_keywords = saved_apollo_query.data.get("organization_not_industry_tag_ids")
+    filters = {
+        "included_individual_title_keywords": included_title_keywords or [],
+        "excluded_individual_title_keywords": excluded_title_keywords or [],
+        "included_individual_seniority_keywords": included_seniority_keywords or [],
+        "excluded_individual_seniority_keywords": excluded_seniority_keywords or [],
+        "included_company_name_keywords": included_company_keywords or [],
+        "excluded_company_name_keywords": excluded_company_keywords or [],
+        "included_individual_education_keywords": included_education_keywords or [],
+        "excluded_individual_education_keywords": excluded_education_keywords or [],
+        "included_individual_generalized_keywords": included_bio_keywords or [],
+        "excluded_individual_generalized_keywords": excluded_bio_keywords or [],
+        "included_individual_locations_keywords": included_location_keywords or [],
+        "excluded_individual_locations_keywords": excluded_location_keywords or [],
+        "included_individual_skills_keywords": included_skills_keywords or [],
+        "excluded_individual_skills_keywords": excluded_skills_keywords or [],
+        "individual_years_of_experience_start": years_of_experience_start or 0,
+        "individual_years_of_experience_end": years_of_experience_end or 0,
+        "company_size_start": included_company_size or [],
+        "included_individual_industry_keywords": included_industry_keywords or [],
+        "excluded_individual_industry_keywords": excluded_industry_keywords or [],
+    }
+    
+    print('filters are: ', filters)
+    
+    update_icp_scoring_ruleset(
+        client_archetype_id=campaign_id,
+        included_individual_title_keywords=filters["included_individual_title_keywords"],
+        excluded_individual_title_keywords=filters["excluded_individual_title_keywords"],
+        included_individual_industry_keywords=filters["included_individual_industry_keywords"],
+        excluded_individual_industry_keywords=filters["excluded_individual_industry_keywords"],
+        individual_years_of_experience_start=filters["individual_years_of_experience_start"],
+        individual_years_of_experience_end=filters["individual_years_of_experience_end"],
+        included_individual_skills_keywords=filters["included_individual_skills_keywords"],
+        excluded_individual_skills_keywords=filters["excluded_individual_skills_keywords"],
+        included_individual_locations_keywords=filters["included_individual_locations_keywords"],
+        excluded_individual_locations_keywords=filters["excluded_individual_locations_keywords"],
+        included_individual_generalized_keywords=filters["included_individual_generalized_keywords"],
+        excluded_individual_generalized_keywords=filters["excluded_individual_generalized_keywords"],
+        included_company_name_keywords=filters["included_company_name_keywords"],
+        excluded_company_name_keywords=filters["excluded_company_name_keywords"],
+        included_company_locations_keywords=[],  # Assuming this is not provided in the filters
+        excluded_company_locations_keywords=[],  # Assuming this is not provided in the filters
+        company_size_start=filters["company_size_start"][0] if filters["company_size_start"] else 0,
+        company_size_end=filters["company_size_start"][1] if filters["company_size_start"] else 0,
+        included_company_industries_keywords=filters["included_individual_industry_keywords"],
+        excluded_company_industries_keywords=filters["excluded_individual_industry_keywords"],
+        included_company_generalized_keywords=[],  # Assuming this is not provided in the filters
+        excluded_company_generalized_keywords=[],  # Assuming this is not provided in the filters
+        included_individual_education_keywords=filters["included_individual_education_keywords"],
+        excluded_individual_education_keywords=filters["excluded_individual_education_keywords"],
+        included_individual_seniority_keywords=filters["included_individual_seniority_keywords"],
+        excluded_individual_seniority_keywords=filters["excluded_individual_seniority_keywords"],
+    )
+
+    return True, "Apollo filters added to campaign"
 
 
 def add_segment_filters_to_icp_scoring_ruleset_for_campaign(

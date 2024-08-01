@@ -16,6 +16,7 @@ from src.contacts.services import (
 )
 from src.company.services import find_company, find_company_name_from_url
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.segment.services import add_apollo_filters_to_icp_scoring_ruleset_for_campaign
 from src.utils.request_helpers import get_request_parameter
 from sqlalchemy import or_
 from src.company.models import Company, CompanyRelation
@@ -392,6 +393,23 @@ def get_apollo_queries(client_sdr_id: int):
         "status": "success",
         "data": queries,
     })
+
+@CONTACTS_BLUEPRINT.route("/add_apollo_filters_to_icp", methods=["POST"])
+@require_user
+def add_apollo_filters_to_icp(client_sdr_id: int):
+    saved_apollo_query_id = get_request_parameter("saved_apollo_query_id", request, json=True, required=True)
+    campaign_id = get_request_parameter("campaign_id", request, json=True, required=True)
+
+    success, message = add_apollo_filters_to_icp_scoring_ruleset_for_campaign(
+        saved_apollo_query_id=saved_apollo_query_id,
+        campaign_id=campaign_id
+    )
+
+    if success:
+        return jsonify({"status": "success", "message": message}), 200
+    else:
+        return jsonify({"status": "error", "message": message}), 400
+
 
 @CONTACTS_BLUEPRINT.route("/magic_apollo_search", methods=["POST"])
 @require_user
