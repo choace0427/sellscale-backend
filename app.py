@@ -286,6 +286,7 @@ def register_blueprints(app):
 
     from src.apollo.controllers import APOLLO_REQUESTS
     from src.strategies.controllers import STRATEGIES_BLUEPRINT
+    from src.chatbot.controllers import SELIX_BLUEPRINT
 
     app.register_blueprint(INTERNAL_VOICES_BLUEPRINT, url_prefix="/internal_voices")
     app.register_blueprint(CLIENT_ARCHETYPE_BLUEPRINT, url_prefix="/client/archetype")
@@ -372,6 +373,7 @@ def register_blueprints(app):
 
     app.register_blueprint(APOLLO_REQUESTS, url_prefix="/apollo")
     app.register_blueprint(STRATEGIES_BLUEPRINT, url_prefix="/strategies")
+    app.register_blueprint(SELIX_BLUEPRINT, url_prefix="/selix")
 
     db.init_app(app)
 
