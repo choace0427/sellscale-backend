@@ -1,3 +1,4 @@
+from concurrent.futures import thread
 from flask import Blueprint, jsonify, request
 import requests
 from model_import import SelixSession
@@ -38,14 +39,18 @@ def get_messages_in_thread(client_sdr_id):
 @SELIX_BLUEPRINT.route("/create_message", methods=["POST"])
 @require_user
 def create_message(client_sdr_id):
-    thread_id = get_request_parameter(
-        "thread_id", request, json=True, required=True
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
     )
     message = get_request_parameter(
         "message", request, json=True, required=True
     )
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    thread_id = session.thread_id
+
     add_message_to_thread(thread_id, message)
-    handle_run_thread(thread_id)
+    handle_run_thread(thread_id, session_id)
     get_assistant_reply(thread_id)
         
     return "OK", 200

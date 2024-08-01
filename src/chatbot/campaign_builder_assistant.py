@@ -63,8 +63,19 @@ def create_strategy(description: str):
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
     return {"success": True}
 
-def create_task(title: str, description: str):
+def create_task(title: str, description: str, session_id: int):
     print("⚡️ AUTO ACTION: create_task('{}', '{}')".format(title, description))
+
+    task = SelixSessionTask(
+        selix_session_id=session_id,
+        actual_completion_time=None,
+        title=title,
+        description=description,
+        status=SelixSessionTaskStatus.QUEUED
+    )
+    db.session.add(task)
+    db.session.commit()
+
     return {"success": True}
 
 
@@ -78,8 +89,8 @@ ACTION_MAP = {
 }
 
 
-def run_action(action_name, params):
-    return ACTION_MAP[action_name](**params)
+def run_action(action_name, params, session_id):
+    return ACTION_MAP[action_name](**params, session_id=session_id)
 
 
 # ACTIONS - END
@@ -164,7 +175,7 @@ def get_last_n_messages(thread_id):
     return all_messages
 
 
-def retrieve_actions_needed(thread_id, run_id):
+def retrieve_actions_needed(thread_id, run_id, session_id):
     response = requests.get(
         f"{API_URL}/threads/{thread_id}/runs/{run_id}", headers=HEADERS
     )
@@ -182,7 +193,7 @@ def retrieve_actions_needed(thread_id, run_id):
         print("Executing: ", function_name, args_str)
 
         func_args = json.loads(args_str)
-        output = run_action(function_name, func_args)
+        output = run_action(function_name, func_args, session_id=session_id)
 
         responses.append(
             {
@@ -253,12 +264,12 @@ def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None, in
             break
 
         add_message_to_thread(thread_id, user_input)
-        handle_run_thread(thread_id)
+        handle_run_thread(thread_id, session_id)
         reply = get_assistant_reply(thread_id)
 
         print("🤖 Assistant:", reply)
 
-def handle_run_thread(thread_id):
+def handle_run_thread(thread_id, session_id):
     run_id = run_thread(thread_id, 'asst_uJJtKPGaVeVYQjgqCquTL3Bq')
 
     # Simple polling mechanism
@@ -271,7 +282,7 @@ def handle_run_thread(thread_id):
             break
         if run_status == "requires_action":
             print("🧩 Requires action")
-            retrieve_actions_needed(thread_id, run_id)
+            retrieve_actions_needed(thread_id, run_id, session_id)
         time.sleep(1)  # Sleep to avoid hitting the API rate limits too hard
 
 # Example usage
