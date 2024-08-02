@@ -125,6 +125,16 @@ def create_strategy(description: str, session_id: int):
     db.session.add(session)
     db.session.commit()
 
+    selix_task = SelixSessionTask(
+        selix_session_id=session_id,
+        actual_completion_time=datetime.datetime.now(),
+        title="Create Strategy",
+        description="Create a strategy based on the description provided: {}".format(description),
+        status=SelixSessionTaskStatus.COMPLETE
+    )
+    db.session.add(selix_task)
+    db.session.commit()
+
     return {"success": True}
 
 def create_task(title: str, description: str, session_id: int):
@@ -200,6 +210,8 @@ def get_last_n_messages(thread_id):
         "limit": 100,
         "order": "desc",
     }
+
+    import pdb; pdb.set_trace()
 
     def fetch_messages_with_retry(url, headers, params, retries=3, timeout=2):
         for attempt in range(retries):
