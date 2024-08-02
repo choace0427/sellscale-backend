@@ -15,6 +15,14 @@ from src.contacts.services import get_contacts_from_predicted_query_filters
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import generate_strategy_copilot_response
 from src.strategies.models import Strategies, StrategyStatuses
+from src.utils.slack import URL_MAP, send_slack_message
+
+# Some information about the user you're speaking with:
+# Name: Rishi Bhanderjee
+# Title: Sales Rep at Athelas
+# Company: Athelas
+# Company Tagline: AI-Powered Operations for Healthcare
+# Company Description: At Athelas we're bringing simple, life-changing health care products and medical billing services to patients and providers around the globe.
 
 OPENAI_API_KEY = "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"
 
@@ -109,8 +117,8 @@ def create_strategy(description: str, session_id: int):
         description=strategy_title,
         tagged_campaigns=None,
         status=StrategyStatuses.NOT_STARTED,
-        start_date=None,
-        end_date=None,
+        start_date=datetime.datetime.today(),
+        end_date=datetime.datetime.today() + datetime.timedelta(days=30),
         client_id=client_sdr.client_id,
         created_by=session.client_sdr_id
     )
@@ -152,6 +160,20 @@ def create_task(title: str, description: str, session_id: int):
 
     return {"success": True}
 
+def wait_for_ai_execution(session_id: int):
+    print("⚡️ AUTO ACTION: wait_for_ai_execution()")
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    session.estimated_completion_time = datetime.datetime.now() + datetime.timedelta(hours=24)
+    session.status = SelixSessionStatus.PENDING_OPERATOR
+    
+    send_slack_message(
+        message="Selix Session is waiting for operator: {}".format(session.id),
+        webhook_urls=[URL_MAP['eng-sandbox']]
+    )
+
+    return {"success": True}
+
 
 ACTION_MAP = {
     "create_campaign": create_campaign,
@@ -159,7 +181,8 @@ ACTION_MAP = {
     "generate_sequence": generate_sequence,
     "create_review_card": create_review_card,
     "create_strategy": create_strategy,
-    "create_task": create_task
+    "create_task": create_task,
+    "wait_for_ai_execution": wait_for_ai_execution
 }
 
 
