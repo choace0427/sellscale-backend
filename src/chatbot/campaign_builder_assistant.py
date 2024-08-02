@@ -271,9 +271,9 @@ def get_last_n_messages(thread_id):
         # Update the 'before' parameter to fetch the next set of messages
         params["before"] = messages[-1]["created_at"]
 
-    # Exclude the very first message in the list
-    if all_messages:
-        all_messages = all_messages[1:]
+    # Exclude the very last two message in the list
+    if all_messages and len(all_messages) > 1:
+        all_messages = all_messages[0:len(all_messages) - 2]
 
     return all_messages
 
@@ -386,8 +386,7 @@ Here is some additional context about me, the person you're speaking with, my co
 - Company Description: {description}
 - Ideal Customer Profile Description: {icp_description}
 
-Reference this information as needed during our conversation.
-        """.format(
+Reference this information as needed during our conversation. Simply respond with one word after this messaying saying "Acknowledged".""".format(
             name=client_sdr.name,
             title=client_sdr.title,
             company=client.company,
@@ -406,8 +405,7 @@ Reference this information as needed during our conversation.
 Here is some additional context about me, the person you're speaking with, my company, and other relevant information:
 {additional_context}
 
-Reference this information as needed during our conversation.
-        """.format(
+Reference this information as needed during our conversation. Simply respond with one word after this messaying saying "Acknowledged".""".format(
             additional_context=additional_context
         )
         add_message_to_thread(
@@ -415,6 +413,9 @@ Reference this information as needed during our conversation.
             additional_context,
             role="user"
         )
+
+    handle_run_thread(thread_id, session_id)
+    reply = get_assistant_reply(thread_id)
 
     selix_session.memory["additional_context"] = additional_context
     from sqlalchemy.orm.attributes import flag_modified
