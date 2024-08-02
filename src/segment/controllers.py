@@ -82,7 +82,7 @@ def create_segment(client_sdr_id: int):
     # it linked to the unassigned SDR
     unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.is_unassigned_contact_archetype is True
+        ClientArchetype.is_unassigned_contact_archetype == True
     ).first()
 
     if unassigned_archetype:
@@ -104,7 +104,7 @@ def create_segment(client_sdr_id: int):
 def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
     client_archetype: ClientArchetype = ClientArchetype.query.filter(
         ClientArchetype.client_sdr_id == client_sdr_id,
-        ClientArchetype.is_unassigned_contact_archetype is True,
+        ClientArchetype.is_unassigned_contact_archetype == True,
     ).first()
 
     if not client_archetype:

@@ -690,6 +690,9 @@ class Prospect(db.Model):
                 "icp_fit_score": self.icp_fit_score,
                 "icp_fit_last_hash": self.icp_fit_last_hash,
                 "icp_fit_reason": self.icp_fit_reason,
+                "icp_fit_reason_v2": self.icp_fit_reason_v2,
+                "icp_company_fit_score": self.icp_company_fit_score,
+                "icp_company_fit_reason": self.icp_company_fit_reason,
                 "li_public_id": (
                     self.linkedin_url.split("/in/")[1].split("/")[0]
                     if self.linkedin_url
@@ -865,6 +868,9 @@ class Prospect(db.Model):
             "icp_fit_last_hash": self.icp_fit_last_hash,
             "icp_fit_reason": self.icp_fit_reason,
             "icp_fit_error": self.icp_fit_error,
+            "icp_fit_reason_v2": self.icp_fit_reason_v2,
+            "icp_company_fit_score": self.icp_company_fit_score,
+            "icp_company_fit_reason": self.icp_company_fit_reason,
             "img_url": self.img_url,
             "img_expire": self.img_expire,
             "hidden_until": self.hidden_until,
