@@ -22,7 +22,10 @@ def create_session(client_sdr_id: int):
     room_id = get_request_parameter(
         "room_id", request, json=True, required=False
     )
-    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id)
+    additional_context = get_request_parameter(
+        "additional_context", request, json=True, required=False
+    )
+    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context)
     return "OK", 200
 
 @SELIX_BLUEPRINT.route("/get_messages_in_thread", methods=["GET"])

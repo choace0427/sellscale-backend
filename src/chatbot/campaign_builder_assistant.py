@@ -3,13 +3,15 @@ from http import client
 import json
 from tracemalloc import start
 from typing import Optional
+from numpy import add
 import requests
 import os
 import time
 from app import db
 
 from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, SelixSessionTaskStatus
-from src.client.models import ClientSDR
+from src.client.models import ClientSDR, Client
+from src.contacts.models import SavedApolloQuery
 
 from src.contacts.services import get_contacts_from_predicted_query_filters
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
@@ -324,11 +326,18 @@ def submit_tool_outputs(thread_id, run_id, tool_outputs):
     return response.json()
 
 
-def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None, in_terminal: Optional[bool] = True, room_id: Optional[int] = None):
+def chat_with_assistant(
+        client_sdr_id: int, 
+        session_id: Optional[int] = None, 
+        in_terminal: Optional[bool] = True, 
+        room_id: Optional[int] = None,
+        additional_context: Optional[str] = None
+):
     print("Starting conversation with the assistant. Type 'quit' to end.")
     assistant_id = "asst_uJJtKPGaVeVYQjgqCquTL3Bq" # Selix AI OpenAI Assistant ID
 
     thread_id = None
+    selix_session = None
 
     if session_id:
         selix_session: SelixSession = SelixSession.query.get(session_id)
@@ -354,6 +363,60 @@ def chat_with_assistant(client_sdr_id: int, session_id: Optional[int] = None, in
         )
         db.session.add(selix_session)
         db.session.commit()
+    
+    if not additional_context:
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client: Client = Client.query.get(client_sdr.client_id)
+        pre_filters: SavedApolloQuery = SavedApolloQuery.query.filter(
+            SavedApolloQuery.segment_description.isnot(None)
+        ).order_by(SavedApolloQuery.id.desc()).first()
+        icp_description = ""
+        if pre_filters:
+            icp_description = pre_filters.segment_description
+        additional_context = """
+Here is some additional context about who you're speaking with, their company, and other relevant information:
+- Name: {name}
+- Title: {title}
+- Company: {company}
+- Company Tagline: {tagline}
+- Company Description: {description}
+- Ideal Customer Profile Description: {icp_description}
+
+Reference this information as needed during the conversation.
+        """.format(
+            name=client_sdr.name,
+            title=client_sdr.title,
+            company=client.company,
+            tagline=client.tagline,
+            description=client.description,
+            icp_description=icp_description
+        )
+
+        add_message_to_thread(
+            thread_id, 
+            additional_context, 
+            role="system"
+        )
+    else:
+        additional_context = """
+Here is some additional context about the conversation:
+{additional_context}
+
+Reference this information as needed during the conversation.
+        """.format(
+            additional_context=additional_context
+        )
+        add_message_to_thread(
+            thread_id, 
+            additional_context,
+            role="system"
+        )
+
+    selix_session.memory["additional_context"] = additional_context
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(selix_session, "memory")
+    db.session.add(selix_session)
+    db.session.commit()
 
     while True and in_terminal:
         user_input = input("\n\n#############\n\n😎 You: ")
