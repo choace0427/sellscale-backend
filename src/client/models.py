@@ -230,6 +230,9 @@ class ClientArchetype(db.Model):
 
     ai_voice_id = db.Column(db.Integer, db.ForeignKey("ai_voice.id"), nullable=True)
 
+    li_seq_generation_in_progress = db.Column(db.Boolean, nullable=True, default=False)
+    email_seq_generation_in_progress = db.Column(db.Boolean, nullable=True, default=False)
+
     def to_dict(self) -> dict:
         from src.message_generation.models import GeneratedMessageCTA
 
@@ -292,6 +295,8 @@ class ClientArchetype(db.Model):
             "is_ai_research_personalization_enabled": self.is_ai_research_personalization_enabled,
             "testing_volume": self.testing_volume,
             "setup_status": self.setup_status.value if self.setup_status else None,
+            "li_seq_generation_in_progress": self.li_seq_generation_in_progress,
+            "email_seq_generation_in_progress": self.email_seq_generation_in_progress,
         }
 
 
