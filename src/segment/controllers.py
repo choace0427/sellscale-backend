@@ -1,9 +1,12 @@
 from flask import Blueprint, jsonify, request
+
+from app import db
 from src.ai_requests.services import create_ai_requests
 from src.authentication.decorators import require_user
 from src.client.controllers import create_archetype
 from src.client.models import ClientArchetype, ClientSDR
 from src.client.services import create_client_archetype
+from src.prospecting.icp_score.models import ICPScoringRuleset
 from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
 from src.segment.models import Segment
 from src.segment.services import (
@@ -75,6 +78,22 @@ def create_segment(client_sdr_id: int):
         is_market_map=is_market_map,
     )
 
+    # If is a market map, we want to create an icp ruleset, and have
+    # it linked to the unassigned SDR
+    if segment and is_market_map:
+        unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+            ClientArchetype.client_sdr_id == client_sdr_id,
+            ClientArchetype.is_unassigned_contact_archetype is True
+        ).first()
+
+        if unassigned_archetype:
+            empty_icp_scoring_ruleset = ICPScoringRuleset(
+                client_archetype_id=unassigned_archetype.id,
+                segment_id=segment.id
+            )
+            db.session.add(empty_icp_scoring_ruleset)
+            db.session.commit()
+
     if segment:
         return segment.to_dict(), 200
     else:
@@ -122,8 +141,8 @@ def get_segments(client_sdr_id: int):
         "tag_filter", request, json=False, required=False
     )
 
-
-    segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client, tag_filter=tag_filter)
+    segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client,
+                                                tag_filter=tag_filter)
 
     return {"segments": segments}, 200
 
@@ -200,7 +219,6 @@ def update_segment_endpoint(client_sdr_id: int, segment_id: int):
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>", methods=["DELETE"])
 @require_user
 def delete_segment_endpoint(client_sdr_id: int, segment_id: int):
-
     success, message = wipe_and_delete_segment(
         client_sdr_id=client_sdr_id, segment_id=segment_id
     )
@@ -502,14 +520,15 @@ def request_campaign_and_move_prospects(client_sdr_id: int, segment_id: int):
         client_sdr_id=client_sdr_id,
         title="Requesting Campaign From Segment: " + segment.segment_title,
         description="Can you please create a campaign for the prospects in this segment: "
-        + segment.segment_title
-        + "?",
+                    + segment.segment_title
+                    + "?",
     )
 
     if success:
         return msg, 200
 
     return "Failed", 400
+
 
 @SEGMENT_BLUEPRINT.route("/connect_apollo_query", methods=['POST'])
 @require_user
@@ -524,8 +543,9 @@ def post_connect_saved_apollo_query_to_segment(client_sdr_id: int):
 
     if success:
         return msg, 200
-    
+
     return "Failed", 400
+
 
 @SEGMENT_BLUEPRINT.route("/transfer_segment", methods=['POST'])
 @require_user
@@ -544,6 +564,7 @@ def post_transfer_segment(client_sdr_id: int):
 
     return msg, 200
 
+
 @SEGMENT_BLUEPRINT.route("/duplicate_segment", methods=['POST'])
 @require_user
 def post_duplicate_segment(client_sdr_id: int):
@@ -558,6 +579,7 @@ def post_duplicate_segment(client_sdr_id: int):
 
     return msg, 200
 
+
 @SEGMENT_BLUEPRINT.route("/create_n_subsegments", methods=['POST'])
 @require_user
 def post_create_n_subsegments(client_sdr_id: int):
@@ -571,8 +593,9 @@ def post_create_n_subsegments(client_sdr_id: int):
 
     if not success:
         return msg, 400
-    
+
     return msg, 200
+
 
 @SEGMENT_BLUEPRINT.route("/move_segment", methods=['POST'])
 @require_user
@@ -591,6 +614,7 @@ def post_move_segment(client_sdr_id: int):
 
     return msg, 200
 
+
 @SEGMENT_BLUEPRINT.route("/toggle_segment_auto_scrape", methods=['POST'])
 @require_user
 def post_toggle_segment_auto_scrape(client_sdr_id: int):
@@ -602,6 +626,7 @@ def post_toggle_segment_auto_scrape(client_sdr_id: int):
         return msg, 200
 
     return msg, 400
+
 
 @SEGMENT_BLUEPRINT.route("/run_scrapes", methods=['POST'])
 @require_user
@@ -630,6 +655,7 @@ def post_set_current_scrape_page(client_sdr_id: int):
 
     return msg, 400
 
+
 @SEGMENT_BLUEPRINT.route("/tags/create", methods=["POST"])
 @require_user
 def create_segment_tag_endpoint(client_sdr_id: int):
@@ -643,6 +669,7 @@ def create_segment_tag_endpoint(client_sdr_id: int):
     else:
         return jsonify({"error": "Failed to create or add tag"}), 400
 
+
 @SEGMENT_BLUEPRINT.route("/tags/add", methods=["POST"])
 @require_user
 def add_tag_to_segment(client_sdr_id: int):
@@ -654,6 +681,7 @@ def add_tag_to_segment(client_sdr_id: int):
         return jsonify({"message": message}), 200
     else:
         return jsonify({"error": message}), 400
+
 
 @SEGMENT_BLUEPRINT.route("/tags/<int:tag_id>", methods=['DELETE'])
 @require_user
@@ -676,6 +704,8 @@ def remove_tag_from_segment_endpoint(client_sdr_id: int):
         return "Tag removed from segment", 200
     else:
         return message, 400
+
+
 @SEGMENT_BLUEPRINT.route("/tags", methods=["GET"])
 @require_user
 def get_segment_tags(client_sdr_id: int):
@@ -684,4 +714,3 @@ def get_segment_tags(client_sdr_id: int):
         return jsonify([tag.to_dict() for tag in tags]), 200
     else:
         return jsonify([]), 200
-

@@ -50,8 +50,12 @@ class ICPScoringJobQueue(db.Model):
 class ICPScoringRuleset(db.Model):
     __tablename__ = "icp_scoring_ruleset"
 
+    id = db.Column(
+        db.Integer, primary_key=True
+    )
+
     client_archetype_id = db.Column(
-        db.Integer, db.ForeignKey("client_archetype.id"), primary_key=True
+        db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
 
     segment_id = db.Column(
@@ -127,6 +131,7 @@ class ICPScoringRuleset(db.Model):
 
     def to_dict(self):
         return {
+            "id": self.id,
             "client_archetype_id": self.client_archetype_id,
             "segment_id": self.segment_id,
             "included_individual_title_keywords": self.included_individual_title_keywords,
