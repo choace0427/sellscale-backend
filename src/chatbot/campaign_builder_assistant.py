@@ -271,6 +271,10 @@ def get_last_n_messages(thread_id):
         # Update the 'before' parameter to fetch the next set of messages
         params["before"] = messages[-1]["created_at"]
 
+    # Exclude the very first message in the list
+    if all_messages:
+        all_messages = all_messages[1:]
+
     return all_messages
 
 
@@ -374,7 +378,7 @@ def chat_with_assistant(
         if pre_filters:
             icp_description = pre_filters.segment_description
         additional_context = """
-Here is some additional context about who you're speaking with, their company, and other relevant information:
+Here is some additional context about me, the person you're speaking with, my company, and other relevant information:
 - Name: {name}
 - Title: {title}
 - Company: {company}
@@ -382,7 +386,7 @@ Here is some additional context about who you're speaking with, their company, a
 - Company Description: {description}
 - Ideal Customer Profile Description: {icp_description}
 
-Reference this information as needed during the conversation.
+Reference this information as needed during our conversation.
         """.format(
             name=client_sdr.name,
             title=client_sdr.title,
@@ -395,21 +399,21 @@ Reference this information as needed during the conversation.
         add_message_to_thread(
             thread_id, 
             additional_context, 
-            role="system"
+            role="user"
         )
     else:
         additional_context = """
-Here is some additional context about the conversation:
+Here is some additional context about me, the person you're speaking with, my company, and other relevant information:
 {additional_context}
 
-Reference this information as needed during the conversation.
+Reference this information as needed during our conversation.
         """.format(
             additional_context=additional_context
         )
         add_message_to_thread(
             thread_id, 
             additional_context,
-            role="system"
+            role="user"
         )
 
     selix_session.memory["additional_context"] = additional_context
