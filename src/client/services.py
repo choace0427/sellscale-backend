@@ -5,6 +5,7 @@ import sqlalchemy
 from src.ai_requests.services import create_ai_requests
 from src.automation.orchestrator import add_process_for_future
 from src.bump_framework.services import create_bump_framework
+from src.client.SequenceAutoGeneration import SequenceAutoGenerationParameters, generate_linkedin_sequence_prompt, initialize_auto_generation_payload
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
 from src.client.sdr.services_client_sdr import (
@@ -463,6 +464,7 @@ def create_client_archetype(
         with_voice: Optional[bool] = False,
         with_follow_up: Optional[bool] = False,
         context: Optional[str] = "",
+        auto_generation_payload: Optional[dict] = None,
 ):
     c: Client = get_client(client_id=client_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -517,6 +519,24 @@ def create_client_archetype(
     db.session.add(client_archetype)
     db.session.commit()
     archetype_id = client_archetype.id
+
+    auto_generation_payload: SequenceAutoGenerationParameters = initialize_auto_generation_payload(auto_generation_payload)
+
+    if auto_generation_payload.write_email_sequence_draft:
+        pass
+        # create_email_sequences_for_campaign(
+        #     client_id=client_id,
+        #     client_sdr_id=client_sdr_id,
+        #     email_sequence_state=auto_generation_payload.email_sequence_parameters
+        # )
+    if auto_generation_payload.write_li_sequence_draft:
+        print("Generating LI sequence")
+        from src.ml.services import one_shot_linkedin_sequence_generation
+        one_shot_linkedin_sequence_generation.delay(
+            client_sdr_id,
+            archetype_id,
+            generate_linkedin_sequence_prompt(auto_generation_payload)
+        )
 
     client: Client = Client.query.get(client_id)
     webhook_url: str = client.pipeline_notifications_webhook_url
@@ -583,12 +603,6 @@ def create_client_archetype(
 
     if purpose:
         from src.ml.services import find_contacts_from_serp, one_shot_linkedin_sequence_generation
-
-        one_shot_linkedin_sequence_generation.delay(
-            client_sdr_id,
-            archetype_id,
-            purpose
-        )
         find_contacts_from_serp.delay(
             archetype_id,
             purpose

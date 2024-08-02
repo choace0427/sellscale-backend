@@ -531,9 +531,12 @@ def create_archetype(client_sdr_id: int):
     )
     purpose = get_request_parameter("purpose", request, json=True, required=False)
 
+    auto_generation_payload = get_request_parameter(
+        "auto_generation_payload", request, json=True, required=False
+    )
 
     # Get client ID from client SDR ID.
-    client_sdr = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not client_sdr or not client_sdr.client_id:
         return "Failed to find client ID from auth token", 500
 
@@ -553,6 +556,7 @@ def create_archetype(client_sdr_id: int):
         email_active=email_active,
         connection_type=email_to_linkedin_connection,
         purpose=purpose,
+        auto_generation_payload=auto_generation_payload,
     )
     if not ca:
         return "Client not found", 404
