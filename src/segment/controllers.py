@@ -80,24 +80,52 @@ def create_segment(client_sdr_id: int):
 
     # If is a market map, we want to create an icp ruleset, and have
     # it linked to the unassigned SDR
-    if segment and is_market_map:
-        unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
-            ClientArchetype.client_sdr_id == client_sdr_id,
-            ClientArchetype.is_unassigned_contact_archetype is True
-        ).first()
+    unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype is True
+    ).first()
 
-        if unassigned_archetype:
-            empty_icp_scoring_ruleset = ICPScoringRuleset(
-                client_archetype_id=unassigned_archetype.id,
-                segment_id=segment.id
-            )
-            db.session.add(empty_icp_scoring_ruleset)
-            db.session.commit()
+    if unassigned_archetype:
+        empty_icp_scoring_ruleset = ICPScoringRuleset(
+            client_archetype_id=unassigned_archetype.id,
+            segment_id=segment.id
+        )
+        db.session.add(empty_icp_scoring_ruleset)
+        db.session.commit()
 
     if segment:
         return segment.to_dict(), 200
     else:
         return "Segment creation failed", 400
+
+
+@SEGMENT_BLUEPRINT.route("/<int:segment_id>/icp_ruleset", methods=["GET"])
+@require_user
+def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
+    client_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype is True,
+    ).first()
+
+    if not client_archetype:
+        return "Cannot find unassigned client archetype", 400
+
+    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
+        ICPScoringRuleset.segment_id == segment_id,
+        ICPScoringRuleset.client_archetype_id == client_archetype.id
+    ).first()
+
+    if not icp_scoring_ruleset:
+        empty_icp_scoring_ruleset = ICPScoringRuleset(
+            client_archetype_id=client_archetype.id,
+            segment_id=segment_id
+        )
+        db.session.add(empty_icp_scoring_ruleset)
+        db.session.commit()
+
+        return jsonify(empty_icp_scoring_ruleset.to_dict()), 200
+
+    return jsonify({"icp_ruleset": icp_scoring_ruleset.to_dict()}), 200
 
 
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>/prospects", methods=["GET"])

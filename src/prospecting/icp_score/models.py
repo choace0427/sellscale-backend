@@ -62,6 +62,26 @@ class ICPScoringRuleset(db.Model):
         db.Integer, db.ForeignKey("segment.id"), nullable=True
     )
 
+    dealbreakers = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+
+    individual_personalizers = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+
+    company_personalizers = db.Column(
+        db.ARRAY(db.String), nullable=True
+    )
+
+    individual_ai_filters = db.Column(
+        db.ARRAY(db.JSON), nullable=True
+    )
+
+    company_ai_filters = db.Column(
+        db.ARRAY(db.JSON), nullable=True
+    )
+
     # individual related
     included_individual_title_keywords = db.Column(db.ARRAY(db.String), nullable=True)
     excluded_individual_title_keywords = db.Column(db.ARRAY(db.String), nullable=True)
@@ -150,6 +170,11 @@ class ICPScoringRuleset(db.Model):
             "excluded_company_name_keywords": self.excluded_company_name_keywords,
             "included_company_locations_keywords": self.included_company_locations_keywords,
             "excluded_company_locations_keywords": self.excluded_company_locations_keywords,
+            "dealbreakers": self.dealbreakers,
+            "individual_personalizers": self.individual_personalizers,
+            "company_personalizers": self.company_personalizers,
+            "individual_ai_filters": self.individual_ai_filters,
+            "company_ai_filters": self.company_ai_filters,
             "company_size_start": self.company_size_start,
             "company_size_end": self.company_size_end,
             "included_company_industries_keywords": self.included_company_industries_keywords,
