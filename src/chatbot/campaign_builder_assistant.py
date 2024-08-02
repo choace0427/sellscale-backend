@@ -211,8 +211,6 @@ def get_last_n_messages(thread_id):
         "order": "desc",
     }
 
-    import pdb; pdb.set_trace()
-
     def fetch_messages_with_retry(url, headers, params, retries=3, timeout=2):
         for attempt in range(retries):
             try:
