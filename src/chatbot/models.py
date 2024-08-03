@@ -70,6 +70,8 @@ class SelixSessionTask(db.Model):
     description = db.Column(db.String, nullable=False)
     status = db.Column(db.Enum(SelixSessionTaskStatus), nullable=False, default=SelixSessionTaskStatus.QUEUED)
 
+    proof_of_work_img = db.Column(db.String, nullable=True)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -78,4 +80,5 @@ class SelixSessionTask(db.Model):
             "title": self.title,
             "description": self.description,
             "status": self.status.value,
+            "proof_of_work_img": self.proof_of_work_img,
         }
