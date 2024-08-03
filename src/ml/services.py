@@ -1755,7 +1755,7 @@ def one_shot_sequence_generation(
         else:
             from src.personas.services_generation import generate_email_follow_up_quick_and_dirty, generate_email_initial
             response = generate_email_initial(3, client_archetype.client_id, campaign_id, context_info, '', purpose, None, None)
-            response = response + '\n + \n + here are some followup emails:' + generate_email_follow_up_quick_and_dirty(3, client_archetype.client_id, campaign_id, 1, context_info, '', purpose, None, None)
+            # response = response + '\n + \n + here are some followup emails:' + generate_email_follow_up_quick_and_dirty(3, client_archetype.client_id, campaign_id, 1, context_info, '', purpose, None, None)
 
         if sequence_type == 'LINKEDIN-TEMPLATE':
             prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'title', 'step_num', 'assets', 'angle', and 'text' key for each entry.
@@ -1777,7 +1777,7 @@ def one_shot_sequence_generation(
             Here is the sequence:
             {response}
 
-            NOTE: Only respond with the JSON object and nothing else.
+            NOTE: Only respond with the JSON object and nothing else. Please generate some followups in the empty steps as well.
             
             JSON Output:""".format(response=response)
 

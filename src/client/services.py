@@ -547,13 +547,12 @@ def create_client_archetype(
     if auto_generation_payload.write_li_sequence_draft:
         print("Generating LI sequence")
         from src.ml.services import one_shot_sequence_generation
-        for i in range(0,2):
-            one_shot_sequence_generation.delay(
-                client_sdr_id,
-                archetype_id,
-                generate_linkedin_sequence_prompt(auto_generation_payload),
-                "LINKEDIN-TEMPLATE"
-            )
+        one_shot_sequence_generation.delay(
+            client_sdr_id,
+            archetype_id,
+            generate_linkedin_sequence_prompt(auto_generation_payload),
+            "LINKEDIN-TEMPLATE"
+        )
 
     client: Client = Client.query.get(client_id)
     webhook_url: str = client.pipeline_notifications_webhook_url
