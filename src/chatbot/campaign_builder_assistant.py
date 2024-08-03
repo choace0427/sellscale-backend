@@ -166,6 +166,13 @@ def create_strategy(description: str, session_id: int):
     db.session.add(selix_task)
     db.session.commit()
 
+    session_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).all()
+    for task in session_tasks:
+        task.status = SelixSessionTaskStatus.COMPLETE
+        task.actual_completion_time = datetime.datetime.now()
+        db.session.add(task)
+    db.session.commit()
+
     return {"success": True}
 
 def create_task(title: str, description: str, session_id: int):
