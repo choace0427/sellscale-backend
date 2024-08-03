@@ -133,6 +133,40 @@ def initialize_auto_generation_payload(auto_generation_payload: Optional[dict]) 
         email_sequence_state=auto_generation_payload.get('emailSequenceState')
     )
 
+def generate_email_sequence_prompt(auto_generation_parameters: SequenceAutoGenerationParameters) -> str:
+    if not auto_generation_parameters:
+        return "No parameters provided for email sequence generation."
+
+    prompt = ""
+    
+    if auto_generation_parameters.email_general_angle:
+        prompt += f"Here is the general angle for the sequence: {auto_generation_parameters.email_general_angle}\n"
+    
+    if auto_generation_parameters.email_sequence_state and any(vars(auto_generation_parameters.email_sequence_state).values()):
+        prompt += "I have selected the following parameters for email sequence generations:\n"
+        if auto_generation_parameters.email_sequence_state.how_it_works:
+            prompt += "Please state How it works\n"
+        if auto_generation_parameters.email_sequence_state.vary_intro_messages:
+            prompt += "Please Vary the intro messages\n"
+        if auto_generation_parameters.email_sequence_state.breakup_message:
+            prompt += "Please include a Breakup message\n"
+        if auto_generation_parameters.email_sequence_state.unique_offer:
+            prompt += "Please include a Unique offer\n"
+        if auto_generation_parameters.email_sequence_state.conference_outreach:
+            prompt += "Conference outreach\n"
+        if auto_generation_parameters.email_sequence_state.city_chat:
+            prompt += "City chat\n"
+        if auto_generation_parameters.email_sequence_state.former_work_alum:
+            prompt += "Former work alum\n"
+        if auto_generation_parameters.email_sequence_state.feedback_based:
+            prompt += "Feedback based\n"
+
+    if auto_generation_parameters.email_sequence_keywords:
+        prompt += 'These are the keywords you absolutely have to include: ' + ', '.join(auto_generation_parameters.email_sequence_keywords) + '\n'
+
+    print('Email Sequence Prompt:', prompt)
+    return prompt
+
 def generate_linkedin_sequence_prompt(auto_generation_parameters: SequenceAutoGenerationParameters) -> str:
     if not auto_generation_parameters:
         return "No parameters provided for LinkedIn sequence generation."

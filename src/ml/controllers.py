@@ -16,7 +16,7 @@ from src.ml.ai_researcher_services import (
     personalize_email,
 )
 from src.ml.campaign_curator import curate_campaigns
-from src.ml.services import generate_strategy_copilot_response, one_shot_linkedin_sequence_generation, find_contacts_from_serp
+from src.ml.services import generate_strategy_copilot_response, one_shot_sequence_generation, find_contacts_from_serp
 from src.ml.openai_wrappers import (
     NEWEST_CHAT_GP_MODEL,
     wrapped_chat_gpt_completion,

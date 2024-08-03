@@ -38,6 +38,7 @@ def add_sequence(
     client_id, archetype_id, sequence_type, subject_lines, steps, override=False
 ):
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    print('sequence type is ', sequence_type)
 
     if sequence_type == "EMAIL":
         # Wipe the existing sequence steps
@@ -105,6 +106,7 @@ def add_sequence(
             )
 
     elif sequence_type == "LINKEDIN-CTA":
+        print('inside linkedin cta')
         # Wipe the existing CTAs
         if override:
             ctas = GeneratedMessageCTA.query.filter_by(archetype_id=archetype_id).all()
@@ -156,7 +158,7 @@ def add_sequence(
                 asset_ids=step["assets"],
             )
 
-    if sequence_type.startswith("LINKEDIN-"):
+    elif sequence_type.startswith("LINKEDIN-"):
         # Update the archetype template mode
         archetype.template_mode = (
             True if sequence_type == "LINKEDIN-TEMPLATE" else False

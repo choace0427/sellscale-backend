@@ -1302,6 +1302,10 @@ def get_client_archetype_overview(client_archetype_id):
     meta_data = archetype.meta_data
     ai_researcher_id = archetype.ai_researcher_id
     ai_voice_id = archetype.ai_voice_id
+    li_seq_generation_in_progress = archetype.li_seq_generation_in_progress
+    email_seq_generation_in_progress = archetype.email_seq_generation_in_progress
+
+    print('in progress email seq', email_seq_generation_in_progress, 'in progress li seq', li_seq_generation_in_progress)
 
     num_prospects: int = Prospect.query.filter(
         Prospect.archetype_id == client_archetype_id
@@ -1325,6 +1329,8 @@ def get_client_archetype_overview(client_archetype_id):
         "email_to_linkedin_connection": email_to_linkedin_connection,
         "linkedin_active": linkedin_active,
         "testing_volume": testing_volume,
+        "li_seq_generation_in_progress": li_seq_generation_in_progress,
+        "email_seq_generation_in_progress": email_seq_generation_in_progress,
         "num_prospects": num_prospects,
         "num_prospects_with_emails": num_prospects_with_emails,
         "is_ai_research_personalization_enabled": archetype.is_ai_research_personalization_enabled,
@@ -1436,7 +1442,8 @@ def fetch_all_assets_in_client(client_sdr_id: int):
     ).all()
 
 def get_client_archetype_sequences(client_archetype_id):
-    client_sdr: ClientSDR = ClientSDR.query.get(ClientArchetype.query.get(client_archetype_id).client_sdr_id)
+    archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(archetype.client_sdr_id)
 
     email_sequence = get_email_sequence_step_for_sdr(
         client_sdr_id=client_sdr.id,
@@ -1537,6 +1544,8 @@ def get_client_archetype_sequences(client_archetype_id):
         "email_sequence": email_sequence,
         "linkedin_sequence": linkedin_sequence,
         "initial_message_templates": [template.to_dict() for template in initialMessageTemplates],
+        "li_seq_generation_in_progress": archetype.li_seq_generation_in_progress,
+        "email_seq_generation_in_progress": archetype.email_seq_generation_in_progress,
     }
 
 

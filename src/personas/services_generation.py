@@ -1079,7 +1079,7 @@ Please generate a follow up LinkedIn message outline for generative outreach to 
 
 
 ## Assets: 
-{assets_str}
+{assets_str if assets_str else "No assets provided"}
 
 
 ## Output:

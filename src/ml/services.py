@@ -1593,180 +1593,264 @@ def update_few_shot(id: int):
     db.session.commit()
     return True
 @celery.task
-def one_shot_linkedin_sequence_generation(
+def one_shot_sequence_generation(
     client_sdr_id: int,
     campaign_id: int,
-    purpose: str
+    purpose: str,
+    sequence_type: str = 'LINKEDIN-TEMPLATE',
 ):
-    prompt = """You are a sequence generator. I will provide you with a company, company context, campaign name, and a little bit of information about the 'purpose of the campaign', and you will generate an incredible Linkedin sequence that will get me conversations.
+    prompt = """You are a sequence generator. I will provide you with a company, company context, campaign name, and a little bit of information about the 'purpose of the campaign', and you will generate an incredible sequence that will get me conversations.
 
-Here are a couple top examples:
--------------------
-EXAMPLE 1:
-Company: NewtonX
-Company Description: NewtonX is the only B2B market research company that connects decision makers with verified expert insights they can trust. We are doing quantitative and qualitative research leveraging our AI-powered recruitment technology that has the highest scale, quality, and accuracy in the market. Many leading clients like Salesforce or Microsoft have done large scale A/B tests between our data and competitor data which showed that their fraud rates are >30% while ours are <1% across the board. We empower business decision makers to make product, brand, go-to-market, M&A and investment decisions in confide. 
-Campaign Name: PTAL - Paid Interview - $150 - New PTAL List 6/14 - Group 1
-Purpose: We are contacting prospects with the intention of offering them $150 gift cards for 30 minutes of their time to conduct a B2b business research interview.
+    Here are a couple top examples:
+    -------------------
+    EXAMPLE 1:
+    Company: NewtonX
+    Company Description: NewtonX is the only B2B market research company that connects decision makers with verified expert insights they can trust. We are doing quantitative and qualitative research leveraging our AI-powered recruitment technology that has the highest scale, quality, and accuracy in the market. Many leading clients like Salesforce or Microsoft have done large scale A/B tests between our data and competitor data which showed that their fraud rates are >30% while ours are <1% across the board. We empower business decision makers to make product, brand, go-to-market, M&A and investment decisions in confide. 
+    Campaign Name: PTAL - Paid Interview - $150 - New PTAL List 6/14 - Group 1
+    Purpose: We are contacting prospects with the intention of offering them $150 gift cards for 30 minutes of their time to conduct a B2b business research interview.
 
-Generated Sequence:
-Step 1:
-- Angle: Great to connect
-- Text: Hi [[first_name]], would you be open to a 30 min interview for $150? We're interviewing brand marketing professionals like yourself about survey data quality on their B2B studies for brand. Happy to also share the findings with you once we finish the report. Look forward to connecting. Thanks!
+    Generated Sequence:
+    Step 1:
+    - Angle: Great to connect
+    - Text: Hi [[first_name]], would you be open to a 30 min interview for $150? We're interviewing brand marketing professionals like yourself about survey data quality on their B2B studies for brand. Happy to also share the findings with you once we finish the report. Look forward to connecting. Thanks!
 
-Step 2: 
-- Angle: Follow Up 1
-- Text: Hi [[first_name]].
+    Step 2: 
+    - Angle: Follow Up 1
+    - Text: Hi [[first_name]].
 
-I wanted to provide a bit more context on the interview - we’re interested in hearing about your experiences regarding B2B market research data across a variety of methodologies and provider types. All responses will be confidential and anonymized for a thought leadership report on the state of B2B market research data quality that we’re publishing, for which you’ll get exclusive early access. We recently published thought leadership together with our partners at Interbrand, Wall Street Journal, Google, and McKinsey if you want to take a look at previous examples: https://www.newtonx.com/resources/
+    I wanted to provide a bit more context on the interview - we’re interested in hearing about your experiences regarding B2B market research data across a variety of methodologies and provider types. All responses will be confidential and anonymized for a thought leadership report on the state of B2B market research data quality that we’re publishing, for which you’ll get exclusive early access. We recently published thought leadership together with our partners at Interbrand, Wall Street Journal, Google, and McKinsey if you want to take a look at previous examples: https://www.newtonx.com/resources/
 
 
-Given your role, we think your perspective would be very valuable and would love to chat. Let us know if that works on your end.
+    Given your role, we think your perspective would be very valuable and would love to chat. Let us know if that works on your end.
 
-Step 3: 
-- Angle: Follow Up 2
-- Text: Hey [[first name]] - here's a thought leadership report we recently helped Google release about Gen AI in retail: https://www.googlecloudpresscorner.com/2024-01-11-Google-Cloud-Shares-New-Research-on-2024-Outlook-on-Generative-AI-in-Retail
+    Step 3: 
+    - Angle: Follow Up 2
+    - Text: Hey [[first name]] - here's a thought leadership report we recently helped Google release about Gen AI in retail: https://www.googlecloudpresscorner.com/2024-01-11-Google-Cloud-Shares-New-Research-on-2024-Outlook-on-Generative-AI-in-Retail
 
-We're really excited about our B2B data quality study and would love to include your perpsective.I'm happy to connect at your convenience. What works best for you?
+    We're really excited about our B2B data quality study and would love to include your perpsective.I'm happy to connect at your convenience. What works best for you?
 
--------------------------
+    -------------------------
 
-EXAMPLE 2:
-Company: Reacher
-Company Description: Reacher works 24/7 to send thousands of messages to TikTok Shop Affiliates, earning you hundreds of sample requests for your products every day.
-Campaign Name: rows 1-351 of 5K results fastmoss sheet
-Purpose: We are contacting heads of affiliate marketing and growth to see if they'd be interested in our automated outbound system for TikTok outreach.
+    EXAMPLE 2:
+    Company: Reacher
+    Company Description: Reacher works 24/7 to send thousands of messages to TikTok Shop Affiliates, earning you hundreds of sample requests for your products every day.
+    Campaign Name: rows 1-351 of 5K results fastmoss sheet
+    Purpose: We are contacting heads of affiliate marketing and growth to see if they'd be interested in our automated outbound system for TikTok outreach.
 
-Generated Sequence:
-Step 1: 
-- Angle: Simple Connect
-- Text: Hi [[first name]]! I noticed you work as a [[lowercase role]] at [[company]] I built a tool that helps brands use TikTok Shop's affiliate program. I'd love your feedback on our solution!
+    Generated Sequence:
+    Step 1: 
+    - Angle: Simple Connect
+    - Text: Hi [[first name]]! I noticed you work as a [[lowercase role]] at [[company]] I built a tool that helps brands use TikTok Shop's affiliate program. I'd love your feedback on our solution!
 
-Step 2: 
-- Angle: Intro
-- Text: For some context I developed an affiliate marketing solution for TikTok Shop as a side project and I am looking for people to try it out and give feedback on it's usefulness!
+    Step 2: 
+    - Angle: Intro
+    - Text: For some context I developed an affiliate marketing solution for TikTok Shop as a side project and I am looking for people to try it out and give feedback on it's usefulness!
 
-I HATE when people waste my time so I won't waste yours. Given your role at [[informalized company name]] I promise there is at LEAST a 1% chance you will find this useful.
+    I HATE when people waste my time so I won't waste yours. Given your role at [[informalized company name]] I promise there is at LEAST a 1% chance you will find this useful.
 
-The solution does the following for your Brand on TTS:
-1. Send ~1,000 messages or target collaborations to creators per day
-2. Automated Follow up messages
-3. Management Portal for you to control the software
-4. Upcoming AI-enhanced CRM for TTS creator management
-5. Exclusive database of 600K+ creators + a portion of their emails
+    The solution does the following for your Brand on TTS:
+    1. Send ~1,000 messages or target collaborations to creators per day
+    2. Automated Follow up messages
+    3. Management Portal for you to control the software
+    4. Upcoming AI-enhanced CRM for TTS creator management
+    5. Exclusive database of 600K+ creators + a portion of their emails
 
-Are you interested in trying it out for free? Worst that can happen is that you get 3 days of free affiliate outreach for your store!
+    Are you interested in trying it out for free? Worst that can happen is that you get 3 days of free affiliate outreach for your store!
 
-If you get this far and still don't want to try it, please do me a solid and treat me like a human just trying to make a living and at least tell me no rather than ghost me. I appreciate it! Thanks!
+    If you get this far and still don't want to try it, please do me a solid and treat me like a human just trying to make a living and at least tell me no rather than ghost me. I appreciate it! Thanks!
 
-----------------------------
+    ----------------------------
 
-EXAMPLE 3: 
-Company: Curative
-Company Description: Curative is the healthcare staffing firm of Doximity, the largest community of medical professionals in the country, with 80% of physicians and 50% of nurse practitioners and physician assistants. We leverage data, technology, and deep industry expertise to intelligently source high-quality physician and advanced practitioner candidates.
-Campaign Name: Leaders at FQHC
-Purpose: We want to reach out to leaders at FQHC hospitals to see if they are hiring for any roles and see if they'd be interested in partnering with us to get those roles filled.
+    EXAMPLE 3: 
+    Company: Curative
+    Company Description: Curative is the healthcare staffing firm of Doximity, the largest community of medical professionals in the country, with 80% of physicians and 50% of nurse practitioners and physician assistants. We leverage data, technology, and deep industry expertise to intelligently source high-quality physician and advanced practitioner candidates.
+    Campaign Name: Leaders at FQHC
+    Purpose: We want to reach out to leaders at FQHC hospitals to see if they are hiring for any roles and see if they'd be interested in partnering with us to get those roles filled.
 
-Generated Sequence:
-Step 1:
-- Angle: Simple Nice Greeting
-- Text: Hi [[first name]]! I've enjoyed following your journey to [[informalized company name]] as the [[lowercase title]]. I work with providers who are passionate about working with underserved populations. I'd love to chat and share more about it if you're open to learning more.
+    Generated Sequence:
+    Step 1:
+    - Angle: Simple Nice Greeting
+    - Text: Hi [[first name]]! I've enjoyed following your journey to [[informalized company name]] as the [[lowercase title]]. I work with providers who are passionate about working with underserved populations. I'd love to chat and share more about it if you're open to learning more.
 
-Step 2: 
-- Angle: Do you have any challenges or priorities?
-- Text: Hi [[first name]],
-Thank you for accepting my connection request. As an [[lowercase title name]] I'm sure you must encounter unique challenges when it comes to recruiting physicians and streamlining that workflow. I'd be happy to share some insights on how we at Curative have helped similar roles and facilities enhance their physician recruitment process.
-It would be great to learn from your experiences and discuss how we can potentially help lighten your load.
-Would you be open to having a chat about this?
-Best,
-[[my name]]
+    Step 2: 
+    - Angle: Do you have any challenges or priorities?
+    - Text: Hi [[first name]],
+    Thank you for accepting my connection request. As an [[lowercase title name]] I'm sure you must encounter unique challenges when it comes to recruiting physicians and streamlining that workflow. I'd be happy to share some insights on how we at Curative have helped similar roles and facilities enhance their physician recruitment process.
+    It would be great to learn from your experiences and discuss how we can potentially help lighten your load.
+    Would you be open to having a chat about this?
+    Best,
+    [[my name]]
 
-Step 3: 
-- Angle: Coffee chat?
-- Text: Hi [[prospect name]]!  I know you're super busy. If possible, I'd love to chat with you. Coffee is on me. Would you be too busy for a 10 min call this week?
+    Step 3: 
+    - Angle: Coffee chat?
+    - Text: Hi [[prospect name]]!  I know you're super busy. If possible, I'd love to chat with you. Coffee is on me. Would you be too busy for a 10 min call this week?
 
---------------------
+    --------------------
 
-Now your turn. Make a sequence with these details:
+    Now your turn. Make a sequence with these details:
 
-EXAMPLE 4:
-Company: {company}
-Company Description: {company_description}
-Campaign Name: {campaign_name}
-Purpose: {purpose}
+    EXAMPLE 4:
+    Company: {company}
+    Company Description: {company_description}
+    Campaign Name: {campaign_name}
+    Purpose: {purpose}
 
-NOTE: The first message should be less than 300 characters.
-NOTE: Follow the style of the examples provided above. Be human, creative, and engaging.
-NOTE: In general, keep the messages not too verbose. Goal on 1-4 sentences range per message.
-NOTE: Only respond with the sequence and nothing else.
+    NOTE: The first message should be less than 300 characters.
+    NOTE: Follow the style of the examples provided above. Be human, creative, and engaging.
+    NOTE: In general, keep the messages not too verbose. Goal on 1-4 sentences range per message.
+    NOTE: Only respond with the sequence and nothing else.
 
-Generated Sequence:"""
+    Generated Sequence:"""
 
-    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
-    client: Client = Client.query.get(client_sdr.client_id)
-    client_archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
+    try:
 
-    company = client.company
-    company_description = client.description
-    campaign_name = client_archetype.archetype
-    purpose = purpose
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client: Client = Client.query.get(client_sdr.client_id)
+        client_archetype: ClientArchetype = ClientArchetype.query.get(campaign_id)
 
-    enriched_prompt = prompt.format(
-        company=company,
-        company_description=company_description,
-        campaign_name=campaign_name,
-        purpose=purpose
-    )
+        # Set the sequence generation in progress flag to True
+        client_archetype.li_seq_generation_in_progress = True
+        db.session.add(client_archetype)
+        db.session.commit()
 
-    response = wrapped_chat_gpt_completion(
-        messages=[
-            {
-                "role": "user",
-                "content": enriched_prompt
-            }
-        ],
-        model='claude-3-opus-20240229',
-        max_tokens=3000
-    )
+        company = client.company
+        company_description = client.description
+        campaign_name = client_archetype.archetype
+        purpose = purpose
 
-    # use chatGpt to turn the response into a JSON object of array with {title: string, message: string}
-    prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'title', 'step_num', 'assets', 'angle', and 'text' key for each entry.
+        enriched_prompt = prompt.format(
+            company=company,
+            company_description=company_description,
+            campaign_name=campaign_name,
+            purpose=purpose
+        )
+        context_info = '''
+            Company: {company}
+            Company Description: {company_description}
+            Campaign Name: {campaign_name}
+            '''
 
-    ex. {{ "messages": [ {{"assets": [], "step_num": 0, "angle": "Title 1", "text": "Message 1"}}, {{"assets": [], "step_num": 1, "angle": "Title 2", "text": "Message 2"}} ] }}
+        if sequence_type == 'LINKEDIN-TEMPLATE':
+            response = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": enriched_prompt
+                    }
+                ],
+                model='claude-3-opus-20240229',
+                max_tokens=3000
+            )
+        elif sequence_type == 'LINKEDIN-CTA':
+            from src.personas.services_generation import generate_linkedin_cta
+            print('linkedin cta')
+            response = generate_linkedin_cta(
+                gen_id=0,
+                client_id=client_sdr.client_id,
+                archetype_id=campaign_id,
+                context_info=context_info,
+                assets_str='',
+                additional_prompting=purpose,
+            )
+        else:
+            from src.personas.services_generation import generate_email_follow_up_quick_and_dirty, generate_email_initial
+            response = generate_email_initial(3, client_archetype.client_id, campaign_id, context_info, '', purpose, None, None)
+            response = response + '\n + \n + here are some followup emails:' + generate_email_follow_up_quick_and_dirty(3, client_archetype.client_id, campaign_id, 1, context_info, '', purpose, None, None)
 
-    Here is the sequence:
-    {response}
+        if sequence_type == 'LINKEDIN-TEMPLATE':
+            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'title', 'step_num', 'assets', 'angle', and 'text' key for each entry.
 
-    NOTE: Only respond with the JSON object and nothing else.
-    
-    JSON Output:""".format(response=response)
+            ex. {{ "messages": [ {{"assets": [], "step_num": 0, "angle": "Title 1", "text": "Message 1"}}, {{"assets": [], "step_num": 1, "angle": "Title 2", "text": "Message 2"}} ] }}
 
-    response = wrapped_chat_gpt_completion(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        model='gpt-4o',
-        max_tokens=3000
-    )
+            Here is the sequence:
+            {response}
 
-    sanitized_response = response.replace("json", "").replace("`", "")
+            NOTE: Only respond with the JSON object and nothing else.
+            
+            JSON Output:""".format(response=response)
+        
+        elif sequence_type == 'EMAIL':
+            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with 'subject_lines' and 'steps' keys.
 
-    json_data = json.loads(sanitized_response)
+            ex. {{"subject_lines": [{{"text": "Subject Line 1"}}, {{"text": "Subject Line 2"}}], "steps": [{{"assets": [], "step_num": 1, "angle": "Title 1", "text": "Message 1\nwith multiple lines"}}, {{"assets": [], "step_num": 2, "angle": "Title 2", "text": "Message 2"}}, {{"assets": [], "step_num": 3, "angle": "Title 3", "text": "Message 3"}}]}}
 
-    from src.personas.services_creation import add_sequence
+            Here is the sequence:
+            {response}
 
-    add_sequence(
-        client_id=client.id,
-        archetype_id=client_archetype.id,
-        sequence_type='LINKEDIN-TEMPLATE',
-        subject_lines=[],
-        steps=json_data.get("messages"),
-        override=False
-    )
+            NOTE: Only respond with the JSON object and nothing else.
+            
+            JSON Output:""".format(response=response)
 
-    return json_data
+        elif sequence_type == 'LINKEDIN-CTA':
+            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'subject_lines' key containing an array of objects with 'assets' and 'text' keys.
+
+            ex. {{"subject_lines": [{{"assets": [], "text": "CTA Text 1"}}, {{"assets": [], "text": "CTA Text 2"}}]}}
+
+            Here is the sequence:
+            {response}
+
+            NOTE: Only respond with the JSON object and nothing else.
+            
+            JSON Output:""".format(response=response)
+
+        elif sequence_type.startswith('LINKEDIN-'):
+            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with 'steps' as the key containing an array of objects with 'title', 'step_num', 'assets', 'angle', and 'text' keys for each entry.
+
+            ex. {{"steps": [{{"assets": [], "step_num": 2, "angle": "Title 1", "text": "Bump Message 1"}}, {{"assets": [], "step_num": 3, "angle": "Title 2", "text": "Bump Message 2"}}]}}
+
+            Here is the sequence:
+            {response}
+
+            NOTE: Only respond with the JSON object and nothing else.
+            
+            JSON Output:""".format(response=response)
+
+
+        response = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model='gpt-4o',
+            max_tokens=3000
+        )
+
+        sanitized_response = response.replace("json", "").replace("`", "")
+
+        json_data = json.loads(sanitized_response)
+
+        from src.personas.services_creation import add_sequence
+
+        add_sequence(
+            client_id=client.id,
+            archetype_id=client_archetype.id,
+            sequence_type=sequence_type,
+            subject_lines=json_data.get("subject_lines") if sequence_type == 'LINKEDIN-CTA' else [],
+            steps=json_data.get("steps") if sequence_type == 'EMAIL' else json_data.get("messages"),
+            override=False
+        )
+        # except Exception as e:
+        #     print(f"Error generating sequence: {e}")
+
+        # Set the sequence generation in progress flag to False
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating sequence: {e}")
+        print("Stack trace:", traceback.format_exc())
+
+    if sequence_type.startswith('LINKEDIN-') or sequence_type == 'LINKEDIN-CTA':
+        client_archetype.li_seq_generation_in_progress = False
+    else:
+        client_archetype.email_seq_generation_in_progress = False
+    db.session.add(client_archetype)
+    db.session.commit()
+    try: 
+        return json_data
+    except:
+        return ''
 
 @celery.task
 def find_contacts_from_serp(
