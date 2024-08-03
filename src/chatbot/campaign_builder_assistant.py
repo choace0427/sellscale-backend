@@ -79,12 +79,12 @@ def search_internet(query: str, session_id: int):
     )
 
     session: SelixSession = SelixSession.query.get(session_id)
-    session.memory["search"].append({
+    session.memory["search"] = [{
         "query": query,
         "response": response,
         "citations": citations,
         "images": images
-    })
+    }]
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(session, "memory")
     db.session.add(session)
