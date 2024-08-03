@@ -15,7 +15,7 @@ from src.contacts.models import SavedApolloQuery
 
 from src.contacts.services import get_contacts_from_predicted_query_filters
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
-from src.ml.services import generate_strategy_copilot_response
+from src.ml.services import generate_strategy_copilot_response, simple_perplexity_response
 from src.strategies.models import Strategies, StrategyStatuses
 from src.utils.slack import URL_MAP, send_slack_message
 
@@ -70,6 +70,27 @@ def generate_sequence(channel: str, steps: list):
     print("⚡️ AUTO ACTION: generate_sequence('{}', {})".format(channel, steps))
     return {"channel": channel, "num_steps": 1, "steps": steps}
 
+def search_internet(query: str, session_id: int):
+    print("⚡️ AUTO ACTION: search_internet('{}')".format(query))
+
+    response, citations, images = simple_perplexity_response(
+        model="llama-3-sonar-large-32k-online",
+        prompt=query + "\nReturn your response in maximum 1-2 paragraphs."
+    )
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    session.memory["search"].append({
+        "query": query,
+        "response": response,
+        "citations": citations,
+        "images": images
+    })
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(session, "memory")
+    db.session.add(session)
+    db.session.commit()
+
+    return {"response": response}
 
 def create_review_card(campaign_id: dict):
     print("⚡️ AUTO ACTION: create_review_card({})".format(campaign_id))
@@ -184,7 +205,8 @@ ACTION_MAP = {
     "create_review_card": create_review_card,
     "create_strategy": create_strategy,
     "create_task": create_task,
-    "wait_for_ai_execution": wait_for_ai_execution
+    "wait_for_ai_execution": wait_for_ai_execution,
+    "search_internet": search_internet
 }
 
 
