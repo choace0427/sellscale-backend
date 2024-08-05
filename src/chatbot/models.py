@@ -82,3 +82,26 @@ class SelixSessionTask(db.Model):
             "status": self.status.value,
             "proof_of_work_img": self.proof_of_work_img,
         }
+
+class SelixActionCall(db.Model):
+    __tablename__ = "selix_action_call"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    selix_session_id = db.Column(db.Integer, db.ForeignKey("selix_session.id"), nullable=False)
+    action_title = db.Column(db.String(255), nullable=True)
+    action_description = db.Column(db.String, nullable=True)
+
+    action_function = db.Column(db.String(255), nullable=True)
+    action_params = db.Column(db.JSON, nullable=True)
+
+    actual_completion_time = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "selix_session_id": self.selix_session_id,
+            "action_name": self.action_name,
+            "action_params": self.action_params,
+            "actual_completion_time": self.actual_completion_time,
+        }
