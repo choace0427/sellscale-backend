@@ -38,6 +38,17 @@ HEADERS = {
 
 
 # ACTIONS
+def set_session_tab(
+    selix_session_id: int,
+    tab_name: str,
+):
+    selix_session = SelixSession.query.get(selix_session_id)
+    selix_session.memory["tab"] = tab_name
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(selix_session, "memory")
+    db.session.add(selix_session)
+    db.session.commit()
+
 def create_selix_action_call_entry(
     selix_session_id: int, 
     action_title: str,
@@ -96,6 +107,7 @@ def generate_sequence(channel: str, steps: list):
 
 def search_internet(query: str, session_id: int):
     print("⚡️ AUTO ACTION: search_internet('{}')".format(query))
+    
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
         action_title="Searching Internet",
@@ -122,7 +134,7 @@ def search_internet(query: str, session_id: int):
     db.session.commit()
 
     mark_action_complete(selix_action_id)
-
+    set_session_tab(session_id, "BROWSER")
     return {"response": response}
 
 def create_review_card(campaign_id: dict):
@@ -215,11 +227,12 @@ def create_strategy(description: str, session_id: int):
     db.session.commit()
 
     mark_action_complete(selix_action_id)
-
+    set_session_tab(session_id, "STRATEGY_CREATOR")
     return {"success": True}
 
 def create_task(title: str, description: str, session_id: int):
     print("⚡️ AUTO ACTION: create_task('{}', '{}')".format(title, description))
+    
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
         action_title="Create Task",
@@ -239,11 +252,13 @@ def create_task(title: str, description: str, session_id: int):
     db.session.commit()
 
     mark_action_complete(selix_action_id)
-
+    set_session_tab(session_id, "PLANNER")
     return {"success": True}
 
 def wait_for_ai_execution(session_id: int):
     print("⚡️ AUTO ACTION: wait_for_ai_execution()")
+    
+
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
         action_title="Wait for AI Execution",
@@ -262,6 +277,7 @@ def wait_for_ai_execution(session_id: int):
     )
     
     mark_action_complete(selix_action_id)
+    set_session_tab(session_id, "PLANNER")
     return {"success": True}
 
 
