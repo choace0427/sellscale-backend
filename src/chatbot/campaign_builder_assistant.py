@@ -9,7 +9,7 @@ import os
 import time
 from app import db
 
-from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, SelixSessionTaskStatus
+from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, SelixSessionTaskStatus, SelixActionCall
 from src.client.models import ClientSDR, Client
 from src.contacts.models import SavedApolloQuery
 
@@ -38,6 +38,30 @@ HEADERS = {
 
 
 # ACTIONS
+def create_selix_action_call_entry(
+    selix_session_id: int, 
+    action_title: str,
+    action_description: str,
+    action_function: str,
+    action_params: dict
+) -> int:
+    selix_action_call = SelixActionCall(
+        selix_session_id=selix_session_id,
+        action_title=action_title,
+        action_description=action_description,
+        action_function=action_function,
+        action_params=action_params
+    )
+    db.session.add(selix_action_call)
+    db.session.commit()
+    return selix_action_call.id
+
+def mark_action_complete(selix_action_call_id: int):
+    selix_action_call = SelixActionCall.query.get(selix_action_call_id)
+    selix_action_call.status = SelixSessionTaskStatus.COMPLETE
+    db.session.add(selix_action_call)
+    db.session.commit()
+
 def create_campaign(campaign_name: str):
     print("⚡️ AUTO ACTION: create_campaign('{}')".format(campaign_name))
     return {"success": True}
@@ -72,6 +96,13 @@ def generate_sequence(channel: str, steps: list):
 
 def search_internet(query: str, session_id: int):
     print("⚡️ AUTO ACTION: search_internet('{}')".format(query))
+    selix_action_id = create_selix_action_call_entry(
+        selix_session_id=session_id,
+        action_title="Searching Internet",
+        action_description="Searching the internet for information related to the query: {}".format(query),
+        action_function="search_internet",
+        action_params={"query": query}
+    )
 
     response, citations, images = simple_perplexity_response(
         model="llama-3-sonar-large-32k-online",
@@ -90,6 +121,8 @@ def search_internet(query: str, session_id: int):
     db.session.add(session)
     db.session.commit()
 
+    mark_action_complete(selix_action_id)
+
     return {"response": response}
 
 def create_review_card(campaign_id: dict):
@@ -98,6 +131,14 @@ def create_review_card(campaign_id: dict):
 
 def create_strategy(description: str, session_id: int):
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
+
+    selix_action_id = create_selix_action_call_entry(
+        selix_session_id=session_id,
+        action_title="Create Strategy",
+        action_description="Create a strategy based on the description provided: {}".format(description),
+        action_function="create_strategy",
+        action_params={"description": description}
+    )
 
     title = wrapped_chat_gpt_completion(
         messages=[
@@ -173,10 +214,19 @@ def create_strategy(description: str, session_id: int):
         db.session.add(task)
     db.session.commit()
 
+    mark_action_complete(selix_action_id)
+
     return {"success": True}
 
 def create_task(title: str, description: str, session_id: int):
     print("⚡️ AUTO ACTION: create_task('{}', '{}')".format(title, description))
+    selix_action_id = create_selix_action_call_entry(
+        selix_session_id=session_id,
+        action_title="Create Task",
+        action_description="Create a task with the title: {} and description: {}".format(title, description),
+        action_function="create_task",
+        action_params={"title": title, "description": description}
+    )
 
     task = SelixSessionTask(
         selix_session_id=session_id,
@@ -188,10 +238,19 @@ def create_task(title: str, description: str, session_id: int):
     db.session.add(task)
     db.session.commit()
 
+    mark_action_complete(selix_action_id)
+
     return {"success": True}
 
 def wait_for_ai_execution(session_id: int):
     print("⚡️ AUTO ACTION: wait_for_ai_execution()")
+    selix_action_id = create_selix_action_call_entry(
+        selix_session_id=session_id,
+        action_title="Wait for AI Execution",
+        action_description="Wait for AI Execution to complete.",
+        action_function="wait_for_ai_execution",
+        action_params={}
+    )
 
     session: SelixSession = SelixSession.query.get(session_id)
     session.estimated_completion_time = datetime.datetime.now() + datetime.timedelta(hours=24)
@@ -201,7 +260,8 @@ def wait_for_ai_execution(session_id: int):
         message="Selix Session is waiting for operator: {}".format(session.id),
         webhook_urls=[URL_MAP['eng-sandbox']]
     )
-
+    
+    mark_action_complete(selix_action_id)
     return {"success": True}
 
 
@@ -254,6 +314,10 @@ def get_assistant_reply(thread_id):
         return last_message
     except:
         return ""
+    
+def get_action_calls(selix_session_id):
+    action_calls = SelixActionCall.query.filter_by(selix_session_id=selix_session_id).all()
+    return [action_call.to_dict() for action_call in action_calls]
 
 def get_last_n_messages(thread_id):
     import time
@@ -286,9 +350,10 @@ def get_last_n_messages(thread_id):
         
         all_messages.extend([
             {
+                "type": "message",
                 "role": message["role"],
                 "message": message["content"][0]["text"]["value"],
-                "created_time": message["created_at"]
+                "created_time": datetime.datetime.fromtimestamp(message["created_at"])
             }
             for message in messages
         ])
@@ -303,6 +368,13 @@ def get_last_n_messages(thread_id):
     # Exclude the very last two message in the list
     if all_messages and len(all_messages) > 1:
         all_messages = all_messages[0:len(all_messages) - 2]
+
+    selix_session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
+    action_calls = get_action_calls(selix_session_id)
+    
+    all_messages.extend(action_calls)
+
+    all_messages.sort(key=lambda x: x["created_time"])
 
     return all_messages
 

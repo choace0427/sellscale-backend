@@ -99,9 +99,14 @@ class SelixActionCall(db.Model):
 
     def to_dict(self) -> dict:
         return {
+            "created_time": self.created_at,
+            "role": "system",
+            "type": "action",
             "id": self.id,
             "selix_session_id": self.selix_session_id,
-            "action_name": self.action_name,
+            "action_title": self.action_title,
+            "action_description": self.action_description,
+            "action_function": self.action_function,
             "action_params": self.action_params,
             "actual_completion_time": self.actual_completion_time,
         }
