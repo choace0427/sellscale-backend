@@ -38,6 +38,14 @@ HEADERS = {
 
 
 # ACTIONS
+def increment_session_counter(session_id: int):
+    selix_session = SelixSession.query.get(session_id)
+    selix_session.memory["counter"] = selix_session.memory.get("counter", 0) + 1
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(selix_session, "memory")
+    db.session.add(selix_session)
+    db.session.commit()
+
 def set_session_tab(
     selix_session_id: int,
     tab_name: str,
@@ -318,6 +326,10 @@ def run_thread(thread_id, assistant_id):
     response = requests.post(
         f"{API_URL}/threads/{thread_id}/runs", headers=HEADERS, json=data
     )
+
+    session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
+    increment_session_counter(session_id)
+
     return response.json()["id"]
 
 
