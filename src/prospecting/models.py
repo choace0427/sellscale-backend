@@ -1629,3 +1629,19 @@ class ProspectInSmartlead(db.Model):
             "in_smartlead": self.in_smartlead,
             "log": self.log,
         }
+
+class CycleDataAnalytics(db.Model):
+    __tablename__ = "cycle_data_analytics"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable=False)
+    report = db.Column(db.String, nullable=False)
+    cycle_number = db.Column(db.Integer, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "report": self.report,
+            "cycle_number": self.cycle_number,
+        }

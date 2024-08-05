@@ -319,7 +319,9 @@ def get_all_campaign_analytics_for_client(
                 prospect.full_name,
                 prospect.icp_fit_score,
                 prospect_status_records.created_at as status_created_at,
-                prospect_email_status_records.created_at as email_status_created_at
+                prospect_email_status_records.created_at as email_status_created_at,
+                prospect.company,
+                prospect.title
             from prospect
                 left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
                 left join prospect_email on prospect_email.prospect_id = prospect.id
@@ -337,7 +339,9 @@ def get_all_campaign_analytics_for_client(
                 "full_name": row[1],
                 "icp_fit_score": row[2],
                 "status_created_at": row[3],
-                "email_status_created_at": row[4]
+                "email_status_created_at": row[4],
+                "company": row[5],
+                "title": row[6]
             } 
             for row in top_icp_people
         ]
