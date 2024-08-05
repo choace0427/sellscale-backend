@@ -56,24 +56,24 @@ def get_strategy(client_sdr_id: int, strategy_id: int):
 @require_user
 def patch_update_strategy(client_sdr_id: int, strategy_id: int):
     new_title = get_request_parameter(
-        "new_title", request, json=True, required=True, parameter_type=str
+        "new_title", request, json=True, required=False, parameter_type=str
     )
     new_description = get_request_parameter(
-        "new_description", request, json=True, required=True, parameter_type=str
+        "new_description", request, json=True, required=False, parameter_type=str
     )
     new_status = get_request_parameter(
-        "new_status", request, json=True, required=True, parameter_type=str
+        "new_status", request, json=True, required=False, parameter_type=str
     )
     new_archetypes = get_request_parameter(
-        "new_archetypes", request, json=True, required=True, parameter_type=list
+        "new_archetypes", request, json=True, required=False, parameter_type=list
     )
 
     start_date = get_request_parameter(
-        "start_date", request, json=True, required=True, parameter_type=str
+        "start_date", request, json=True, required=False, parameter_type=str
     )
 
     end_date = get_request_parameter(
-        "end_date", request, json=True, required=True, parameter_type=str
+        "end_date", request, json=True, required=False, parameter_type=str
     )
 
     strategy = edit_strategy(
