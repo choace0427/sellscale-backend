@@ -579,7 +579,7 @@ def create_client_archetype(
     # titles = predict_titles_from_archetype_name(archetype)
     update_icp_scoring_ruleset(
         client_archetype_id=archetype_id,
-        included_individual_title_keywords=titles,
+        included_individual_title_keywords=[],
         excluded_individual_title_keywords=[],
         included_individual_industry_keywords=[],
         excluded_individual_industry_keywords=[],
