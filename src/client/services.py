@@ -576,7 +576,7 @@ def create_client_archetype(
         archetype_id=archetype_id,
     )
 
-    titles = predict_titles_from_archetype_name(archetype)
+    # titles = predict_titles_from_archetype_name(archetype)
     update_icp_scoring_ruleset(
         client_archetype_id=archetype_id,
         included_individual_title_keywords=titles,
