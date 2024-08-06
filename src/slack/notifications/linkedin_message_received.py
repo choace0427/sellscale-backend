@@ -121,17 +121,15 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
         client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
 
-        # Send the message
-        slack_bot_send_message(
-            notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
-            client_id=client.id,
-            base_message=f"🙌 {prospect_name} sent you a new message.",
-            blocks=[
+                # Craft the message blocks
+        message_blocks: list[dict] = []
+        message_blocks.extend(
+            [
                 {
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"📩 {prospect_name} sent you a new message",
+                        "text": f"🙌 {prospect_name} Sent you a new message!",
                         "emoji": True,
                     },
                 },
@@ -139,9 +137,9 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Persona:* {archetype_emoji} {archetype_name} ".format(
-                            archetype_name=archetype_name,
-                            archetype_emoji=archetype_emoji,
+                        "text": "*Persona:* {emoji} {persona}".format(
+                            persona=archetype_name if archetype_name else "-",
+                            emoji=archetype_emoji,
                         ),
                     },
                 },
@@ -149,38 +147,107 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Title:* {title}".format(
-                            title=prospect_title if prospect_title else "-"
+                        "text": "*Title:* {title}\n*Company:* {company}".format(
+                            title=prospect_title if prospect_title else "-",
+                            company=prospect_company if prospect_company else "-",
                         ),
                     },
                 },
+            ]
+        )
+
+        def get_conversation():
+            from src.message_generation.models import GeneratedMessage
+
+            client_sdr: ClientSDR = ClientSDR.query.get(self.client_sdr_id)
+            prospect: Prospect = Prospect.query.get(self.prospect_id)
+            client_archetype: ClientArchetype = ClientArchetype.query.get(
+                prospect.archetype_id
+            )
+            urn_id = prospect.li_conversation_urn_id
+            convo: list[LinkedinConversationEntry] = (
+                LinkedinConversationEntry.query.filter_by(
+                    conversation_url=f"https://www.linkedin.com/messaging/thread/{urn_id}/"
+                )
+                .order_by(LinkedinConversationEntry.created_at.desc())
+                .limit(5)
+                .all()
+            )
+            generated_message: GeneratedMessage = GeneratedMessage.query.filter_by(
+                id=prospect.approved_outreach_message_id
+            ).first()
+
+            # Get the conversation
+            conversation = []
+            for c in reversed(
+                convo
+            ):  # Reverse the conversation so that the most recent message is at the bottom
+                conversation.append(f"*{c.author}:* {c.message}")
+
+            return {
+                "prospect_name": prospect.full_name,
+                "prospect_title": prospect.title,
+                "prospect_company": prospect.company,
+                "archetype_name": client_archetype.archetype,
+                "archetype_emoji": (
+                    client_archetype.emoji if client_archetype.emoji else ""
+                ),
+                "direct_link": "https://app.sellscale.com/authenticate?stytch_token_type=direct&token={auth_token}&redirect=prospects/{prospect_id}".format(
+                    auth_token=client_sdr.auth_token,
+                    prospect_id=prospect.id,
+                ),
+                "conversation": conversation,
+                "initial_send_date": generated_message.created_at.strftime("%B %d, %Y"),
+            }
+
+        conversation = get_conversation()
+
+        prospect_name = conversation.get("prospect_name")
+        prospect_title = conversation.get("prospect_title")
+        prospect_company = conversation.get("prospect_company")
+        archetype_name = conversation.get("archetype_name")
+        archetype_emoji = conversation.get("archetype_emoji")
+        direct_link = conversation.get("direct_link")
+        initial_send_date = conversation.get("initial_send_date")
+        conversation = conversation.get("conversation")
+
+
+        for message in conversation:
+            message_blocks.append(
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "*Company:* {company}".format(
-                            company=prospect_company if prospect_company else "-"
-                        ),
+                        "text": f"{message}",
                     },
-                },
+                }
+            )
+
+        message_blocks.extend(
+            [
                 {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*{name}:* {message}".format(
-                            name=prospect_name,
-                            message=linkedin_message,
-                        ),
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Initial Send Date:* {initial_send_date}".format(
-                            initial_send_date=initial_send_date
-                        ),
-                    },
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": "😎 Contact: {sdr}".format(
+                                sdr=client_sdr.name,
+                            ),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📆 Initial Send: {date_sent}".format(
+                                date_sent=initial_send_date,
+                            ),
+                            "emoji": True,
+                        },
+                        {
+                            "type": "plain_text",
+                            "text": "📤 Outbound channel: LinkedIn",
+                            "emoji": True,
+                        },
+                    ],
                 },
                 {
                     "type": "section",
@@ -200,11 +267,103 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                         "action_id": "button-action",
                     },
                 },
-            ],
+            ]
+        )
+        # Send the message
+        slack_bot_send_message(
+            # testing=True,
+            # override_webhook_urls=[{"url": url} for url in [URL_MAP["eng-sandbox"]]],
+            notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
+            client_id=client.id,
+            base_message=f"🙌 {prospect_name} sent you a new message!",
+            blocks=message_blocks,
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
             testing=self.developer_mode,
         )
+        # slack_bot_send_message(
+        #     notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
+        #     client_id=client.id,
+        #     base_message=f"🙌 {prospect_name} sent you a new message.",
+        #     blocks=[
+        #         {
+        #             "type": "header",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "text": f"📩 {prospect_name} sent you a new message",
+        #                 "emoji": True,
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*Persona:* {archetype_emoji} {archetype_name} ".format(
+        #                     archetype_name=archetype_name,
+        #                     archetype_emoji=archetype_emoji,
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*Title:* {title}".format(
+        #                     title=prospect_title if prospect_title else "-"
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*Company:* {company}".format(
+        #                     company=prospect_company if prospect_company else "-"
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*{name}:* {message}".format(
+        #                     name=prospect_name,
+        #                     message=linkedin_message,
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": "*Initial Send Date:* {initial_send_date}".format(
+        #                     initial_send_date=initial_send_date
+        #                 ),
+        #             },
+        #         },
+        #         {
+        #             "type": "section",
+        #             "text": {
+        #                 "type": "mrkdwn",
+        #                 "text": " ",
+        #             },
+        #             "accessory": {
+        #                 "type": "button",
+        #                 "text": {
+        #                     "type": "plain_text",
+        #                     "text": "View Convo in Sight",
+        #                     "emoji": True,
+        #                 },
+        #                 "value": direct_link,
+        #                 "url": direct_link,
+        #                 "action_id": "button-action",
+        #             },
+        #         },
+        #     ],
+        #     client_sdr_id=client_sdr.id,
+        #     override_preference=preview_mode,
+        #     testing=self.developer_mode,
+        # )
 
         # Add an activity log
         add_activity_log(
