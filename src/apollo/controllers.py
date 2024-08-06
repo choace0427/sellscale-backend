@@ -214,7 +214,7 @@ def get_saved_query(client_sdr_id, saved_query_id):
     query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_query_id).first()
 
     company_breadcrumbs = [breadcrumb for breadcrumb in query.results['breadcrumbs'] if breadcrumb.get('label') == 'Companies']
-    if company_breadcrumbs and len(company_breadcrumbs) == 1:
+    if company_breadcrumbs and len(company_breadcrumbs) == 1 and not isinstance(company_breadcrumbs[0].get('value'), str):
         from src.company.models import Company
         company_ids = [id for sublist in [breadcrumb['value'] for breadcrumb in company_breadcrumbs] for id in sublist]
         #query all companies with the company_ids and filter out companies with empty names 
