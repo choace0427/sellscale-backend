@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from src.analytics.campaign_drilldown import get_campaign_drilldown_data
 from src.analytics.services_chatbot import answer_question, process_data_and_answer
 from src.client.models import ClientArchetype
+from src.prospecting.models import CycleDataAnalytics
 from src.utils.request_helpers import get_request_parameter
 from src.analytics.services import (
     add_activity_log,
@@ -226,7 +227,82 @@ def generate_report(client_sdr_id: int):
     except Exception as e:
         print(f"Error generating report: {e}")
         return jsonify({"message": "Error generating report", "error": str(e)}), 500
+    
+@ANALYTICS_BLUEPRINT.route("/fetch_report", methods=["GET"])
+@require_user
+def fetch_report(client_sdr_id: int):
+    """
+    Endpoint to fetch a report by cycle number.
+    """
+    try:
+        # Extracting cycle_number from the request parameters
+        cycle_number = get_request_parameter("cycle_number", request, json=False, required=True)
+        
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        if not client_sdr:
+            return jsonify({"message": "Invalid client SDR ID"}), 400
+        
+        client_id = client_sdr.client_id
+        
+        # Fetching the report from the database
+        report = CycleDataAnalytics.query.filter_by(client_id=client_id, cycle_number=cycle_number).first()
+        
+        if not report:
+            return jsonify({"message": "Report not found"}), 404
+        
+        return jsonify({"message": "Success", "report": report.to_dict()}), 200
+    except Exception as e:
+        print(f"Error fetching report: {e}")
+        return jsonify({"message": "Error fetching report", "error": str(e)}), 500
 
+    
+@ANALYTICS_BLUEPRINT.route("/save_report", methods=["POST"])
+@require_user
+def save_report(client_sdr_id: int):
+    """
+    Endpoint to save a generated report.
+    """
+    try:
+        # Extracting report data from the request body
+        report = request.json.get("report")
+        cycle_number = request.json.get("cycle_number")
+
+        if not report:
+            return jsonify({"message": "reportData is required"}), 400
+        
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        client_id = client_sdr.client_id
+        
+        existing_report = CycleDataAnalytics.query.filter_by(client_id=client_id, cycle_number=cycle_number).first()
+
+        from app import db;
+        
+        if existing_report:
+            # If a report already exists for that cycle number, delete the existing one
+            db.session.delete(existing_report)
+        
+            # Add the new report
+            generated_report = CycleDataAnalytics(
+                client_id=client_id,
+                report=report,
+                cycle_number=cycle_number
+            )
+            db.session.add(generated_report)
+        else:
+            # If no report exists, create a new one
+            generated_report = CycleDataAnalytics(
+                client_id=client_id,
+                report=report,
+                cycle_number=cycle_number
+            )
+            db.session.add(generated_report)
+        
+        db.session.commit()
+
+        return jsonify({"message": "Success", "report": generated_report.to_dict()}), 200
+    except Exception as e:
+        print(f"Error saving report: {e}")
+        return jsonify({"message": "Error saving report", "error": str(e)}), 500
 
 
 @ANALYTICS_BLUEPRINT.route("/activity_log", methods=["POST"])

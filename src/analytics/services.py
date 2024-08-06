@@ -1023,6 +1023,7 @@ def process_cycle_data_and_generate_report(client_sdr_id: int, cycle_data: dict)
         system_prompt = '''You are a sales analytics expert delivering feedback for an array of different sales outreach campaigns that ran that week.
         You have access to the daily data and summary data for each campaign. Make sure to mention any insights based on the prospect information provided if applicable.
         Please generate a report detailing across all outreach campaigns:
+        0. A 3-4 sentence general summary of everything, be specific about things.
         1. What went well
         2. What didn't go well
         3. Interesting/unusual learnings
