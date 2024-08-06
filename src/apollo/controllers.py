@@ -213,6 +213,30 @@ def get_saved_query(client_sdr_id, saved_query_id):
     client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
     query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_query_id).first()
 
+    company_breadcrumbs = [breadcrumb for breadcrumb in query.results['breadcrumbs'] if breadcrumb.get('label') == 'Companies']
+    if company_breadcrumbs and len(company_breadcrumbs) == 1:
+        from src.company.models import Company
+        company_ids = [id for sublist in [breadcrumb['value'] for breadcrumb in company_breadcrumbs] for id in sublist]
+        #query all companies with the company_ids and filter out companies with empty names 
+        #sorry TWITTER
+        companies: list[Company] = Company.query.filter(Company.apollo_uuid.in_(company_ids), db.func.length(Company.name) > 1).all()
+        company_map = {company.apollo_uuid: company for company in companies}
+
+        # Remove the 'Companies' breadcrumb and construct new breadcrumbs in one pass
+        new_breadcrumbs = [
+            {
+                'label': 'Companies',
+                'value': company.apollo_uuid,
+                'display_name': company.name,
+                'logo_url': company.img_logo_url or ""
+            }
+            for company_id in company_ids if (company := company_map.get(company_id))
+        ]
+
+        query.results['breadcrumbs'] = [
+            breadcrumb for breadcrumb in query.results['breadcrumbs'] if breadcrumb.get('label') != 'Companies'
+        ] + new_breadcrumbs
+
     query_client_sdr_id = query.client_sdr_id
     query_client_sdr: ClientSDR = ClientSDR.query.filter_by(id=query_client_sdr_id).first()
     
