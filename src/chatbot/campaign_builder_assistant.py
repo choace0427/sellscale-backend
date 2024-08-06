@@ -404,7 +404,52 @@ def get_last_n_messages(thread_id):
 
     all_messages.sort(key=lambda x: x["created_time"])
 
+    if len(all_messages) > 4:
+        selix_session: SelixSession = SelixSession.query.filter_by(thread_id=thread_id).first()
+        transcript_str = "\n".join([f"{message['role']}: {message['message']}" for message in all_messages if message["type"] == "message"])
+        if selix_session.session_name == "New Session":
+            rename_session(selix_session.id, transcript_str)
+
     return all_messages
+
+def rename_session(session_id, transcript_str):
+    title = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                Based on the transcript, give me a 2-4 word session title.
+
+                Examples:
+                Input: "User: How do I reset my password? Assistant: You can reset your password by going to the settings page."
+                Output: "Password Reset Help"
+
+                Input: "User: What are your business hours? Assistant: We are open from 9 AM to 5 PM, Monday to Friday."
+                Output: "Business Hours Info"
+
+                Important:
+                - Only return the session title. No extra text.
+                - No quotations or special characters. Just the simple 2-4 word title.
+                
+                Transcript: {}
+                Session Title:""".format(
+                    transcript_str
+                ),
+            }
+        ],
+        model="gpt-4o",
+        max_tokens=50
+    )
+
+    selix_session = SelixSession.query.get(session_id)
+    selix_session.session_name = title
+    selix_session.memory["session_name"] = title
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(selix_session, "memory")
+    db.session.add(selix_session)
+    db.session.commit()
+
+    return title
 
 
 def retrieve_actions_needed(thread_id, run_id, session_id):
