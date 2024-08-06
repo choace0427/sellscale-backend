@@ -380,7 +380,7 @@ def get_last_n_messages(thread_id):
             {
                 "type": "message",
                 "role": message["role"],
-                "message": message["content"][0]["text"]["value"],
+                "message": message["content"][0]["text"]["value"] if message["content"] else "",
                 "created_time": datetime.datetime.fromtimestamp(message["created_at"])
             }
             for message in messages
