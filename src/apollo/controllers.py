@@ -125,12 +125,17 @@ def save_query(client_sdr_id):
     editing_query_id = data.get("editingQuery")
     filter_name = data.get("name")
 
-    current_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=current_saved_query_id, client_sdr_id=client_sdr_id).first()
-    if not current_query:
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    current_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=current_saved_query_id).first()
+
+    current_query_client_sdr_id = current_query.client_sdr_id
+    current_query_client_sdr: ClientSDR = ClientSDR.query.filter_by(id=current_query_client_sdr_id).first()
+
+    if not current_query or current_query_client_sdr.client_id != client_sdr.client_id:
         return jsonify({"status": "error", "message": "Current query not found."}), 404
 
     if editing_query_id:
-        editing_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=editing_query_id, client_sdr_id=client_sdr_id).first()
+        editing_query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=editing_query_id).first()
         if not editing_query:
             return jsonify({"status": "error", "message": "Editing query not found."}), 404
 
@@ -152,8 +157,15 @@ def get_all_saved_queries(client_sdr_id):
     Gets all saved Apollo queries for a client SDR where custom_name is not null,
     ordered by updated_at.
     """
+    #1. get all client_sdr_id attached to the client
+
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_sdr.client_id).all()
+
+    client_sdr_ids = [client_sdr.id for client_sdr in client_sdrs]
+
     queries: list[SavedApolloQuery] = SavedApolloQuery.query.filter(
-        SavedApolloQuery.client_sdr_id == client_sdr_id,
+        SavedApolloQuery.client_sdr_id.in_(client_sdr_ids),
         SavedApolloQuery.custom_name.isnot(None),
         # SavedApolloQuery.value_proposition.isnot(None),
         # SavedApolloQuery.segment_description.isnot(None),
@@ -174,8 +186,13 @@ def get_all_icp_queries(client_sdr_id):
     Gets all saved Apollo queries for a client SDR where custom_name is not null,
     ordered by updated_at.
     """
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client_sdr.client_id).all()
+
+    client_sdr_ids = [client_sdr.id for client_sdr in client_sdrs]
+
     queries: list[SavedApolloQuery] = SavedApolloQuery.query.filter(
-        SavedApolloQuery.client_sdr_id == client_sdr_id,
+        SavedApolloQuery.client_sdr_id.in_(client_sdr_ids),
         SavedApolloQuery.custom_name.isnot(None),
         SavedApolloQuery.is_icp_filter==True
     ).order_by(SavedApolloQuery.updated_at.desc()).all()
@@ -193,8 +210,13 @@ def get_saved_query(client_sdr_id, saved_query_id):
     """
     Gets a specific saved Apollo query by ID for a client SDR.
     """
-    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_query_id, client_sdr_id=client_sdr_id).first()
-    if not query:
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_query_id).first()
+
+    query_client_sdr_id = query.client_sdr_id
+    query_client_sdr: ClientSDR = ClientSDR.query.filter_by(id=query_client_sdr_id).first()
+    
+    if not query or query_client_sdr.client_id != client_sdr.client_id:
         return jsonify({"status": "error", "message": "Query not found."}), 404
 
     return jsonify({"status": "success", "data": query.to_dict()}), 200
@@ -205,8 +227,14 @@ def delete_saved_query(client_sdr_id, saved_query_id):
     """
     Deletes a specific saved Apollo query by ID for a client SDR.
     """
-    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_query_id, client_sdr_id=client_sdr_id).first()
-    if not query:
+    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=saved_query_id).first()
+    #check if the query belongs under the client
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+
+    query_client_sdr_id = query.client_sdr_id
+    query_client_sdr: ClientSDR = ClientSDR.query.filter_by(id=query_client_sdr_id).first()
+
+    if not query or query_client_sdr.client_id != client_sdr.client_id:
         return jsonify({"status": "error", "message": "Query not found."}), 404
 
     db.session.delete(query)
@@ -215,6 +243,7 @@ def delete_saved_query(client_sdr_id, saved_query_id):
     return jsonify({"status": "success", "message": "Pre-filter deleted successfully"}), 200
 
 
+#this is not a good name for this route, it should be something like update_apollo_query
 @APOLLO_REQUESTS.route("/update_segment", methods=["PUT"])
 @require_user
 def update_segment(client_sdr_id):
@@ -230,9 +259,16 @@ def update_segment(client_sdr_id):
 
     if not segment_id or not field:
         return jsonify({"status": "error", "message": "Segment ID and field are required."}), 400
+    
+    #check if the segment belongs under the client
 
-    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=segment_id, client_sdr_id=client_sdr_id).first()
-    if not query:
+    client_sdr: ClientSDR = ClientSDR.query.filter_by(id=client_sdr_id).first()
+    query: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=segment_id).first()
+
+    query_client_sdr_id = query.client_sdr_id
+    query_client_sdr: ClientSDR = ClientSDR.query.filter_by(id=query_client_sdr_id).first()
+
+    if not query or query_client_sdr.client_id != client_sdr.client_id:
         return jsonify({"status": "error", "message": "Segment not found."}), 404
 
     setattr(query, field, value)
