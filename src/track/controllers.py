@@ -306,14 +306,23 @@ def create_icp_route_endpoint(client_sdr_id: int):
 def delete_icp_route_endpoint(client_sdr_id: int, icp_route_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
-    #nullify any deanonymized contacts that were associated with this icp route
+    
+    if not icp_route or icp_route.client_id != client_sdr.client_id:
+        return "ICP Route not found", 404
+
+    # Nullify any deanonymized contacts that were associated with this icp route
     deanonymized_contacts: list[DeanonymizedContact] = DeanonymizedContact.query.filter_by(icp_route_id=icp_route_id).all()
     for contact in deanonymized_contacts:
         contact.icp_route_id = None
         db.session.add(contact)
+    
+    # Nullify any prospects that were associated with this icp route to prevent foreign key issues
+    prospects: list[Prospect] = Prospect.query.filter_by(icp_routing_id=icp_route_id).all()
+    for prospect in prospects:
+        prospect.icp_routing_id = None
+        db.session.add(prospect)
+    
     db.session.commit()
-    if not icp_route or icp_route.client_id != client_sdr.client_id:
-        return "ICP Route not found", 404
 
     db.session.delete(icp_route)
     db.session.commit()
