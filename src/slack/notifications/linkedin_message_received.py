@@ -129,7 +129,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": f"🙌 {prospect_name} Sent you a new message!",
+                        "text": f"🙌 {prospect_name} responded to you!",
                         "emoji": True,
                     },
                 },
@@ -275,7 +275,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
             # override_webhook_urls=[{"url": url} for url in [URL_MAP["eng-sandbox"]]],
             notification_type=SlackNotificationType.LINKEDIN_MESSAGE_RECEIVED,
             client_id=client.id,
-            base_message=f"🙌 {prospect_name} sent you a new message!",
+            base_message=f"🙌 {prospect_name} responded to you!",
             blocks=message_blocks,
             client_sdr_id=client_sdr.id,
             override_preference=preview_mode,
@@ -370,7 +370,7 @@ class LinkedInMessageReceivedNotification(SlackNotificationClass):
             client_sdr_id=client_sdr.id,
             type="LINKEDIN-MESSAGE",
             name="New Linkedin Message",
-            description=f"{prospect_name} sent you a new message!",
+            description=f"{prospect_name} responded to you!",
         )
 
         return True
