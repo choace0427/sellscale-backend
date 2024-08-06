@@ -1000,7 +1000,6 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
     print(f"Webpage clicked: {webpage_click}")
 
     rules = icp_route.rules  # Assuming rules are stored in the icp_route object
-    all_conditions_met = True
     met_conditions = []
     attempted_conditions = []
 
@@ -1017,7 +1016,6 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
 
         if not value:
             print(f"Value not found for condition: {condition}")
-            all_conditions_met = False
             continue
 
         print(f"Evaluating rule: {condition} with value: {value}")
@@ -1057,7 +1055,6 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
             saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(value)
             if not saved_apollo_query:
                 print(f"Condition 'filter_matches' not met: SavedApolloQuery with id {value} not found")
-                all_conditions_met = False
                 continue
 
             breadcrumbs = saved_apollo_query.results.get("breadcrumbs")
@@ -1085,8 +1082,6 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
 
             management_level_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "management level"]
             title_breadcrumbs = [breadcrumb for breadcrumb in breadcrumbs if breadcrumb.get("label").lower() == "titles"]
-
-            filter_condition_met = True
 
             relevant_breadcrumbs = {
                 "title_breadcrumbs": title_breadcrumbs,
@@ -1122,24 +1117,18 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
                         })
                         break
 
-            if not filter_condition_met:
-                all_conditions_met = False
-
-        if not condition_met and condition != "filter_matches":
-            all_conditions_met = False
-
         if condition_met:
-                met_conditions.append({
-                    "condition": condition,
-                    "value": value
-                })
-    
-    if (len(met_conditions) == 0):
+            met_conditions.append({
+                "condition": condition,
+                "value": value
+            })
+
+    if len(met_conditions) == 0:
         print("No conditions met")
         return -1, met_conditions
 
     print(f"Attempted conditions: {attempted_conditions}")
-    if all_conditions_met:
+    if len(met_conditions) == len(rules):
         print(f"All conditions met for ICP Route ID: {icp_route_id}")
         return icp_route_id, met_conditions
 
