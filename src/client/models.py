@@ -86,6 +86,8 @@ class Client(db.Model):
 
     on_demo_set_webhook = db.Column(db.String, nullable=True)
 
+    free_client = db.Column(db.Boolean, nullable=True, default=False)
+
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
         self.uuid = uuid_str
