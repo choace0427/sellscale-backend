@@ -18,6 +18,7 @@ from src.client.services import (
     campaign_voices_generation,
     create_archetype_asset,
     create_client_archetype_reason_mapping,
+    create_selix_customer,
     delete_archetype_asset,
     delete_client_asset_archetype_mapping,
     get_available_times_via_calendly,
@@ -3849,3 +3850,21 @@ def post_generate_assets():
             print(e)
 
     return jsonify({"message": "Success", "data": assets}), 200
+
+@CLIENT_BLUEPRINT.route("/selix_user", methods=["POST"])
+def create_selix_user():
+    full_name = get_request_parameter("full_name", request, json=True, required=True, parameter_type=str)
+    email = get_request_parameter("email", request, json=True, required=True, parameter_type=str)
+
+    if not full_name or not email:
+        return jsonify({"message": "Full name and email are required"}), 400
+
+    # Assuming there's a function to create a user in the database
+    try:
+        payload = create_selix_customer(
+            full_name=full_name,
+            email=email
+        )
+        return jsonify({"data": payload}), 200
+    except Exception as e:
+        return jsonify({"message": "Error creating user", "error": str(e)}), 500

@@ -30,6 +30,7 @@ from src.ml.ai_researcher_services import (
     create_default_ai_researcher,
 )
 from src.ml.models import LLM
+from src.ml.services import simple_perplexity_response
 from src.operator_dashboard.models import (
     OperatorDashboardEntryPriority,
     OperatorDashboardEntryStatus,
@@ -127,10 +128,11 @@ def create_client(
         email_outbound_enabled: bool,
         tagline: Optional[str] = None,
         description: Optional[str] = None,
+        free_client: Optional[bool] = False,
 ):
     c: Client = Client.query.filter_by(company=company).first()
     if c:
-        return {"client_id": c.id}
+        return {"client_id": c.id, 'existing_client': True}
 
     # Get the full company_website URL
     if not company_website.startswith("http://"):
@@ -164,6 +166,7 @@ def create_client(
         do_not_contact_people_names=[],
         do_not_contact_emails=[],
         auto_generate_li_messages=True,
+        free_client=False,
     )
     db.session.add(c)
     db.session.commit()
@@ -175,7 +178,7 @@ def create_client(
     #     email=contact_email,
     # )
 
-    return {"client_id": c.id}
+    return {"client_id": c.id, 'existing_client': False}
 
 
 def update_client_details(
@@ -5620,3 +5623,138 @@ def get_all_clients(client_sdr_id: int):
     result = db.session.execute(query).fetchall()
     clients = [{"id": row["id"], "company": row["company"]} for row in result]
     return clients
+
+def create_selix_customer(
+    full_name: str,
+    email: str,
+):
+    # Verify it's a valid email
+    if not email or "@" not in email or "." not in email:
+        raise ValueError("Invalid email address")
+
+    # Ensure that it's a work email
+    non_work_domains = [
+        "@gmail.com", "@hotmail.com", "@yahoo.com", "@outlook.com", 
+        "@aol.com", "@icloud.com"
+    ]
+    if any(email.endswith(domain) for domain in non_work_domains):
+        raise ValueError("Email must be a work email and not from a common email provider")
+    
+    # Check if the user already exists
+    existing_sdr = ClientSDR.query.filter_by(email=email).first()
+    if existing_sdr:
+        return {"message": "User already exists. Please log in instead."}
+
+    # Default values
+    domain = email.split('@')[-1]
+    company_name = domain
+    tagline = ""
+    description = ""
+    
+    # Get company name
+    try:
+        company_name = simple_perplexity_response(
+            model="llama-3-sonar-large-32k-online",
+            prompt=f"Given the email {email}, please provide the company name.",
+        )
+        company_name = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Given the response and email address, respond with ONLY the company name. Email: {email} Response: {company_name}\nIMPORTANT: Respond with only the company name and nothing more\nCompany Name:"
+                }
+            ],
+            model="gpt-4o",
+            max_tokens=20
+        )
+        company_name = company_name.strip().replace('"', '')
+    except:
+        company_name = domain
+
+    # Get company tagline
+    try:
+        tagline = simple_perplexity_response(
+            model="llama-3-sonar-large-32k-online",
+            prompt=f"Given the company name {company_name}, please provide the company tagline. Maximum 6-8 words.",
+        )
+        tagline = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Given the company name {company_name}, respond with the company tagline. Response: {tagline}\nIMPORTANT: Respond with only the tagline and nothing more\nTagline:"
+                }
+            ],
+            model="gpt-4o",
+            max_tokens=20
+        )
+        tagline = tagline.strip().replace('"', '')
+    except:
+        tagline = ""
+
+    # Get 1-2 paragraph company description
+    try:
+        description = simple_perplexity_response(
+            model="llama-3-sonar-large-32k-online",
+            prompt=f"Given the company name {company_name} ({domain}), please provide a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products."
+        )
+        description = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Given the company name {company_name}, respond with a 1-2 paragraph description of the company. Keep it succinct, no yapping. 4-5 sentences max. Response: {description}\nIMPORTANT: Respond with only the description and nothing more\nDescription:"
+                }
+            ],
+            model="gpt-4o",
+            max_tokens=200
+        )
+        description = description.strip().replace('"', '')
+    except:
+        description = ""
+
+    # Create client or short circuit if client already exists
+    client_json = create_client(
+        company=company_name,
+        company_website=domain,
+        contact_name=full_name,
+        contact_email=email,
+        linkedin_outbound_enabled=True,
+        email_outbound_enabled=True,
+        tagline=tagline,
+        description=description,
+        free_client=True
+    )
+    existing_client = client_json['existing_client']
+    if existing_client:
+        raise ValueError("Organization already exists. Ask your admin to add you to the organization.")
+    
+    client_id = client_json['client_id']
+
+    # Create a client SDR
+    client_sdr_json = create_client_sdr(
+        client_id=client_id,
+        name=full_name,
+        email=email,
+        create_managed_inboxes=False,
+        include_connect_li_card=False,
+        include_connect_slack_card=False,
+        include_input_pre_filters_card=False,
+        include_add_dnc_filters_card=False,
+        include_add_calendar_link_card=False,
+        linkedin_url=None
+    )
+    client_sdr_id = client_sdr_json['client_sdr_id']
+
+    client: Client = Client.query.get(client_id)
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    return {
+        "full_name": full_name,
+        "email": email,
+        "company_name": company_name,
+        "tagline": tagline,
+        "description": description,
+        "client_id": client_id,
+        "client": client.to_dict(),
+        "client_sdr_id": client_sdr_id,
+        "client_sdr": client_sdr.to_dict(),
+    }
