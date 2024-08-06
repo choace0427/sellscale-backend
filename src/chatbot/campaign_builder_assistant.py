@@ -404,7 +404,7 @@ def get_last_n_messages(thread_id):
 
     all_messages.sort(key=lambda x: x["created_time"])
 
-    if len(all_messages) > 4:
+    if len(all_messages) > 6:
         selix_session: SelixSession = SelixSession.query.filter_by(thread_id=thread_id).first()
         transcript_str = "\n".join([f"{message['role']}: {message['message']}" for message in all_messages if message["type"] == "message"])
         if selix_session.session_name == "New Session":
