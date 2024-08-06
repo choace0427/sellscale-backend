@@ -135,10 +135,13 @@ def create_client(
         return {"client_id": c.id, 'existing_client': True}
 
     # Get the full company_website URL
-    if not company_website.startswith("http://"):
-        company_website = "http://" + company_website
-    response = requests.get(company_website, allow_redirects=True)
-    company_website = response.url
+    try:
+        if not company_website.startswith("http://"):
+            company_website = "http://" + company_website
+        response = requests.get(company_website, allow_redirects=True)
+        company_website = response.url
+    except:
+        company_website = company_website
 
     c: Client = Client(
         company=company,
