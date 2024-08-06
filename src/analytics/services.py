@@ -1024,7 +1024,7 @@ def process_cycle_data_and_generate_report(client_sdr_id: int, cycle_data: dict)
         You have access to the daily data and summary data for each campaign. Make sure to mention any insights based on the prospect information provided if applicable.
         Please generate a report detailing across all outreach campaigns:
         0. A 3-4 sentence general summary of everything, be specific about things.
-        1. What went well
+        1. What went well -> in this section, even if nothing went well, try to find something that did. Do not mention anything that went poorly.
         2. What didn't go well
         3. Interesting/unusual learnings
         4. A hypothesis
