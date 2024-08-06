@@ -1217,6 +1217,7 @@ def post_add_prospect_from_csv_payload(client_sdr_id: int):
         segment_id=segment_id,
     )
 
+
 def add_prospects_from_saved_apollo_query_id(
     client_sdr_id: int,
     saved_apollo_query_id: int,

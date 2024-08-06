@@ -738,8 +738,6 @@ def create_prospect_from_linkedin_link(
                 prospect.client_sdr_id = prospect_upload.client_sdr_id
                 prospect.segment_id = segment_id
 
-                prospect_upload.status = ProspectUploadsStatus.UPLOAD_COMPLETE
-
                 latest_status_record = ProspectStatusRecords.query.filter_by(prospect_id=prospect.id).order_by(ProspectStatusRecords.created_at.desc()).first()
                 if latest_status_record:
                     if old_archetype and new_archetype:
@@ -758,11 +756,6 @@ def create_prospect_from_linkedin_link(
                         )
 
                     db.session.add(new_status_record)
-
-                db.session.add(prospect_upload)
-                db.session.commit()
-
-                return True, prospect.id
 
             create_iscraper_payload_cache(
                 linkedin_url=linkedin_url,
