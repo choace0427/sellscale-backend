@@ -77,11 +77,11 @@ def update_icp_scoring_ruleset(
     excluded_individual_education_keywords: list,
     included_individual_seniority_keywords: list,
     excluded_individual_seniority_keywords: list,
-    individual_personalizers: Optional[list],
-    company_personalizers: Optional[list],
-    dealbreakers: Optional[list],
-    individual_ai_filters: Optional[list],
-    company_ai_filters: Optional[list],
+    individual_personalizers: Optional[list] = None,
+    company_personalizers: Optional[list] = None,
+    dealbreakers: Optional[list] = None,
+    individual_ai_filters: Optional[list] = None,
+    company_ai_filters: Optional[list] = None,
     segment_id: Optional[int] = None,
 ):
     if segment_id:
@@ -188,17 +188,17 @@ def update_icp_scoring_ruleset(
         excluded_individual_seniority_keywords
     )
 
-    if individual_personalizers:
+    if individual_personalizers is not None:
         icp_scoring_ruleset.individual_personalizers = individual_personalizers
-    if company_personalizers:
+    if company_personalizers is not None:
         icp_scoring_ruleset.company_personalizers = company_personalizers
 
-    if dealbreakers:
+    if dealbreakers is not None:
         icp_scoring_ruleset.dealbreakers = dealbreakers
 
-    if individual_ai_filters:
+    if individual_ai_filters is not None:
         icp_scoring_ruleset.individual_ai_filters = individual_ai_filters
-    if company_ai_filters:
+    if company_ai_filters is not None:
         icp_scoring_ruleset.company_ai_filters = company_ai_filters
 
     db.session.add(icp_scoring_ruleset)
