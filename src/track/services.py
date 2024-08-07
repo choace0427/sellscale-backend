@@ -1003,6 +1003,8 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
     met_conditions = []
     attempted_conditions = []
 
+    not_all_conditions_met = False #used for filter_matches
+
     if not rules or len(rules) == 0:
         print("No rules found for ICP Route")
         return -1, met_conditions
@@ -1089,45 +1091,72 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
                 "company_breadcrumbs": company_breadcrumbs
             }
 
+            met_condition_to_append = {}
+
+            #title-level matching
             if relevant_breadcrumbs.get("title_breadcrumbs"):
+                title_matched = False
                 for breadcrumb in relevant_breadcrumbs["title_breadcrumbs"]:
                     if breadcrumb["display_name"].lower() in prospect_title.lower():
-                        met_conditions.append({
-                            "condition": condition,
-                            "title_breadcrumbs": breadcrumb["display_name"]
-                        })
+                        met_condition_to_append["title_breadcrumbs"] = breadcrumb["display_name"]
+                        # met_conditions.append({
+                        #     "condition": condition,
+                        #     "title_breadcrumbs": breadcrumb["display_name"]
+                        # })
+                        title_matched = True
                         break
+                if not title_matched:
+                    not_all_conditions_met = True
 
+            #management-level matching
             if relevant_breadcrumbs.get("management_level_breadcrumbs"):
+                management_level_matched = False
                 for breadcrumb in relevant_breadcrumbs["management_level_breadcrumbs"]:
                     if breadcrumb["display_name"].lower() in prospect_title.lower():
-                        met_conditions.append({
-                            "condition": condition,
-                            "management_level_breadcrumbs": breadcrumb["display_name"]
-                        })
+                        met_condition_to_append["seniority_breadcrumbs"] = breadcrumb["display_name"]
+                        # met_conditions.append({
+                        #     "condition": condition,
+                        #     "management_level_breadcrumbs": breadcrumb["display_name"]
+                        # })
+                        management_level_matched = True
                         break
+                if not management_level_matched:
+                    not_all_conditions_met = True
 
+            #company-level matching
             if relevant_breadcrumbs.get("company_breadcrumbs"):
+                company_matched = False
                 for breadcrumb in relevant_breadcrumbs["company_breadcrumbs"]:
                     if breadcrumb["display_name"].strip().lower() == prospect_company.strip().lower():
-                        print('matched on company breadcrumbs', breadcrumb["display_name"].lower())
-                        met_conditions.append({
-                            "condition": condition,
-                            "company_breadcrumbs": breadcrumb["display_name"]
-                        })
+                        met_condition_to_append["title_breadcrumbs"] = breadcrumb["display_name"]
+                        # met_conditions.append({
+                        #     "condition": condition,
+                        #     "company_breadcrumbs": breadcrumb["display_name"]
+                        # })
+                        company_matched = True
                         break
+                if not company_matched:
+                    not_all_conditions_met = True
 
-        if condition_met:
+            if len(met_condition_to_append) > 0:
+                met_conditions.append({
+                    "condition": condition,
+                    "value": [", ".join(met_condition_to_append.values())]
+                })
+                print(f"Tried to match on company breadcrumbs with prospect company: {prospect_company.lower()} for options: {breadcrumb['display_name'].lower()}")
+
+        if condition_met and condition not in ["filter_matches"]: #filter_matches are handled differently
             met_conditions.append({
                 "condition": condition,
                 "value": value
             })
 
-    if len(met_conditions) == 0:
+    if len(met_conditions) == 0 or not_all_conditions_met:
         print("No conditions met")
         return -1, met_conditions
 
     print(f"Attempted conditions: {attempted_conditions}")
+    print(f"Met conditions: {met_conditions}")
     if len(met_conditions) == len(rules):
         print(f"All conditions met for ICP Route ID: {icp_route_id}")
         return icp_route_id, met_conditions
