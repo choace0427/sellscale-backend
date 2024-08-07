@@ -169,7 +169,7 @@ def create_client(
         do_not_contact_people_names=[],
         do_not_contact_emails=[],
         auto_generate_li_messages=True,
-        free_client=False,
+        free_client=free_client,
     )
     db.session.add(c)
     db.session.commit()

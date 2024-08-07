@@ -108,6 +108,87 @@ def find_prospects(query_description: str):
         "breadcrumbs": breadcrumbs,
     }
 
+def edit_strategy(
+    edit_description: str,
+    session_id: int
+):
+    print("⚡️ AUTO ACTION: edit_strategy('{}')".format(edit_description))
+    
+    selix_action_id = create_selix_action_call_entry(
+        selix_session_id=session_id,
+        action_title="Edit Strategy",
+        action_description="Edit the strategy based on the description provided: {}".format(edit_description),
+        action_function="edit_strategy",
+        action_params={"edit_description": edit_description}
+    )
+
+    strategy_id: int = SelixSession.query.get(session_id).memory.get("strategy_id", None)
+    if not strategy_id:
+        return {"error": "No strategy found."}
+    
+    strategy: Strategies = Strategies.query.get(strategy_id)
+    title = strategy.title
+    description = strategy.description
+
+    updated_title = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                You are a strategy title editor. I will provide you with both a title and an 'edit description'. 
+                Based on the edit description, you will need to update the strategy title. If the edit description does not require a change in the title, simply respond with the original title.
+
+                Do NOT make any other changes to the title. Only update the title if the edit description requires it.
+                ONLY respond with the updated title. No extra text.
+
+                Original Title: {}
+                Edit Description: {}
+
+                New Title:""".format(
+                    title, edit_description
+                ),
+            }
+        ],
+        model="gpt-4o",
+        max_tokens=50
+    )
+
+    updated_description = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                You are a strategy description editor. I will provide you with both a description and an 'edit description'.
+                Based on the edit description, you will need to update the strategy description. If the edit description does not require a change in the description, simply respond with the original description.
+
+                Do NOT make any other changes to the description. Only update the description if the edit description requires it.
+                MAKE SURE YOU maintain the same structure and format of the original description.
+                ONLY respond with the updated description. No extra text.
+
+                Original Description: '''
+                {}
+                '''
+
+                Edit Description: {}
+
+                New Description:""".format(
+                    description, edit_description
+                ),
+            }
+        ],
+        model="gpt-4o",
+        max_tokens=1000
+    )
+
+    strategy.title = updated_title
+    strategy.description = updated_description
+    db.session.add(strategy)
+    db.session.commit()
+
+    mark_action_complete(selix_action_id)
+    set_session_tab(session_id, "STRATEGY_CREATOR")
+    return {"success": True}
+
 
 def generate_sequence(channel: str, steps: list):
     print("⚡️ AUTO ACTION: generate_sequence('{}', {})".format(channel, steps))
@@ -297,7 +378,8 @@ ACTION_MAP = {
     "create_strategy": create_strategy,
     "create_task": create_task,
     "wait_for_ai_execution": wait_for_ai_execution,
-    "search_internet": search_internet
+    "search_internet": search_internet,
+    "edit_strategy": edit_strategy
 }
 
 
