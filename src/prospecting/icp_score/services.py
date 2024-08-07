@@ -567,7 +567,7 @@ def get_raw_enriched_prospect_companies_list(
     return processed
 
 
-@celery.task
+@celery.task(bind=True, max_retries=3)
 def score_ai_filters(
         prospect_enriched_list: list[dict],
         icp_scoring_ruleset: dict,
@@ -2386,8 +2386,8 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     company_score=company_score_dict,
         # )
 
-        print("individual_score: ", individual_score_dict.items())
-        print("company_score: ", company_score_dict.items())
+        print("individual_score: ", individual_score_dict)
+        print("company_score: ", company_score_dict)
         print("prospect_enriched_list: ", prospect_enriched_list)
 
         score_ai_filters.delay(
