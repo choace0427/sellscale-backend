@@ -13,6 +13,7 @@ from src.prospecting.icp_score.services import (
     clear_icp_ruleset,
     set_icp_scores_to_predicted_values,
     update_icp_titles_from_sales_nav_url,
+    score_ai_filters
 )
 from src.utils.request_helpers import get_request_parameter
 from src.prospecting.icp_score.models import ICPScoringJobQueue, ICPScoringRuleset

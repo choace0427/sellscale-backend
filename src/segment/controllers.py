@@ -7,6 +7,8 @@ from src.client.controllers import create_archetype
 from src.client.models import ClientArchetype, ClientSDR
 from src.client.services import create_client_archetype
 from src.prospecting.icp_score.models import ICPScoringRuleset
+from src.prospecting.icp_score.services import update_icp_scoring_ruleset, \
+    apply_segment_icp_scoring_ruleset_filters_task
 from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
 from src.segment.models import Segment
 from src.segment.services import (
@@ -99,6 +101,93 @@ def create_segment(client_sdr_id: int):
         return "Segment creation failed", 400
 
 
+@SEGMENT_BLUEPRINT.route("/<int:segment_id>/create-segment-from-market-map", methods=["POST"])
+@require_user
+def create_segment_from_market_map(client_sdr_id: int, segment_id: int):
+    client_sdr = ClientSDR.query.get(client_sdr_id)
+
+    if not client_sdr:
+        return "Client SDR not found", 404
+
+    client_archetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True,
+    ).first()
+
+    if not client_archetype:
+        client_archetype_id = None
+    else:
+        client_archetype_id = client_archetype.id
+
+    segment_title = get_request_parameter(
+        "segment_title", request, json=True, required=True
+    )
+
+    prospects = get_request_parameter(
+        "prospects", request, json=True, required=True
+    )
+
+    segment: Segment = create_new_segment(
+        client_sdr_id=client_sdr_id,
+        segment_title=segment_title,
+        filters={},
+        campaign_id=None,
+        saved_apollo_query_id=None,
+        is_market_map=False,
+    )
+
+    icp_ruleset = ICPScoringRuleset.query.filter(
+        ICPScoringRuleset.segment_id == segment_id,
+    ).first()
+
+    if icp_ruleset:
+        new_icp_ruleset = ICPScoringRuleset(
+            client_archetype_id=client_archetype_id,
+            included_individual_title_keywords=icp_ruleset.included_individual_title_keywords,
+            excluded_individual_title_keywords=icp_ruleset.excluded_individual_title_keywords,
+            included_individual_industry_keywords=icp_ruleset.included_individual_industry_keywords,
+            excluded_individual_industry_keywords=icp_ruleset.excluded_individual_industry_keywords,
+            individual_years_of_experience_start=icp_ruleset.individual_years_of_experience_start,
+            individual_years_of_experience_end=icp_ruleset.individual_years_of_experience_end,
+            included_individual_skills_keywords=icp_ruleset.included_individual_skills_keywords,
+            excluded_individual_skills_keywords=icp_ruleset.excluded_individual_skills_keywords,
+            included_individual_locations_keywords=icp_ruleset.included_individual_locations_keywords,
+            excluded_individual_locations_keywords=icp_ruleset.excluded_individual_locations_keywords,
+            included_individual_generalized_keywords=icp_ruleset.included_individual_generalized_keywords,
+            excluded_individual_generalized_keywords=icp_ruleset.excluded_individual_generalized_keywords,
+            included_company_name_keywords=icp_ruleset.included_company_name_keywords,
+            excluded_company_name_keywords=icp_ruleset.excluded_company_name_keywords,
+            included_company_locations_keywords=icp_ruleset.included_company_locations_keywords,
+            excluded_company_locations_keywords=icp_ruleset.excluded_company_locations_keywords,
+            company_size_start=icp_ruleset.company_size_start,
+            company_size_end=icp_ruleset.company_size_end,
+            included_company_industries_keywords=icp_ruleset.included_company_industries_keywords,
+            excluded_company_industries_keywords=icp_ruleset.excluded_company_industries_keywords,
+            included_company_generalized_keywords=icp_ruleset.included_company_generalized_keywords,
+            excluded_company_generalized_keywords=icp_ruleset.excluded_company_generalized_keywords,
+            included_individual_education_keywords=icp_ruleset.included_individual_education_keywords,
+            excluded_individual_education_keywords=icp_ruleset.excluded_individual_education_keywords,
+            included_individual_seniority_keywords=icp_ruleset.included_individual_seniority_keywords,
+            excluded_individual_seniority_keywords=icp_ruleset.excluded_individual_seniority_keywords,
+            individual_personalizers=icp_ruleset.individual_personalizers,
+            company_personalizers=icp_ruleset.company_personalizers,
+            dealbreakers=icp_ruleset.dealbreakers,
+            individual_ai_filters=icp_ruleset.individual_ai_filters,
+            company_ai_filters=icp_ruleset.company_ai_filters,
+            segment_id=segment.id,
+        )
+
+        db.session.add(new_icp_ruleset)
+        db.session.commit()
+
+    add_prospects_to_segment(prospects, segment.id)
+
+    if segment:
+        return {"status": 200}, 200
+    else:
+        return "Segment creation failed", 400
+
+
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>/icp_ruleset", methods=["GET"])
 @require_user
 def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
@@ -123,7 +212,19 @@ def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
         db.session.add(empty_icp_scoring_ruleset)
         db.session.commit()
 
-        return jsonify(empty_icp_scoring_ruleset.to_dict()), 200
+        # Reset all score of prospects in the segment
+        prospects = Prospect.query.filter(
+            Prospect.segment_id == segment_id,
+        ).all()
+
+        for prospect in prospects:
+            prospect.icp_fit_reason = ""
+            prospect.icp_company_fit_score = 0
+            prospect.icp_fit_reason_v2 = {}
+            prospect.icp_fit_score = 0
+            prospect.icp_company_fit_reason = 0
+
+        return jsonify({"icp_ruleset": empty_icp_scoring_ruleset.to_dict()}), 200
 
     return jsonify({"icp_ruleset": icp_scoring_ruleset.to_dict()}), 200
 
@@ -143,7 +244,7 @@ def get_prospects_by_segment(client_sdr_id: int, segment_id: int):
         Prospect.segment_id == segment_id,
     ).all()
 
-    return jsonify({"prospects": [prospect.to_dict() for prospect in prospects]}), 200
+    return jsonify({"prospects": [prospect.simple_to_dict() for prospect in prospects]}), 200
 
 
 @SEGMENT_BLUEPRINT.route("/<int:segment_id>", methods=["GET"])
@@ -157,6 +258,180 @@ def get_segment(client_sdr_id: int, segment_id: int):
         return segment.to_dict(), 200
     else:
         return "Segment not found", 404
+
+
+@SEGMENT_BLUEPRINT.route("/<int:segment_id>/score", methods=["POST"])
+@require_user
+def post_score_segment_with_ruleset(client_sdr_id: int, segment_id: int):
+    client_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True,
+        ).first()
+
+    if not client_archetype:
+        return "Cannot find unassigned client archetype", 400
+
+    included_individual_title_keywords = get_request_parameter(
+        "included_individual_title_keywords", request, json=True, required=False
+    )
+    excluded_individual_title_keywords = get_request_parameter(
+        "excluded_individual_title_keywords", request, json=True, required=False
+    )
+    included_individual_industry_keywords = get_request_parameter(
+        "included_individual_industry_keywords", request, json=True, required=False
+    )
+    excluded_individual_industry_keywords = get_request_parameter(
+        "excluded_individual_industry_keywords", request, json=True, required=False
+    )
+    individual_years_of_experience_start = get_request_parameter(
+        "individual_years_of_experience_start", request, json=True, required=False
+    )
+    individual_years_of_experience_end = get_request_parameter(
+        "individual_years_of_experience_end", request, json=True, required=False
+    )
+    included_individual_skills_keywords = get_request_parameter(
+        "included_individual_skills_keywords", request, json=True, required=False
+    )
+    excluded_individual_skills_keywords = get_request_parameter(
+        "excluded_individual_skills_keywords", request, json=True, required=False
+    )
+    included_individual_locations_keywords = get_request_parameter(
+        "included_individual_locations_keywords", request, json=True, required=False
+    )
+    excluded_individual_locations_keywords = get_request_parameter(
+        "excluded_individual_locations_keywords", request, json=True, required=False
+    )
+    included_individual_generalized_keywords = get_request_parameter(
+        "included_individual_generalized_keywords", request, json=True, required=False
+    )
+    excluded_individual_generalized_keywords = get_request_parameter(
+        "excluded_individual_generalized_keywords", request, json=True, required=False
+    )
+    included_individual_education_keywords = get_request_parameter(
+        "included_individual_education_keywords", request, json=True, required=False
+    )
+    excluded_individual_education_keywords = get_request_parameter(
+        "excluded_individual_education_keywords", request, json=True, required=False
+    )
+    included_individual_seniority_keywords = get_request_parameter(
+        "included_individual_seniority_keywords", request, json=True, required=False
+    )
+    excluded_individual_seniority_keywords = get_request_parameter(
+        "excluded_individual_seniority_keywords", request, json=True, required=False
+    )
+    included_company_name_keywords = get_request_parameter(
+        "included_company_name_keywords", request, json=True, required=False
+    )
+    excluded_company_name_keywords = get_request_parameter(
+        "excluded_company_name_keywords", request, json=True, required=False
+    )
+    included_company_locations_keywords = get_request_parameter(
+        "included_company_locations_keywords", request, json=True, required=False
+    )
+    excluded_company_locations_keywords = get_request_parameter(
+        "excluded_company_locations_keywords", request, json=True, required=False
+    )
+    company_size_start = get_request_parameter(
+        "company_size_start", request, json=True, required=False
+    )
+    company_size_end = get_request_parameter(
+        "company_size_end", request, json=True, required=False
+    )
+    included_company_industries_keywords = get_request_parameter(
+        "included_company_industries_keywords", request, json=True, required=False
+    )
+    excluded_company_industries_keywords = get_request_parameter(
+        "excluded_company_industries_keywords", request, json=True, required=False
+    )
+    included_company_generalized_keywords = get_request_parameter(
+        "included_company_generalized_keywords", request, json=True, required=False
+    )
+    excluded_company_generalized_keywords = get_request_parameter(
+        "excluded_company_generalized_keywords", request, json=True, required=False
+    )
+    individual_personalizers = get_request_parameter(
+        "individual_personalizers", request, json=True, required=False
+    )
+    company_personalizers = get_request_parameter(
+        "company_personalizers", request, json=True, required=False
+    )
+    dealbreakers = get_request_parameter(
+        "dealbreakers", request, json=True, required=False
+    )
+    individual_ai_filters = get_request_parameter(
+        "individual_ai_filters", request, json=True, required=False
+    )
+    company_ai_filters = get_request_parameter(
+        "company_ai_filters", request, json=True, required=False
+    )
+    selected_contacts = get_request_parameter(
+        "selectedContacts", request, json=True, required=False
+    )
+
+    segment = Segment.query.filter(
+        Segment.client_sdr_id == client_sdr_id,
+        Segment.id == segment_id
+    ).first()
+
+    if not segment:
+        return "Segment not found", 404
+
+    update_icp_scoring_ruleset(
+        client_archetype_id=client_archetype.id,
+        included_individual_title_keywords=included_individual_title_keywords,
+        excluded_individual_title_keywords=excluded_individual_title_keywords,
+        included_individual_industry_keywords=included_individual_industry_keywords,
+        excluded_individual_industry_keywords=excluded_individual_industry_keywords,
+        individual_years_of_experience_start=individual_years_of_experience_start,
+        individual_years_of_experience_end=individual_years_of_experience_end,
+        included_individual_skills_keywords=included_individual_skills_keywords,
+        excluded_individual_skills_keywords=excluded_individual_skills_keywords,
+        included_individual_locations_keywords=included_individual_locations_keywords,
+        excluded_individual_locations_keywords=excluded_individual_locations_keywords,
+        included_individual_generalized_keywords=included_individual_generalized_keywords,
+        excluded_individual_generalized_keywords=excluded_individual_generalized_keywords,
+        included_company_name_keywords=included_company_name_keywords,
+        excluded_company_name_keywords=excluded_company_name_keywords,
+        included_company_locations_keywords=included_company_locations_keywords,
+        excluded_company_locations_keywords=excluded_company_locations_keywords,
+        company_size_start=company_size_start,
+        company_size_end=company_size_end,
+        included_company_industries_keywords=included_company_industries_keywords,
+        excluded_company_industries_keywords=excluded_company_industries_keywords,
+        included_company_generalized_keywords=included_company_generalized_keywords,
+        excluded_company_generalized_keywords=excluded_company_generalized_keywords,
+        included_individual_education_keywords=included_individual_education_keywords,
+        excluded_individual_education_keywords=excluded_individual_education_keywords,
+        included_individual_seniority_keywords=included_individual_seniority_keywords,
+        excluded_individual_seniority_keywords=excluded_individual_seniority_keywords,
+        individual_personalizers=individual_personalizers,
+        company_personalizers=company_personalizers,
+        dealbreakers=dealbreakers,
+        individual_ai_filters=individual_ai_filters,
+        company_ai_filters=company_ai_filters,
+        segment_id=segment_id,
+    )
+
+    # If selected contact is empty, we want to score all prospects in the segment
+    if not selected_contacts or len(selected_contacts) == 0:
+        prospects = Prospect.query.filter(
+            Prospect.segment_id == segment_id,
+        ).all()
+
+        prospect_ids = [prospect.id for prospect in prospects]
+    else:
+        prospect_ids = selected_contacts
+
+    success = apply_segment_icp_scoring_ruleset_filters_task(
+        client_archetype_id=client_archetype.id,
+        segment_id=segment_id,
+        prospect_ids=prospect_ids,
+    )
+
+    if success:
+        return {"message": "ok"}, 200
+
+    return "Failed to apply ICP Scoring Ruleset", 500
 
 
 @SEGMENT_BLUEPRINT.route("/all", methods=["GET"])

@@ -476,7 +476,7 @@ def patch_prospect(
     return True
 
 
-def prospect_exists_for_client(full_name: str, client_id: int):
+def prospect_exists_for_client(full_name: str, client_id: int, first_name=None, last_name=None):
     from src.prospecting.models import Prospect
 
     p: Prospect = Prospect.query.filter(
@@ -485,6 +485,15 @@ def prospect_exists_for_client(full_name: str, client_id: int):
 
     if p:
         return p
+
+    if first_name and last_name:
+        p: Prospect = Prospect.query.filter(
+            Prospect.first_name == first_name, Prospect.last_name == last_name, Prospect.client_id == client_id
+        ).first()
+
+        if p:
+            return p
+
     return None
 
 
@@ -1999,11 +2008,22 @@ def get_duplicate_prospects_from_csv_payload(client_sdr_id: int,
         last_name = prospect.get("last_name")
 
         if not full_name:
+            if first_name:
+                full_name += first_name
+            if last_name:
+                full_name += " " + last_name
+
             full_name = first_name + " " + last_name
+        else:
+            first_name = full_name.split(" ")[0]
+            last_name = full_name.split(" ")[1]
 
         full_name = full_name.title()
+        first_name = first_name.title()
+        last_name = last_name.title()
 
-        existing_prospect = prospect_exists_for_client(full_name=full_name, client_id=client_sdr.client_id)
+        existing_prospect = prospect_exists_for_client(full_name=full_name, client_id=client_sdr.client_id,
+                                                       first_name=first_name, last_name=last_name)
 
         if existing_prospect:
             prospect_details = get_prospect_duplicate_details(existing_prospect.id)
