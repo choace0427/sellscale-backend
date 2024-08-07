@@ -147,6 +147,7 @@ def wrapped_chat_gpt_completion(
     model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     max_attempts: int = 3,
     tools: Optional[list] = None,
+    response_format: Optional[dict] = None, #only used for chatGPT
 ) -> str:
     """
     Generates a completion using a GPT model.
@@ -190,6 +191,7 @@ def wrapped_chat_gpt_completion(
         stop=stop,
         model=model,
         max_attempts=max_attempts,
+        response_format=response_format,
     )
     if response is None or response["choices"] is None or len(response["choices"]) == 0:
         return ""
@@ -295,6 +297,7 @@ def attempt_chat_completion(
     stop: Optional[Union[str, list]] = DEFAULT_STOP,
     model: str = OPENAI_CHAT_GPT_3_5_TURBO_MODEL,
     max_attempts: int = 3,
+    response_format: Optional[dict] = None,
 ):
     attempts = 0
     exception = None
@@ -302,7 +305,7 @@ def attempt_chat_completion(
         try:
             response = openai.ChatCompletion.create(
                 engine=AZURE_OPENAI_GPT_4_ENGINE if USE_AZURE_ENGINE else None,
-                model=None if USE_AZURE_ENGINE else model,
+                model='gpt-4o-2024-08-06' if response_format else (None if USE_AZURE_ENGINE else model),
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
@@ -310,6 +313,7 @@ def attempt_chat_completion(
                 n=n,
                 frequency_penalty=frequency_penalty,
                 stop=stop,
+                response_format=response_format,
             )
             return response
         except Exception as e:

@@ -26,6 +26,26 @@ from src.utils.hasher import generate_uuid
 # APOLLO CREDENTIALS (SESSION and XCSRF are reverse engineered tokens, may require manual refreshing periodically)
 APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY")
 
+
+# filters_schema = {
+#     "name": "filters_schema",
+#     "strict": True,
+#     "schema": {
+#         "type": "object",
+#         "properties": {
+#             "filters": {
+#                 "type": "array",
+#                 "items": {
+#                     "type": "string"
+#                 },
+#                 "description": "List of filters needed for the query."
+#             }
+#         },
+#         "required": ["filters"],
+#         "additionalProperties": False
+#     }
+# }
+
 ALLOWED_FILTERS = {
     "query_full_name": {
         "summary": "(str) Name of the person",
@@ -157,59 +177,132 @@ ALLOWED_FILTERS = {
 ALLOWED_FILTERS_APOLLO = {
     "currently_using_any_of_technology_uids": {
         "summary": "(list) List of technologies that are used by this segment of people",
-        "output_type": "list",
-        "prompt": "Extract the technology UIDs currently in use from the query. The values should be a list of strings.",
+        "prompt": "Extract the technology UIDs currently in use from the query."
     },
     "event_categories": {
         "summary": "(list) List of event categories i.e. news event types, for example, ['leadership', 'acquisition']",
-        "output_type": "list",
-        "prompt": "relate these event types to the query ask. The values should be a list of strings. The values should be one or more of these: 'leadership', 'acquisition', 'expansion', 'new_offering', 'investment', cost_cutting', 'partnership', 'recognition', 'contract', 'corporate_challenges', 'relational'. The values should be a list of strings. eg. ['leadership', 'acquisition']",
+        "prompt": "Relate these event types to the query ask. The values should be one or more of these: 'leadership', 'acquisition', 'expansion', 'new_offering', 'investment', 'cost_cutting', 'partnership', 'recognition', 'contract', 'corporate_challenges', 'relational'."
     },
     "person_seniorities": {
         "summary": "(list) List of job title seniorities to include",
-        "output_type": "list",
-        "prompt": "Extract the seniorities to include from the query. The allowed values are: 'owner', 'founder', 'c_suite', 'partner', 'vp', 'head', 'director', 'manager'. 'senior', 'entry', 'intern'",
+        "prompt": "Extract the seniorities to include from the query. The allowed values are: 'owner', 'founder', 'c_suite', 'partner', 'vp', 'head', 'director', 'manager', 'senior', 'entry', 'intern'"
     },
-    # "organization_industry_tag_ids": {
-    #     "summary": "(list) List of certain industries related to this sales segment",
-    #     "output_type": "list",
-    #     "prompt": "Infer what different types of industries might be relevant for this sales segment. The values should be a list of strings.",
-    # },
     "organization_latest_funding_stage_cd": {
         "summary": "(list) List of organization last funding stage codes, for example, ['0', '1', '2']",
-        "output_type": "list",
-        "prompt": "Extract the organization last funding stage codes from the query. The values should be a list of strings. The options are: Seed:'0', Angel:'1', Venture:'10', Series A:'2', Series B:'3', Series C:'4', Series D:'5', Series E:'6', Series F:'7', Debt Financing:'13', Equity Crowdfunding:'14', Convertible Note:'15', Private Equity:'11', Other:'12'. The values should be the only values, do not include the labels at all. e.b. ['0', '1', '2']",
+        "prompt": "Extract the organization last funding stage codes from the query. The values should be a list of strings. The options are: Seed:'0', Angel:'1', Venture:'10', Series A:'2', Series B:'3', Series C:'4', Series D:'5', Series E:'6', Series F:'7', Debt Financing:'13', Equity Crowdfunding:'14', Convertible Note:'15', Private Equity:'11', Other:'12'. The values should be the only values, do not include the labels at all. e.g. ['0', '1', '2']"
     },
-    "organization_ids":{
+    "organization_ids": {
         "summary": "(list) List of company names. Please always include this.",
-        "output_type": "list",
-        "prompt": "From this description of a sales segment, come up with 20 different company names that would be relevant to this segment, be clever. The values should be a list of strings.",
+        "prompt": "From this description of a sales segment, come up with 20 different company names that would be relevant to this segment, be clever. The values should be a list of strings."
     },
     "person_locations": {
         "summary": "(list) List of person locations",
-        "output_type": "list",
-        "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be one or more of these (if applicable): ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']",
+        "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be one or more of these (if applicable): ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']"
     },
     "person_titles": {
         "summary": "(list) List of person titles. Please always include this",
-        "output_type": "list",
-        "prompt": "Infer some person titles from this sales segment. The values should be a list of strings. The job titles should be an actual job title, not a keyword. Be clever and come up with 7 related job titles that may be synonymous with my target audience. Not plural. Also don't be too speciic, i.e. VP of clinical affairs is too specific, Clinical Affairs is better. Do not include the word manager. Only output the list of strings.",
+        "prompt": "Infer some job title keywords from this sales segment. The values should be a list of strings. IMPORTANT: Job title keywords should NOT contain seniority. (Seniority, eg 'manager', is already captured in another section). For example, instead of 'Marketing Manager' or 'VP Business Development', you'd write 'Marketing' or 'Business Development'. Be clever and come up with 7 related job title keywords that may be synonymous with my target audience. Not plural. Also don't be too specific, i.e. VP of clinical affairs is too specific, Clinical Affairs is better. Do not include the word manager. Only output the list of strings."
     },
     "published_at_date_range": {
         "summary": "(dict) Date range for company news",
-        "output_type": "dict",
-        "prompt": "Extract the date range for published content from the query. The value should be a dictionary with a 'min' a a string, exclusively with '_days_ago' post-pended. eg {'min': '30_days_ago'}",
+        "prompt": "Extract the date range for published content from the query. The value should be a dictionary with a 'min' as a string, exclusively with '_days_ago' post-pended. eg {'min': '30_days_ago'}"
     },
     "q_person_name": {
         "summary": "(str) Person name query",
-        "output_type": "string",
-        "prompt": "Extract the person name query from the query. The value should be a string.",
+        "prompt": "Extract the person name query from the query. The value should be a string."
     },
     "revenue_range": {
         "summary": "(dict) Range of revenue",
-        "output_type": "dict",
-        "prompt": "The query you are given is describing a sales segment. Be clever and come up with a likely revenue range from the query, for this sales segment. The value should be a dictionary with keys 'min' and 'max' and values as integers. The values should be reasonable, only the object. e.g. {'min': 5000000, 'max': 10000000}",
-    },
+        "prompt": "The query you are given is describing a sales segment. Be clever and come up with a likely revenue range from the query, for this sales segment. The value should be a dictionary with keys 'min' and 'max' and values as integers. The values should be reasonable, only the object. e.g. {'min': 5000000, 'max': 10000000}"
+    }
+}
+
+MEGA_FILTERS_SCHEMA_APOLLO = {
+    "name": "mega_filters_schema",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "technology_uids": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of technology UIDs currently in use."
+            },
+            "event_categories": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of event categories relevant to the query."
+            },
+            "person_seniorities": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of job title seniorities to include."
+            },
+            "organization_latest_funding_stage_cd": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of organization last funding stage codes."
+            },
+            # "organization_ids": {
+            #     "type": "array",
+            #     "items": {
+            #         "type": "string"
+            #     },
+            #     "description": "List of company names."
+            # },
+            "person_locations": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of person locations."
+            },
+            "person_titles": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of person titles."
+            },
+            "published_at_date_range": {
+                "type": "object",
+                "properties": {
+                    "min": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": False,
+                "description": "Date range for published content."
+            },
+            "q_person_name": {
+                "type": "string",
+                "description": "Person name query."
+            },
+            "revenue_range": {
+                "type": "object",
+                "properties": {
+                    "min": {
+                        "type": "integer"
+                    },
+                    "max": {
+                        "type": "integer"
+                    }
+                },
+                "required": ["min", "max"],
+                "additionalProperties": False,
+                "description": "Range of revenue."
+            }
+        },
+        "additionalProperties": False,
+    }
 }
 
 
@@ -941,6 +1034,25 @@ def get_company_ids(query: str, client_sdr_id: int) -> list:
 
 def predict_filters_types_needed(query: str, use_apollo_filters=False) -> list:
     allowed_filters = ALLOWED_FILTERS_APOLLO if use_apollo_filters else ALLOWED_FILTERS
+    filters_schema = {
+        "name": "filters_schema",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "List of filters needed for the query."
+                }
+            },
+            "required": ["filters"],
+            "additionalProperties": False
+        }
+    }
+
     prompt = """
     Referring to the query provided, return a list of which filters will be needed to get the results from the query.
 
@@ -965,26 +1077,21 @@ def predict_filters_types_needed(query: str, use_apollo_filters=False) -> list:
         ),
     )
 
-    attempts = 0
-    data = None
-    while attempts < 3:
-        try:
-            completion = wrapped_chat_gpt_completion(
-                messages=[{"role": "user", "content": prompt}], max_tokens=300, model="gpt-4o"
-            )
-            completion = completion.replace("`", "").replace("json", "")
-            completion = completion.replace("`", "").replace("json", "")
+    try:
+        completion = wrapped_chat_gpt_completion(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            model="gpt-4o-2024-08-06",
+            response_format={"type": "json_schema", "json_schema": filters_schema}
+        )
+        #convert completion to json
+        completion = json.loads(completion)
+        data = completion.get("filters", [])
+    except Exception as e:
+        print('Error:', e)
+        return []
 
-            completion = completion.replace("`", "").replace("json", "")
-
-            data = yaml.safe_load(completion)
-            break
-        except Exception as e:
-            attempts += 1
-            if attempts == 3:
-                return []
-
-    return data["filters"] if data else []
+    return data
 
 
 def predict_filters_needed(query: str, use_apollo_filters=False, client_sdr_id: int = None) -> dict:
@@ -1030,52 +1137,40 @@ def predict_filters_needed(query: str, use_apollo_filters=False, client_sdr_id: 
             overall_filters["organization_ids"] = companies
             filter_types.remove("organization_ids")
 
+    #for the remaining filters, we will use the chat gpt to get the data
+    #first, pull out the fitlers that are not already in the overall_filters
 
-    import concurrent.futures
+    filter_schema = MEGA_FILTERS_SCHEMA_APOLLO
+    # Adjust the schema to only include allowed filters
+    allowed_properties = {k: v for k, v in filter_schema['schema']['properties'].items() if k in filter_types}
+    print('allowed_properties', allowed_properties)
 
-    def process_filter(filter_type):
-        instruction = deep_get(
-            allowed_filters,
-            "{filter_type}.prompt".format(filter_type=filter_type),
-        )
-        output_type = deep_get(
-            allowed_filters,
-            "{filter_type}.output_type".format(filter_type=filter_type),
-        )
+    filter_schema['schema']['properties'] = allowed_properties
 
-        if not instruction or not output_type:
-            return None, None
+    # Update the 'required' array to include only keys that are in allowed_properties
+    filter_schema['schema']['required'] = list(allowed_properties.keys())
 
-        completion = wrapped_chat_gpt_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": "You are extracting data from the query. Follow the instructions carefully, no nested objects: \n\nQuery: {query}\n\nFilter Name: {filter_name}\n\nInstruction:\n{instruction}\nOutput Type: {output_type}\n\nImportant: If JSON, Return the output as a JSON with the key 'data': and value in the given format. No nested objects unless told dict. \n\nOutput:".format(
-                        query=query,
-                        filter_name=filter_type,
-                        instruction=instruction,
-                        output_type=output_type,
-                    ),
-                }
-            ],
-            max_tokens=300,
-            model="gpt-4o",
-        )
+    # Prepare the instruction and schema for the GPT call
+    instructions = [deep_get(allowed_filters, f"{filter_key}.prompt") for filter_key in filter_types]
+    combined_instruction = " \n\n".join(instructions)
 
-        completion = completion.replace("`", "").replace("json", "").replace("python", "")
 
-        data = yaml.safe_load(completion)
+    # Perform a single GPT call with the adjusted schema
+    completion = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": f"You are extracting data from the query. Follow the instructions carefully. \n\nQuery: {query}\n\nInstructions:\n{combined_instruction}\n\nOutput:",
+            }
+        ],
+        max_tokens=300,
+        model="gpt-4o-2024-08-06",
+        response_format={"type": "json_schema", "json_schema": filter_schema}
+    )
 
-        return filter_type, data["data"]
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        future_to_filter = {executor.submit(process_filter, filter_type): filter_type for filter_type in filter_types}
-        for future in concurrent.futures.as_completed(future_to_filter):
-            filter_type, result = future.result()
-            if filter_type and result:
-                overall_filters[filter_type] = result
-
-    print('returning overall_filters', overall_filters)
+    # Process the GPT response
+    data = json.loads(completion)
+    overall_filters.update(data)
     return overall_filters
 
 
