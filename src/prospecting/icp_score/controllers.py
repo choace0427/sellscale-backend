@@ -1,6 +1,7 @@
 from src.client.models import ClientArchetype, ClientSDR, Client
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
+from src.prospecting.icp_score.services import apply_icp_scoring_ruleset_filters_task, apply_segment_icp_scoring_ruleset_filters
 from app import db
 
 from flask import Blueprint, jsonify, request
