@@ -20,7 +20,6 @@ from model_import import ResearchPayload
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
 from tqdm import tqdm
-from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 import hashlib
 
 import queue
@@ -47,6 +46,28 @@ class EnrichedProspectCompany:
     company_description: str
     company_tagline: str
     company_dump: str
+    
+    def to_dict(self):
+        return {
+            "prospect_id": self.prospect_id,
+            "prospect_title": self.prospect_title,
+            "prospect_linkedin_url": self.prospect_linkedin_url,
+            "prospect_bio": self.prospect_bio,
+            "prospect_location": self.prospect_location,
+            "prospect_industry": self.prospect_industry,
+            "prospect_skills": self.prospect_skills,
+            "prospect_positions": self.prospect_positions,
+            "prospect_years_of_experience": self.prospect_years_of_experience,
+            "prospect_dump": self.prospect_dump,
+            "prospect_education_1": self.prospect_education_1,
+            "prospect_education_2": self.prospect_education_2,
+            "company_name": self.company_name,
+            "company_location": self.company_location,
+            "company_employee_count": self.company_employee_count,
+            "company_description": self.company_description,
+            "company_tagline": self.company_tagline,
+            "company_dump": self.company_dump,
+        }
 
 
 def update_icp_scoring_ruleset(
@@ -546,8 +567,8 @@ def get_raw_enriched_prospect_companies_list(
 
 @celery.task
 def score_ai_filters(
-        prospect_enriched_list: list[EnrichedProspectCompany],
-        icp_scoring_ruleset: ICPScoringRuleset,
+        prospect_enriched_list: list[dict],
+        icp_scoring_ruleset: dict,
         dealbreaker: dict,
         individual_score: dict[int, int],
         company_score: dict[int, int],
@@ -555,9 +576,9 @@ def score_ai_filters(
     import copy
     # go through each prospect
     for enriched_prospect_company in prospect_enriched_list:
-        prospect_id = enriched_prospect_company.prospect_id
-        individual_ai_filters = icp_scoring_ruleset.individual_ai_filters if icp_scoring_ruleset.individual_ai_filters else []
-        company_ai_filters = icp_scoring_ruleset.company_ai_filters if icp_scoring_ruleset.company_ai_filters else []
+        prospect_id = enriched_prospect_company["prospect_id"]
+        individual_ai_filters = icp_scoring_ruleset["individual_ai_filters"] if icp_scoring_ruleset["individual_ai_filters"] else []
+        company_ai_filters = icp_scoring_ruleset["company_ai_filters"] if icp_scoring_ruleset["company_ai_filters"] else []
 
         prospect_individual_score = individual_score[prospect_id]
         prospect_company_score = company_score[prospect_id]
@@ -573,7 +594,7 @@ def score_ai_filters(
 
         for individual_ai_filter in individual_ai_filters:
             if individual_ai_filter["use_linkedin"]:
-                prompt = f"{individual_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company.prospect_linkedin_url}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{individual_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
             else:
                 prompt = f"{individual_ai_filter['prompt']}? The Prospect name is {prospect.full_name}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
 
@@ -594,7 +615,7 @@ def score_ai_filters(
                 reasoning = content[1].strip()
 
                 if individual_ai_filter["use_linkedin"]:
-                    citation = enriched_prospect_company.prospect_linkedin_url if enriched_prospect_company.prospect_linkedin_url else "Linkedin"
+                    citation = enriched_prospect_company["prospect_linkedin_url"] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
                 else:
                     if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
                         citation = perplexity_response["citations"][0]
@@ -637,15 +658,11 @@ def score_ai_filters(
         # Company AI Filters
         for company_ai_filter in company_ai_filters:
             if company_ai_filter["use_linkedin"]:
-                prompt = f"{company_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company.prospect_linkedin_url}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{company_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
             else:
-                prompt = f"{company_ai_filter['prompt']}? The company name is {enriched_prospect_company.company_name} Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{company_ai_filter['prompt']}? The company name is {enriched_prospect_company['company_name']} Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
 
             messages = [
-                {
-                    "role": "system",
-                    "content": "You are an AI researcher that will give me correct and factual information on a specific company.",
-                },
                 {
                     "role": "user",
                     "content": prompt
@@ -662,7 +679,7 @@ def score_ai_filters(
                 reasoning = content[1].strip()
 
                 if company_ai_filter["use_linkedin"]:
-                    citation = enriched_prospect_company.prospect_linkedin_url if enriched_prospect_company.prospect_linkedin_url else "Linkedin"
+                    citation = enriched_prospect_company['prospect_linkedin_url'] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
                 else:
                     if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
                         citation = perplexity_response["citations"][0]
@@ -707,7 +724,7 @@ def score_ai_filters(
                 prospect_reasoning += f"❌ Could not find an answer, "
 
         total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_segment(
-            icp_scoring_ruleset.client_archetype_id, prospect.segment_id)
+            icp_scoring_ruleset["client_archetype_id"], prospect.segment_id)
 
         updated_company_score = -1
         updated_individual_score = -1
@@ -2231,7 +2248,7 @@ def apply_segment_icp_scoring_ruleset_filters(
                 prospect_id,
                 enriched_prospect_company,
             ) in tqdm(entries):
-                prospect_enriched_list.append(enriched_prospect_company)
+                prospect_enriched_list.append(enriched_prospect_company.to_dict())
 
                 futures.append(
                     executor.submit(
@@ -2349,21 +2366,21 @@ def apply_segment_icp_scoring_ruleset_filters(
         # we have to send over the icp_scoring_ruleset
         # we have to send over dealbreaker
         # we have to send over the current score and company score
-        # score_ai_filters(
-        #     prospect_enriched_list=prospect_enriched_list,
-        #     icp_scoring_ruleset=icp_scoring_ruleset,
-        #     dealbreaker=dealbreaker,
-        #     individual_score=individual_score_dict,
-        #     company_score=company_score_dict,
-        # )
-
-        score_ai_filters.delay(
+        score_ai_filters(
             prospect_enriched_list=prospect_enriched_list,
-            icp_scoring_ruleset=icp_scoring_ruleset,
+            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
             dealbreaker=dealbreaker,
             individual_score=individual_score_dict,
             company_score=company_score_dict,
         )
+
+        # score_ai_filters.delay(
+        #     prospect_enriched_list=prospect_enriched_list,
+        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+        #     dealbreaker=dealbreaker,
+        #     individual_score=individual_score_dict,
+        #     company_score=company_score_dict,
+        # )
 
         # Get the scoring job, mark it as complete
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
