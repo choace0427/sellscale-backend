@@ -25,6 +25,8 @@ import hashlib
 import queue
 import concurrent.futures
 
+from src.utils.slack import send_slack_message, URL_MAP
+
 
 class EnrichedProspectCompany:
     prospect_id: int
@@ -787,736 +789,746 @@ def score_one_prospect_segment(
     other filters criteria.
     """
     with app.app_context():
-        score = 0
-        company_score = 0
-        individual_reasoning = {}
-        company_reasoning = {}
+        try:
 
-        # For V1 reasoning
-        reasoning = ""
+            score = 0
+            company_score = 0
+            individual_reasoning = {}
+            company_reasoning = {}
 
-        # Programmatic Filters
-        # Prospect Title - Include
-        if icp_scoring_ruleset.excluded_individual_title_keywords and enriched_prospect_company.prospect_title:
+            # For V1 reasoning
+            reasoning = ""
+
+            # Programmatic Filters
+            # Prospect Title - Include
+            if icp_scoring_ruleset.excluded_individual_title_keywords and enriched_prospect_company.prospect_title:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                        for keyword in icp_scoring_ruleset.excluded_individual_title_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+                    title = enriched_prospect_company.prospect_title
+
+                    individual_reasoning["excluded_individual_title_keywords"] = {"answer": "YES",
+                                                                                  "reasoning": "✅ prospect title: " + title,
+                                                                                  "source": "Linkedin"}
+                else:
+                    if "excluded_individual_title_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_title_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title} - dealbreaker",
+                                                                                      "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_title_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title}",
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(❌ prospect title: " + enriched_prospect_company.prospect_title + ") "
+
+            # Prospect Title - Include
+            if icp_scoring_ruleset.included_individual_title_keywords and enriched_prospect_company.prospect_title:
+
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_title_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+                    title = enriched_prospect_company.prospect_title
+
+                    individual_reasoning["included_individual_title_keywords"] = {"answer": "YES",
+                                                                                  "reasoning": "✅ prospect title: " + title,
+                                                                                  "source": "Linkedin"}
+                    reasoning += "(✅ prospect title: " + enriched_prospect_company.prospect_title + ") "
+                else:
+                    if "included_individual_title_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_title_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title} - dealbreaker",
+                                                                                     "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_title_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title}",
+                                                                                      "source": "Linkedin"}
+
+            # Prospect Seniority - Exclude
+            if icp_scoring_ruleset.excluded_individual_seniority_keywords and enriched_prospect_company.prospect_title:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                        for keyword in icp_scoring_ruleset.excluded_individual_seniority_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+                    title = enriched_prospect_company.prospect_title
+
+                    individual_reasoning["excluded_individual_seniority_keywords"] = {"answer": "YES",
+                                                                                      "reasoning": "✅ prospect seniority: " + title,
+                                                                                      "source": "Linkedin"}
+                else:
+                    if "excluded_individual_seniority_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_seniority_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title} - dealbreaker",
+                                                                                          "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_seniority_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title}",
+                                                                                          "source": "Linkedin"}
+                    reasoning += "(❌ prospect seniority: " + enriched_prospect_company.prospect_title + ") "
+
+            # Prospect Seniority - Include
+            if icp_scoring_ruleset.included_individual_seniority_keywords and enriched_prospect_company.prospect_title:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_seniority_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+                    title = enriched_prospect_company.prospect_title
+
+                    individual_reasoning["included_individual_seniority_keywords"] = {"answer": "YES",
+                                                                                      "reasoning": "✅ prospect seniority: " + title,
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(✅ prospect seniority: " + enriched_prospect_company.prospect_title + ") "
+                else:
+                    if "included_individual_seniority_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_seniority_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title} - dealbreaker",
+                                                                                          "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_seniority_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title}",
+                                                                                          "source": "Linkedin"}
+
+            # Prospect Industry - Exclude
+            if icp_scoring_ruleset.excluded_individual_industry_keywords and enriched_prospect_company.prospect_industry:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+                        for keyword in icp_scoring_ruleset.excluded_individual_industry_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+                    industry = enriched_prospect_company.prospect_industry
+
+                    individual_reasoning["excluded_individual_industry_keywords"] = {"answer": "YES",
+                                                                                     "reasoning": "✅ prospect industry: " + industry,
+                                                                                     "source": "Linkedin"}
+                else:
+                    if "excluded_individual_industry_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_industry_keywords"] = {"answer": "NO",
+                                                                                         "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
+                                                                                         "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_industry_keywords"] = {"answer": "NO",
+                                                                                         "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry}",
+                                                                                         "source": "Linkedin"}
+                    reasoning += "(❌ prospect industry: " + enriched_prospect_company.prospect_industry + ") "
+
+            # Prospect Industry - Include
+            if icp_scoring_ruleset.included_individual_industry_keywords and enriched_prospect_company.prospect_industry:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_industry_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+                    industry = enriched_prospect_company.prospect_industry
+
+                    individual_reasoning["included_individual_industry_keywords"] = {"answer": "YES",
+                                                                                     "reasoning": "✅ prospect industry: " + industry,
+                                                                                     "source": "Linkedin"}
+                    reasoning += "(✅ prospect industry: " + enriched_prospect_company.prospect_industry + ") "
+                else:
+                    if "included_individual_industry_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_industry_keywords"] = {"answer": "NO",
+                                                                                         "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
+                                                                                         "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_industry_keywords"] = {"answer": "NO",
+                                                                                         "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry}",
+                                                                                         "source": "Linkedin"}
+
+            # Prospect Years of Experience
             if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.prospect_title.lower()
-                    for keyword in icp_scoring_ruleset.excluded_individual_title_keywords
+                enriched_prospect_company.prospect_years_of_experience
+                and (
+                    icp_scoring_ruleset.individual_years_of_experience_start
+                    and enriched_prospect_company.prospect_years_of_experience
+                    and enriched_prospect_company.prospect_years_of_experience
+                    >= icp_scoring_ruleset.individual_years_of_experience_start
+                )
+                and (
+                    icp_scoring_ruleset.individual_years_of_experience_end
+                    and icp_scoring_ruleset.individual_years_of_experience_end
+                    and enriched_prospect_company.prospect_years_of_experience
+                    <= icp_scoring_ruleset.individual_years_of_experience_end
                 )
             ):
-                if score != -1:
-                    score += 1
-                title = enriched_prospect_company.prospect_title
-
-                individual_reasoning["excluded_individual_title_keywords"] = {"answer": "YES",
-                                                                              "reasoning": "✅ prospect title: " + title,
+                score += 1
+                individual_reasoning["individual_years_of_experience"] = {"answer": "YES",
+                                                                          "reasoning": "✅ prospect years of experience: " + str(enriched_prospect_company.prospect_years_of_experience),
+                                                                          "source": "Linkedin"}
+                reasoning += (
+                        "(✅ prospect years of experience: "
+                        + str(enriched_prospect_company.prospect_years_of_experience)
+                        + ") "
+                )
+            elif enriched_prospect_company.prospect_years_of_experience and (
+                (
+                    icp_scoring_ruleset.individual_years_of_experience_start
+                    and enriched_prospect_company.prospect_years_of_experience
+                    and enriched_prospect_company.prospect_years_of_experience
+                    < icp_scoring_ruleset.individual_years_of_experience_start
+                )
+                or (
+                    icp_scoring_ruleset.individual_years_of_experience_end
+                    and icp_scoring_ruleset.individual_years_of_experience_end
+                    and enriched_prospect_company.prospect_years_of_experience
+                    > icp_scoring_ruleset.individual_years_of_experience_end
+                )
+            ):
+                if "individual_years_of_experience" in dealbreaker:
+                    score = -1
+                    individual_reasoning["individual_years_of_experience"] = {"answer": "NO",
+                                                                              "reasoning": f"❌ prospect years of experience: {enriched_prospect_company.prospect_years_of_experience} - dealbreaker",
                                                                               "source": "Linkedin"}
-            else:
-                if "excluded_individual_title_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_title_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title} - dealbreaker",
-                                                                                  "source": "Linkedin"}
                 else:
-                    individual_reasoning["excluded_individual_title_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title}",
-                                                                                  "source": "Linkedin"}
-                reasoning += "(❌ prospect title: " + enriched_prospect_company.prospect_title + ") "
-
-        # Prospect Title - Include
-        if icp_scoring_ruleset.included_individual_title_keywords and enriched_prospect_company.prospect_title:
-
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.prospect_title.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_title_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-                title = enriched_prospect_company.prospect_title
-
-                individual_reasoning["included_individual_title_keywords"] = {"answer": "YES",
-                                                                              "reasoning": "✅ prospect title: " + title,
+                    individual_reasoning["individual_years_of_experience"] = {"answer": "NO",
+                                                                              "reasoning": f"❌ prospect years of experience: {enriched_prospect_company.prospect_years_of_experience}",
                                                                               "source": "Linkedin"}
-                reasoning += "(✅ prospect title: " + enriched_prospect_company.prospect_title + ") "
-            else:
-                if "included_individual_title_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_title_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title} - dealbreaker",
-                                                                                 "source": "Linkedin"}
-                else:
-                    individual_reasoning["included_individual_title_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ prospect title: {enriched_prospect_company.prospect_title}",
-                                                                                  "source": "Linkedin"}
-
-        # Prospect Seniority - Exclude
-        if icp_scoring_ruleset.excluded_individual_seniority_keywords and enriched_prospect_company.prospect_title:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.prospect_title.lower()
-                    for keyword in icp_scoring_ruleset.excluded_individual_seniority_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-                title = enriched_prospect_company.prospect_title
-
-                individual_reasoning["excluded_individual_seniority_keywords"] = {"answer": "YES",
-                                                                                  "reasoning": "✅ prospect seniority: " + title,
-                                                                                  "source": "Linkedin"}
-            else:
-                if "excluded_individual_seniority_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_seniority_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title} - dealbreaker",
-                                                                                      "source": "Linkedin"}
-                else:
-                    individual_reasoning["excluded_individual_seniority_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title}",
-                                                                                      "source": "Linkedin"}
-                reasoning += "(❌ prospect seniority: " + enriched_prospect_company.prospect_title + ") "
-
-        # Prospect Seniority - Include
-        if icp_scoring_ruleset.included_individual_seniority_keywords and enriched_prospect_company.prospect_title:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.prospect_title.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_seniority_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-                title = enriched_prospect_company.prospect_title
-
-                individual_reasoning["included_individual_seniority_keywords"] = {"answer": "YES",
-                                                                                  "reasoning": "✅ prospect seniority: " + title,
-                                                                                  "source": "Linkedin"}
-                reasoning += "(✅ prospect seniority: " + enriched_prospect_company.prospect_title + ") "
-            else:
-                if "included_individual_seniority_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_seniority_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title} - dealbreaker",
-                                                                                      "source": "Linkedin"}
-                else:
-                    individual_reasoning["included_individual_seniority_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect seniority: {enriched_prospect_company.prospect_title}",
-                                                                                      "source": "Linkedin"}
-
-        # Prospect Industry - Exclude
-        if icp_scoring_ruleset.excluded_individual_industry_keywords and enriched_prospect_company.prospect_industry:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.prospect_industry.lower()
-                    for keyword in icp_scoring_ruleset.excluded_individual_industry_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-                industry = enriched_prospect_company.prospect_industry
-
-                individual_reasoning["excluded_individual_industry_keywords"] = {"answer": "YES",
-                                                                                 "reasoning": "✅ prospect industry: " + industry,
-                                                                                 "source": "Linkedin"}
-            else:
-                if "excluded_individual_industry_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_industry_keywords"] = {"answer": "NO",
-                                                                                     "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
-                                                                                     "source": "Linkedin"}
-                else:
-                    individual_reasoning["excluded_individual_industry_keywords"] = {"answer": "NO",
-                                                                                     "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry}",
-                                                                                     "source": "Linkedin"}
-                reasoning += "(❌ prospect industry: " + enriched_prospect_company.prospect_industry + ") "
-
-        # Prospect Industry - Include
-        if icp_scoring_ruleset.included_individual_industry_keywords and enriched_prospect_company.prospect_industry:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.prospect_industry.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_industry_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-                industry = enriched_prospect_company.prospect_industry
-
-                individual_reasoning["included_individual_industry_keywords"] = {"answer": "YES",
-                                                                                 "reasoning": "✅ prospect industry: " + industry,
-                                                                                 "source": "Linkedin"}
-                reasoning += "(✅ prospect industry: " + enriched_prospect_company.prospect_industry + ") "
-            else:
-                if "included_individual_industry_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_industry_keywords"] = {"answer": "NO",
-                                                                                     "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
-                                                                                     "source": "Linkedin"}
-                else:
-                    individual_reasoning["included_individual_industry_keywords"] = {"answer": "NO",
-                                                                                     "reasoning": f"❌ prospect industry: {enriched_prospect_company.prospect_industry}",
-                                                                                     "source": "Linkedin"}
-
-        # Prospect Years of Experience
-        if (
-            enriched_prospect_company.prospect_years_of_experience
-            and (
-                icp_scoring_ruleset.individual_years_of_experience_start
-                and enriched_prospect_company.prospect_years_of_experience
-                and enriched_prospect_company.prospect_years_of_experience
-                >= icp_scoring_ruleset.individual_years_of_experience_start
-            )
-            and (
-                icp_scoring_ruleset.individual_years_of_experience_end
-                and icp_scoring_ruleset.individual_years_of_experience_end
-                and enriched_prospect_company.prospect_years_of_experience
-                <= icp_scoring_ruleset.individual_years_of_experience_end
-            )
-        ):
-            score += 1
-            individual_reasoning["individual_years_of_experience"] = {"answer": "YES",
-                                                                      "reasoning": "✅ prospect years of experience: " + str(enriched_prospect_company.prospect_years_of_experience),
-                                                                      "source": "Linkedin"}
-            reasoning += (
-                    "(✅ prospect years of experience: "
+                reasoning += (
+                    "(❌ prospect years of experience: "
                     + str(enriched_prospect_company.prospect_years_of_experience)
                     + ") "
-            )
-        elif enriched_prospect_company.prospect_years_of_experience and (
-            (
-                icp_scoring_ruleset.individual_years_of_experience_start
-                and enriched_prospect_company.prospect_years_of_experience
-                and enriched_prospect_company.prospect_years_of_experience
-                < icp_scoring_ruleset.individual_years_of_experience_start
-            )
-            or (
-                icp_scoring_ruleset.individual_years_of_experience_end
-                and icp_scoring_ruleset.individual_years_of_experience_end
-                and enriched_prospect_company.prospect_years_of_experience
-                > icp_scoring_ruleset.individual_years_of_experience_end
-            )
-        ):
-            if "individual_years_of_experience" in dealbreaker:
-                score = -1
-                individual_reasoning["individual_years_of_experience"] = {"answer": "NO",
-                                                                          "reasoning": f"❌ prospect years of experience: {enriched_prospect_company.prospect_years_of_experience} - dealbreaker",
-                                                                          "source": "Linkedin"}
-            else:
-                individual_reasoning["individual_years_of_experience"] = {"answer": "NO",
-                                                                          "reasoning": f"❌ prospect years of experience: {enriched_prospect_company.prospect_years_of_experience}",
-                                                                          "source": "Linkedin"}
-            reasoning += (
-                "(❌ prospect years of experience: "
-                + str(enriched_prospect_company.prospect_years_of_experience)
-                + ") "
-            )
-
-        # Prospect Skills - Exclude
-        if icp_scoring_ruleset.excluded_individual_skills_keywords and enriched_prospect_company.prospect_skills:
-            skills = ", ".join(enriched_prospect_company.prospect_skills)
-
-            if (
-                any(
-                    keyword.lower() in skill.lower()
-                    for skill in enriched_prospect_company.prospect_skills
-                    for keyword in icp_scoring_ruleset.excluded_individual_skills_keywords
                 )
-            ):
-                if score != -1:
-                    score -= 1
 
-                individual_reasoning["excluded_individual_skills_keywords"] = {"answer": "YES",
-                                                                               "reasoning": "✅ prospect skills: " + skills,
+            # Prospect Skills - Exclude
+            if icp_scoring_ruleset.excluded_individual_skills_keywords and enriched_prospect_company.prospect_skills:
+                skills = ", ".join(enriched_prospect_company.prospect_skills)
+
+                if (
+                    any(
+                        keyword.lower() in skill.lower()
+                        for skill in enriched_prospect_company.prospect_skills
+                        for keyword in icp_scoring_ruleset.excluded_individual_skills_keywords
+                    )
+                ):
+                    if score != -1:
+                        score -= 1
+
+                    individual_reasoning["excluded_individual_skills_keywords"] = {"answer": "YES",
+                                                                                   "reasoning": "✅ prospect skills: " + skills,
+                                                                                   "source": "Linkedin"}
+                    reasoning += "(❌ prospect skills: " + skills + ") "
+                else:
+                    if "excluded_individual_skills_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_skills_keywords"] = {"answer": "NO",
+                                                                                       "reasoning": f"❌ prospect skills: {skills} - dealbreaker",
+                                                                                       "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_skills_keywords"] = {"answer": "NO",
+                                                                                       "reasoning": f"❌ prospect skills: {skills}",
+                                                                                       "source": "Linkedin"}
+
+            # Prospect Skills - Include
+            if icp_scoring_ruleset.included_individual_skills_keywords and enriched_prospect_company.prospect_skills:
+                skills = ", ".join(enriched_prospect_company.prospect_skills)
+
+                if (
+                    any(
+                        keyword.lower() in skill.lower()
+                        for skill in enriched_prospect_company.prospect_skills
+                        for keyword in icp_scoring_ruleset.included_individual_skills_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["included_individual_skills_keywords"] = {"answer": "YES",
+                                                                                   "reasoning": "✅ prospect skills: " + skills,
+                                                                                   "source": "Linkedin"}
+                    reasoning += "(✅ prospect skills: " + skills + ") "
+                else:
+                    if "included_individual_skills_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_skills_keywords"] = {"answer": "NO",
+                                                                                       "reasoning": f"❌ prospect skills: {skills} - dealbreaker",
+                                                                                       "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_skills_keywords"] = {"answer": "NO",
+                                                                                       "reasoning": f"❌ prospect skills: {skills}",
+                                                                                       "source": "Linkedin"}
+
+            # Prospect Locations - Exclude
+            if icp_scoring_ruleset.excluded_individual_locations_keywords and enriched_prospect_company.prospect_location:
+                location = enriched_prospect_company.prospect_location
+
+                if (
+                    not any(
+                        keyword.lower() in location.lower()
+                        for keyword in icp_scoring_ruleset.excluded_individual_locations_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["excluded_individual_locations_keywords"] = {"answer": "YES",
+                                                                                      "reasoning": "✅ prospect location: " + location,
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(✅ prospect location: " + location + ") "
+                else:
+                    if "excluded_individual_locations_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_locations_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect location: {location} - dealbreaker",
+                                                                                          "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_locations_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect location: {location}",
+                                                                                          "source": "Linkedin"}
+                    reasoning += "(❌ prospect location: " + location + ") "
+
+            # Prospect Locations - Include
+            if icp_scoring_ruleset.included_individual_locations_keywords and enriched_prospect_company.prospect_location:
+                location = enriched_prospect_company.prospect_location
+
+                if (
+                    any(
+                        keyword.lower() in location.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_locations_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["included_individual_locations_keywords"] = {"answer": "YES",
+                                                                                      "reasoning": "✅ prospect location: " + location,
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(✅ prospect location: " + location + ") "
+                else:
+                    if "included_individual_locations_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_locations_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect location: {location} - dealbreaker",
+                                                                                          "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_locations_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect location: {location}",
+                                                                                          "source": "Linkedin"}
+
+            # Prospect Education - Exclude
+            educations = []
+            if enriched_prospect_company.prospect_education_1:
+                educations.append(enriched_prospect_company.prospect_education_1)
+            if enriched_prospect_company.prospect_education_2:
+                educations.append(enriched_prospect_company.prospect_education_2)
+
+            if icp_scoring_ruleset.excluded_individual_education_keywords and educations:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.prospect_location.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_locations_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["excluded_individual_education_keywords"] = {"answer": "YES",
+                                                                                      "reasoning": "✅ prospect education: " + ", ".join(educations),
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(✅ prospect education: " + ", ".join(educations) + ") "
+                else:
+                    if "excluded_individual_education_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_education_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect education: {', '.join(educations)} - dealbreaker",
+                                                                                          "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_education_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect education: {', '.join(educations)}",
+                                                                                          "source": "Linkedin"}
+                    reasoning += "(❌ prospect education: " + ", ".join(educations) + ") "
+
+            # Prospect Education - Include
+            if icp_scoring_ruleset.included_individual_education_keywords and educations:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.prospect_location.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_locations_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["included_individual_education_keywords"] = {"answer": "YES",
+                                                                                      "reasoning": "✅ prospect education: " + ", ".join(educations),
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(✅ prospect education: " + ", ".join(educations) + ") "
+                else:
+                    if "included_individual_education_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_education_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect education: {', '.join(educations)} - dealbreaker",
+                                                                                          "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_education_keywords"] = {"answer": "NO",
+                                                                                          "reasoning": f"❌ prospect education: {', '.join(educations)}",
+                                                                                          "source": "Linkedin"}
+                    reasoning += "(❌ prospect education: " + ", ".join(educations) + ") "
+
+            # Prospect generalized keywords -- Exclude
+            if icp_scoring_ruleset.excluded_individual_generalized_keywords and enriched_prospect_company.prospect_dump:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.prospect_dump.lower()
+                        for keyword in icp_scoring_ruleset.excluded_individual_generalized_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["excluded_individual_generalized_keywords"] = {"answer": "YES",
+                                                                                        "reasoning": "✅ prospect generalized keywords",
+                                                                                        "source": "Linkedin"}
+                    reasoning += "(✅ prospect generalized keywords) "
+                else:
+                    if "excluded_individual_generalized_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["excluded_individual_generalized_keywords"] = {"answer": "NO",
+                                                                                            "reasoning": f"❌ prospect generalized keywords - dealbreaker",
+                                                                                            "source": "Linkedin"}
+                    else:
+                        individual_reasoning["excluded_individual_generalized_keywords"] = {"answer": "NO",
+                                                                                            "reasoning": f"❌ prospect generalized keywords",
+                                                                                            "source": "Linkedin"}
+                    reasoning += "(❌ prospect generalized keywords) "
+
+            # Prospect generalized keywords -- Include
+            if icp_scoring_ruleset.included_individual_generalized_keywords and enriched_prospect_company.prospect_dump:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.prospect_dump.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_generalized_keywords
+                    )
+                ):
+                    if score != -1:
+                        score += 1
+
+                    individual_reasoning["included_individual_generalized_keywords"] = {"answer": "YES",
+                                                                                        "reasoning": "✅ prospect generalized keywords",
+                                                                                        "source": "Linkedin"}
+                    reasoning += "(✅ prospect generalized keywords) "
+                else:
+                    if "included_individual_generalized_keywords" in dealbreaker:
+                        score = -1
+                        individual_reasoning["included_individual_generalized_keywords"] = {"answer": "NO",
+                                                                                            "reasoning": f"❌ prospect generalized keywords - dealbreaker",
+                                                                                            "source": "Linkedin"}
+                    else:
+                        individual_reasoning["included_individual_generalized_keywords"] = {"answer": "NO",
+                                                                                            "reasoning": f"❌ prospect generalized keywords",
+                                                                                            "source": "Linkedin"}
+                    reasoning += "(❌ prospect generalized keywords) "
+
+            # --------- COMPANY FILTERS --------- #
+            # Company Name - Include
+            if icp_scoring_ruleset.excluded_company_name_keywords and enriched_prospect_company.company_name:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.company_name.lower()
+                        for keyword in icp_scoring_ruleset.excluded_company_name_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+                    company_name = enriched_prospect_company.company_name
+
+                    company_reasoning["excluded_company_name_keywords"] = {"answer": "YES",
+                                                                           "reasoning": "✅ company name: " + company_name,
+                                                                           "source": "Linkedin"}
+                else:
+                    if "excluded_company_name_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["excluded_company_name_keywords"] = {"answer": "NO",
+                                                                               "reasoning": f"❌ company name: {enriched_prospect_company.company_name} - dealbreaker",
                                                                                "source": "Linkedin"}
-                reasoning += "(❌ prospect skills: " + skills + ") "
-            else:
-                if "excluded_individual_skills_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_skills_keywords"] = {"answer": "NO",
-                                                                                   "reasoning": f"❌ prospect skills: {skills} - dealbreaker",
-                                                                                   "source": "Linkedin"}
-                else:
-                    individual_reasoning["excluded_individual_skills_keywords"] = {"answer": "NO",
-                                                                                   "reasoning": f"❌ prospect skills: {skills}",
-                                                                                   "source": "Linkedin"}
-
-        # Prospect Skills - Include
-        if icp_scoring_ruleset.included_individual_skills_keywords and enriched_prospect_company.prospect_skills:
-            skills = ", ".join(enriched_prospect_company.prospect_skills)
-
-            if (
-                any(
-                    keyword.lower() in skill.lower()
-                    for skill in enriched_prospect_company.prospect_skills
-                    for keyword in icp_scoring_ruleset.included_individual_skills_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["included_individual_skills_keywords"] = {"answer": "YES",
-                                                                               "reasoning": "✅ prospect skills: " + skills,
+                    else:
+                        company_reasoning["excluded_company_name_keywords"] = {"answer": "NO",
+                                                                               "reasoning": f"❌ company name: {enriched_prospect_company.company_name}",
                                                                                "source": "Linkedin"}
-                reasoning += "(✅ prospect skills: " + skills + ") "
-            else:
-                if "included_individual_skills_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_skills_keywords"] = {"answer": "NO",
-                                                                                   "reasoning": f"❌ prospect skills: {skills} - dealbreaker",
-                                                                                   "source": "Linkedin"}
+                    reasoning += "(❌ company name: " + enriched_prospect_company.company_name + ") "
+
+            # Company Name - Include
+            if icp_scoring_ruleset.included_company_name_keywords and enriched_prospect_company.company_name:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.company_name.lower()
+                        for keyword in icp_scoring_ruleset.included_company_name_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+                    company_name = enriched_prospect_company.company_name
+
+                    company_reasoning["included_company_name_keywords"] = {"answer": "YES",
+                                                                           "reasoning": "✅ company name: " + company_name,
+                                                                           "source": "Linkedin"}
+                    reasoning += "(✅ company name: " + enriched_prospect_company.company_name + ") "
                 else:
-                    individual_reasoning["included_individual_skills_keywords"] = {"answer": "NO",
-                                                                                   "reasoning": f"❌ prospect skills: {skills}",
-                                                                                   "source": "Linkedin"}
+                    if "included_company_name_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["included_company_name_keywords"] = {"answer": "NO",
+                                                                               "reasoning": f"❌ company name: {enriched_prospect_company.company_name} - dealbreaker",
+                                                                               "source": "Linkedin"}
+                    else:
+                        company_reasoning["included_company_name_keywords"] = {"answer": "NO",
+                                                                               "reasoning": f"❌ company name: {enriched_prospect_company.company_name}",
+                                                                               "source": "Linkedin"}
 
-        # Prospect Locations - Exclude
-        if icp_scoring_ruleset.excluded_individual_locations_keywords and enriched_prospect_company.prospect_location:
-            location = enriched_prospect_company.prospect_location
+            # Company Location - Exclude
+            if icp_scoring_ruleset.excluded_company_locations_keywords and enriched_prospect_company.company_location:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.company_location.lower()
+                        for keyword in icp_scoring_ruleset.excluded_company_locations_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+                    company_location = enriched_prospect_company.company_location
 
-            if (
-                not any(
-                    keyword.lower() in location.lower()
-                    for keyword in icp_scoring_ruleset.excluded_individual_locations_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["excluded_individual_locations_keywords"] = {"answer": "YES",
-                                                                                  "reasoning": "✅ prospect location: " + location,
-                                                                                  "source": "Linkedin"}
-                reasoning += "(✅ prospect location: " + location + ") "
-            else:
-                if "excluded_individual_locations_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_locations_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect location: {location} - dealbreaker",
-                                                                                      "source": "Linkedin"}
+                    company_reasoning["excluded_company_locations_keywords"] = {"answer": "YES",
+                                                                                "reasoning": "✅ company location: " + company_location,
+                                                                                "source": "Linkedin"}
                 else:
-                    individual_reasoning["excluded_individual_locations_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect location: {location}",
-                                                                                      "source": "Linkedin"}
-                reasoning += "(❌ prospect location: " + location + ") "
-
-        # Prospect Locations - Include
-        if icp_scoring_ruleset.included_individual_locations_keywords and enriched_prospect_company.prospect_location:
-            location = enriched_prospect_company.prospect_location
-
-            if (
-                any(
-                    keyword.lower() in location.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_locations_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["included_individual_locations_keywords"] = {"answer": "YES",
-                                                                                  "reasoning": "✅ prospect location: " + location,
-                                                                                  "source": "Linkedin"}
-                reasoning += "(✅ prospect location: " + location + ") "
-            else:
-                if "included_individual_locations_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_locations_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect location: {location} - dealbreaker",
-                                                                                      "source": "Linkedin"}
-                else:
-                    individual_reasoning["included_individual_locations_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect location: {location}",
-                                                                                      "source": "Linkedin"}
-
-        # Prospect Education - Exclude
-        educations = []
-        if enriched_prospect_company.prospect_education_1:
-            educations.append(enriched_prospect_company.prospect_education_1)
-        if enriched_prospect_company.prospect_education_2:
-            educations.append(enriched_prospect_company.prospect_education_2)
-
-        if icp_scoring_ruleset.excluded_individual_education_keywords and educations:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.prospect_location.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_locations_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["excluded_individual_education_keywords"] = {"answer": "YES",
-                                                                                  "reasoning": "✅ prospect education: " + ", ".join(educations),
-                                                                                  "source": "Linkedin"}
-                reasoning += "(✅ prospect education: " + ", ".join(educations) + ") "
-            else:
-                if "excluded_individual_education_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_education_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect education: {', '.join(educations)} - dealbreaker",
-                                                                                      "source": "Linkedin"}
-                else:
-                    individual_reasoning["excluded_individual_education_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect education: {', '.join(educations)}",
-                                                                                      "source": "Linkedin"}
-                reasoning += "(❌ prospect education: " + ", ".join(educations) + ") "
-
-        # Prospect Education - Include
-        if icp_scoring_ruleset.included_individual_education_keywords and educations:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.prospect_location.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_locations_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["included_individual_education_keywords"] = {"answer": "YES",
-                                                                                  "reasoning": "✅ prospect education: " + ", ".join(educations),
-                                                                                  "source": "Linkedin"}
-                reasoning += "(✅ prospect education: " + ", ".join(educations) + ") "
-            else:
-                if "included_individual_education_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_education_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect education: {', '.join(educations)} - dealbreaker",
-                                                                                      "source": "Linkedin"}
-                else:
-                    individual_reasoning["included_individual_education_keywords"] = {"answer": "NO",
-                                                                                      "reasoning": f"❌ prospect education: {', '.join(educations)}",
-                                                                                      "source": "Linkedin"}
-                reasoning += "(❌ prospect education: " + ", ".join(educations) + ") "
-
-        # Prospect generalized keywords -- Exclude
-        if icp_scoring_ruleset.excluded_individual_generalized_keywords and enriched_prospect_company.prospect_dump:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.prospect_dump.lower()
-                    for keyword in icp_scoring_ruleset.excluded_individual_generalized_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["excluded_individual_generalized_keywords"] = {"answer": "YES",
-                                                                                    "reasoning": "✅ prospect generalized keywords",
+                    if "excluded_company_locations_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["excluded_company_locations_keywords"] = {"answer": "NO",
+                                                                                    "reasoning": f"❌ company location: {enriched_prospect_company.company_location} - dealbreaker",
                                                                                     "source": "Linkedin"}
-                reasoning += "(✅ prospect generalized keywords) "
-            else:
-                if "excluded_individual_generalized_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["excluded_individual_generalized_keywords"] = {"answer": "NO",
-                                                                                        "reasoning": f"❌ prospect generalized keywords - dealbreaker",
-                                                                                        "source": "Linkedin"}
-                else:
-                    individual_reasoning["excluded_individual_generalized_keywords"] = {"answer": "NO",
-                                                                                        "reasoning": f"❌ prospect generalized keywords",
-                                                                                        "source": "Linkedin"}
-                reasoning += "(❌ prospect generalized keywords) "
-
-        # Prospect generalized keywords -- Include
-        if icp_scoring_ruleset.included_individual_generalized_keywords and enriched_prospect_company.prospect_dump:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.prospect_dump.lower()
-                    for keyword in icp_scoring_ruleset.included_individual_generalized_keywords
-                )
-            ):
-                if score != -1:
-                    score += 1
-
-                individual_reasoning["included_individual_generalized_keywords"] = {"answer": "YES",
-                                                                                    "reasoning": "✅ prospect generalized keywords",
+                    else:
+                        company_reasoning["excluded_company_locations_keywords"] = {"answer": "NO",
+                                                                                    "reasoning": f"❌ company location: {enriched_prospect_company.company_location}",
                                                                                     "source": "Linkedin"}
-                reasoning += "(✅ prospect generalized keywords) "
-            else:
-                if "included_individual_generalized_keywords" in dealbreaker:
-                    score = -1
-                    individual_reasoning["included_individual_generalized_keywords"] = {"answer": "NO",
-                                                                                        "reasoning": f"❌ prospect generalized keywords - dealbreaker",
-                                                                                        "source": "Linkedin"}
-                else:
-                    individual_reasoning["included_individual_generalized_keywords"] = {"answer": "NO",
-                                                                                        "reasoning": f"❌ prospect generalized keywords",
-                                                                                        "source": "Linkedin"}
-                reasoning += "(❌ prospect generalized keywords) "
+                    reasoning += "(❌ company location: " + enriched_prospect_company.company_location + ") "
 
-        # --------- COMPANY FILTERS --------- #
-        # Company Name - Include
-        if icp_scoring_ruleset.excluded_company_name_keywords and enriched_prospect_company.company_name:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.company_name.lower()
-                    for keyword in icp_scoring_ruleset.excluded_company_name_keywords
+            # Company Location - Include
+            if icp_scoring_ruleset.included_company_locations_keywords and enriched_prospect_company.company_location:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.company_location.lower()
+                        for keyword in icp_scoring_ruleset.included_company_locations_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+                    company_location = enriched_prospect_company.company_location
+
+                    company_reasoning["included_company_locations_keywords"] = {"answer": "YES",
+                                                                                "reasoning": "✅ company location: " + company_location,
+                                                                                "source": "Linkedin"}
+                    reasoning += "(✅ company location: " + enriched_prospect_company.company_location + ") "
+                else:
+                    if "included_company_locations_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["included_company_locations_keywords"] = {"answer": "NO",
+                                                                                    "reasoning": f"❌ company location: {enriched_prospect_company.company_location} - dealbreaker",
+                                                                                    "source": "Linkedin"}
+                    else:
+                        company_reasoning["included_company_locations_keywords"] = {"answer": "NO",
+                                                                                    "reasoning": f"❌ company location: {enriched_prospect_company.company_location}",
+                                                                                    "source": "Linkedin"}
+
+            # Company Size
+            if enriched_prospect_company.company_employee_count != "None" and (
+                (
+                    icp_scoring_ruleset.company_size_start
+                    and enriched_prospect_company.company_employee_count
+                    and int(enriched_prospect_company.company_employee_count)
+                    >= icp_scoring_ruleset.company_size_start
+                )
+                and (
+                    icp_scoring_ruleset.company_size_end
+                    and int(enriched_prospect_company.company_employee_count)
+                    <= icp_scoring_ruleset.company_size_end
                 )
             ):
-                if company_score != -1:
-                    company_score += 1
-                company_name = enriched_prospect_company.company_name
-
-                company_reasoning["excluded_company_name_keywords"] = {"answer": "YES",
-                                                                       "reasoning": "✅ company name: " + company_name,
-                                                                       "source": "Linkedin"}
-            else:
-                if "excluded_company_name_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["excluded_company_name_keywords"] = {"answer": "NO",
-                                                                           "reasoning": f"❌ company name: {enriched_prospect_company.company_name} - dealbreaker",
-                                                                           "source": "Linkedin"}
-                else:
-                    company_reasoning["excluded_company_name_keywords"] = {"answer": "NO",
-                                                                           "reasoning": f"❌ company name: {enriched_prospect_company.company_name}",
-                                                                           "source": "Linkedin"}
-                reasoning += "(❌ company name: " + enriched_prospect_company.company_name + ") "
-
-        # Company Name - Include
-        if icp_scoring_ruleset.included_company_name_keywords and enriched_prospect_company.company_name:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.company_name.lower()
-                    for keyword in icp_scoring_ruleset.included_company_name_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-                company_name = enriched_prospect_company.company_name
-
-                company_reasoning["included_company_name_keywords"] = {"answer": "YES",
-                                                                       "reasoning": "✅ company name: " + company_name,
-                                                                       "source": "Linkedin"}
-                reasoning += "(✅ company name: " + enriched_prospect_company.company_name + ") "
-            else:
-                if "included_company_name_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["included_company_name_keywords"] = {"answer": "NO",
-                                                                           "reasoning": f"❌ company name: {enriched_prospect_company.company_name} - dealbreaker",
-                                                                           "source": "Linkedin"}
-                else:
-                    company_reasoning["included_company_name_keywords"] = {"answer": "NO",
-                                                                           "reasoning": f"❌ company name: {enriched_prospect_company.company_name}",
-                                                                           "source": "Linkedin"}
-
-        # Company Location - Exclude
-        if icp_scoring_ruleset.excluded_company_locations_keywords and enriched_prospect_company.company_location:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.company_location.lower()
-                    for keyword in icp_scoring_ruleset.excluded_company_locations_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-                company_location = enriched_prospect_company.company_location
-
-                company_reasoning["excluded_company_locations_keywords"] = {"answer": "YES",
-                                                                            "reasoning": "✅ company location: " + company_location,
-                                                                            "source": "Linkedin"}
-            else:
-                if "excluded_company_locations_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["excluded_company_locations_keywords"] = {"answer": "NO",
-                                                                                "reasoning": f"❌ company location: {enriched_prospect_company.company_location} - dealbreaker",
-                                                                                "source": "Linkedin"}
-                else:
-                    company_reasoning["excluded_company_locations_keywords"] = {"answer": "NO",
-                                                                                "reasoning": f"❌ company location: {enriched_prospect_company.company_location}",
-                                                                                "source": "Linkedin"}
-                reasoning += "(❌ company location: " + enriched_prospect_company.company_location + ") "
-
-        # Company Location - Include
-        if icp_scoring_ruleset.included_company_locations_keywords and enriched_prospect_company.company_location:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.company_location.lower()
-                    for keyword in icp_scoring_ruleset.included_company_locations_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-                company_location = enriched_prospect_company.company_location
-
-                company_reasoning["included_company_locations_keywords"] = {"answer": "YES",
-                                                                            "reasoning": "✅ company location: " + company_location,
-                                                                            "source": "Linkedin"}
-                reasoning += "(✅ company location: " + enriched_prospect_company.company_location + ") "
-            else:
-                if "included_company_locations_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["included_company_locations_keywords"] = {"answer": "NO",
-                                                                                "reasoning": f"❌ company location: {enriched_prospect_company.company_location} - dealbreaker",
-                                                                                "source": "Linkedin"}
-                else:
-                    company_reasoning["included_company_locations_keywords"] = {"answer": "NO",
-                                                                                "reasoning": f"❌ company location: {enriched_prospect_company.company_location}",
-                                                                                "source": "Linkedin"}
-
-        # Company Size
-        if enriched_prospect_company.company_employee_count != "None" and (
-            (
-                icp_scoring_ruleset.company_size_start
-                and enriched_prospect_company.company_employee_count
-                and int(enriched_prospect_company.company_employee_count)
-                >= icp_scoring_ruleset.company_size_start
-            )
-            and (
-                icp_scoring_ruleset.company_size_end
-                and int(enriched_prospect_company.company_employee_count)
-                <= icp_scoring_ruleset.company_size_end
-            )
-        ):
-            company_score += 1
-            company_reasoning["company_size"] = {"answer": "YES",
-                                                 "reasoning": f"✅ company size: {enriched_prospect_company.company_employee_count}",
-                                                 "source": "Linkedin"}
-            reasoning += "(✅ company size: " + enriched_prospect_company.company_employee_count + ") "
-
-        elif enriched_prospect_company.company_employee_count != "None" and (
-            (
-                icp_scoring_ruleset.company_size_start
-                and enriched_prospect_company.company_employee_count
-                and int(enriched_prospect_company.company_employee_count)
-                < icp_scoring_ruleset.company_size_start
-            )
-            or (
-                icp_scoring_ruleset.company_size_end
-                and int(enriched_prospect_company.company_employee_count)
-                > icp_scoring_ruleset.company_size_end
-            )
-        ):
-            if "company_size" in dealbreaker:
-                company_score = -1
-                company_reasoning["company_size"] = {"answer": "NO",
-                                                     "reasoning": f"❌ company size: {enriched_prospect_company.company_employee_count} - dealbreaker",
+                company_score += 1
+                company_reasoning["company_size"] = {"answer": "YES",
+                                                     "reasoning": f"✅ company size: {enriched_prospect_company.company_employee_count}",
                                                      "source": "Linkedin"}
-            else:
-                company_reasoning["company_size"] = {"answer": "NO",
-                                                     "reasoning": f"❌ company size: {enriched_prospect_company.company_employee_count}",
-                                                     "source": "Linkedin"}
-            reasoning += (
-                "(❌ company size: "
-                + enriched_prospect_company.company_employee_count
-                + ") "
+                reasoning += "(✅ company size: " + enriched_prospect_company.company_employee_count + ") "
+
+            elif enriched_prospect_company.company_employee_count != "None" and (
+                (
+                    icp_scoring_ruleset.company_size_start
+                    and enriched_prospect_company.company_employee_count
+                    and int(enriched_prospect_company.company_employee_count)
+                    < icp_scoring_ruleset.company_size_start
+                )
+                or (
+                    icp_scoring_ruleset.company_size_end
+                    and int(enriched_prospect_company.company_employee_count)
+                    > icp_scoring_ruleset.company_size_end
+                )
+            ):
+                if "company_size" in dealbreaker:
+                    company_score = -1
+                    company_reasoning["company_size"] = {"answer": "NO",
+                                                         "reasoning": f"❌ company size: {enriched_prospect_company.company_employee_count} - dealbreaker",
+                                                         "source": "Linkedin"}
+                else:
+                    company_reasoning["company_size"] = {"answer": "NO",
+                                                         "reasoning": f"❌ company size: {enriched_prospect_company.company_employee_count}",
+                                                         "source": "Linkedin"}
+                reasoning += (
+                    "(❌ company size: "
+                    + enriched_prospect_company.company_employee_count
+                    + ") "
+                )
+
+            # Company Industry - Exclude
+            if icp_scoring_ruleset.excluded_company_industries_keywords and enriched_prospect_company.prospect_industry:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+                        for keyword in icp_scoring_ruleset.excluded_company_industries_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+                    company_industry = enriched_prospect_company.prospect_industry
+
+                    company_reasoning["excluded_company_industries_keywords"] = {"answer": "YES",
+                                                                               "reasoning": "✅ company industry: " + company_industry,
+                                                                               "source": "Linkedin"}
+                else:
+                    if "excluded_company_industries_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["excluded_company_industries_keywords"] = {"answer": "NO",
+                                                                                   "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
+                                                                                   "source": "Linkedin"}
+                    else:
+                        company_reasoning["excluded_company_industries_keywords"] = {"answer": "NO",
+                                                                                   "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry}",
+                                                                                   "source": "Linkedin"}
+                    reasoning += "(❌ company industry: " + enriched_prospect_company.prospect_industry + ") "
+
+            # Company Industry - Include
+            if icp_scoring_ruleset.included_company_industries_keywords and enriched_prospect_company.prospect_industry:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.prospect_industry.lower()
+                        for keyword in icp_scoring_ruleset.included_company_industries_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+                    company_industry = enriched_prospect_company.prospect_industry
+
+                    company_reasoning["included_company_industries_keywords"] = {"answer": "YES",
+                                                                               "reasoning": "✅ company industry: " + company_industry,
+                                                                               "source": "Linkedin"}
+                    reasoning += "(✅ company industry: " + enriched_prospect_company.prospect_industry + ") "
+                else:
+                    if "included_company_industries_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["included_company_industries_keywords"] = {"answer": "NO",
+                                                                                   "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
+                                                                                   "source": "Linkedin"}
+                    else:
+                        company_reasoning["included_company_industries_keywords"] = {"answer": "NO",
+                                                                                   "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry}",
+                                                                                   "source": "Linkedin"}
+
+            # Company generalized keywords -- Exclude
+            if icp_scoring_ruleset.excluded_company_generalized_keywords and enriched_prospect_company.company_dump:
+                if (
+                    not any(
+                        keyword.lower() in enriched_prospect_company.company_dump.lower()
+                        for keyword in icp_scoring_ruleset.excluded_company_generalized_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+
+                    company_reasoning["excluded_company_generalized_keywords"] = {"answer": "YES",
+                                                                                  "reasoning": "✅ company does not contain any excluded keywords",
+                                                                                  "source": "Linkedin"}
+                else:
+                    if "excluded_company_generalized_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["excluded_company_generalized_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ company contained generalized keywords - dealbreaker",
+                                                                                      "source": "Linkedin"}
+                    else:
+                        company_reasoning["excluded_company_generalized_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ company contained generalized keywords",
+                                                                                      "source": "Linkedin"}
+                    reasoning += "(❌ company contained generalized keywords) "
+
+            # Company generalized keywords -- Include
+            if icp_scoring_ruleset.included_company_generalized_keywords and enriched_prospect_company.company_dump:
+                if (
+                    any(
+                        keyword.lower() in enriched_prospect_company.company_dump.lower()
+                        for keyword in icp_scoring_ruleset.included_company_generalized_keywords
+                    )
+                ):
+                    if company_score != -1:
+                        company_score += 1
+
+                    valid_generalized = ""
+                    for keyword in icp_scoring_ruleset.included_company_generalized_keywords:
+                        if keyword.lower() in enriched_prospect_company.company_dump.lower():
+                            valid_generalized = keyword
+                            break
+
+                    company_reasoning["included_company_generalized_keywords"] = {"answer": "YES",
+                                                                                  "reasoning": "✅ company contained generalized keywords - " + valid_generalized,
+                                                                                  "source": "Linkedin"}
+                    reasoning += "(✅ company generalized keywords) "
+                else:
+                    if "included_company_generalized_keywords" in dealbreaker:
+                        company_score = -1
+                        company_reasoning["included_company_generalized_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ company does not contain generalized keywords - dealbreaker",
+                                                                                      "source": "Linkedin"}
+                    else:
+                        company_reasoning["included_company_generalized_keywords"] = {"answer": "NO",
+                                                                                      "reasoning": f"❌ company does not contain generalized keywords",
+                                                                                      "source": "Linkedin"}
+
+            if queue:
+                queue.put((enriched_prospect_company, score, company_score, individual_reasoning, company_reasoning, reasoning))
+
+            db.session.close()
+
+            return enriched_prospect_company, score, company_score, individual_reasoning, company_reasoning, reasoning
+
+        except Exception as e:
+            send_slack_message(
+                message="There is an error somewhere: " + str(e),
+                webhook_urls=[URL_MAP["eng-sandbox"]],
             )
-
-        # Company Industry - Exclude
-        if icp_scoring_ruleset.excluded_company_industries_keywords and enriched_prospect_company.prospect_industry:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.prospect_industry.lower()
-                    for keyword in icp_scoring_ruleset.excluded_company_industries_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-                company_industry = enriched_prospect_company.prospect_industry
-
-                company_reasoning["excluded_company_industries_keywords"] = {"answer": "YES",
-                                                                           "reasoning": "✅ company industry: " + company_industry,
-                                                                           "source": "Linkedin"}
-            else:
-                if "excluded_company_industries_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["excluded_company_industries_keywords"] = {"answer": "NO",
-                                                                               "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
-                                                                               "source": "Linkedin"}
-                else:
-                    company_reasoning["excluded_company_industries_keywords"] = {"answer": "NO",
-                                                                               "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry}",
-                                                                               "source": "Linkedin"}
-                reasoning += "(❌ company industry: " + enriched_prospect_company.prospect_industry + ") "
-
-        # Company Industry - Include
-        if icp_scoring_ruleset.included_company_industries_keywords and enriched_prospect_company.prospect_industry:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.prospect_industry.lower()
-                    for keyword in icp_scoring_ruleset.included_company_industries_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-                company_industry = enriched_prospect_company.prospect_industry
-
-                company_reasoning["included_company_industries_keywords"] = {"answer": "YES",
-                                                                           "reasoning": "✅ company industry: " + company_industry,
-                                                                           "source": "Linkedin"}
-                reasoning += "(✅ company industry: " + enriched_prospect_company.prospect_industry + ") "
-            else:
-                if "included_company_industries_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["included_company_industries_keywords"] = {"answer": "NO",
-                                                                               "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry} - dealbreaker",
-                                                                               "source": "Linkedin"}
-                else:
-                    company_reasoning["included_company_industries_keywords"] = {"answer": "NO",
-                                                                               "reasoning": f"❌ company industry: {enriched_prospect_company.prospect_industry}",
-                                                                               "source": "Linkedin"}
-
-        # Company generalized keywords -- Exclude
-        if icp_scoring_ruleset.excluded_company_generalized_keywords and enriched_prospect_company.company_dump:
-            if (
-                not any(
-                    keyword.lower() in enriched_prospect_company.company_dump.lower()
-                    for keyword in icp_scoring_ruleset.excluded_company_generalized_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-
-                company_reasoning["excluded_company_generalized_keywords"] = {"answer": "YES",
-                                                                              "reasoning": "✅ company does not contain any excluded keywords",
-                                                                              "source": "Linkedin"}
-            else:
-                if "excluded_company_generalized_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["excluded_company_generalized_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ company contained generalized keywords - dealbreaker",
-                                                                                  "source": "Linkedin"}
-                else:
-                    company_reasoning["excluded_company_generalized_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ company contained generalized keywords",
-                                                                                  "source": "Linkedin"}
-                reasoning += "(❌ company contained generalized keywords) "
-
-        # Company generalized keywords -- Include
-        if icp_scoring_ruleset.included_company_generalized_keywords and enriched_prospect_company.company_dump:
-            if (
-                any(
-                    keyword.lower() in enriched_prospect_company.company_dump.lower()
-                    for keyword in icp_scoring_ruleset.included_company_generalized_keywords
-                )
-            ):
-                if company_score != -1:
-                    company_score += 1
-
-                valid_generalized = ""
-                for keyword in icp_scoring_ruleset.included_company_generalized_keywords:
-                    if keyword.lower() in enriched_prospect_company.company_dump.lower():
-                        valid_generalized = keyword
-                        break
-
-                company_reasoning["included_company_generalized_keywords"] = {"answer": "YES",
-                                                                              "reasoning": "✅ company contained generalized keywords - " + valid_generalized,
-                                                                              "source": "Linkedin"}
-                reasoning += "(✅ company generalized keywords) "
-            else:
-                if "included_company_generalized_keywords" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["included_company_generalized_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ company does not contain generalized keywords - dealbreaker",
-                                                                                  "source": "Linkedin"}
-                else:
-                    company_reasoning["included_company_generalized_keywords"] = {"answer": "NO",
-                                                                                  "reasoning": f"❌ company does not contain generalized keywords",
-                                                                                  "source": "Linkedin"}
-
-        if queue:
-            queue.put((enriched_prospect_company, score, company_score, individual_reasoning, company_reasoning, reasoning))
-
-        db.session.close()
-
-        return enriched_prospect_company, score, company_score, individual_reasoning, company_reasoning, reasoning
+            db.session.close()
+            return enriched_prospect_company, -1, -1, individual_reasoning, company_reasoning, reasoning
 
 
 def score_one_prospect(
@@ -2366,21 +2378,21 @@ def apply_segment_icp_scoring_ruleset_filters(
         # we have to send over the icp_scoring_ruleset
         # we have to send over dealbreaker
         # we have to send over the current score and company score
-        # score_ai_filters(
-        #     prospect_enriched_list=prospect_enriched_list,
-        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-        #     dealbreaker=dealbreaker,
-        #     individual_score=individual_score_dict,
-        #     company_score=company_score_dict,
-        # )
-
-        score_ai_filters.delay(
+        score_ai_filters(
             prospect_enriched_list=prospect_enriched_list,
             icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
             dealbreaker=dealbreaker,
             individual_score=individual_score_dict,
             company_score=company_score_dict,
         )
+
+        # score_ai_filters.delay(
+        #     prospect_enriched_list=prospect_enriched_list,
+        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+        #     dealbreaker=dealbreaker,
+        #     individual_score=individual_score_dict,
+        #     company_score=company_score_dict,
+        # )
 
         # Get the scoring job, mark it as complete
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
