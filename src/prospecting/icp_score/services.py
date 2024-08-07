@@ -2366,21 +2366,21 @@ def apply_segment_icp_scoring_ruleset_filters(
         # we have to send over the icp_scoring_ruleset
         # we have to send over dealbreaker
         # we have to send over the current score and company score
-        score_ai_filters(
-            prospect_enriched_list=prospect_enriched_list,
-            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-            dealbreaker=dealbreaker,
-            individual_score=individual_score_dict,
-            company_score=company_score_dict,
-        )
-
-        # score_ai_filters.delay(
+        # score_ai_filters(
         #     prospect_enriched_list=prospect_enriched_list,
         #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
         #     dealbreaker=dealbreaker,
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
+
+        score_ai_filters.delay(
+            prospect_enriched_list=prospect_enriched_list,
+            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+            dealbreaker=dealbreaker,
+            individual_score=individual_score_dict,
+            company_score=company_score_dict,
+        )
 
         # Get the scoring job, mark it as complete
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
