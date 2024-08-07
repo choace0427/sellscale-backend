@@ -191,10 +191,6 @@ ALLOWED_FILTERS_APOLLO = {
         "summary": "(list) List of organization last funding stage codes, for example, ['0', '1', '2']",
         "prompt": "Extract the organization last funding stage codes from the query. The values should be a list of strings. The options are: Seed:'0', Angel:'1', Venture:'10', Series A:'2', Series B:'3', Series C:'4', Series D:'5', Series E:'6', Series F:'7', Debt Financing:'13', Equity Crowdfunding:'14', Convertible Note:'15', Private Equity:'11', Other:'12'. The values should be the only values, do not include the labels at all. e.g. ['0', '1', '2']"
     },
-    "organization_ids": {
-        "summary": "(list) List of company names. Please always include this.",
-        "prompt": "From this description of a sales segment, come up with 20 different company names that would be relevant to this segment, be clever. The values should be a list of strings."
-    },
     "person_locations": {
         "summary": "(list) List of person locations",
         "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be one or more of these (if applicable): ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']"
@@ -251,13 +247,6 @@ MEGA_FILTERS_SCHEMA_APOLLO = {
                 },
                 "description": "List of organization last funding stage codes."
             },
-            # "organization_ids": {
-            #     "type": "array",
-            #     "items": {
-            #         "type": "string"
-            #     },
-            #     "description": "List of company names."
-            # },
             "person_locations": {
                 "type": "array",
                 "items": {
@@ -1376,102 +1365,110 @@ def get_apollo_queries_under_sdr(client_sdr_id: int):
 
 def handle_chat_icp(client_sdr_id: int, chat_content: list[dict], prompt: str) -> Dict[str, str]:
     """
-    Generate sales segments based on chat content and the latest message.
-    There are two stages to the chat gpt completions, one is desginated for CSV generation, the other is for chatting.
-    This is due to hallucinations that can occur in the chat gpt completions.
-    We can switch our models for either of these completions if we need to.
+    Generate sales segments and a friendly acknowledgment message based on chat content and the latest message,
+    using a single chat GPT call with a defined schema to generate the required information.
     """
 
-    system_message_response = {"role": "system", "content": "You are an AI that will generate three things for a sales segment: a descriptive segment name, descriptive segment description, and the descriptive and clever segment's value proposition separated by a delimiter of 3 hashes: ###."}
-
+    system_message_response = {
+        "role": "system",
+        "content": (
+            "You are an AI tasked with generating three key elements for a sales segment: "
+            "a descriptive segment name, a detailed segment description, and a compelling segment's value proposition, "
+            "along with a friendly acknowledgment message for the user.\n\n"
+            "Ensure the segment description is clearly formatted. For instance:\n\n"
+            "Bad Description Example:\n"
+            "This segment targets passionate Coca-Cola enthusiasts who appreciate the brand's history, "
+            "iconic products, and cultural impact. These individuals are not just casual drinkers; "
+            "they are brand loyalists who enjoy exploring new flavors, participating in promotions, "
+            "and engaging with Coca-Cola's marketing campaigns.\n\n"
+            "Good Description Example:\n"
+            "- Title keywords: Marketing, Client.\n"
+            "- Seniority: Director+\n"
+            "- Account: Advertising or marketing platforms.\n"
+            "These companies optimize marketing/ad spend. They target big brands seeking optimization.\n"
+            "Example companies: Zvnga, LG Ad Solutions.\n\n"
+            "Value Proposition Examples:\n"
+            "Bad: Unlock a world of exclusive Coca-Cola experiences, from limited-edition flavors to brand events.\n"
+            "Good: They aim to access CMOs/marketing/advertising professionals, their main customer base.\n\n"
+            "Segment Name Examples:\n"
+            "Bad: Coca-Cola Connoisseurs\n"
+            "Good: AdTech/MarTech Innovators\n\n"
+            "In your friendly response, offer suggestions to refine the segment or provide constructive feedback. "
+            "Please use the first person in your response."
+        )
+    }
 
     nicely_formatted_message_history_string = '\n'.join([f"{msg['sender']}: {msg.get('query', '')}" for msg in chat_content]) + "\nlast message from user: " + prompt
+    nicely_formatted_message_history_string = nicely_formatted_message_history_string[-400:]  # clip this to only be the last 400 tokens
 
-    #clip this to only be the last 400 tokens
-
-    nicely_formatted_message_history_string = nicely_formatted_message_history_string[-400:]
-
-    print('nicely_formatted_message_history_string:', nicely_formatted_message_history_string)
-
-    query = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message as: a descriptive segment name, descriprive segment description, and the descriptive and clever segmens value proposition separated by a delimiter of 3 hashes: ###, e.g.: [SEGMENT NAME]###[SEGMENT DESCRIPTION]###[SEGMENT VALUE PROPOSITION]\n IMPORTANT: make sure you have those three sections! Do not explicity say the name of each section, just have the sections with delimiters.\n\nOUTPUT:\n\n'
+    chat_gpt_prompt = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message.'
 
     # Prepare the messages for the chat response
-    query = [system_message_response] + [{"role": "user", "content": query}]
+    messages = [system_message_response, {"role": "user", "content": chat_gpt_prompt}]
 
-    print('query:', query)
+    sales_segment_schema = {
+        "name": "sales_segment_schema",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "segment_name": {"type": "string"},
+                "segment_description": {"type": "string"},
+                "segment_value_proposition": {"type": "string"},
+                "friendly_acknowledgment": {"type": "string"}
+            },
+            "required": ["segment_name", "segment_description", "segment_value_proposition", "friendly_acknowledgment"],
+            "additionalProperties": False
+        }
+    }
 
-    import concurrent.futures
-
-    def get_response_content_response(query, temperature, max_tokens):
-        return wrapped_chat_gpt_completion(
+    try:
+        response_content = wrapped_chat_gpt_completion(
             model='gpt-4o',
-            messages=query,
-            temperature=temperature,
-            max_tokens=max_tokens
+            messages=messages,
+            temperature=DEFAULT_TEMPERATURE,
+            max_tokens=500,
+            response_format={"type": "json_schema", "json_schema": sales_segment_schema}
         )
-    
-
-    def get_response_content_response_2(nicely_formatted_message_history_string, temperature, max_tokens):
-        return wrapped_chat_gpt_completion(
-            model='gpt-4o',
-            messages=[{"role": "user", "content": nicely_formatted_message_history_string + '\n \n given that conversation, Please come up with back a friendly message acknowledging the customer request.  Only that reply, make it brief.\nOutput:'}],
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        future_response_1 = executor.submit(get_response_content_response, query, DEFAULT_TEMPERATURE, 500)
-        future_response_2 = executor.submit(get_response_content_response_2, nicely_formatted_message_history_string, DEFAULT_TEMPERATURE, 500)
-
-        response_content_response = future_response_1.result()
-        response_content_response_2 = future_response_2.result()
-
-    response_content_response = response_content_response.replace("`", "").replace("json", "").replace('[', '').replace(']', '')
-
-    # Try to split the response into 3 parts, retrying up to 3 times if necessary
-    max_attempts = 3
-    for attempt in range(max_attempts):
-        response_parts = response_content_response.split('###')
-        if len(response_parts) == 3:
-            segment_name, segment_description, segment_value_proposition = response_parts
-            break
-        if attempt == max_attempts - 1:
-            return {"response": response_content_response_2, "data": {}, "makers": "", "industry": "", "pain_point": ""}
-        response_content_response = future_response_1.result().replace("`", "").replace("json", "").replace('[', '').replace(']', '')
-
+        response_content = json.loads(response_content)
+        segment_name = response_content.get("segment_name", "")
+        segment_description = response_content.get("segment_description", "")
+        segment_value_proposition = response_content.get("segment_value_proposition", "")
+        friendly_acknowledgment = response_content.get("friendly_acknowledgment", "")
+    except Exception as e:
+        print('Error:', e)
+        return {"response": "An error occurred while generating the sales segment.", "data": {}, "makers": "", "industry": "", "pain_point": "", "acknowledgment": ""}
 
     filters = predict_filters_needed('here is a user conversation: ' + nicely_formatted_message_history_string + ' given that conversation, please create the segment.', use_apollo_filters=True, client_sdr_id=client_sdr_id)
-    print('filters:', filters)
 
     data = apollo_get_contacts(
-    filter_name=segment_name,
-    segment_description=segment_description,
-    value_proposition=segment_value_proposition,
-    client_sdr_id=client_sdr_id,
-    num_contacts=filters.get("num_contacts", 100),
-    person_titles=filters.get("person_titles", []),
-    person_not_titles=filters.get("person_not_titles", []),
-    q_person_title=filters.get("q_person_title", ""),
-    q_person_name=filters.get("q_person_name", ""),
-    organization_industry_tag_ids=filters.get("organization_industry_tag_ids", []),
-    organization_num_employees_ranges=filters.get("organization_num_employees_ranges", None),
-    person_locations=filters.get("person_locations", []),
-    organization_ids=filters.get("organization_ids", None),
-    revenue_range=filters.get("revenue_range", {"min": None, "max": None}),
-    organization_latest_funding_stage_cd=filters.get("organization_latest_funding_stage_cd", []),
-    currently_using_any_of_technology_uids=filters.get("currently_using_any_of_technology_uids", []),
-    event_categories=filters.get("event_categories", None),
-    published_at_date_range=filters.get("published_at_date_range", None),
-    person_seniorities=filters.get("person_seniorities", None),
-    q_organization_search_list_id=filters.get("q_organization_search_list_id", None),
-    q_organization_keyword_tags=filters.get("q_organization_keyword_tags", None),
-    organization_department_or_subdepartment_counts=filters.get("organization_department_or_subdepartment_counts", None),
-    is_prefilter=True
+        filter_name=segment_name,
+        segment_description=segment_description,
+        value_proposition=segment_value_proposition,
+        client_sdr_id=client_sdr_id,
+        num_contacts=filters.get("num_contacts", 100),
+        person_titles=filters.get("person_titles", []),
+        person_not_titles=filters.get("person_not_titles", []),
+        q_person_title=filters.get("q_person_title", ""),
+        q_person_name=filters.get("q_person_name", ""),
+        organization_industry_tag_ids=filters.get("organization_industry_tag_ids", []),
+        organization_num_employees_ranges=filters.get("organization_num_employees_ranges", None),
+        person_locations=filters.get("person_locations", []),
+        organization_ids=filters.get("organization_ids", None),
+        revenue_range=filters.get("revenue_range", {"min": None, "max": None}),
+        organization_latest_funding_stage_cd=filters.get("organization_latest_funding_stage_cd", []),
+        currently_using_any_of_technology_uids=filters.get("currently_using_any_of_technology_uids", []),
+        event_categories=filters.get("event_categories", None),
+        published_at_date_range=filters.get("published_at_date_range", None),
+        person_seniorities=filters.get("person_seniorities", None),
+        q_organization_search_list_id=filters.get("q_organization_search_list_id", None),
+        q_organization_keyword_tags=filters.get("q_organization_keyword_tags", None),
+        organization_department_or_subdepartment_counts=filters.get("organization_department_or_subdepartment_counts", None),
+        is_prefilter=True
     )
 
-    
     return {
-        "response": response_content_response_2,
+        "response": friendly_acknowledgment,
         "data": json.loads(jsonify(data).get_data(as_text=True)),
         "makers": segment_name,
         "industry": segment_description,
