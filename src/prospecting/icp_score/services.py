@@ -2386,6 +2386,10 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     company_score=company_score_dict,
         # )
 
+        print("individual_score: ", individual_score_dict.items())
+        print("company_score: ", company_score_dict.items())
+        print("prospect_enriched_list: ", prospect_enriched_list)
+
         score_ai_filters.delay(
             prospect_enriched_list=prospect_enriched_list,
             icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
