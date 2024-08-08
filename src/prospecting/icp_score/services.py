@@ -567,14 +567,14 @@ def get_raw_enriched_prospect_companies_list(
     return processed
 
 
-@celery.task
+@celery.task(bind=True)
 def score_ai_filters(
+        self,
         prospect_enriched_list: list[dict],
         icp_scoring_ruleset: dict,
         dealbreaker: dict,
         individual_score: dict[int, int],
-        company_score: dict[int, int],
-        ):
+        company_score: dict[int, int]):
     import copy
     # go through each prospect
     for enriched_prospect_company in prospect_enriched_list:
@@ -2385,10 +2385,6 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-
-        print("individual_score: ", individual_score_dict)
-        print("company_score: ", company_score_dict)
-        print("prospect_enriched_list: ", prospect_enriched_list)
 
         # score_ai_filters.delay(
         #     prospect_enriched_list=prospect_enriched_list,
