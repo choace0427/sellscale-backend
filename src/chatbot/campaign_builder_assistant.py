@@ -620,7 +620,8 @@ def chat_with_assistant(
         session_id: Optional[int] = None, 
         in_terminal: Optional[bool] = True, 
         room_id: Optional[int] = None,
-        additional_context: Optional[str] = None
+        additional_context: Optional[str] = None,
+        session_name: Optional[str] = None
 ):
     print("Starting conversation with the assistant. Type 'quit' to end.")
     assistant_id = "asst_uJJtKPGaVeVYQjgqCquTL3Bq" # Selix AI OpenAI Assistant ID
@@ -642,7 +643,7 @@ def chat_with_assistant(
         thread_id = create_thread()
         selix_session: SelixSession = SelixSession(
             client_sdr_id=client_sdr_id,
-            session_name="New Session",
+            session_name=session_name or "New Session",
             status=SelixSessionStatus.ACTIVE,
             memory={},
             estimated_completion_time=datetime.datetime.now() + datetime.timedelta(hours=24),
