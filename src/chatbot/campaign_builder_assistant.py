@@ -46,20 +46,22 @@ def increment_session_counter(session_id: int):
     db.session.add(selix_session)
     db.session.commit()
 
-def create_selix_task(session_id: int, task_title: str) -> tuple[bool, str]:
-    try:
-        task = SelixSessionTask(
-            selix_session_id=session_id,
-            actual_completion_time=None,
-            title=task_title,
-            description="",
-            status=SelixSessionTaskStatus.QUEUED
-        )
-        db.session.add(task)
-        db.session.commit()
-        return True, "Task created successfully"
-    except Exception as e:
-        return False, str(e)
+def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> tuple[bool, str]:
+    task = SelixSessionTask(
+        selix_session_id=session_id,
+        actual_completion_time=None,
+        title=task_title,
+        description="",
+        status=SelixSessionTaskStatus.QUEUED
+    )
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    if not session or session.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized to create task"
+
+    db.session.add(task)
+    db.session.commit()
+    return True, "Task created successfully"
 
 def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None, new_description: Optional[str] = None) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
