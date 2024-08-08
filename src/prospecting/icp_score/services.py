@@ -600,14 +600,11 @@ def score_ai_filters(
 
         for individual_ai_filter in individual_ai_filters:
             if individual_ai_filter["use_linkedin"]:
-                prompt = f"{individual_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{individual_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
             else:
-                prompt = f"{individual_ai_filter['prompt']}? The Prospect name is {prospect.full_name}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{individual_ai_filter['prompt']}? The Prospect name is {prospect.full_name}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
 
             messages = [
-                {"role": "system",
-                 "content": "You are an AI researcher. You are to be given question, and you will provide accurate and factual answers. You will only acquire reputable sources such as primary source or reputable news outlet."
-                 },
                 {
                     "role": "user",
                     "content": prompt
@@ -667,14 +664,11 @@ def score_ai_filters(
         # Company AI Filters
         for company_ai_filter in company_ai_filters:
             if company_ai_filter["use_linkedin"]:
-                prompt = f"{company_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{company_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
             else:
-                prompt = f"{company_ai_filter['prompt']}? The company name is {enriched_prospect_company['company_name']} Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt = f"{company_ai_filter['prompt']}? The company name is {enriched_prospect_company['company_name']}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
 
             messages = [
-                {"role": "system",
-                    "content": "You are an AI researcher. You are to be given question, and you will provide accurate and factual answers. You will only acquire reputable sources such as primary source or reputable news outlet."
-                 },
                 {
                     "role": "user",
                     "content": prompt
