@@ -64,10 +64,11 @@ def create_selix_task(session_id: int, task_title: str) -> tuple[bool, str]:
 def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None) -> tuple[bool, str]:
     try:
         task = SelixSessionTask.query.get(task_id)
-        if not task or task.selix_session.client_sdr_id != client_sdr_id:
-            return False, "Unauthorized to update this task"
+        session: SelixSession = SelixSession.query.get(task.selix_session_id)
         if not task:
             return False, "Task not found"
+        if session.client_sdr_id != client_sdr_id:
+            return False, "Unauthorized to update this task"
 
         if new_title:
             task.title = new_title
