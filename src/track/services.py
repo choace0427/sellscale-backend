@@ -964,7 +964,7 @@ def categorize_via_rules(prospect_id: int, icp_route_id: int, client_id: int) ->
     prospect_name = prospect.full_name.lower()
 
     print(f"Categorizing prospect: {prospect_name} from company: {prospect_company} with title: {prospect_title}")
-    print(f"Webpage clicked: {webpage_click}")
+    print(f"Webpage clicked: '{webpage_click}'")
 
     icp_route_id, _ = categorize_via_rules_direct(
         prospect_name=prospect_name,
@@ -1113,12 +1113,10 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
             if relevant_breadcrumbs.get("management_level_breadcrumbs"):
                 management_level_matched = False
                 for breadcrumb in relevant_breadcrumbs["management_level_breadcrumbs"]:
-                    if breadcrumb["display_name"].lower() in prospect_title.lower():
+                    breadcrumb_display_name = breadcrumb["display_name"].lower()
+                    if (breadcrumb_display_name in prospect_title.lower() or
+                        (breadcrumb_display_name in ['vp', 'vice president'] and any(title in prospect_title.lower() for title in ['vp', 'vice president']))):
                         met_condition_to_append["seniority_breadcrumbs"] = breadcrumb["display_name"]
-                        # met_conditions.append({
-                        #     "condition": condition,
-                        #     "management_level_breadcrumbs": breadcrumb["display_name"]
-                        # })
                         management_level_matched = True
                         break
                 if not management_level_matched:
