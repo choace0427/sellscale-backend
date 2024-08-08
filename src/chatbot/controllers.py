@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, delete_selix_task, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, chat_with_assistant, delete_selix_task, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -162,6 +162,27 @@ def update_task(client_sdr_id: int):
         new_status=new_status,
         new_proof_of_work=new_proof_of_work,
         new_description=new_description
+    )
+
+    if not success:
+        return jsonify({"error": message}), 400
+    
+    return jsonify({"message": message}), 200
+
+@SELIX_BLUEPRINT.route("/task/order", methods=["PATCH"])
+@require_user
+def update_task_order(client_sdr_id: int):
+    task_id = get_request_parameter(
+        "task_id", request, json=True, required=True
+    )
+    new_order = get_request_parameter(
+        "new_order", request, json=True, required=True
+    )
+
+    success, message = adjust_selix_task_order(
+        client_sdr_id=client_sdr_id,
+        task_id=task_id,
+        new_order=new_order
     )
 
     if not success:

@@ -46,6 +46,19 @@ def increment_session_counter(session_id: int):
     db.session.add(selix_session)
     db.session.commit()
 
+def adjust_selix_task_order(client_sdr_id: int, task_id: int, new_order: int) -> tuple[bool, str]:
+    task: SelixSessionTask = SelixSessionTask.query.get(task_id)
+    session: SelixSession = SelixSession.query.get(task.selix_session_id)
+    if not task:
+        return False, "Task not found"
+    if session.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized to update this task"
+
+    task.order_number = new_order
+    db.session.add(task)
+    db.session.commit()
+    return True, "Task order updated successfully"
+
 def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> tuple[bool, str]:
     order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
     task = SelixSessionTask(
