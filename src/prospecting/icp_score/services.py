@@ -2397,12 +2397,17 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-        score_ai_filters.delay(
-            prospect_enriched_list,
-            icp_scoring_ruleset.to_dict(),
-            dealbreaker,
-            individual_score_dict,
-            company_score_dict,
+        # score_ai_filters.delay(
+        #     prospect_enriched_list,
+        #     icp_scoring_ruleset.to_dict(),
+        #     dealbreaker,
+        #     individual_score_dict,
+        #     company_score_dict,
+        # )
+
+        score_ai_filters.apply_async(
+            args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
+            priority=1,
         )
 
         # Get the scoring job, mark it as complete
