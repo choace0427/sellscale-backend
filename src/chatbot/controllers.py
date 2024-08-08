@@ -157,7 +157,7 @@ def update_task(client_sdr_id: int):
         task_id=task_id,
         new_title=new_title,
         new_status=new_status,
-        new_proof_of_work=new_proof
+        new_proof_of_work=new_proof_of_work
     )
 
     if not success:
