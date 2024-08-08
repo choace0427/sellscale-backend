@@ -100,13 +100,10 @@ def delete_selix_task(client_sdr_id: int, task_id: int) -> tuple[bool, str, int]
 
 
 def set_session_tab(
-    client_sdr_id: int,
     selix_session_id: int,
     tab_name: str,
 ):
     selix_session = SelixSession.query.get(selix_session_id)
-    if not selix_session or selix_session.client_sdr_id != client_sdr_id:
-        return False, "Unauthorized to update this session"
     selix_session.memory["tab"] = tab_name
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(selix_session, "memory")
@@ -244,7 +241,10 @@ def edit_strategy(
     db.session.commit()
 
     mark_action_complete(selix_action_id)
-    set_session_tab(session_id, "STRATEGY_CREATOR")
+    set_session_tab(
+        session_id, 
+        "STRATEGY_CREATOR"
+    )
     return {"success": True}
 
 
