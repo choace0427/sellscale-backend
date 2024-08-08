@@ -427,7 +427,13 @@ def get_assistant_reply(thread_id):
     
 def get_action_calls(selix_session_id):
     action_calls = SelixActionCall.query.filter_by(selix_session_id=selix_session_id).all()
-    return [action_call.to_dict() for action_call in action_calls]
+    return [
+        {
+            **action_call.to_dict(),
+            "created_at": action_call.created_at.replace(tzinfo=datetime.timezone.utc)
+        }
+        for action_call in action_calls
+    ]
 
 def get_last_n_messages(thread_id):
     import time
@@ -463,7 +469,7 @@ def get_last_n_messages(thread_id):
                 "type": "message",
                 "role": message["role"],
                 "message": message["content"][0]["text"]["value"] if message["content"] else "",
-                "created_time": datetime.datetime.fromtimestamp(message["created_at"])
+                "created_time": datetime.datetime.utcfromtimestamp(message["created_at"])
             }
             for message in messages
         ])
