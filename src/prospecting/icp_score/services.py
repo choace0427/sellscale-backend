@@ -567,7 +567,7 @@ def get_raw_enriched_prospect_companies_list(
     return processed
 
 
-@celery.task(bind=True, max_retries=3)
+@celery.task
 def score_ai_filters(
         prospect_enriched_list: list[dict],
         icp_scoring_ruleset: dict,
