@@ -8,6 +8,7 @@ class SelixSessionStatus(enum.Enum):
     COMPLETE = "COMPLETE"
     CANCELLED = "CANCELLED"
     PENDING_OPERATOR = "PENDING_OPERATOR"
+    BLOCKED = "BLOCKED"
 
     def all_statuses():
         return [
@@ -15,6 +16,7 @@ class SelixSessionStatus(enum.Enum):
             SelixSessionStatus.PENDING_OPERATOR,
             SelixSessionStatus.COMPLETE,
             SelixSessionStatus.CANCELLED,
+            SelixSessionStatus.BLOCKED,
         ]
 
 
@@ -23,6 +25,7 @@ class SelixSessionTaskStatus(enum.Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETE = "COMPLETE"
     CANCELLED = "CANCELLED"
+    BLOCKED = "BLOCKED"
 
     def all_statuses():
         return [
@@ -30,6 +33,7 @@ class SelixSessionTaskStatus(enum.Enum):
             SelixSessionTaskStatus.IN_PROGRESS,
             SelixSessionTaskStatus.COMPLETE,
             SelixSessionTaskStatus.CANCELLED,
+            SelixSessionTaskStatus.BLOCKED,
         ]
 
 
@@ -69,6 +73,8 @@ class SelixSessionTask(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.String, nullable=False)
     status = db.Column(db.Enum(SelixSessionTaskStatus), nullable=False, default=SelixSessionTaskStatus.QUEUED)
+
+    order_number = db.Column(db.Integer, nullable=True)
 
     proof_of_work_img = db.Column(db.String, nullable=True)
 

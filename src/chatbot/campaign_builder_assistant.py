@@ -47,12 +47,14 @@ def increment_session_counter(session_id: int):
     db.session.commit()
 
 def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> tuple[bool, str]:
+    order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
     task = SelixSessionTask(
         selix_session_id=session_id,
         actual_completion_time=None,
         title=task_title,
         description="",
-        status=SelixSessionTaskStatus.QUEUED
+        status=SelixSessionTaskStatus.QUEUED,
+        order_number=order_number
     )
 
     session: SelixSession = SelixSession.query.get(session_id)
@@ -389,12 +391,15 @@ def create_task(title: str, description: str, session_id: int):
         action_params={"title": title, "description": description}
     )
 
+    order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
+
     task = SelixSessionTask(
         selix_session_id=session_id,
         actual_completion_time=None,
         title=title,
         description=description,
-        status=SelixSessionTaskStatus.QUEUED
+        status=SelixSessionTaskStatus.QUEUED,
+        order_number=order_number
     )
     db.session.add(task)
     db.session.commit()
