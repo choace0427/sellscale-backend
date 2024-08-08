@@ -102,6 +102,7 @@ class ICPRouting(db.Model):
     filter_company_size = db.Column(db.String, nullable=False)
     ai_mode = db.Column(db.Boolean, nullable=True, default=True)
     rules = db.Column(db.ARRAY(db.JSON), nullable=True)
+    priority = db.Column(db.Integer, nullable=True, default=1)
 
     segment_id = db.Column(db.Integer, db.ForeignKey("segment.id"), nullable=True)
     send_slack = db.Column(db.Boolean, nullable=False, default=False)

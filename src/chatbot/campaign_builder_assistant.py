@@ -424,7 +424,28 @@ def get_assistant_reply(thread_id):
         return last_message
     except:
         return ""
-    
+
+def get_all_threads_with_tasks(client_sdr_id: int) -> list[dict]:
+    query = """
+    SELECT 
+        ss.*, 
+        json_agg(json_build_object(
+            'id', sst.id,
+            'selix_session_id', sst.selix_session_id,
+            'title', sst.title,
+            'status', sst.status,
+            'created_at', sst.created_at,
+            'updated_at', sst.updated_at
+        )) AS tasks
+    FROM selix_session ss
+    LEFT JOIN selix_session_task sst ON ss.id = sst.selix_session_id
+    WHERE ss.client_sdr_id = :client_sdr_id
+    GROUP BY ss.id
+    ORDER BY ss.created_at DESC
+    """
+    result = db.session.execute(query, {'client_sdr_id': client_sdr_id}).fetchall()
+    return [dict(row) for row in result]
+
 def get_action_calls(selix_session_id):
     action_calls = SelixActionCall.query.filter_by(selix_session_id=selix_session_id).all()
     return [
@@ -485,9 +506,11 @@ def get_last_n_messages(thread_id):
     if all_messages and len(all_messages) > 1:
         all_messages = all_messages[0:len(all_messages) - 2]
 
+    # Pull all actions
     selix_session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
     action_calls = get_action_calls(selix_session_id)
     
+    # Combine messages and action calls and sort by created time
     all_messages.extend(action_calls)
 
     all_messages.sort(key=lambda x: x["created_time"])

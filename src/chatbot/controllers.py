@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, get_assistant_reply, get_last_n_messages, handle_run_thread
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -30,14 +30,38 @@ def create_session(client_sdr_id: int):
 
 @SELIX_BLUEPRINT.route("/get_messages_in_thread", methods=["GET"])
 @require_user
+def get_messages_in_thread_old(client_sdr_id):
+    thread_id = get_request_parameter(
+        "thread_id", request, json=True, required=True
+    )
+    try:
+        messages = get_last_n_messages(
+            thread_id=thread_id
+        )
+    except Exception as e:
+        return str(e), 400
+    return jsonify(messages), 200
+
+@SELIX_BLUEPRINT.route("/get_messages_in_thread", methods=["POST"])
+@require_user
 def get_messages_in_thread(client_sdr_id):
     thread_id = get_request_parameter(
         "thread_id", request, json=True, required=True
     )
-    messages = get_last_n_messages(
-        thread_id=thread_id
-    )
+    try:
+        messages = get_last_n_messages(
+            thread_id=thread_id
+        )
+    except Exception as e:
+        return str(e), 400
     return jsonify(messages), 200
+
+@SELIX_BLUEPRINT.route("/get_all_threads", methods=["GET"])
+@require_user
+def get_all_threads_route(client_sdr_id: int):
+    threads = get_all_threads_with_tasks(client_sdr_id)
+    return jsonify(threads), 200
+
 
 @SELIX_BLUEPRINT.route("/create_message", methods=["POST"])
 @require_user
@@ -53,7 +77,9 @@ def create_message(client_sdr_id):
     thread_id = session.thread_id
 
     add_message_to_thread(thread_id, message)
+    
     handle_run_thread(thread_id, session_id)
+    
     get_assistant_reply(thread_id)
         
     return "OK", 200

@@ -864,7 +864,8 @@ def categorize_prospect(prospect_id: int, track_event_id: int):
         ICPRouting.client_id == client_id,
         ICPRouting.active == True,
         ICPRouting.ai_mode == False
-    ).all()
+    ).order_by(ICPRouting.priority.desc()).all()
+    
     print('rule based icp routes: ', rule_based_icp_routes)
     for rule_route in rule_based_icp_routes:
         icp_route_id = categorize_via_rules(prospect_id, rule_route.id, client_id)
