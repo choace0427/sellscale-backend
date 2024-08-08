@@ -614,6 +614,28 @@ def submit_tool_outputs(thread_id, run_id, tool_outputs):
     )
     return response.json()
 
+def update_session(client_sdr_id: int, session_id: int, new_title: Optional[str], new_status: Optional[str], new_strategy_id: Optional[int]) -> tuple[bool, str]:
+    session: SelixSession = SelixSession.query.get(session_id)
+    if not session:
+        return False, "Session not found."
+    if session.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized to update this session."
+    
+    if new_title:
+        session.session_name = new_title
+    if new_status:
+        session.status = new_status
+    if new_strategy_id:
+        session.memory["strategy_id"] = new_strategy_id
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(session, "session_name")
+    flag_modified(session, "status")
+    flag_modified(session, "memory")
+    db.session.add(session)
+    db.session.commit()
+
+    return True, "Session updated successfully"
+
 
 def chat_with_assistant(
         client_sdr_id: int, 

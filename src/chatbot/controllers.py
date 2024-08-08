@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -30,6 +30,34 @@ def create_session(client_sdr_id: int):
     )
     chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name)
     return "OK", 200
+
+@SELIX_BLUEPRINT.route("/edit_session", methods=["PATCH"])
+@require_user
+def edit_session(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+    new_title = get_request_parameter(
+        "new_title", request, json=True, required=False
+    )
+    new_status = get_request_parameter(
+        "new_status", request, json=True, required=False
+    )
+    new_strategy_id = get_request_parameter(
+        "new_strategy_id", request, json=True, required=False
+    )
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    success, message = update_session(session_id=session_id, client_sdr_id=client_sdr_id, new_title=new_title, new_status=new_status, new_strategy_id=new_strategy_id)
+
+    if not success:
+        return jsonify({"error": message}), 400
+    
+    return jsonify({"message": message}), 200
+
 
 @SELIX_BLUEPRINT.route("/get_messages_in_thread", methods=["GET"])
 @require_user
