@@ -1379,7 +1379,7 @@ def score_one_prospect_segment(
                 company_reasoning["company_size"] = {"answer": "YES",
                                                      "reasoning": f"✅ company size: {enriched_prospect_company.company_employee_count}",
                                                      "source": "Linkedin"}
-                reasoning += "(✅ company size: " + enriched_prospect_company.company_employee_count + ") "
+                reasoning += "(✅ company size: " + str(enriched_prospect_company.company_employee_count) + ") "
 
             elif enriched_prospect_company.company_employee_count != "None" and (
                 (
@@ -1405,7 +1405,7 @@ def score_one_prospect_segment(
                                                          "source": "Linkedin"}
                 reasoning += (
                     "(❌ company size: "
-                    + enriched_prospect_company.company_employee_count
+                    + str(enriched_prospect_company.company_employee_count)
                     + ") "
                 )
 
