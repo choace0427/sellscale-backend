@@ -582,8 +582,12 @@ def score_ai_filters(
         individual_ai_filters = icp_scoring_ruleset["individual_ai_filters"] if icp_scoring_ruleset["individual_ai_filters"] else []
         company_ai_filters = icp_scoring_ruleset["company_ai_filters"] if icp_scoring_ruleset["company_ai_filters"] else []
 
-        prospect_individual_score = individual_score[str(prospect_id)]
-        prospect_company_score = company_score[str(prospect_id)]
+        try:
+            prospect_individual_score = individual_score[str(prospect_id)]
+            prospect_company_score = company_score[str(prospect_id)]
+        except KeyError:
+            prospect_individual_score = individual_score[prospect_id]
+            prospect_company_score = company_score[prospect_id]
 
         prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -601,6 +605,9 @@ def score_ai_filters(
                 prompt = f"{individual_ai_filter['prompt']}? The Prospect name is {prospect.full_name}. Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
 
             messages = [
+                {"role": "system",
+                 "content": "You are an AI researcher. You are to be given question, and you will provide accurate and factual answers. You will only acquire reputable sources such as primary source or reputable news outlet."
+                 },
                 {
                     "role": "user",
                     "content": prompt
@@ -665,6 +672,9 @@ def score_ai_filters(
                 prompt = f"{company_ai_filter['prompt']}? The company name is {enriched_prospect_company['company_name']} Search the web and provide citations for the answer. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
 
             messages = [
+                {"role": "system",
+                    "content": "You are an AI researcher. You are to be given question, and you will provide accurate and factual answers. You will only acquire reputable sources such as primary source or reputable news outlet."
+                 },
                 {
                     "role": "user",
                     "content": prompt
@@ -2380,13 +2390,13 @@ def apply_segment_icp_scoring_ruleset_filters(
         # we have to send over the icp_scoring_ruleset
         # we have to send over dealbreaker
         # we have to send over the current score and company score
-        # score_ai_filters(
-        #     prospect_enriched_list=prospect_enriched_list,
-        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-        #     dealbreaker=dealbreaker,
-        #     individual_score=individual_score_dict,
-        #     company_score=company_score_dict,
-        # )
+        score_ai_filters(
+            prospect_enriched_list=prospect_enriched_list,
+            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+            dealbreaker=dealbreaker,
+            individual_score=individual_score_dict,
+            company_score=company_score_dict,
+        )
 
         # score_ai_filters.delay(
         #     prospect_enriched_list=prospect_enriched_list,
@@ -2395,13 +2405,13 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-        score_ai_filters.delay(
-            prospect_enriched_list,
-            icp_scoring_ruleset.to_dict(),
-            dealbreaker,
-            individual_score_dict,
-            company_score_dict,
-        )
+        # score_ai_filters.delay(
+        #     prospect_enriched_list,
+        #     icp_scoring_ruleset.to_dict(),
+        #     dealbreaker,
+        #     individual_score_dict,
+        #     company_score_dict,
+        # )
         #
         # score_ai_filters.apply_async(
         #     args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
