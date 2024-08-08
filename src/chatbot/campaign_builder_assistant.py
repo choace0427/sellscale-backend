@@ -85,7 +85,8 @@ def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str]
 def delete_selix_task(client_sdr_id: int, task_id: int) -> tuple[bool, str, int]:
     try:
         task = SelixSessionTask.query.get(task_id)
-        if not task or task.selix_session.client_sdr_id != client_sdr_id:
+        session: SelixSession = SelixSession.query.get(task.selix_session_id)
+        if not task or session.client_sdr_id != client_sdr_id:
             return False, "Unauthorized to delete this task", 403
         if not task:
             return False, "Task not found", 404
