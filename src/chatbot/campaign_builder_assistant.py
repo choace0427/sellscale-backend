@@ -46,16 +46,58 @@ def increment_session_counter(session_id: int):
     db.session.add(selix_session)
     db.session.commit()
 
+def create_selix_task(session_id: int, task_title: str) -> tuple[bool, str]:
+    try:
+        task = SelixSessionTask(
+            selix_session_id=session_id,
+            actual_completion_time=None,
+            title=task_title,
+            description="",
+            status=SelixSessionTaskStatus.QUEUED
+        )
+        db.session.add(task)
+        db.session.commit()
+        return True, "Task created successfully"
+    except Exception as e:
+        return False, str(e)
+
+def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None) -> tuple[bool, str]:
+    try:
+        task = SelixSessionTask.query.get(task_id)
+        if not task or task.selix_session.client_sdr_id != client_sdr_id:
+            return False, "Unauthorized to update this task"
+        if not task:
+            return False, "Task not found"
+
+        if new_title:
+            task.title = new_title
+        if new_status:
+            task.status = new_status
+        if new_proof_of_work:
+            task.proof_of_work = new_proof_of_work
+
+        db.session.add(task)
+        db.session.commit()
+        return True, "Task updated successfully"
+    except Exception as e:
+        return False, str(e)
+
+
 def set_session_tab(
+    client_sdr_id: int,
     selix_session_id: int,
     tab_name: str,
 ):
     selix_session = SelixSession.query.get(selix_session_id)
+    if not selix_session or selix_session.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized to update this session"
     selix_session.memory["tab"] = tab_name
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(selix_session, "memory")
     db.session.add(selix_session)
     db.session.commit()
+
+    return True, "Session tab updated successfully"
 
 def create_selix_action_call_entry(
     selix_session_id: int, 

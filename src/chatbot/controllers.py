@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, chat_with_assistant, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -114,3 +114,47 @@ def create_message(client_sdr_id):
     get_assistant_reply(thread_id)
         
     return "OK", 200
+
+@SELIX_BLUEPRINT.route("/task", methods=["POST"])
+@require_user
+def create_task(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+    task_title = get_request_parameter(
+        "task_title", request, json=True, required=True
+    )
+
+    success, message = create_selix_task(
+        session_id=session_id,
+        task_title=task_title
+    )
+
+    if not success:
+        return jsonify({"error": message}), 400
+    
+    return jsonify({"message": message}), 200
+
+@SELIX_BLUEPRINT.route("/task", methods=["PATCH"])
+@require_user
+def update_task(client_sdr_id: int):
+    task_id = get_request_parameter(
+        "task_id", request, json=True, required=True
+    )
+    new_title = get_request_parameter(
+        "new_title", request, json=True, required=False
+    )
+    new_status = get_request_parameter(
+        "new_status", request, json=True, required=False
+    )
+
+    success, message = update_selix_task(
+        task_id=task_id,
+        new_title=new_title,
+        new_status=new_status
+    )
+
+    if not success:
+        return jsonify({"error": message}), 400
+    
+    return jsonify({"message": message}), 200
