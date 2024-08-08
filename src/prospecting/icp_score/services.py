@@ -2390,12 +2390,19 @@ def apply_segment_icp_scoring_ruleset_filters(
         print("company_score: ", company_score_dict)
         print("prospect_enriched_list: ", prospect_enriched_list)
 
+        # score_ai_filters.delay(
+        #     prospect_enriched_list=prospect_enriched_list,
+        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+        #     dealbreaker=dealbreaker,
+        #     individual_score=individual_score_dict,
+        #     company_score=company_score_dict,
+        # )
         score_ai_filters.delay(
-            prospect_enriched_list=prospect_enriched_list,
-            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-            dealbreaker=dealbreaker,
-            individual_score=individual_score_dict,
-            company_score=company_score_dict,
+            prospect_enriched_list,
+            icp_scoring_ruleset.to_dict(),
+            dealbreaker,
+            individual_score_dict,
+            company_score_dict,
         )
 
         # Get the scoring job, mark it as complete
