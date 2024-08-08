@@ -151,13 +151,17 @@ def update_task(client_sdr_id: int):
     new_proof_of_work = get_request_parameter(
         "new_proof_of_work", request, json=True, required=False
     )
+    new_description = get_request_parameter(
+        "new_description", request, json=True, required=False
+    )
 
     success, message = update_selix_task(
         client_sdr_id=client_sdr_id,
         task_id=task_id,
         new_title=new_title,
         new_status=new_status,
-        new_proof_of_work=new_proof_of_work
+        new_proof_of_work=new_proof_of_work,
+        new_description=new_description
     )
 
     if not success:

@@ -61,27 +61,26 @@ def create_selix_task(session_id: int, task_title: str) -> tuple[bool, str]:
     except Exception as e:
         return False, str(e)
 
-def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None) -> tuple[bool, str]:
-    try:
-        task = SelixSessionTask.query.get(task_id)
-        session: SelixSession = SelixSession.query.get(task.selix_session_id)
-        if not task:
-            return False, "Task not found"
-        if session.client_sdr_id != client_sdr_id:
-            return False, "Unauthorized to update this task"
+def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None, new_description: Optional[str] = None) -> tuple[bool, str]:
+    task: SelixSessionTask = SelixSessionTask.query.get(task_id)
+    session: SelixSession = SelixSession.query.get(task.selix_session_id)
+    if not task:
+        return False, "Task not found"
+    if session.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized to update this task"
 
-        if new_title:
-            task.title = new_title
-        if new_status:
-            task.status = new_status
-        if new_proof_of_work:
-            task.proof_of_work = new_proof_of_work
+    if new_title:
+        task.title = new_title
+    if new_status:
+        task.status = new_status
+    if new_proof_of_work:
+        task.proof_of_work_img = new_proof_of_work
+    if new_description:
+        task.description = new_description
 
-        db.session.add(task)
-        db.session.commit()
-        return True, "Task updated successfully"
-    except Exception as e:
-        return False, str(e)
+    db.session.add(task)
+    db.session.commit()
+    return True, "Task updated successfully"
 
 def delete_selix_task(client_sdr_id: int, task_id: int) -> tuple[bool, str, int]:
     try:
