@@ -573,8 +573,8 @@ def score_ai_filters(
         prospect_enriched_list: list[dict],
         icp_scoring_ruleset: dict,
         dealbreaker: dict,
-        individual_score: dict[int, int],
-        company_score: dict[int, int]):
+        individual_score: dict[str, int],
+        company_score: dict[str, int]):
     import copy
     # go through each prospect
     for enriched_prospect_company in prospect_enriched_list:
@@ -582,8 +582,8 @@ def score_ai_filters(
         individual_ai_filters = icp_scoring_ruleset["individual_ai_filters"] if icp_scoring_ruleset["individual_ai_filters"] else []
         company_ai_filters = icp_scoring_ruleset["company_ai_filters"] if icp_scoring_ruleset["company_ai_filters"] else []
 
-        prospect_individual_score = individual_score[prospect_id]
-        prospect_company_score = company_score[prospect_id]
+        prospect_individual_score = individual_score[str(prospect_id)]
+        prospect_company_score = company_score[str(prospect_id)]
 
         prospect: Prospect = Prospect.query.get(prospect_id)
 
@@ -768,6 +768,8 @@ def score_ai_filters(
         db.session.add(prospect)
 
     db.session.commit()
+
+    return True
 
 
 def score_one_prospect_segment(
@@ -2393,18 +2395,18 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-        # score_ai_filters.delay(
-        #     prospect_enriched_list,
-        #     icp_scoring_ruleset.to_dict(),
-        #     dealbreaker,
-        #     individual_score_dict,
-        #     company_score_dict,
-        # )
-
-        score_ai_filters.apply_async(
-            args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
-            priority=1,
+        score_ai_filters.delay(
+            prospect_enriched_list,
+            icp_scoring_ruleset.to_dict(),
+            dealbreaker,
+            individual_score_dict,
+            company_score_dict,
         )
+        #
+        # score_ai_filters.apply_async(
+        #     args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
+        #     priority=1,
+        # )
 
         # Get the scoring job, mark it as complete
         icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
