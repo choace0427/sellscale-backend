@@ -157,6 +157,7 @@ def get_bump_frameworks_for_sdr(
             db.and_(
                 BumpFramework.client_sdr_id == None,
                 BumpFramework.client_archetype_id == None,
+                BumpFramework.internal_default_voice_id == None,
                 BumpFramework.overall_status.in_(overall_statuses),
             ),
         )
