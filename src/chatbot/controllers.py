@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, chat_with_assistant, delete_selix_task, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -120,20 +120,20 @@ def create_message(client_sdr_id):
         
     return "OK", 200
 
-@SELIX_BLUEPRINT.route("/task", methods=["POST"])
+@SELIX_BLUEPRINT.route("/tasks", methods=["POST"])
 @require_user
 def create_task(client_sdr_id: int):
     session_id = get_request_parameter(
         "session_id", request, json=True, required=True
     )
-    task_title = get_request_parameter(
-        "task_title", request, json=True, required=True
+    task_titles = get_request_parameter(
+        "task_titles", request, json=True, required=True
     )
 
-    success, message = create_selix_task(
+    success, message = bulk_create_selix_tasks(
         client_sdr_id=client_sdr_id,
         session_id=session_id,
-        task_title=task_title
+        task_titles=task_titles
     )
 
     if not success:

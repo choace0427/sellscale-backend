@@ -56,20 +56,6 @@ def increment_session_counter(session_id: int):
                 session_dict[key] = value.isoformat()
         send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
 
-def create_selix_task(session_id: int, task_title: str) -> tuple[bool, str]:
-    try:
-        task = SelixSessionTask(
-            selix_session_id=session_id,
-            actual_completion_time=None,
-            title=task_title,
-            description="",
-            status=SelixSessionTaskStatus.QUEUED
-        )
-        db.session.add(task)
-        db.session.commit()
-        return True, "Task created successfully"
-    except Exception as e:
-        return False, str(e)
 def adjust_selix_task_order(client_sdr_id: int, task_id: int, new_order: int) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
     session: SelixSession = SelixSession.query.get(task.selix_session_id)
@@ -101,6 +87,19 @@ def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> t
     db.session.add(task)
     db.session.commit()
     return True, "Task created successfully"
+
+def bulk_create_selix_tasks(client_sdr_id: int, session_id: int, task_titles: list[str]) -> tuple[bool, str]:
+    total_success = False
+    total_message = ""
+    for task_title in task_titles:
+        success, message = create_selix_task(client_sdr_id, session_id, task_title)
+
+        if not success:
+            total_success = False
+            total_message = message
+            break
+
+    return total_success, total_message
 
 def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None, new_description: Optional[str] = None) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
