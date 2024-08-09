@@ -2414,13 +2414,13 @@ def apply_segment_icp_scoring_ruleset_filters(
         # we have to send over the icp_scoring_ruleset
         # we have to send over dealbreaker
         # we have to send over the current score and company score
-        score_ai_filters(
-            prospect_enriched_list=prospect_enriched_list,
-            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-            dealbreaker=dealbreaker,
-            individual_score=individual_score_dict,
-            company_score=company_score_dict,
-        )
+        # score_ai_filters(
+        #     prospect_enriched_list=prospect_enriched_list,
+        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+        #     dealbreaker=dealbreaker,
+        #     individual_score=individual_score_dict,
+        #     company_score=company_score_dict,
+        # )
 
         # score_ai_filters.delay(
         #     prospect_enriched_list=prospect_enriched_list,
@@ -2429,13 +2429,13 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-        # score_ai_filters.delay(
-        #     prospect_enriched_list,
-        #     icp_scoring_ruleset.to_dict(),
-        #     dealbreaker,
-        #     individual_score_dict,
-        #     company_score_dict,
-        # )
+        score_ai_filters.delay(
+            prospect_enriched_list,
+            icp_scoring_ruleset.to_dict(),
+            dealbreaker,
+            individual_score_dict,
+            company_score_dict,
+        )
         #
         # score_ai_filters.apply_async(
         #     args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
