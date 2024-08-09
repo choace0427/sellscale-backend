@@ -601,6 +601,8 @@ def run_thread(thread_id, assistant_id):
     session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
     increment_session_counter(session_id)
 
+    send_socket_message('increment-counter', {'message' : 'increment'}, thread_id)
+
     return response.json()["id"]
 
 def stringStartsWith(string, prefix):
