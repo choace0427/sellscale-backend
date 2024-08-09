@@ -365,6 +365,14 @@ def delete_segment(client_sdr_id: int, segment_id: int) -> tuple[bool, str]:
         db.session.add(child_segment)
     db.session.commit()
 
+    # If have a icp_segment, delete that icp_segment_first
+    icp_scoring_rulesets = ICPScoringRuleset.query.filter(
+        ICPScoringRuleset.segment_id == segment.id,
+    ).all()
+    
+    for icp_scoring_ruleset in icp_scoring_rulesets:
+        db.session.delete(icp_scoring_ruleset)
+
     db.session.delete(segment)
     db.session.commit()
 
