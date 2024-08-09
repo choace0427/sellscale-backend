@@ -633,9 +633,9 @@ def score_ai_filters(
 
             if content:
                 content = json.loads(content)
-                answer = content["answer"]
-                reasoning = content["reasoning"]
-                source = content["source"]
+                answer = content["answer"] if content["answer"] else "NO"
+                reasoning = content["reasoning"] if content["reasoning"] else "Could not find a reasoning"
+                source = content["source"] if content["source"] else "Could not find a source"
 
                 if individual_ai_filter["use_linkedin"]:
                     citation = enriched_prospect_company["prospect_linkedin_url"] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
@@ -702,9 +702,9 @@ def score_ai_filters(
 
             if content:
                 content = json.loads(content)
-                answer = content["answer"]
-                reasoning = content["reasoning"]
-                source = content["source"]
+                answer = content["answer"] if content["answer"] else "NO"
+                reasoning = content["reasoning"] if content["reasoning"] else "Could not find a reasoning"
+                source = content["source"] if content["source"] else "Could not find a source"
 
                 if company_ai_filter["use_linkedin"]:
                     citation = enriched_prospect_company['prospect_linkedin_url'] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
