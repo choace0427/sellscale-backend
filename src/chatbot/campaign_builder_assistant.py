@@ -98,6 +98,9 @@ def bulk_create_selix_tasks(client_sdr_id: int, session_id: int, task_titles: li
             total_success = False
             total_message = message
             break
+        else:
+            total_success = True
+            total_message = message
 
     return total_success, total_message
 
