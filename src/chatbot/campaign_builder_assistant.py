@@ -104,7 +104,7 @@ def bulk_create_selix_tasks(client_sdr_id: int, session_id: int, task_titles: li
 
     return total_success, total_message
 
-def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None, new_description: Optional[str] = None) -> tuple[bool, str]:
+def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str] = None, new_status: Optional[str] = None, new_proof_of_work: Optional[str] = None, new_description: Optional[str] = None, internal_notes: Optional[str] = None) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
     session: SelixSession = SelixSession.query.get(task.selix_session_id)
     if not task:
@@ -120,6 +120,8 @@ def update_selix_task(client_sdr_id: int, task_id: int, new_title: Optional[str]
         task.proof_of_work_img = new_proof_of_work
     if new_description:
         task.description = new_description
+    if internal_notes:
+        task.internal_notes = internal_notes
 
     db.session.add(task)
     db.session.commit()
