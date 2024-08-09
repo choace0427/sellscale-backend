@@ -850,6 +850,35 @@ def update_session(client_sdr_id: int, session_id: int, new_title: Optional[str]
 
     return True, "Session updated successfully"
 
+def delete_session(client_sdr_id: int, session_id: int):
+    """
+    If session exists and is owned by the client SDR, delete it and all associated tasks and action calls.
+    """
+    session: SelixSession = SelixSession.query.get(session_id)
+    if not session:
+        return False, "Session not found."
+    if session.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized to delete this session."
+
+    # Delete all tasks associated with the session
+    tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id).all()
+    for task in tasks:
+        db.session.delete(task)
+
+    # Delete all action calls associated with the session
+    action_calls = SelixActionCall.query.filter_by(selix_session_id=session_id).all()
+    for action_call in action_calls:
+        db.session.delete(action_call)
+
+    db.session.delete(session)
+    db.session.commit()
+
+    thread_id = session.thread_id
+    if (thread_id):
+        send_socket_message('delete-session', {'session_id': session_id}, thread_id)
+
+    return True, "Session deleted successfully"
+
 
 def chat_with_assistant(
         client_sdr_id: int, 

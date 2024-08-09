@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -31,6 +31,21 @@ def create_session(client_sdr_id: int):
     )
     chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name)
     return "OK", 200
+
+@SELIX_BLUEPRINT.route("/delete_session", methods=["DELETE"])
+@require_user
+def delete_session_endpoint(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+
+    success, message = delete_session(client_sdr_id=client_sdr_id, session_id=session_id)
+
+    if not success:
+        return jsonify({"error": message}), 400
+
+    return jsonify({"message": message}), 200
+
 
 #take note these are different functions, this one and the one below POST and GET
 @SELIX_BLUEPRINT.route("/edit_session", methods=["PATCH"])
