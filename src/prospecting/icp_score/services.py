@@ -1631,9 +1631,14 @@ def score_one_prospect(
         elif (
             icp_scoring_ruleset.included_individual_seniority_keywords
             and enriched_prospect_company.prospect_title
+            and icp_scoring_ruleset.included_individual_title_keywords
             and any(
                 keyword.lower() in enriched_prospect_company.prospect_title.lower()
                 for keyword in icp_scoring_ruleset.included_individual_seniority_keywords
+            )
+            and any(
+                keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                for keyword in icp_scoring_ruleset.included_individual_title_keywords
             )
         ):
             score += 1
@@ -1669,9 +1674,6 @@ def score_one_prospect(
             and any(
                 keyword.lower() in enriched_prospect_company.prospect_industry.lower()
                 for keyword in icp_scoring_ruleset.included_individual_industry_keywords
-            ) and any(
-                keyword.lower() in enriched_prospect_company.prospect_title.lower()
-                for keyword in icp_scoring_ruleset.included_individual_title_keywords
             )
         ):
             score += 1
