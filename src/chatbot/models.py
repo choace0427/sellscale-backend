@@ -23,6 +23,7 @@ class SelixSessionStatus(enum.Enum):
 class SelixSessionTaskStatus(enum.Enum):
     QUEUED = "QUEUED"
     IN_PROGRESS = "IN_PROGRESS"
+    IN_PROGRESS_REQUIRES_REVIEW = "IN_PROGRESS_REQUIRES_REVIEW"
     COMPLETE = "COMPLETE"
     CANCELLED = "CANCELLED"
     BLOCKED = "BLOCKED"
@@ -31,6 +32,7 @@ class SelixSessionTaskStatus(enum.Enum):
         return [
             SelixSessionTaskStatus.QUEUED,
             SelixSessionTaskStatus.IN_PROGRESS,
+            SelixSessionTaskStatus.IN_PROGRESS_REQUIRES_REVIEW,
             SelixSessionTaskStatus.COMPLETE,
             SelixSessionTaskStatus.CANCELLED,
             SelixSessionTaskStatus.BLOCKED,
@@ -74,7 +76,10 @@ class SelixSessionTask(db.Model):
     description = db.Column(db.String, nullable=False)
     status = db.Column(db.Enum(SelixSessionTaskStatus), nullable=False, default=SelixSessionTaskStatus.QUEUED)
 
+    internal_notes = db.Column(db.String, nullable=True)
+
     order_number = db.Column(db.Integer, nullable=True)
+    requires_review = db.Column(db.Boolean, nullable=True, default=False)
 
     proof_of_work_img = db.Column(db.String, nullable=True)
 
