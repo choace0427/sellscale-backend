@@ -23,7 +23,7 @@ class SelixSessionStatus(enum.Enum):
 class SelixSessionTaskStatus(enum.Enum):
     QUEUED = "QUEUED"
     IN_PROGRESS = "IN_PROGRESS"
-    IN_PROGRESS_REQUIRES_REVIEW = "IN_PROGRESS_REQUIRES_REVIEW"
+    IN_PROGRESS_REVIEW_NEEDED = "IN_PROGRESS_REVIEW_NEEDED"
     COMPLETE = "COMPLETE"
     CANCELLED = "CANCELLED"
     BLOCKED = "BLOCKED"
@@ -32,7 +32,7 @@ class SelixSessionTaskStatus(enum.Enum):
         return [
             SelixSessionTaskStatus.QUEUED,
             SelixSessionTaskStatus.IN_PROGRESS,
-            SelixSessionTaskStatus.IN_PROGRESS_REQUIRES_REVIEW,
+            SelixSessionTaskStatus.IN_PROGRESS_REVIEW_NEEDED,
             SelixSessionTaskStatus.COMPLETE,
             SelixSessionTaskStatus.CANCELLED,
             SelixSessionTaskStatus.BLOCKED,
