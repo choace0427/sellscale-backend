@@ -599,10 +599,26 @@ def score_ai_filters(
         prospect_reasoning = prospect.icp_fit_reason
 
         for individual_ai_filter in individual_ai_filters:
+            prompt = "Prospect: "
+
+            if prospect.full_name:
+                prompt += prospect.full_name
+
+            if prospect.title:
+                prompt += f" - {prospect.title}"
+
+            if prospect.company:
+                prompt += " at " + prospect.company
+
+            if prospect.linkedin_url:
+                prompt += ". LinkedIn: " + prospect.linkedin_url
+
+            prompt += f". {individual_ai_filter['prompt']}"
+
             if individual_ai_filter["use_linkedin"]:
-                prompt = f"{individual_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
-            else:
-                prompt = f"{individual_ai_filter['prompt']}? The Prospect name is {prospect.full_name}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+                prompt += ". Limit your search to only the LinkedIn URL provided. "
+
+            prompt += "Your response will be in the format of a json object with the following structure: (answer: 'YES'/NO', reasoning: 'a one sentence reasoning for the answer, including a summary of your source.', source: 'a link to your primary or direct source')"
 
             messages = [
                 {
@@ -613,18 +629,19 @@ def score_ai_filters(
 
             perplexity_response = get_perplexity_response(model="llama-3.1-sonar-small-128k-online",
                                                           messages=messages)
-            content = perplexity_response["content"]
+            content = perplexity_response["content"].replace('```', '').replace('json', '').replace('\n', '').strip()
 
             if content:
-                content = content.split(",")
-                answer = content[0].strip()
-                reasoning = content[1].strip()
+                content = json.loads(content)
+                answer = content["answer"]
+                reasoning = content["reasoning"]
+                source = content["source"]
 
                 if individual_ai_filter["use_linkedin"]:
                     citation = enriched_prospect_company["prospect_linkedin_url"] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
                 else:
                     if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
-                        citation = perplexity_response["citations"][0]
+                        citation = source
                     else:
                         citation = "Could not find a citation"
 
@@ -632,7 +649,7 @@ def score_ai_filters(
                     prospect_individual_score += 1
                     current_prospect_reason_v2[individual_ai_filter["key"]] = {
                         "answer": "YES",
-                        "reasoning": f"✅ {individual_ai_filter['key']} - {reasoning}",
+                        "reasoning": f"✅ {reasoning}",
                         "source": citation
                     }
                     prospect_reasoning += f"✅ {individual_ai_filter['key']} - {reasoning}, "
@@ -641,7 +658,7 @@ def score_ai_filters(
                         prospect_individual_score = -1
                         current_prospect_reason_v2[individual_ai_filter["key"]] = {
                             "answer": "NO",
-                            "reasoning": f"❌ {individual_ai_filter['key']} - {reasoning} - dealbreaker",
+                            "reasoning": f"❌ {reasoning} - dealbreaker",
                             "source": citation
                         }
                         prospect_reasoning += f"❌ {individual_ai_filter['key']} - {reasoning} - dealbreaker, "
@@ -649,7 +666,7 @@ def score_ai_filters(
                         prospect_individual_score -= 1
                         current_prospect_reason_v2[individual_ai_filter["key"]] = {
                             "answer": "NO",
-                            "reasoning": f"❌ {individual_ai_filter['key']} - {reasoning}",
+                            "reasoning": f"❌ {reasoning}",
                             "source": citation
                         }
                         prospect_reasoning += f"❌ {individual_ai_filter['key']} - {reasoning}, "
@@ -663,10 +680,14 @@ def score_ai_filters(
 
         # Company AI Filters
         for company_ai_filter in company_ai_filters:
-            if company_ai_filter["use_linkedin"]:
-                prompt = f"{company_ai_filter['prompt']}? Use this LinkedIn Link as part of your search: {enriched_prospect_company['prospect_linkedin_url']}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
-            else:
-                prompt = f"{company_ai_filter['prompt']}? The company name is {enriched_prospect_company['company_name']}. Search the web and provide citations for the answer. You will only search and source from primary sources or reputable non-user-generated websites. Reply in a comma separated string of the answer which is YES or NO, and a one sentence for the reason of the answer."
+            prompt = ""
+
+            if enriched_prospect_company["company_name"]:
+                prompt += f"Company: {enriched_prospect_company['company_name']}. "
+
+            prompt += f"{company_ai_filter['prompt']}. "
+
+            prompt += "Your response will be in the format of a json object with the following structure: (answer: 'YES'/NO', reasoning: 'a one sentence reasoning for the answer, including a summary of your source.', source: 'a link to your primary or direct source')"
 
             messages = [
                 {
@@ -677,18 +698,19 @@ def score_ai_filters(
 
             perplexity_response = get_perplexity_response(model="llama-3.1-sonar-small-128k-online",
                                                           messages=messages)
-            content = perplexity_response["content"]
+            content = perplexity_response["content"].replace('```', '').replace('json', '').replace('\n', '').strip()
 
             if content:
-                content = content.split(",")
-                answer = content[0].strip()
-                reasoning = content[1].strip()
+                content = json.loads(content)
+                answer = content["answer"]
+                reasoning = content["reasoning"]
+                source = content["source"]
 
                 if company_ai_filter["use_linkedin"]:
                     citation = enriched_prospect_company['prospect_linkedin_url'] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
                 else:
                     if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
-                        citation = perplexity_response["citations"][0]
+                        citation = source
                     else:
                         citation = "Could not find a citation"
 
@@ -696,7 +718,7 @@ def score_ai_filters(
                     prospect_company_score += 1
                     current_company_reason[company_ai_filter["key"]] = {
                         "answer": "YES",
-                        "reasoning": f"✅ {company_ai_filter['prompt']} - {reasoning}",
+                        "reasoning": f"✅ {reasoning}",
                         "source": citation
                     }
 
@@ -706,7 +728,7 @@ def score_ai_filters(
                         prospect_company_score = -1
                         current_company_reason[company_ai_filter["key"]] = {
                             "answer": "NO",
-                            "reasoning": f"❌ {company_ai_filter['prompt']} - {reasoning} - dealbreaker",
+                            "reasoning": f"❌ {reasoning} - dealbreaker",
                             "source": citation
                         }
 
@@ -715,7 +737,7 @@ def score_ai_filters(
                         prospect_company_score -= 1
                         current_company_reason[company_ai_filter["key"]] = {
                             "answer": "NO",
-                            "reasoning": f"❌ {company_ai_filter['prompt']} - {reasoning}",
+                            "reasoning": f"❌ - {reasoning}",
                             "source": citation
                         }
 
@@ -794,7 +816,7 @@ def score_one_prospect_segment(
     but we will still be grading the prospect and providing reasoning for the
     other filters criteria.
     """
-    with app.app_context():
+    with (app.app_context()):
         try:
 
             score = 0
@@ -806,7 +828,7 @@ def score_one_prospect_segment(
             reasoning = ""
 
             # Programmatic Filters
-            # Prospect Title - Include
+            # Prospect Title - Excluded
             if icp_scoring_ruleset.excluded_individual_title_keywords and enriched_prospect_company.prospect_title:
                 if (
                     not any(
@@ -889,11 +911,15 @@ def score_one_prospect_segment(
                     reasoning += "(❌ prospect seniority: " + enriched_prospect_company.prospect_title + ") "
 
             # Prospect Seniority - Include
-            if icp_scoring_ruleset.included_individual_seniority_keywords and enriched_prospect_company.prospect_title:
+            if icp_scoring_ruleset.included_individual_seniority_keywords and icp_scoring_ruleset.included_individual_title_keywords \
+                    and enriched_prospect_company.prospect_title:
                 if (
                     any(
                         keyword.lower() in enriched_prospect_company.prospect_title.lower()
                         for keyword in icp_scoring_ruleset.included_individual_seniority_keywords
+                    ) and any(
+                        keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                        for keyword in icp_scoring_ruleset.included_individual_title_keywords
                     )
                 ):
                     if score != -1:
@@ -1638,10 +1664,14 @@ def score_one_prospect(
             reasoning += "(❌ prospect industry: " + invalid_industry + ") "
         elif (
             icp_scoring_ruleset.included_individual_industry_keywords
+            and icp_scoring_ruleset.included_individual_title_keywords
             and enriched_prospect_company.prospect_industry
             and any(
                 keyword.lower() in enriched_prospect_company.prospect_industry.lower()
                 for keyword in icp_scoring_ruleset.included_individual_industry_keywords
+            ) and any(
+                keyword.lower() in enriched_prospect_company.prospect_title.lower()
+                for keyword in icp_scoring_ruleset.included_individual_title_keywords
             )
         ):
             score += 1
@@ -2384,13 +2414,13 @@ def apply_segment_icp_scoring_ruleset_filters(
         # we have to send over the icp_scoring_ruleset
         # we have to send over dealbreaker
         # we have to send over the current score and company score
-        # score_ai_filters(
-        #     prospect_enriched_list=prospect_enriched_list,
-        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-        #     dealbreaker=dealbreaker,
-        #     individual_score=individual_score_dict,
-        #     company_score=company_score_dict,
-        # )
+        score_ai_filters(
+            prospect_enriched_list=prospect_enriched_list,
+            icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+            dealbreaker=dealbreaker,
+            individual_score=individual_score_dict,
+            company_score=company_score_dict,
+        )
 
         # score_ai_filters.delay(
         #     prospect_enriched_list=prospect_enriched_list,
@@ -2399,13 +2429,13 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-        score_ai_filters.delay(
-            prospect_enriched_list,
-            icp_scoring_ruleset.to_dict(),
-            dealbreaker,
-            individual_score_dict,
-            company_score_dict,
-        )
+        # score_ai_filters.delay(
+        #     prospect_enriched_list,
+        #     icp_scoring_ruleset.to_dict(),
+        #     dealbreaker,
+        #     individual_score_dict,
+        #     company_score_dict,
+        # )
         #
         # score_ai_filters.apply_async(
         #     args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],

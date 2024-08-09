@@ -583,6 +583,7 @@ class Prospect(db.Model):
                 if self.linkedin_url
                 else None
             ),
+            "linkedin_url": self.linkedin_url,
             "img_url": self.img_url,
             "archetype_id": self.archetype_id,
             "hidden_until": self.hidden_until,
