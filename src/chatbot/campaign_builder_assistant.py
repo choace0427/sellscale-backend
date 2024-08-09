@@ -18,6 +18,7 @@ from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import generate_strategy_copilot_response, simple_perplexity_response
 from src.strategies.models import Strategies, StrategyStatuses
 from src.utils.slack import URL_MAP, send_slack_message
+from src.sockets.services import send_socket_message
 
 # Some information about the user you're speaking with:
 # Name: Rishi Bhanderjee
@@ -39,13 +40,36 @@ HEADERS = {
 
 # ACTIONS
 def increment_session_counter(session_id: int):
-    selix_session = SelixSession.query.get(session_id)
+    selix_session: SelixSession = SelixSession.query.get(session_id)
     selix_session.memory["counter"] = selix_session.memory.get("counter", 0) + 1
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(selix_session, "memory")
     db.session.add(selix_session)
     db.session.commit()
 
+    thread_id = selix_session.thread_id
+    if (thread_id):
+        session_dict = selix_session.to_dict()
+        #loop through the task and see if things need to be converted to serializable
+        for key, value in session_dict.items():
+            if isinstance(value, datetime.datetime):
+                session_dict[key] = value.isoformat()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
+def create_selix_task(session_id: int, task_title: str) -> tuple[bool, str]:
+    try:
+        task = SelixSessionTask(
+            selix_session_id=session_id,
+            actual_completion_time=None,
+            title=task_title,
+            description="",
+            status=SelixSessionTaskStatus.QUEUED
+        )
+        db.session.add(task)
+        db.session.commit()
+        return True, "Task created successfully"
+    except Exception as e:
+        return False, str(e)
 def adjust_selix_task_order(client_sdr_id: int, task_id: int, new_order: int) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
     session: SelixSession = SelixSession.query.get(task.selix_session_id)
@@ -119,13 +143,17 @@ def set_session_tab(
     selix_session_id: int,
     tab_name: str,
 ):
-    selix_session = SelixSession.query.get(selix_session_id)
+    selix_session: SelixSession = SelixSession.query.get(selix_session_id)
     selix_session.memory["tab"] = tab_name
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(selix_session, "memory")
     db.session.add(selix_session)
     db.session.commit()
 
+    #send message to change tab
+    thread_id = selix_session.thread_id
+    if thread_id:
+        send_socket_message('change-tab', {'tab': tab_name}, thread_id)
     return True, "Session tab updated successfully"
 
 def create_selix_action_call_entry(
@@ -144,13 +172,39 @@ def create_selix_action_call_entry(
     )
     db.session.add(selix_action_call)
     db.session.commit()
+    thread_id = SelixSession.query.get(selix_session_id).thread_id
+    if thread_id:
+        action_dict = selix_action_call.to_dict()
+        for key, value in action_dict.items():
+            if isinstance(value, datetime.datetime):
+                action_dict[key] = value.isoformat()
+        send_socket_message('incoming-message', {'action': action_dict, 'thread_id': thread_id}, thread_id)
     return selix_action_call.id
 
 def mark_action_complete(selix_action_call_id: int):
-    selix_action_call = SelixActionCall.query.get(selix_action_call_id)
-    selix_action_call.status = SelixSessionTaskStatus.COMPLETE
+    selix_action_call: SelixActionCall = SelixActionCall.query.get(selix_action_call_id)
+    #look up selix task from the action
+    selix_task: SelixSessionTask = SelixSessionTask.query.filter_by(selix_session_id=selix_action_call.selix_session_id, title=selix_action_call.action_title).first()
+    if not selix_task:
+        return
+    selix_task.status = SelixSessionTaskStatus.COMPLETE
+    selix_action_call.actual_completion_time = datetime.datetime.now()
+    db.session.add(selix_task)
     db.session.add(selix_action_call)
     db.session.commit()
+
+    #send message to update the task as complete
+    thread_id = SelixSession.query.get(selix_action_call.selix_session_id).thread_id
+    if thread_id:
+        task_dict = selix_task.to_dict()
+        action_dict = selix_action_call.to_dict()
+        for key, value in task_dict.items():
+            if isinstance(value, datetime.datetime):
+                task_dict[key] = value.isoformat()
+        for key, value in action_dict.items():
+            if isinstance(value, datetime.datetime):
+                action_dict[key] = value.isoformat()
+        send_socket_message('update-task', {'task': task_dict, 'action': action_dict}, thread_id)
 
 def create_campaign(campaign_name: str):
     print("⚡️ AUTO ACTION: create_campaign('{}')".format(campaign_name))
@@ -256,11 +310,34 @@ def edit_strategy(
     db.session.add(strategy)
     db.session.commit()
 
+    # thread_id = SelixSession.query.get(session_id).thread_id
+    # if thread_id:
+    #     #loop through the task and see if things need to be converted to serializable
+    #     task_dict = strategy.to_dict()
+    #     for key, value in task_dict.items():
+    #         if isinstance(value, datetime.datetime):
+    #             task_dict[key] = value.isoformat()
+    #     send_socket_message('update-task', {'task': task_dict}, thread_id)
+
+
     mark_action_complete(selix_action_id)
     set_session_tab(
         session_id, 
         "STRATEGY_CREATOR"
     )
+
+    #trigger an update to the session
+    session = SelixSession.query.get(session_id)
+    thread_id = session.thread_id
+
+    if thread_id:
+        session_dict = session.to_dict()
+        #loop through the task and see if things need to be converted to serializable
+        for key, value in session_dict.items():
+            if isinstance(value, datetime.datetime):
+                session_dict[key] = value.isoformat()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
     return {"success": True}
 
 
@@ -295,6 +372,15 @@ def search_internet(query: str, session_id: int):
     flag_modified(session, "memory")
     db.session.add(session)
     db.session.commit()
+
+    thread_id = session.thread_id
+    if (thread_id):
+        session_dict = session.to_dict()
+        #loop through the task and see if things need to be converted to serializable
+        for key, value in session_dict.items():
+            if isinstance(value, datetime.datetime):
+                session_dict[key] = value.isoformat()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
 
     mark_action_complete(selix_action_id)
     set_session_tab(session_id, "BROWSER")
@@ -372,6 +458,15 @@ def create_strategy(description: str, session_id: int):
     db.session.add(session)
     db.session.commit()
 
+    thread_id = session.thread_id
+    if (thread_id):
+        session_dict = session.to_dict()
+        #loop through the task and see if things need to be converted to serializable
+        for key, value in session_dict.items():
+            if isinstance(value, datetime.datetime):
+                session_dict[key] = value.isoformat()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
     selix_task = SelixSessionTask(
         selix_session_id=session_id,
         actual_completion_time=datetime.datetime.now(),
@@ -381,6 +476,14 @@ def create_strategy(description: str, session_id: int):
     )
     db.session.add(selix_task)
     db.session.commit()
+
+    thread_id = session.thread_id
+    if thread_id:
+        task_dict = selix_task.to_dict()
+        for key, value in task_dict.items():
+            if isinstance(value, datetime.datetime):
+                task_dict[key] = value.isoformat()
+        send_socket_message('add-task-to-session', {'task': task_dict}, thread_id)
 
     session_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).all()
     for task in session_tasks:
@@ -416,6 +519,15 @@ def create_task(title: str, description: str, session_id: int):
     )
     db.session.add(task)
     db.session.commit()
+
+
+    thread_id = SelixSession.query.get(session_id).thread_id
+    if thread_id:
+        task_dict = task.to_dict()
+        for key, value in task_dict.items():
+            if isinstance(value, datetime.datetime):
+                task_dict[key] = value.isoformat()
+        send_socket_message('add-task-to-session', {'task': task_dict}, thread_id)
 
     mark_action_complete(selix_action_id)
     set_session_tab(session_id, "PLANNER")
@@ -491,6 +603,9 @@ def run_thread(thread_id, assistant_id):
 
     return response.json()["id"]
 
+def stringStartsWith(string, prefix):
+    return string[:len(prefix)] == prefix
+
 
 def get_assistant_reply(thread_id):
     try:
@@ -498,6 +613,8 @@ def get_assistant_reply(thread_id):
             f"{API_URL}/threads/{thread_id}/messages", headers=HEADERS
         )
         last_message = response.json()["data"][0]["content"][0]["text"]["value"]
+        if last_message and last_message != "Acknowledged." and not stringStartsWith(last_message, 'Here is some additional context about me,'):
+            send_socket_message('incoming-message', {'message': last_message, 'thread_id': thread_id}, thread_id)
         return last_message
     except:
         return ""
@@ -637,6 +754,16 @@ def rename_session(session_id, transcript_str):
     db.session.add(selix_session)
     db.session.commit()
 
+
+    thread_id = selix_session.thread_id
+    if (thread_id):
+        session_dict = selix_session.to_dict()
+        #loop through the task and see if things need to be converted to serializable
+        for key, value in session_dict.items():
+            if isinstance(value, datetime.datetime):
+                session_dict[key] = value.isoformat()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
     return title
 
 
@@ -711,6 +838,15 @@ def update_session(client_sdr_id: int, session_id: int, new_title: Optional[str]
     db.session.add(session)
     db.session.commit()
 
+    thread_id = session.thread_id
+    if (thread_id):
+        session_dict = session.to_dict()
+        #loop through the task and see if things need to be converted to serializable
+        for key, value in session_dict.items():
+            if isinstance(value, datetime.datetime):
+                session_dict[key] = value.isoformat()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
     return True, "Session updated successfully"
 
 
@@ -752,7 +888,12 @@ def chat_with_assistant(
         )
         db.session.add(selix_session)
         db.session.commit()
-    
+        if thread_id:
+            session_dict = selix_session.to_dict()
+            session_dict['estimated_completion_time'] = session_dict.get('estimated_completion_time').isoformat() if session_dict.get('estimated_completion_time') else None
+            session_dict['actual_completion_time'] = session_dict.get('actual_completion_time').isoformat() if session_dict.get('actual_completion_time') else None
+            send_socket_message('new-session', {'session': session_dict}, room_id)
+            
     if not additional_context:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)

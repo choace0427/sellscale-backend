@@ -19,6 +19,7 @@ def get_sessions(client_sdr_id: int):
 @SELIX_BLUEPRINT.route("/create_session", methods=["POST"])
 @require_user
 def create_session(client_sdr_id: int):
+    print("Creating session")
     room_id = get_request_parameter(
         "room_id", request, json=True, required=False
     )
@@ -31,6 +32,7 @@ def create_session(client_sdr_id: int):
     chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name)
     return "OK", 200
 
+#take note these are different functions, this one and the one below POST and GET
 @SELIX_BLUEPRINT.route("/edit_session", methods=["PATCH"])
 @require_user
 def edit_session(client_sdr_id: int):
@@ -106,6 +108,9 @@ def create_message(client_sdr_id):
 
     session: SelixSession = SelixSession.query.get(session_id)
     thread_id = session.thread_id
+
+    print("Adding message to thread")
+    print(thread_id)
 
     add_message_to_thread(thread_id, message)
     
