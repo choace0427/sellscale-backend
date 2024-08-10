@@ -177,6 +177,9 @@ def update_task(client_sdr_id: int):
     internal_notes = get_request_parameter(
         "internal_notes", request, json=True, required=False
     )
+    internal_review_needed = get_request_parameter(
+        "internal_review_needed", request, json=True, required=False
+    )
 
     success, message = update_selix_task(
         client_sdr_id=client_sdr_id,
@@ -185,7 +188,8 @@ def update_task(client_sdr_id: int):
         new_status=new_status,
         new_proof_of_work=new_proof_of_work,
         new_description=new_description,
-        internal_notes=internal_notes
+        internal_notes=internal_notes,
+        internal_review_needed=internal_review_needed
     )
 
     if not success:
