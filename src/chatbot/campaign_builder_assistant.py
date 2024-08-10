@@ -630,7 +630,7 @@ def get_assistant_reply(thread_id):
             f"{API_URL}/threads/{thread_id}/messages", headers=HEADERS
         )
         last_message = response.json()["data"][0]["content"][0]["text"]["value"]
-        if last_message and last_message != "Acknowledged." and not stringStartsWith(last_message, 'Here is some additional context about me,'):
+        if last_message and last_message != "Acknowledged." and 'Here is some additional context about me,' not in last_message:
             send_socket_message('incoming-message', {'message': last_message, 'thread_id': thread_id}, thread_id)
         return last_message
     except:
@@ -950,8 +950,10 @@ def chat_with_assistant(
     if not additional_context:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
         client: Client = Client.query.get(client_sdr.client_id)
+        client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client.id).all()
         pre_filters: SavedApolloQuery = SavedApolloQuery.query.filter(
-            SavedApolloQuery.segment_description.isnot(None)
+            SavedApolloQuery.segment_description.isnot(None),
+            SavedApolloQuery.client_sdr_id.in_([client_sdr.id for client_sdr in client_sdrs])
         ).order_by(SavedApolloQuery.id.desc()).first()
         icp_description = ""
         if pre_filters:
@@ -1028,6 +1030,8 @@ def handle_run_thread(thread_id, session_id):
             print("🧩 Requires action")
             retrieve_actions_needed(thread_id, run_id, session_id)
         time.sleep(1)  # Sleep to avoid hitting the API rate limits too hard
+
+
 
 # Example usage
 # chat_with_assistant("asst_uJJtKPGaVeVYQjgqCquTL3Bq")
