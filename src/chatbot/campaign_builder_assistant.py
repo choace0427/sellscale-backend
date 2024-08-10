@@ -902,7 +902,8 @@ def chat_with_assistant(
         in_terminal: Optional[bool] = True, 
         room_id: Optional[int] = None,
         additional_context: Optional[str] = None,
-        session_name: Optional[str] = None
+        session_name: Optional[str] = None,
+        task_titles: Optional[list[str]] = None
 ):
     print("Starting conversation with the assistant. Type 'quit' to end.")
     assistant_id = "asst_uJJtKPGaVeVYQjgqCquTL3Bq" # Selix AI OpenAI Assistant ID
@@ -939,6 +940,12 @@ def chat_with_assistant(
             session_dict['estimated_completion_time'] = session_dict.get('estimated_completion_time').isoformat() if session_dict.get('estimated_completion_time') else None
             session_dict['actual_completion_time'] = session_dict.get('actual_completion_time').isoformat() if session_dict.get('actual_completion_time') else None
             send_socket_message('new-session', {'session': session_dict}, room_id)
+
+    if task_titles:
+        total_success, total_message = bulk_create_selix_tasks(client_sdr_id, selix_session.id, task_titles)
+        if not total_success:
+            print(total_message)
+            return
             
     if not additional_context:
         client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)

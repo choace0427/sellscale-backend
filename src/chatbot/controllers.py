@@ -29,7 +29,10 @@ def create_session(client_sdr_id: int):
     session_name = get_request_parameter(
         "session_name", request, json=True, required=False
     )
-    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name)
+    task_titles = get_request_parameter(
+        "task_titles", request, json=True, required=False
+    )
+    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name, task_titles=task_titles)
     return "OK", 200
 
 @SELIX_BLUEPRINT.route("/delete_session", methods=["DELETE"])
