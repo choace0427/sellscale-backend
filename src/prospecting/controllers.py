@@ -1135,8 +1135,8 @@ def add_prospect_from_apollo_query_id(client_sdr_id: int):
         "num_contacts", request, json=True, required=False, parameter_type=int
     )
 
-    if client_sdr_id not in (34, 221):
-        return "OK (non-SellScale user)", 200
+    # if client_sdr_id not in (34, 221):
+    #  return "OK (non-SellScale user)", 200
 
     success = add_prospects_from_saved_apollo_query_id(
         client_sdr_id=client_sdr_id,
@@ -1295,6 +1295,7 @@ def add_prospects_from_saved_apollo_query_id(
             ),
             is_prefilter=payload.get("is_prefilter", False),
             q_organization_keyword_tags=payload.get("q_organization_keyword_tags", None),
+            per_page=min(100, num_contacts),
         )
 
         # get the contacts and people
@@ -1317,7 +1318,7 @@ def add_prospects_from_saved_apollo_query_id(
                     # within the call, update prospect_uploads status to SUCCESS if successful and update prospect_upload_history's processed counts
 
             )
-            
+
     print(len(all_contacts))
     return True
 

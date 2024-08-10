@@ -267,7 +267,7 @@ def update_segment(
     filters: dict,
     client_archetype_id: Optional[int] = None,
     attached_segment_tag_ids: Optional[list[int]] = None,
-    is_market_map: Optional[bool] = False,
+    is_market_map: Optional[bool] = None,
 ) -> Segment:
     segment: Segment = Segment.query.filter_by(
         client_sdr_id=client_sdr_id, id=segment_id

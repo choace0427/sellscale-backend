@@ -559,11 +559,12 @@ def apollo_get_contacts_for_page(
     segment_description: Optional[str] = None,
     value_proposition: Optional[str] = None,
     is_icp_filter: Optional[bool] = False,
+    per_page: Optional[int] = 100,
 ):
     data = {
         "api_key": APOLLO_API_KEY,
         "page": page,
-        "per_page": 100,
+        "per_page": per_page,
         "person_titles": person_titles,
         "person_not_titles": person_not_titles,
         "q_person_title": q_person_title,
