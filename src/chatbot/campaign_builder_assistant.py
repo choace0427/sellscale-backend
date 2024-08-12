@@ -730,9 +730,6 @@ def get_last_n_messages(thread_id):
         # Update the 'before' parameter to fetch the next set of messages
         params["before"] = messages[-1]["created_at"]
 
-    # Exclude the very last two message in the list
-    if all_messages and len(all_messages) > 1:
-        all_messages = all_messages[0:len(all_messages) - 2]
 
     # Pull all actions
     selix_session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
