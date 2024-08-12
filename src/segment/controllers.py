@@ -62,7 +62,7 @@ def create_segment(client_sdr_id: int):
     )
     filters = get_request_parameter("filters", request, json=True, required=True)
 
-    is_market_map = get_request_parameter("is_market_map", request, json=True, required=True)
+    is_market_map = get_request_parameter("is_market_map", request, json=True, required=False)
 
     campaign_id = get_request_parameter(
         "campaign_id", request, json=True, required=False
@@ -77,7 +77,7 @@ def create_segment(client_sdr_id: int):
         filters=filters,
         campaign_id=campaign_id,
         saved_apollo_query_id=saved_apollo_query_id,
-        is_market_map=is_market_map,
+        is_market_map=is_market_map if is_market_map is not None else False,
     )
 
     # If is a market map, we want to create an icp ruleset, and have

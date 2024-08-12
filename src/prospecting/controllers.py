@@ -1226,6 +1226,8 @@ def add_prospects_from_saved_apollo_query_id(
     segment_id: Optional[int] = None,
     num_contacts: int = 100
 ):
+    
+    print('got here', saved_apollo_query_id)
     from src.contacts.services import apollo_get_contacts_for_page
 
     source = ProspectUploadSource.CONTACT_DATABASE
