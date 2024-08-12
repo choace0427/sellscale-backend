@@ -168,7 +168,7 @@ def set_session_tab(
     #send message to change tab
     thread_id = selix_session.thread_id
     if thread_id:
-        send_socket_message('change-tab', {'tab': tab_name}, thread_id)
+        send_socket_message('change-tab', {'tab': tab_name, 'thread_id': thread_id}, thread_id)
     return True, "Session tab updated successfully"
 
 def create_selix_action_call_entry(
@@ -219,7 +219,7 @@ def mark_action_complete(selix_action_call_id: int):
         for key, value in action_dict.items():
             if isinstance(value, datetime.datetime):
                 action_dict[key] = value.isoformat()
-        send_socket_message('update-task', {'task': task_dict, 'action': action_dict}, thread_id)
+        send_socket_message('update-task', {'task': task_dict, 'action': action_dict, 'thread_id': thread_id}, thread_id)
 
 def create_campaign(campaign_name: str):
     print("⚡️ AUTO ACTION: create_campaign('{}')".format(campaign_name))
@@ -498,7 +498,7 @@ def create_strategy(description: str, session_id: int):
         for key, value in task_dict.items():
             if isinstance(value, datetime.datetime):
                 task_dict[key] = value.isoformat()
-        send_socket_message('add-task-to-session', {'task': task_dict}, thread_id)
+        send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
     session_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).all()
     for task in session_tasks:
@@ -555,7 +555,7 @@ def create_task(title: str, description: str, session_id: int):
         for key, value in task_dict.items():
             if isinstance(value, datetime.datetime):
                 task_dict[key] = value.isoformat()
-        send_socket_message('add-task-to-session', {'task': task_dict}, thread_id)
+        send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
     mark_action_complete(selix_action_id)
     set_session_tab(session_id, "PLANNER")
@@ -629,7 +629,7 @@ def run_thread(thread_id, assistant_id):
     session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
     increment_session_counter(session_id)
 
-    send_socket_message('increment-counter', {'message' : 'increment'}, thread_id)
+    send_socket_message('increment-counter', {'message' : 'increment', 'thread_id': thread_id}, thread_id)
 
     return response.json()["id"]
 
@@ -924,7 +924,7 @@ def delete_session(client_sdr_id: int, session_id: int):
 
     thread_id = session.thread_id
     if (thread_id):
-        send_socket_message('delete-session', {'session_id': session_id}, thread_id)
+        send_socket_message('delete-session', {'session_id': session_id, 'thread_id': thread_id}, thread_id)
 
     return True, "Session deleted successfully"
 
@@ -972,7 +972,7 @@ def chat_with_assistant(
             session_dict = selix_session.to_dict()
             session_dict['estimated_completion_time'] = session_dict.get('estimated_completion_time').isoformat() if session_dict.get('estimated_completion_time') else None
             session_dict['actual_completion_time'] = session_dict.get('actual_completion_time').isoformat() if session_dict.get('actual_completion_time') else None
-            send_socket_message('new-session', {'session': session_dict}, room_id)
+            send_socket_message('new-session', {'session': session_dict, thread_id: room_id}, room_id)
 
             #create one task for the session
             create_task("Collaborate with the user to gather campaign information", "Chat with Selix on the left to get started.", selix_session.id)
