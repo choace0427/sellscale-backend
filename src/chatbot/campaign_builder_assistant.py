@@ -410,7 +410,7 @@ def create_strategy(description: str, session_id: int):
 
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
-        action_title="Create Strategy",
+        action_title="Create Strategy for `{}`".format(description[:20] + "..."),
         action_description="Create a strategy based on the description provided: {}".format(description),
         action_function="create_strategy",
         action_params={"description": description}
@@ -505,6 +505,19 @@ def create_strategy(description: str, session_id: int):
         task.status = SelixSessionTaskStatus.COMPLETE
         task.actual_completion_time = datetime.datetime.now()
         db.session.add(task)
+    db.session.commit()
+
+    # Mark all previous tasks in the session as complete
+    previous_tasks = SelixSessionTask.query.filter(
+        SelixSessionTask.selix_session_id == session_id,
+        SelixSessionTask.status != SelixSessionTaskStatus.COMPLETE
+    ).all()
+    
+    for task in previous_tasks:
+        task.status = SelixSessionTaskStatus.COMPLETE
+        task.actual_completion_time = datetime.datetime.now()
+        db.session.add(task)
+    
     db.session.commit()
 
     mark_action_complete(selix_action_id)
