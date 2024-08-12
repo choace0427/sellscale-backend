@@ -732,6 +732,13 @@ def get_last_n_messages(thread_id):
         if selix_session.session_name == "New Session":
             rename_session(selix_session.id, transcript_str)
 
+    # Filter out messages based on the given criteria
+    filtered_messages = [
+        message for message in all_messages
+        if "message" in message and (message["message"].strip() != "Acknowledged." and 'Here is some additional context about me,' not in message["message"])
+    ]
+    all_messages = filtered_messages
+
     return all_messages
 
 def rename_session(session_id, transcript_str):

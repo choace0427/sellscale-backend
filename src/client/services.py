@@ -5,6 +5,7 @@ import sqlalchemy
 from src.ai_requests.services import create_ai_requests
 from src.automation.orchestrator import add_process_for_future
 from src.bump_framework.services import create_bump_framework
+from src.chatbot.campaign_builder_assistant import chat_with_assistant
 from src.client.SequenceAutoGeneration import SequenceAutoGenerationParameters, generate_email_sequence_prompt, generate_linkedin_sequence_prompt, initialize_auto_generation_payload
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
@@ -997,6 +998,7 @@ def create_client_sdr(
         include_add_dnc_filters_card: bool = False,
         include_add_calendar_link_card: bool = False,
         linkedin_url: Optional[str] = None,
+        role: Optional[str] = None,
 ):
     from src.client.services_unassigned_contacts_archetype import (
         create_unassigned_contacts_archetype,
@@ -1039,6 +1041,7 @@ def create_client_sdr(
         autopilot_enabled=True,
         auto_send_linkedin_campaign=True,
         auto_send_email_campaign=True,
+        role=role,
     )
     db.session.add(sdr)
     db.session.commit()
@@ -5745,12 +5748,15 @@ def create_selix_customer(
         include_input_pre_filters_card=False,
         include_add_dnc_filters_card=False,
         include_add_calendar_link_card=False,
-        linkedin_url=None
+        linkedin_url=None,
+        role='FREE'
     )
     client_sdr_id = client_sdr_json['client_sdr_id']
 
     client: Client = Client.query.get(client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
     return {
         "full_name": full_name,
@@ -5762,4 +5768,5 @@ def create_selix_customer(
         "client": client.to_dict(),
         "client_sdr_id": client_sdr_id,
         "client_sdr": client_sdr.to_dict(),
+        "auth_token": client_sdr.auth_token,
     }
