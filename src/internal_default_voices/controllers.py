@@ -205,7 +205,7 @@ def patch_internal_default_voice():
     db.session.commit()
 
     for cta in ctas:
-        if cta["id"]:
+        if "id" in cta:
             cta_to_update: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta["id"])
             cta_to_update.text_value = cta["text_value"]
             cta_to_update.active = cta["active"]
@@ -213,6 +213,14 @@ def patch_internal_default_voice():
             cta_to_update.cta_type = cta["cta_type"]
             cta_to_update.auto_mark_as_scheduling_on_acceptance = cta["auto_mark_as_scheduling_on_acceptance"]
             db.session.commit()
+        else:
+            newCTA = GeneratedMessageCTA(
+                text_value=cta["text_value"],
+                active=cta["active"],
+                cta_type=cta["cta_type"],
+                internal_default_voice_id=internal_voice.id,
+            )
+            db.session.add(newCTA)
 
     if stack:
         if stack["id"]:
