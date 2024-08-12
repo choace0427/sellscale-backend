@@ -869,7 +869,14 @@ def submit_tool_outputs(thread_id, run_id, tool_outputs):
     )
     return response.json()
 
-def update_session(client_sdr_id: int, session_id: int, new_title: Optional[str], new_status: Optional[str], new_strategy_id: Optional[int]) -> tuple[bool, str]:
+def update_session(
+    client_sdr_id: int, 
+    session_id: int, 
+    new_title: Optional[str], 
+    new_status: Optional[str], 
+    new_strategy_id: Optional[int],
+    new_campaign_id: Optional[int]
+) -> tuple[bool, str]:
     session: SelixSession = SelixSession.query.get(session_id)
     if not session:
         return False, "Session not found."
@@ -882,6 +889,8 @@ def update_session(client_sdr_id: int, session_id: int, new_title: Optional[str]
         session.status = new_status
     if new_strategy_id:
         session.memory["strategy_id"] = new_strategy_id
+    if new_campaign_id:
+        session.memory["campaign_id"] = new_campaign_id
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(session, "session_name")
     flag_modified(session, "status")
