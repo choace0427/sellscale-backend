@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, update_session, create_selix_task, update_selix_task
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -232,3 +232,17 @@ def delete_task(client_sdr_id: int):
     if not success:
         return jsonify({"error": message}), status_code
     return jsonify({"message": message}), 200
+
+
+@SELIX_BLUEPRINT.route("/question_prompter", methods=["POST"])
+@require_user
+def sanitize_transcript(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+
+    sanitized_transcript = handle_voice_instruction_enrichment_and_questions(
+        session_id=session_id
+    )
+
+    return jsonify({'transcript': sanitized_transcript}), 200

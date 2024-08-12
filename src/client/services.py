@@ -129,9 +129,10 @@ def create_client(
         tagline: Optional[str] = None,
         description: Optional[str] = None,
         free_client: Optional[bool] = False,
+        allow_duplicates: Optional[bool] = False,
 ):
     c: Client = Client.query.filter_by(company=company).first()
-    if c:
+    if c and not allow_duplicates:
         return {"client_id": c.id, 'existing_client': True}
 
     # Get the full company_website URL
@@ -5724,7 +5725,8 @@ def create_selix_customer(
         email_outbound_enabled=True,
         tagline=tagline,
         description=description,
-        free_client=True
+        free_client=True,
+        allow_duplicates=True,
     )
     existing_client = client_json['existing_client']
     if existing_client:

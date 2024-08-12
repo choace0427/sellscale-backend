@@ -1031,6 +1031,69 @@ def handle_run_thread(thread_id, session_id):
             retrieve_actions_needed(thread_id, run_id, session_id)
         time.sleep(1)  # Sleep to avoid hitting the API rate limits too hard
 
+def handle_voice_instruction_enrichment_and_questions(
+    session_id: int
+):
+    session: SelixSession = SelixSession.query.get(session_id)
+    if not session:
+        return False, "Session not found."
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(session.client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+    client_sdrs: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client.id).all()
+    pre_filters: SavedApolloQuery = SavedApolloQuery.query.filter(
+        SavedApolloQuery.segment_description.isnot(None),
+        SavedApolloQuery.client_sdr_id.in_([client_sdr.id for client_sdr in client_sdrs])
+    ).order_by(SavedApolloQuery.id.desc()).first()
+    icp_description = ""
+    if pre_filters:
+        icp_description = pre_filters.segment_description
+
+    past_conversations = get_last_n_messages(session.thread_id)[0:10]
+
+    additional_context = """
+Here is some additional context about me, the person you're speaking with, my company, and other relevant information:
+- Name: {name}
+- Title: {title}
+- Company: {company}
+- Company Tagline: {tagline}
+- Company Description: {description}
+- Ideal Customer Profile Description: {icp_description}
+- Past Conversations: {past_conversations}
+
+Reference this information as needed""".format(
+        name=client_sdr.name,
+        title=client_sdr.title,
+        company=client.company,
+        tagline=client.tagline,
+        description=client.description,
+        icp_description=icp_description,
+        past_conversations=past_conversations
+    )
+
+    text = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+You are the Selix voice assistant question prompter.
+I am going to provide you an unsanitized transcript of a voice instruction from the user for a given conversation. Here's some additional context about the user and the conversation:
+
+Context: {additional_context}
+
+Based on the voice instruction, ask the user follow-up questions in the form of 6-7 word brief questions to collect more data. Make sure to reference the additional context provided above in your questions.
+Bullet point each question in a list format, use 1,2,3 etc. for each question.
+
+Follow-up Questions:""".format(
+                    additional_context=additional_context
+                ),
+            }
+        ],
+        model="gpt-4o",
+        max_tokens=500
+    )
+
+    return text
 
 
 # Example usage
