@@ -204,6 +204,16 @@ def patch_internal_default_voice():
 
     db.session.commit()
 
+    original_ctas = GeneratedMessageCTA.query.filter_by(internal_default_voice_id=internal_voice.id).all()
+    original_ctas_id = [cta.id for cta in original_ctas]
+    patched_ctas_id = [cta["id"] for cta in ctas]
+
+    for original_id in original_ctas_id:
+        if original_id not in patched_ctas_id:
+            cta_to_delete = GeneratedMessageCTA.query.get(original_id)
+            db.session.delete(cta_to_delete)
+            db.session.commit()
+
     for cta in ctas:
         if "id" in cta:
             cta_to_update: GeneratedMessageCTA = GeneratedMessageCTA.query.get(cta["id"])
