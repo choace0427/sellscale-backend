@@ -546,7 +546,7 @@ def create_task(title: str, description: str, session_id: int):
 
     mark_action_complete(selix_action_id)
     set_session_tab(session_id, "PLANNER")
-    return {"success": True}
+    return {"success": True, "action_id": selix_action_id, "task_id": task.id}
 
 def wait_for_ai_execution(session_id: int):
     print("⚡️ AUTO ACTION: wait_for_ai_execution()")
@@ -737,6 +737,16 @@ def get_last_n_messages(thread_id):
         message for message in all_messages
         if "message" in message and (message["message"].strip() != "Acknowledged." and 'Here is some additional context about me,' not in message["message"])
     ]
+    # Ensure the first message is always the assistant's greeting
+    first_message = {
+        "created_time": datetime.datetime.now().strftime("%B %d, %I:%M %p"),
+        "message": "Hello! How can I assist you today? Please provide some information about your campaign or what you would like to achieve.",
+        "role": "assistant",
+        "type": "message",
+    }
+    
+    # Insert the first message at the beginning of the filtered messages
+    filtered_messages.insert(0, first_message)
     all_messages = filtered_messages
 
     return all_messages
@@ -947,6 +957,9 @@ def chat_with_assistant(
             session_dict['estimated_completion_time'] = session_dict.get('estimated_completion_time').isoformat() if session_dict.get('estimated_completion_time') else None
             session_dict['actual_completion_time'] = session_dict.get('actual_completion_time').isoformat() if session_dict.get('actual_completion_time') else None
             send_socket_message('new-session', {'session': session_dict}, room_id)
+
+            #create one task for the session
+            create_task("Initial Task", "Collaborate with the user to gather campaign information", selix_session.id)
 
     if task_titles:
         total_success, total_message = bulk_create_selix_tasks(client_sdr_id, selix_session.id, task_titles)
