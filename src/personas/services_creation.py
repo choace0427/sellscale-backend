@@ -158,7 +158,7 @@ def add_sequence(
                 asset_ids=step["assets"],
             )
 
-    elif sequence_type.startswith("LINKEDIN-"):
+    if sequence_type.startswith("LINKEDIN-"):
         # Update the archetype template mode
         archetype.template_mode = (
             True if sequence_type == "LINKEDIN-TEMPLATE" else False
