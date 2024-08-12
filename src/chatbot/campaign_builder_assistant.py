@@ -667,6 +667,7 @@ def get_all_threads_with_tasks(client_sdr_id: int) -> list[dict]:
     FROM selix_session ss
     LEFT JOIN selix_session_task sst ON ss.id = sst.selix_session_id
     WHERE ss.client_sdr_id = :client_sdr_id
+    and ss.status != 'CANCELLED'
     GROUP BY ss.id
     ORDER BY ss.created_at DESC
     """
@@ -910,21 +911,20 @@ def delete_session(client_sdr_id: int, session_id: int):
         return False, "Unauthorized to delete this session."
 
     # Delete all tasks associated with the session
-    tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id).all()
+    tasks: list[SelixSessionTask]= SelixSessionTask.query.filter_by(selix_session_id=session_id).all()
     for task in tasks:
+        task.status = SelixSessionTaskStatus.CANCELLED
         db.session.delete(task)
 
     # Delete all action calls associated with the session
-    action_calls = SelixActionCall.query.filter_by(selix_session_id=session_id).all()
-    for action_call in action_calls:
-        db.session.delete(action_call)
+    # action_calls: list[SelixActionCall] = SelixActionCall.query.filter_by(selix_session_id=session_id).all()
+    # for action_call in action_calls:
+    #     db.session.delete(action_call)
 
-    db.session.delete(session)
+    session.status = SelixSessionStatus.CANCELLED
+
+    db.session.add(session)
     db.session.commit()
-
-    thread_id = session.thread_id
-    if (thread_id):
-        send_socket_message('delete-session', {'session_id': session_id, 'thread_id': thread_id}, thread_id)
 
     return True, "Session deleted successfully"
 
