@@ -646,7 +646,10 @@ def get_all_threads_with_tasks(client_sdr_id: int) -> list[dict]:
             'title', sst.title,
             'status', sst.status,
             'created_at', sst.created_at,
-            'updated_at', sst.updated_at
+            'updated_at', sst.updated_at,
+            'description', sst.description,
+            'order_number', sst.order_number,
+            'proof_of_work_img', sst.proof_of_work_img
         )) AS tasks
     FROM selix_session ss
     LEFT JOIN selix_session_task sst ON ss.id = sst.selix_session_id
@@ -959,7 +962,7 @@ def chat_with_assistant(
             send_socket_message('new-session', {'session': session_dict}, room_id)
 
             #create one task for the session
-            create_task("Initial Task", "Collaborate with the user to gather campaign information", selix_session.id)
+            create_task("Collaborate with the user to gather campaign information", "Chat with Selix on the left to get started.", selix_session.id)
 
     if task_titles:
         total_success, total_message = bulk_create_selix_tasks(client_sdr_id, selix_session.id, task_titles)
