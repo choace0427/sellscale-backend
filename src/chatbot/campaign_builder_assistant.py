@@ -196,6 +196,39 @@ def create_selix_action_call_entry(
         send_socket_message('incoming-message', {'action': action_dict, 'thread_id': thread_id}, thread_id)
     return selix_action_call.id
 
+def selix_campaign_enabled_handler(campaign_id: int):
+    """
+    If called, check if there are any sessions with the given campaign_id and automatically:
+    - mark the session as complete
+    - mark all the tasks in the session as complete
+
+    This is a handler function that is called when a campaign is enabled.
+    """
+
+    try:
+        query = """
+            select selix_session.id
+            from selix_session
+            where cast(selix_session.memory->>'campaign_id' as integer) = {}
+        """.format(campaign_id)
+
+        result = db.session.execute(query).fetchall()
+        session_ids = [row[0] for row in result]
+
+        for session_id in session_ids:
+            session: SelixSession = SelixSession.query.get(session_id)
+            session.status = SelixSessionStatus.COMPLETE
+            db.session.add(session)
+            db.session.commit()
+
+            session_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id).all()
+            for task in session_tasks:
+                task.status = SelixSessionTaskStatus.COMPLETE
+                db.session.add(task)
+            db.session.commit()
+    except Exception as e:
+        print("Error in campaign_enabled_handler: ", e)
+
 def mark_action_complete(selix_action_call_id: int):
     selix_action_call: SelixActionCall = SelixActionCall.query.get(selix_action_call_id)
     #look up selix task from the action

@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from app import db
 
 from src.authentication.decorators import require_user
+from src.chatbot.campaign_builder_assistant import selix_campaign_enabled_handler
 from src.client.archetype.services_client_archetype import (
     bulk_action_move_prospects_to_archetype,
     bulk_action_withdraw_prospect_invitations,
@@ -447,6 +448,8 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             archetype_id=archetype_id,
         )
 
+    selix_campaign_enabled_handler(campaign_id=archetype_id)
+
     return jsonify({"status": "success"}), 200
 
 
@@ -524,6 +527,8 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
                 ),
                 400,
             )
+        
+    selix_campaign_enabled_handler(campaign_id=archetype_id)
 
     return jsonify({"status": "success"}), 200
 
