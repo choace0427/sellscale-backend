@@ -440,21 +440,21 @@ def create_strategy(description: str, session_id: int):
                 ),
             }
         ],
-        model="gpt-4",
+        model="gpt-4o",
     )
 
     chat_content = [
         {"sender": "user", "query": description, "id": 1}
     ]
     strategy_response = generate_strategy_copilot_response(chat_content)
-    strategy_title = strategy_response.get("response", "").strip()
+    strategy_description = strategy_response.get("response", "").replace("html", "").replace("`", "").strip()
 
     session: SelixSession = SelixSession.query.get(session_id)
     client_sdr: ClientSDR = ClientSDR.query.get(session.client_sdr_id)
 
     strategy: Strategies = Strategies(
         title=title,
-        description=strategy_title,
+        description=strategy_description,
         tagged_campaigns=None,
         status=StrategyStatuses.NOT_STARTED,
         start_date=datetime.datetime.today(),
