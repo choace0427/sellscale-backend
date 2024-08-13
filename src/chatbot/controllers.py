@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -287,3 +287,31 @@ def post_generate_followup(client_sdr_id: int):
     )
 
     return jsonify({'followup_message': ''}), 200
+
+@SELIX_BLUEPRINT.route("/upload_file", methods=["POST"])
+@require_user
+def post_add_file(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+    file = get_request_parameter(
+        "file", request, json=True, required=True
+    )
+    file_name = get_request_parameter(
+        "file_name", request, json=True, required=True
+    )
+
+    description = get_request_parameter(
+        "description", request, json=True, required=True
+    )
+
+    session: SelixSession = SelixSession.query.get(session_id)
+    thread_id = session.thread_id
+
+    print("Adding file to thread")
+    print(thread_id)
+
+    add_file_to_thread(thread_id, file, file_name, description)
+
+    return jsonify({"message": "File added successfully"}), 200
+    # handle_run_thread(thread_id, session

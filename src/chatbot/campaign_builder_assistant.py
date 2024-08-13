@@ -190,6 +190,7 @@ def create_selix_action_call_entry(
     thread_id = SelixSession.query.get(selix_session_id).thread_id
     if thread_id:
         action_dict = selix_action_call.to_dict()
+        action_dict.pop('action_params', None) #remove action params as too large of a file can cause issues
         for key, value in action_dict.items():
             if isinstance(value, datetime.datetime):
                 action_dict[key] = value.isoformat()
@@ -1252,3 +1253,44 @@ def generate_followup(client_sdr_id: int, device_id: str, prompt: str, chat_mess
     send_socket_message('suggestion', {'message': followup_message, 'thread_id': room_id, 'device_id': device_id}, room_id)
 
     return followup_message
+
+def add_file_to_thread(thread_id: str, file: str, file_name: str, description: str):
+    # Create a Selix action call entry
+    selix_session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
+
+
+    create_selix_action_call_entry(
+        selix_session_id=selix_session_id,
+        action_title="Analyze File",
+        action_description="Analyze file with name: {} and description: '{}'".format(file_name, description),
+        action_function="analyze_file",
+        action_params={"file": file, "description": description, "file_name": file_name}
+    )        
+    analyze_file(file, description, file_name, selix_session_id)
+
+    # Log the action
+    print(f"File added to thread {thread_id} with description: {description}")
+
+def analyze_file(file:str, description:str, file_name: str, session_id: int ):
+    #create a task for the user to review the analysis
+
+    selix_task = SelixSessionTask(
+        selix_session_id=session_id,
+        actual_completion_time=None,
+        title="Analyze File",
+        description="Analyze file: {} with description: {}".format(file_name, description),
+        status=SelixSessionTaskStatus.QUEUED
+    )
+
+    db.session.add(selix_task)
+    db.session.commit()
+
+    thread_id = SelixSession.query.get(session_id).thread_id
+    if thread_id:
+        task_dict = selix_task.to_dict()
+        for key, value in task_dict.items():
+            if isinstance(value, datetime.datetime):
+                task_dict[key] = value.isoformat()
+        send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
+
+    return {"success": True}
