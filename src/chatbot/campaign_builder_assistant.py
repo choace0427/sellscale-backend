@@ -7,7 +7,7 @@ from numpy import add
 import requests
 import os
 import time
-from app import db
+from app import db, celery
 
 from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, SelixSessionTaskStatus, SelixActionCall
 from src.client.models import ClientSDR, Client
@@ -1201,3 +1201,54 @@ Follow-up Questions:""".format(
 
 # DECK:
 # https://docs.google.com/presentation/d/1AVmn12UGnUQMhwPuFzI7b9stos50cqJRfYFTbG5NfpA/edit#slide=id.g279d89168bd_0_108
+
+@celery.task
+def generate_followup(client_sdr_id: int, device_id: str, prompt: str, chat_messages: list, room_id: str, previous_follow_up: str):
+
+    # Compile the message transcript
+    compiled_message_transcript = [
+        f"{message.get('role')}: {message.get('content')}" for message in chat_messages
+    ]
+
+    compiled_message_transcript = "\n".join(compiled_message_transcript)
+    compiled_message_transcript += '\n' + 'the users partially typed response is: ' + prompt
+
+    # Prepare the system message
+    system_message = {
+        "role": "system",
+        "content": f"""
+        You are a Selix AI assistant. Selix has a few functionalities: campaign creation, strategy creation, task creation, and campaign curation.
+        Your purpose is to come up with additional question to pose to the user- - you are like a though partner. 
+
+        Here are some example questions--
+
+        Why are you targeting (specific audience)? i.e. "Why are you targeting specialty marketing leaders?"
+        Which booth is your company at the event? 
+        Do you have an account list?
+        Why is (product) the best option?
+        Which feature resonates the most with (target audience)?
+
+    
+        In general, ask questions that will help you understand the user's needs and preferences better. Keep it short.
+
+        NOTE: Don't ask question about analytics / metrics / budget
+
+        I am going to provide you with a compiled message transcript of the conversation between you and the user. 
+        In as little text as possible, generate a VERY brief question from the assistant based on the compiled message transcript. Make sure it 
+        is not the same as the previous follow-up question which is: {previous_follow_up} 
+        
+        Followup Question:"""
+    }
+    print(system_message)
+    # print('messages are', compiled_message_transcript)
+
+    # Get the follow-up message from the assistant
+    followup_message = wrapped_chat_gpt_completion(
+        messages=[system_message, {"role": "user", "content": compiled_message_transcript}],
+        model="gpt-4o",
+        max_tokens=50
+    )
+
+    send_socket_message('suggestion', {'message': followup_message, 'thread_id': room_id, 'device_id': device_id}, room_id)
+
+    return followup_message
