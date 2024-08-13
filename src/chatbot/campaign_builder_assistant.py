@@ -646,8 +646,15 @@ def create_thread():
     return response.json()["id"]
 
 
-def add_message_to_thread(thread_id, content, role="user"):
+def add_message_to_thread(thread_id, content, role="user", device_id=None):
     data = {"role": role, "content": content}
+
+    #send socket message to other chats in case it's open
+    
+    if device_id:
+        print("Sending message to device_id: ", device_id)
+        send_socket_message('incoming-message', {'message': content, 'thread_id': thread_id, 'role': 'user', 'device_id': device_id}, thread_id)
+
     requests.post(f"{API_URL}/threads/{thread_id}/messages", headers=HEADERS, json=data)
 
 
@@ -677,7 +684,7 @@ def get_assistant_reply(thread_id):
         )
         last_message = response.json()["data"][0]["content"][0]["text"]["value"]
         if last_message and last_message != "Acknowledged." and 'Here is some additional context about me,' not in last_message:
-            send_socket_message('incoming-message', {'message': last_message, 'thread_id': thread_id}, thread_id)
+            send_socket_message('incoming-message', {'message': last_message, 'thread_id': thread_id, 'role': 'assistant'}, thread_id)
         return last_message
     except:
         return ""

@@ -125,6 +125,9 @@ def create_message(client_sdr_id):
     session_id = get_request_parameter(
         "session_id", request, json=True, required=True
     )
+    device_id = get_request_parameter(
+        "device_id", request, json=True, required=False
+    )
     message = get_request_parameter(
         "message", request, json=True, required=True
     )
@@ -135,7 +138,7 @@ def create_message(client_sdr_id):
     print("Adding message to thread")
     print(thread_id)
 
-    add_message_to_thread(thread_id, message)
+    add_message_to_thread(thread_id, message, device_id=device_id)
     
     handle_run_thread(thread_id, session_id)
     
