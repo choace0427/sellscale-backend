@@ -1,4 +1,4 @@
-# import dns.resolver
+import dns.resolver
 
 
 def spf_record_valid(domain: str) -> tuple[str, bool]:
@@ -10,25 +10,25 @@ def spf_record_valid(domain: str) -> tuple[str, bool]:
     Returns:
         tuple[str, bool]: The SPF record and whether it is valid
     """
-    pass
-    # try:
-    #     spf_answers = dns.resolver.resolve(domain, "TXT")
-    #     for answer in spf_answers:
-    #         spf_text = answer.to_text()
-    #         spf_text = spf_text.strip('"')
-    #         if spf_text.startswith("v=spf1"):
-    #             # SPF record needs to match Google's SPF record exactly
-    #             if (
-    #                 spf_text != "v=spf1 include:_spf.google.com ~all"
-    #                 and spf_text != "v=spf1 include:amazonses.com ~all"
-    #             ):
-    #                 return spf_text, False
+    # pass
+    try:
+        spf_answers = dns.resolver.resolve(domain, "TXT")
+        for answer in spf_answers:
+            spf_text = answer.to_text()
+            spf_text = spf_text.strip('"')
+            if spf_text.startswith("v=spf1"):
+                # SPF record needs to match Google's SPF record exactly
+                if (
+                    spf_text != "v=spf1 include:_spf.google.com ~all"
+                    and spf_text != "v=spf1 include:amazonses.com ~all"
+                ):
+                    return spf_text, False
 
-    #             return spf_text, True
-    # except:
-    #     return "", False
+                return spf_text, True
+    except:
+        return "", False
 
-    # return "", False
+    return "", False
 
 
 def dmarc_record_valid(domain: str) -> tuple[str, bool]:

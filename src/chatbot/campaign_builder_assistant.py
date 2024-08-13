@@ -872,7 +872,8 @@ def update_session(
     new_title: Optional[str], 
     new_status: Optional[str], 
     new_strategy_id: Optional[int],
-    new_campaign_id: Optional[int]
+    new_campaign_id: Optional[int],
+    is_draft: Optional[bool] = None
 ) -> tuple[bool, str]:
     session: SelixSession = SelixSession.query.get(session_id)
     if not session:
@@ -888,10 +889,13 @@ def update_session(
         session.memory["strategy_id"] = new_strategy_id
     if new_campaign_id:
         session.memory["campaign_id"] = new_campaign_id
+    if is_draft is not None:
+        session.draft_session = is_draft
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(session, "session_name")
     flag_modified(session, "status")
     flag_modified(session, "memory")
+    flag_modified(session, "draft_session")
     db.session.add(session)
     db.session.commit()
 
@@ -970,7 +974,8 @@ def chat_with_assistant(
             estimated_completion_time=datetime.datetime.now() + datetime.timedelta(hours=24),
             actual_completion_time=None,
             assistant_id=assistant_id,
-            thread_id=thread_id
+            thread_id=thread_id,
+            draft_session=True
         )
         db.session.add(selix_session)
         db.session.commit()
