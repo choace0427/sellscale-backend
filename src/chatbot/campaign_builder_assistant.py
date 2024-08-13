@@ -438,7 +438,17 @@ def create_review_card(campaign_id: dict):
     print("⚡️ AUTO ACTION: create_review_card({})".format(campaign_id))
     return {"success": True}
 
-def create_strategy(description: str, session_id: int):
+def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing: str, specific_copy: str, personalizers: str, links: str, session_id: int):
+    description = (
+        f"Angle: {angle}\n"
+        f"Prospects: {prospects}\n"
+        f"Offer: {offer}\n"
+        f"Channel: {channel}\n"
+        f"Timing: {timing}\n"
+        f"Specific Copy: {specific_copy}\n"
+        f"Personalizers: {personalizers}\n"
+        f"Links: {links}"
+    )
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
 
     selix_action_id = create_selix_action_call_entry(
