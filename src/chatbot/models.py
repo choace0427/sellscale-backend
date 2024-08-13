@@ -52,6 +52,8 @@ class SelixSession(db.Model):
     assistant_id = db.Column(db.String(255), nullable=True)
     thread_id = db.Column(db.String(255), nullable=True)
 
+    draft_session = db.Column(db.Boolean, nullable=True, default=False)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -63,6 +65,7 @@ class SelixSession(db.Model):
             "actual_completion_time": self.actual_completion_time,
             "assistant_id": self.assistant_id,
             "thread_id": self.thread_id,
+            "draft_session": self.draft_session,
         }
 
 
