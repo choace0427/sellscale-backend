@@ -91,12 +91,11 @@ def get_messages_in_thread_old(client_sdr_id):
     thread_id = get_request_parameter(
         "thread_id", request, json=True, required=True
     )
-    try:
-        messages = get_last_n_messages(
-            thread_id=thread_id
-        )
-    except Exception as e:
-        return str(e), 400
+
+    messages = get_last_n_messages(
+        thread_id=thread_id)
+    
+   
     return jsonify(messages), 200
 
 @SELIX_BLUEPRINT.route("/get_messages_in_thread", methods=["POST"])

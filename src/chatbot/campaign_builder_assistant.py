@@ -773,8 +773,9 @@ def get_last_n_messages(thread_id):
 
     all_messages.sort(key=lambda x: x["created_time"])
 
+    selix_session: SelixSession = SelixSession.query.filter_by(thread_id=thread_id).first()
+
     if len(all_messages) > 6:
-        selix_session: SelixSession = SelixSession.query.filter_by(thread_id=thread_id).first()
         transcript_str = "\n".join([f"{message['role']}: {message['message']}" for message in all_messages if message["type"] == "message"])
         if selix_session.session_name == "New Session":
             rename_session(selix_session.id, transcript_str)
@@ -782,11 +783,11 @@ def get_last_n_messages(thread_id):
     # Filter out messages based on the given criteria
     filtered_messages = [
         message for message in all_messages
-        if "message" in message and (message["message"].strip() != "Acknowledged." and 'Here is some additional context about me,' not in message["message"])
+        if message["type"] == 'action' or (message["message"].strip() != "Acknowledged." and 'Here is some additional context about me,' not in message["message"])
     ]
     # Ensure the first message is always the assistant's greeting
     first_message = {
-        "created_time": datetime.datetime.now().strftime("%B %d, %I:%M %p"),
+        "created_time": datetime.datetime.utcfromtimestamp(selix_session.created_at.timestamp()),
         "message": "Hello! How can I assist you today? Please provide some information about your campaign or what you would like to achieve.",
         "role": "assistant",
         "type": "message",
