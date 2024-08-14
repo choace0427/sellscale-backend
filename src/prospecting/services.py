@@ -2082,6 +2082,7 @@ def mark_prospects_as_queued_for_outreach(
 
     # Create SLA Schedules
     load_sla_schedules(client_sdr_id=client_sdr_id)
+    
 
     # Update prospects
     for id in prospect_ids:

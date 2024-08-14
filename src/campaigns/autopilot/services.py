@@ -55,7 +55,7 @@ def collect_and_generate_all_autopilot_campaigns(
             ClientSDR.client_id == client.id, ClientSDR.autopilot_enabled == True
         ).all()
         sdrs.extend(client_sdrs)
-
+    
     # Generate campaigns for SDRs, using another function
     for i, sdr in enumerate(sdrs):
         sdr_id = sdr.id

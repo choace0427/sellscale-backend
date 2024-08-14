@@ -918,6 +918,7 @@ def get_sdr_send_statistics(client_sdr_id: int) -> dict:
             s.active
             AND c.active
             AND s.id = :client_sdr_id
+            AND g.date_sent > s.created_at
     """
     results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
     last_7_days_count = results[0][0] if results else 0
@@ -936,6 +937,7 @@ def get_sdr_send_statistics(client_sdr_id: int) -> dict:
             s.active
             AND c.active
             AND s.id = :client_sdr_id
+            AND g.date_sent > s.created_at
     """
     results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
     all_time_count = results[0][0] if results else 0
