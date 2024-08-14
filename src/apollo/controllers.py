@@ -179,6 +179,32 @@ def get_all_saved_queries(client_sdr_id):
 
     return jsonify({"status": "success", "data": result}), 200
 
+@APOLLO_REQUESTS.route("/update_segment_description/<int:prefilter_id>", methods=["PUT"])
+@require_user
+def update_segment_description(client_sdr_id, prefilter_id):
+    """
+    Updates the segment_description of the prefilter given the ID.
+    """
+    data = request.get_json()
+    new_segment_description = data.get("segment_description")
+
+    if not new_segment_description:
+        return jsonify({"status": "error", "message": "Segment description is required."}), 400
+
+    prefilter: SavedApolloQuery = SavedApolloQuery.query.filter_by(id=prefilter_id, is_prefilter=True).first()
+
+    if not prefilter:
+        return jsonify({"status": "error", "message": "Prefilter not found."}), 404
+
+    if prefilter.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "You are not authorized to update this prefilter."}), 403
+
+    prefilter.segment_description = new_segment_description
+    db.session.commit()
+
+    return jsonify({"status": "success", "message": "Segment description updated successfully."}), 200
+
+
 @APOLLO_REQUESTS.route("/get_all_icp_queries", methods=["GET"])
 @require_user
 def get_all_icp_queries(client_sdr_id):
