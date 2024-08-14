@@ -385,7 +385,7 @@ def get_client_archetype_prospects(
         .all()
     )
 
-    return [p.to_dict(shallow_data=True) for p in prospects]
+    return [p.simple_to_dict() for p in prospects]
 
 
 def get_client_archetype_performance(
