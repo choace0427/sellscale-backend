@@ -136,8 +136,15 @@ def update_selix_task(
 
     db.session.add(task)
     db.session.commit()
-
+    
     #send socket message to update the task
+    thread_id = session.thread_id
+    if thread_id:
+        task_dict = task.to_dict()
+        for key, value in task.to_dict().items():
+            if isinstance(value, datetime.datetime):
+                task_dict[key] = value.isoformat()
+        send_socket_message('update-task', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
     return True, "Task updated successfully"
 
@@ -236,27 +243,28 @@ def selix_campaign_enabled_handler(campaign_id: int):
 def mark_action_complete(selix_action_call_id: int):
     selix_action_call: SelixActionCall = SelixActionCall.query.get(selix_action_call_id)
     #look up selix task from the action
-    selix_task: SelixSessionTask = SelixSessionTask.query.filter_by(selix_session_id=selix_action_call.selix_session_id, title=selix_action_call.action_title).first()
-    if not selix_task:
+    selix_task: SelixSessionTask = None
+    if selix_action_call.action_params.get("title"):
+        selix_task = SelixSessionTask.query.filter_by(selix_session_id=selix_action_call.selix_session_id, title=selix_action_call.action_params.get("title")).first()
+    else:
+        print("Task not found for action: ", selix_action_call_id)
         return
-    selix_task.status = SelixSessionTaskStatus.COMPLETE
+    # selix_task.status = SelixSessionTaskStatus.COMPLETE
     selix_action_call.actual_completion_time = datetime.datetime.now()
-    db.session.add(selix_task)
+    # db.session.add(selix_task)
     db.session.add(selix_action_call)
     db.session.commit()
 
     #send message to update the task as complete
     thread_id = SelixSession.query.get(selix_action_call.selix_session_id).thread_id
     if thread_id:
-        task_dict = selix_task.to_dict()
         action_dict = selix_action_call.to_dict()
-        for key, value in task_dict.items():
-            if isinstance(value, datetime.datetime):
-                task_dict[key] = value.isoformat()
+        #loop through the action and see if things need to be converted to serializable
         for key, value in action_dict.items():
             if isinstance(value, datetime.datetime):
                 action_dict[key] = value.isoformat()
-        send_socket_message('update-task', {'task': task_dict, 'action': action_dict, 'thread_id': thread_id}, thread_id)
+        print("Sending message to update task with payload: ", action_dict)
+        send_socket_message('update-task', {'action': action_dict, 'thread_id': thread_id}, thread_id)
 
 def create_campaign(campaign_name: str):
     print("⚡️ AUTO ACTION: create_campaign('{}')".format(campaign_name))
@@ -362,15 +370,6 @@ def edit_strategy(
     db.session.add(strategy)
     db.session.commit()
 
-    # thread_id = SelixSession.query.get(session_id).thread_id
-    # if thread_id:
-    #     #loop through the task and see if things need to be converted to serializable
-    #     task_dict = strategy.to_dict()
-    #     for key, value in task_dict.items():
-    #         if isinstance(value, datetime.datetime):
-    #             task_dict[key] = value.isoformat()
-    #     send_socket_message('update-task', {'task': task_dict}, thread_id)
-
 
     mark_action_complete(selix_action_id)
     set_session_tab(
@@ -460,7 +459,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
         action_title="Create Strategy for `{}`".format(description[:20] + "..."),
         action_description="Create a strategy based on the description provided: {}".format(description),
         action_function="create_strategy",
-        action_params={"description": description}
+        action_params={"description": description, "title" : "Create Strategy"}
     )
 
     title = wrapped_chat_gpt_completion(
@@ -550,7 +549,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
     
 
     # Mark all previous tasks in the session as complete
-    previous_tasks = SelixSessionTask.query.filter(
+    previous_tasks: list[SelixSessionTask] = SelixSessionTask.query.filter(
         SelixSessionTask.selix_session_id == session_id,
         SelixSessionTask.status != SelixSessionTaskStatus.COMPLETE
     ).all()
@@ -559,24 +558,34 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
         task.status = SelixSessionTaskStatus.COMPLETE
         task.actual_completion_time = datetime.datetime.now()
         db.session.add(task)
-        #send socket to update all these tasks
     
     db.session.commit()
+
+    #send socket to update all these tasks after commit
+    if thread_id:
+        for task in previous_tasks:
+            task_dict = task.to_dict()
+            for key, value in task_dict.items():
+                if isinstance(value, datetime.datetime):
+                    task_dict[key] = value.isoformat()
+            send_socket_message('update-task', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
     mark_action_complete(selix_action_id)
     set_session_tab(session_id, "STRATEGY_CREATOR")
     return {"success": True}
 
-def create_task(title: str, description: str, session_id: int):
+def create_task(title: str, description: str, session_id: int, create_action=True):
     print("⚡️ AUTO ACTION: create_task('{}', '{}')".format(title, description))
     
-    selix_action_id = create_selix_action_call_entry(
-        selix_session_id=session_id,
-        action_title="Create Task",
-        action_description="Create a task with the title: {} and description: {}".format(title, description),
-        action_function="create_task",
-        action_params={"title": title, "description": description}
-    )
+    selix_action_id = None
+    if create_action:
+        selix_action_id = create_selix_action_call_entry(
+            selix_session_id=session_id,
+            action_title="Create Task",
+            action_description="Create a task with the title: {} and description: {}".format(title, description),
+            action_function="create_task",
+            action_params={"title": title, "description": description}
+        )
 
     order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
 
@@ -600,7 +609,8 @@ def create_task(title: str, description: str, session_id: int):
                 task_dict[key] = value.isoformat()
         send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
-    mark_action_complete(selix_action_id)
+    if selix_action_id:
+        mark_action_complete(selix_action_id)
     set_session_tab(session_id, "PLANNER")
     return {"success": True, "action_id": selix_action_id, "task_id": task.id}
 
@@ -1037,7 +1047,7 @@ def chat_with_assistant(
             send_socket_message('new-session', {'session': session_dict, thread_id: room_id}, room_id)
 
             #create one task for the session
-            create_task("Collaborate with the user to gather campaign information", "Chat with Selix on the left to get started.", selix_session.id)
+            create_task("Collaborate with the user to gather campaign information", "Chat with Selix on the left to get started.", selix_session.id, create_action=False)
 
     if task_titles:
         total_success, total_message = bulk_create_selix_tasks(client_sdr_id, selix_session.id, task_titles)
