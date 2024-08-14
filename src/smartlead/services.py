@@ -903,9 +903,10 @@ def sync_prospect_with_lead(
     lead: SmartleadCampaignStatisticEntry = SmartleadCampaignStatisticEntry(**lead)
 
     # 1. Try to find the prospect by email. If not found, return False
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     prospect: Prospect = Prospect.query.filter(
         Prospect.email == lead.lead_email,
-        Prospect.client_sdr_id == client_sdr_id,
+        Prospect.client_id == client_sdr.client_id,
     ).first()
     if not prospect:
         print(f"Prospect not found: {lead.lead_email}")

@@ -212,6 +212,12 @@ def process_queue():
 
         handle_process(process_id, process_type, process_meta_data)
 
+def handle_process_by_id(process_id: int) -> bool:
+    process: ProcessQueue = ProcessQueue.query.get(process_id)
+    if not process:
+        return False
+    
+    return handle_process(process_id, process.type, process.meta_data)
 
 def handle_process(process_id: int, type: str, meta_data: Optional[dict]) -> bool:
     """Execute the given process
