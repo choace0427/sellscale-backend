@@ -136,6 +136,9 @@ def update_selix_task(
 
     db.session.add(task)
     db.session.commit()
+
+    #send socket message to update the task
+
     return True, "Task updated successfully"
 
 def delete_selix_task(client_sdr_id: int, task_id: int) -> tuple[bool, str, int]:
@@ -544,12 +547,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
                 task_dict[key] = value.isoformat()
         send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
-    session_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).all()
-    for task in session_tasks:
-        task.status = SelixSessionTaskStatus.COMPLETE
-        task.actual_completion_time = datetime.datetime.now()
-        db.session.add(task)
-    db.session.commit()
+    
 
     # Mark all previous tasks in the session as complete
     previous_tasks = SelixSessionTask.query.filter(
@@ -561,6 +559,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
         task.status = SelixSessionTaskStatus.COMPLETE
         task.actual_completion_time = datetime.datetime.now()
         db.session.add(task)
+        #send socket to update all these tasks
     
     db.session.commit()
 

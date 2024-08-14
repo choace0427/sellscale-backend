@@ -3860,11 +3860,11 @@ def create_selix_user():
         return jsonify({"message": "Full name and email are required"}), 400
 
     # Assuming there's a function to create a user in the database
-    try:
-        payload = create_selix_customer(
-            full_name=full_name,
-            email=email
-        )
-        return jsonify({"data": payload}), 200
-    except Exception as e:
-        return jsonify({"message": "Error creating user", "error": str(e)}), 500
+
+    payload = create_selix_customer(
+        full_name=full_name,
+        email=email
+    )
+    return jsonify({"data": payload}), 200
+
+    # return jsonify({"message": "Error creating user", "error": str(e)}), 500

@@ -16,6 +16,7 @@ from src.client.sdr.services_client_sdr import (
 )
 from sqlalchemy import cast, String
 from src.company.models import Company
+from src.contacts.services import handle_chat_icp
 from src.domains.services import create_domain_and_managed_inboxes
 from src.email_scheduling.services import (
     create_calendar_link_needed_operator_dashboard_card,
@@ -64,7 +65,7 @@ from click import Option
 from src.client.models import DemoFeedback
 from src.automation.models import PhantomBusterConfig, PhantomBusterType
 from src.automation.models import PhantomBusterAgent
-from app import celery, db
+from app import celery, db, app
 from flask import jsonify
 from datetime import datetime
 import pytz
@@ -5642,8 +5643,10 @@ def create_selix_customer(
     # Ensure that it's a work email
     non_work_domains = [
         "@gmail.com", "@hotmail.com", "@yahoo.com", "@outlook.com", 
-        "@aol.com", "@icloud.com"
+        "@aol.com", "@icloud.com", "@protonmail.com", "@zoho.com", 
+        "@yandex.com", "@mail.com", "@inbox.com", "@gmx.com",
     ]
+
     if any(email.endswith(domain) for domain in non_work_domains):
         raise ValueError("Email must be a work email and not from a common email provider")
     
@@ -5659,64 +5662,77 @@ def create_selix_customer(
     description = ""
     
     # Get company name
-    try:
-        company_name = simple_perplexity_response(
-            model="llama-3-sonar-large-32k-online",
-            prompt=f"Given the email {email}, please provide the company name.",
-        )
-        company_name = wrapped_chat_gpt_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Given the response and email address, respond with ONLY the company name. Email: {email} Response: {company_name}\nIMPORTANT: Respond with only the company name and nothing more\nCompany Name:"
-                }
-            ],
-            model="gpt-4o",
-            max_tokens=20
-        )
-        company_name = company_name.strip().replace('"', '')
-    except:
-        company_name = domain
+    import concurrent.futures
 
-    # Get company tagline
-    try:
-        tagline = simple_perplexity_response(
-            model="llama-3-sonar-large-32k-online",
-            prompt=f"Given the company name {company_name}, please provide the company tagline. Maximum 6-8 words.",
-        )
-        tagline = wrapped_chat_gpt_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Given the company name {company_name}, respond with the company tagline. Response: {tagline}\nIMPORTANT: Respond with only the tagline and nothing more. Don't make it market-y or gimicky. We need it to be practical and succinct. Bad example: At Apple, we are changing lives. Good example: At Apple, we make the fastest computers.\nTagline:"
-                }
-            ],
-            model="gpt-4o",
-            max_tokens=20
-        )
-        tagline = tagline.strip().replace('"', '')
-    except:
-        tagline = ""
+    def fetch_company_name(email):
+        try:
+            company_name = simple_perplexity_response(
+                model="llama-3-sonar-large-32k-online",
+                prompt=f"Given the email {email}, please provide the company name.",
+            )
+            company_name = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Given the response and email address, respond with ONLY the company name. Email: {email} Response: {company_name}\nIMPORTANT: Respond with only the company name and nothing more\nCompany Name:"
+                    }
+                ],
+                model="gpt-4o",
+                max_tokens=20
+            )
+            return company_name.strip().replace('"', '')
+        except:
+            return email.split('@')[-1]
 
-    # Get 1-2 paragraph company description
-    try:
-        description = simple_perplexity_response(
-            model="llama-3-sonar-large-32k-online",
-            prompt=f"Given the company name {company_name} ({domain}), please provide a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products."
-        )
-        description = wrapped_chat_gpt_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Given the company name {company_name}, respond with a 1-2 paragraph description of the company. Keep it succinct, no yapping. 4-5 sentences max. Response: {description}\nIMPORTANT: Respond with only the description and nothing more\nDescription:"
-                }
-            ],
-            model="gpt-4o",
-            max_tokens=200
-        )
-        description = description.strip().replace('"', '')
-    except:
-        description = ""
+    def fetch_tagline(company_name):
+        try:
+            tagline = simple_perplexity_response(
+                model="llama-3-sonar-large-32k-online",
+                prompt=f"Given the company name {company_name}, please provide the company tagline. Maximum 6-8 words.",
+            )
+            tagline = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Given the company name {company_name}, respond with the company tagline. Response: {tagline}\nIMPORTANT: Respond with only the tagline and nothing more. Don't make it market-y or gimicky. We need it to be practical and succinct. Bad example: At Apple, we are changing lives. Good example: At Apple, we make the fastest computers.\nTagline:"
+                    }
+                ],
+                model="gpt-4o",
+                max_tokens=20
+            )
+            return tagline.strip().replace('"', '')
+        except:
+            return ""
+
+    def fetch_description(company_name, domain):
+        try:
+            description = simple_perplexity_response(
+                model="llama-3-sonar-large-32k-online",
+                prompt=f"Given the company name {company_name} ({domain}), please provide a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products."
+            )
+            description = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Given the company name {company_name}, respond with a 1-2 paragraph description of the company. Keep it succinct, no yapping. 4-5 sentences max. Response: {description}\nIMPORTANT: Respond with only the description and nothing more\nDescription:"
+                    }
+                ],
+                model="gpt-4o",
+                max_tokens=200
+            )
+            return description.strip().replace('"', '')
+        except:
+            return ""
+
+    with app.app_context():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            future_company_name = executor.submit(fetch_company_name, email)
+            future_tagline = executor.submit(fetch_tagline, future_company_name.result())
+            future_description = executor.submit(fetch_description, future_company_name.result(), email.split('@')[-1])
+
+            company_name = future_company_name.result()
+            tagline = future_tagline.result()
+            description = future_description.result()
 
     # Create client or short circuit if client already exists
     client_json = create_client(
@@ -5755,6 +5771,21 @@ def create_selix_customer(
 
     client: Client = Client.query.get(client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    # Create a first ICP filter
+    def generate_first_icp_filter(client_sdr_id, company_domain):
+        #run perplexity query to get ideal customer profile text. 
+        icp_description = simple_perplexity_response(
+                model="llama-3-sonar-large-32k-online",
+                prompt=f"Tell me the ideal customer profile for {company_domain} Be descriptive. Break down your response in terms of account & contact. For account, mention type of company, stage, size, location, industry, fundraising stage, revenue range, etc. For contact, mention location, title, seniority, and other relevent details. Use bullet points.".format(company_domain=company_domain)
+        )
+
+        icp_description = icp_description[0].replace('"', '').strip()
+        # The issue is with the 'chat_content' parameter. It should be a list of dictionaries, not a list of tuples.
+        sample_chat_content = [{'sender': 'chatbot', 'query': "Hey there! I'm SellScale AI, your friendly chatbot for creating sales segments. To get started, tell me a bit about your business or who you're targeting.", 'created_at': 'August 14, 12:11 pm'}]
+        handle_chat_icp(client_sdr_id=client_sdr_id, chat_content=sample_chat_content, prompt=icp_description)
+
+    generate_first_icp_filter(client_sdr_id, client.domain)
 
     # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
