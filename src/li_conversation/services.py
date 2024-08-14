@@ -392,6 +392,7 @@ def create_linkedin_conversation_entry(
 
 @celery.task(max_retries=3)
 def detect_demo_set(thread_urn_id: str, prospect_id: int):
+    import pdb; pdb.set_trace()
     prospect: Prospect = Prospect.query.get(prospect_id)
     clientSDR: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
 
@@ -513,7 +514,7 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                                     "type": "header",
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "Demo set detected 🎉",
+                                        "text": "Status Changed to `DEMO_SET` 🎉",
                                         "emoji": True,
                                     },
                                 },
