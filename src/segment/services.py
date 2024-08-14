@@ -304,7 +304,7 @@ def update_segment(
             ICPScoringRuleset.segment_id == segment_id,
         ).first()
 
-        current_icp_scoring_rulesets: ICPScoringRuleset[] = ICPScoringRuleset.query.filter(
+        current_icp_scoring_rulesets: list[ICPScoringRuleset] = ICPScoringRuleset.query.filter(
             ICPScoringRuleset.client_archetype_id == client_archetype_id,
         ).all()
 
