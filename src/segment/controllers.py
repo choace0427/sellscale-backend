@@ -201,7 +201,6 @@ def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
 
     icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
         ICPScoringRuleset.segment_id == segment_id,
-        ICPScoringRuleset.client_archetype_id == client_archetype.id
     ).first()
 
     if not icp_scoring_ruleset:

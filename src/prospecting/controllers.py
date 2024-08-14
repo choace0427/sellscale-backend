@@ -14,6 +14,7 @@ from src.prospecting.champions.services import (
     mark_prospects_as_champion,
     refresh_job_data_for_all_champions,
 )
+from src.prospecting.icp_score.services import append_icp_scoring_segment_ruleset_filters
 from src.prospecting.services import move_all_revival_prospects_back_to_previous_status, prospect_exists_for_client, \
     get_prospect_duplicate_details, get_duplicate_prospects_from_csv_payload
 from src.prospecting.models import ExistingContact, ProspectUploadSource
@@ -1119,6 +1120,7 @@ def send_slack_reminder():
 
     return "Failed to update", 400
 
+
 @PROSPECTING_BLUEPRINT.route("/add_from_apollo_query_id", methods=["POST"])
 @require_user
 def add_prospect_from_apollo_query_id(client_sdr_id: int):
@@ -1145,6 +1147,12 @@ def add_prospect_from_apollo_query_id(client_sdr_id: int):
         allow_duplicates=False,
         segment_id=segment_id,
         num_contacts=num_contacts,
+    )
+
+    append_icp_scoring_segment_ruleset_filters(
+        client_sdr_id=client_sdr_id,
+        saved_apollo_query_id=saved_apollo_query_id,
+        segment_id=segment_id
     )
 
     if success:

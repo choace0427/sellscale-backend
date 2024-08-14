@@ -299,6 +299,21 @@ def update_segment(
         success, msg = add_unused_prospects_in_segment_to_campaign(
             segment_id=segment_id, campaign_id=client_archetype_id
         )
+        # Connect icp_scoring_ruleset to the campaign
+        icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
+            ICPScoringRuleset.segment_id == segment_id,
+        ).first()
+
+        current_icp_scoring_rulesets: ICPScoringRuleset[] = ICPScoringRuleset.query.filter(
+            ICPScoringRuleset.client_archetype_id == client_archetype_id,
+        ).all()
+
+        for current_icp_scoring_ruleset in current_icp_scoring_rulesets:
+            current_icp_scoring_ruleset.client_archetype_id = None
+
+        icp_scoring_ruleset.client_archetype_id = client_archetype_id
+        db.session.add(icp_scoring_ruleset)
+        db.session.commit()
 
     return segment
 

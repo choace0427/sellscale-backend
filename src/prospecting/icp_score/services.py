@@ -7,6 +7,8 @@ from typing import Counter, Optional
 from flask import app
 import pandas as pd
 from pyparsing import dictOf
+
+from src.contacts.models import SavedApolloQuery
 from src.ml.services import get_text_generation, get_perplexity_response
 from src.client.models import ClientArchetype
 from src.prospecting.icp_score.models import (
@@ -17,6 +19,7 @@ from src.prospecting.icp_score.models import (
 from app import db, app, celery
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from model_import import ResearchPayload
+from src.segment.models import Segment
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
 from tqdm import tqdm
@@ -110,7 +113,6 @@ def update_icp_scoring_ruleset(
     if segment_id:
         icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
             segment_id=segment_id,
-            client_archetype_id=client_archetype_id
         ).first()
     else:
         icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
@@ -2174,6 +2176,146 @@ def apply_icp_scoring_ruleset_filters_task(
         )
 
     return True
+
+
+def append_icp_scoring_segment_ruleset_filters(
+        client_sdr_id: int,
+        saved_apollo_query_id: int,
+        segment_id: int,
+) -> bool:
+    unassigned_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.is_unassigned_contact_archetype == True
+    ).first()
+
+    icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+        segment_id=segment_id,
+    ).first()
+
+    if not icp_scoring_ruleset:
+        icp_scoring_ruleset = ICPScoringRuleset(
+            client_archetype_id=unassigned_archetype.id,
+            segment_id=segment_id
+        )
+        db.session.add(icp_scoring_ruleset)
+        db.session.commit()
+
+    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
+        saved_apollo_query_id
+    )
+
+    if not saved_apollo_query:
+        return False
+
+    included_title_keywords = saved_apollo_query.data.get("person_titles")
+    excluded_title_keywords = saved_apollo_query.data.get("person_not_titles")
+    included_seniority_keywords = saved_apollo_query.data.get("person_seniorities")
+    excluded_seniority_keywords = saved_apollo_query.data.get("person_not_seniorities")
+    included_company_keywords = saved_apollo_query.data.get("organization_names")
+    excluded_company_keywords = saved_apollo_query.data.get("organization_not_names")
+    included_education_keywords = saved_apollo_query.data.get("education_keywords")
+    excluded_education_keywords = saved_apollo_query.data.get("education_not_keywords")
+    included_bio_keywords = saved_apollo_query.data.get("bio_keywords")
+    excluded_bio_keywords = saved_apollo_query.data.get("bio_not_keywords")
+    included_location_keywords = saved_apollo_query.data.get("person_locations")
+    excluded_location_keywords = saved_apollo_query.data.get("person_not_locations")
+    included_skills_keywords = saved_apollo_query.data.get("skills_keywords")
+    excluded_skills_keywords = saved_apollo_query.data.get("skills_not_keywords")
+    years_of_experience_start = saved_apollo_query.data.get("years_of_experience_start")
+    years_of_experience_end = saved_apollo_query.data.get("years_of_experience_end")
+    included_company_size = saved_apollo_query.data.get("organization_num_employees_ranges")
+    included_industry_keywords = saved_apollo_query.data.get("organization_industry_tag_ids")
+    excluded_industry_keywords = saved_apollo_query.data.get("organization_not_industry_tag_ids")
+    filters = {
+        "included_individual_title_keywords": included_title_keywords or [],
+        "excluded_individual_title_keywords": excluded_title_keywords or [],
+        "included_individual_seniority_keywords": included_seniority_keywords or [],
+        "excluded_individual_seniority_keywords": excluded_seniority_keywords or [],
+        "included_company_name_keywords": included_company_keywords or [],
+        "excluded_company_name_keywords": excluded_company_keywords or [],
+        "included_individual_education_keywords": included_education_keywords or [],
+        "excluded_individual_education_keywords": excluded_education_keywords or [],
+        "included_individual_generalized_keywords": included_bio_keywords or [],
+        "excluded_individual_generalized_keywords": excluded_bio_keywords or [],
+        "included_individual_locations_keywords": included_location_keywords or [],
+        "excluded_individual_locations_keywords": excluded_location_keywords or [],
+        "included_individual_skills_keywords": included_skills_keywords or [],
+        "excluded_individual_skills_keywords": excluded_skills_keywords or [],
+        "individual_years_of_experience_start": years_of_experience_start or 0,
+        "individual_years_of_experience_end": years_of_experience_end or 0,
+        "company_size_start": included_company_size or [],
+        "included_individual_industry_keywords": included_industry_keywords or [],
+        "excluded_individual_industry_keywords": excluded_industry_keywords or [],
+    }
+
+    # Individual
+    icp_scoring_ruleset.included_individual_title_keywords = \
+        icp_scoring_ruleset.included_individual_title_keywords + filters["included_individual_title_keywords"]
+    icp_scoring_ruleset.excluded_individual_title_keywords = \
+        icp_scoring_ruleset.excluded_individual_title_keywords + filters["excluded_individual_title_keywords"]
+
+    icp_scoring_ruleset.included_individual_industry_keywords = \
+        icp_scoring_ruleset.included_individual_industry_keywords + filters["included_individual_industry_keywords"]
+    icp_scoring_ruleset.excluded_individual_industry_keywords = \
+        icp_scoring_ruleset.excluded_individual_industry_keywords + filters["excluded_individual_industry_keywords"]
+
+    icp_scoring_ruleset.individual_years_of_experience_start = \
+        icp_scoring_ruleset.individual_years_of_experience_start + filters["individual_years_of_experience_start"]
+    icp_scoring_ruleset.individual_years_of_experience_end = \
+        icp_scoring_ruleset.individual_years_of_experience_end + filters["individual_years_of_experience_end"]
+
+    icp_scoring_ruleset.included_individual_skills_keywords = \
+        icp_scoring_ruleset.included_individual_skills_keywords + filters["included_individual_skills_keywords"]
+    icp_scoring_ruleset.excluded_individual_skills_keywords = \
+        icp_scoring_ruleset.excluded_individual_skills_keywords + filters["excluded_individual_skills_keywords"]
+
+    icp_scoring_ruleset.included_individual_locations_keywords = \
+        icp_scoring_ruleset.included_individual_locations_keywords + filters["included_individual_locations_keywords"]
+    icp_scoring_ruleset.excluded_individual_locations_keywords = \
+        icp_scoring_ruleset.excluded_individual_locations_keywords + filters["excluded_individual_locations_keywords"]
+
+    icp_scoring_ruleset.included_individual_generalized_keywords = \
+        icp_scoring_ruleset.included_individual_generalized_keywords + filters["included_individual_generalized_keywords"]
+    icp_scoring_ruleset.excluded_individual_generalized_keywords = \
+        icp_scoring_ruleset.excluded_individual_generalized_keywords + filters["excluded_individual_generalized_keywords"]
+
+    icp_scoring_ruleset.included_individual_education_keywords = \
+        icp_scoring_ruleset.included_individual_education_keywords + filters["included_individual_education_keywords"]
+    icp_scoring_ruleset.excluded_individual_education_keywords = \
+        icp_scoring_ruleset.excluded_individual_education_keywords + filters["excluded_individual_education_keywords"]
+
+    icp_scoring_ruleset.included_individual_seniority_keywords = \
+        icp_scoring_ruleset.included_individual_seniority_keywords + filters["included_individual_seniority_keywords"]
+    icp_scoring_ruleset.excluded_individual_seniority_keywords = \
+        icp_scoring_ruleset.excluded_individual_seniority_keywords + filters["excluded_individual_seniority_keywords"]
+
+    # Company
+    icp_scoring_ruleset.included_company_name_keywords = \
+        icp_scoring_ruleset.included_company_name_keywords + filters["included_company_name_keywords"]
+    icp_scoring_ruleset.excluded_company_name_keywords = \
+        icp_scoring_ruleset.excluded_company_name_keywords + filters["excluded_company_name_keywords"]
+
+    icp_scoring_ruleset.included_company_locations_keywords = \
+        icp_scoring_ruleset.included_company_locations_keywords + filters["included_company_locations_keywords"]
+    icp_scoring_ruleset.excluded_company_locations_keywords = \
+        icp_scoring_ruleset.excluded_company_locations_keywords + filters["excluded_company_locations_keywords"]
+
+    icp_scoring_ruleset.company_size_start = \
+        icp_scoring_ruleset.company_size_start + filters["company_size_start"][0] if filters["company_size_start"] else 0
+    icp_scoring_ruleset.company_size_end = \
+        icp_scoring_ruleset.company_size_end + filters["company_size_start"][1] if filters["company_size_start"] else 0
+
+    icp_scoring_ruleset.included_company_industries_keywords = \
+        icp_scoring_ruleset.included_company_industries_keywords + filters["included_company_industries_keywords"]
+    icp_scoring_ruleset.excluded_company_industries_keywords = \
+        icp_scoring_ruleset.excluded_company_industries_keywords + filters["excluded_company_industries_keywords"]
+
+    icp_scoring_ruleset.included_company_generalized_keywords = \
+        icp_scoring_ruleset.included_company_generalized_keywords + filters["included_company_generalized_keywords"]
+    icp_scoring_ruleset.excluded_company_generalized_keywords = \
+        icp_scoring_ruleset.excluded_company_generalized_keywords + filters["excluded_company_generalized_keywords"]
+
+    db.session.commit()
 
 
 def apply_segment_icp_scoring_ruleset_filters_task(
