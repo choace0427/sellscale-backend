@@ -24,7 +24,7 @@ from src.email_outbound.models import (
     EmailConversationThread,
     EmailConversationMessage,
 )
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 import requests
 from src.message_generation.models import (
     GeneratedMessage,
@@ -479,20 +479,24 @@ def patch_prospect(
 def prospect_exists_for_client(full_name: str, client_id: int, first_name=None, last_name=None):
     from src.prospecting.models import Prospect
 
+    print("finding prospects")
     p: Prospect = Prospect.query.filter(
-        Prospect.full_name == full_name, Prospect.client_id == client_id
+        and_(
+            or_(
+                Prospect.full_name == full_name,
+                and_(
+                    Prospect.first_name == first_name,
+                    Prospect.last_name == last_name,
+                    ),
+                ),
+            Prospect.client_id == client_id
+        )
     ).first()
+
+    print("found prospect: ", p)
 
     if p:
         return p
-
-    if first_name and last_name:
-        p: Prospect = Prospect.query.filter(
-            Prospect.first_name == first_name, Prospect.last_name == last_name, Prospect.client_id == client_id
-        ).first()
-
-        if p:
-            return p
 
     return None
 
@@ -2008,6 +2012,7 @@ def get_duplicate_prospects_from_csv_payload(client_sdr_id: int,
         last_name = prospect.get("last_name")
 
         if not full_name:
+            full_name = ""
             if first_name:
                 full_name += first_name
             if last_name:

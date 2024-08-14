@@ -34,7 +34,7 @@ from src.li_conversation.conversation_analyzer.li_email_finder import (
 
 from src.li_conversation.models import LinkedInConvoMessage
 from src.bump_framework.models import BumpFrameworkTemplates, BumpLength
-from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin
+from src.prospecting.services import send_to_purgatory, update_prospect_status_linkedin, patch_prospect
 from src.research.models import ResearchPoints
 from src.utils.datetime.dateparse_utils import get_working_hours_in_utc, is_weekend
 from src.utils.slack import exception_to_str
@@ -478,6 +478,67 @@ def detect_demo_set(thread_urn_id: str, prospect_id: int):
                             {"type": "divider"},
                         ],
                     )
+
+                    # Perform the demo set action
+                    # Setting the demoset meta data
+                    success = patch_prospect(
+                        prospect_id=prospect_id,
+                        meta_data=(
+                            {
+                                **prospect.meta_data,
+                                "demo_set": {"type": "DIRECT", "description": "Demo set detected by OpenAI"},
+                            }
+                            if prospect.meta_data
+                            else {"demo_set": {"type": "DIRECT", "description": "Demo set detected by OpenAI"}}
+                        )
+                    )
+
+                    # Set the actual status
+                    # Linkedin only
+                    update_status = update_prospect_status_linkedin(
+                        prospect_id=prospect_id,
+                        new_status=ProspectStatus.DEMO_SET,
+                    )
+
+                    prospect.status = ProspectStatus.DEMO_SET
+                    db.session.add(prospect)
+                    db.session.commit()
+
+                    if success and update_status:
+                        send_slack_message(
+                            message="Set Status To Demo Set 🎉",
+                            webhook_urls=[URL_MAP["ops-demo-set-detection"]],
+                            blocks=[
+                                {
+                                    "type": "header",
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Demo set detected 🎉",
+                                        "emoji": True,
+                                    },
+                                },
+                                {
+                                    "type": "section",
+                                    "text": {
+                                        "type": "mrkdwn",
+                                        "text": "*Status Change*: Old `ACTIVE_CONVO` -> New `DEMO_SET`",
+                                    },
+                                },
+                                {
+                                    "type": "section",
+                                    "fields": [
+                                        {
+                                            "type": "mrkdwn",
+                                            "text": f"> 🤖 *Rep*: {clientSDR.name}",
+                                        },
+                                        {
+                                            "type": "mrkdwn",
+                                            "text": f"> 👥 *Prospect*: {prospect.full_name}",
+                                        },
+                                    ],
+                                },
+                            ]
+                        )
 
                 else:
                     pass

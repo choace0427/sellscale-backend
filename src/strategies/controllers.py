@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 
+from app import db
 from src.authentication.decorators import require_user
+from src.strategies.models import StrategyClientArchetypeMapping, Strategies
 from src.strategies.services import create_strategy, create_strategy_client_archetype_mapping, delete_strategy_archetype_mapping, edit_strategy, get_all_strategies, get_strategy_dict
 
 from src.utils.request_helpers import get_request_parameter
@@ -103,6 +105,29 @@ def post_add_archetype_mapping(client_sdr_id: int, strategy_id: int):
     )
 
     return jsonify(strategy), 201
+
+
+@STRATEGIES_BLUEPRINT.route("/<int:strategy_id>/remove", methods=["DELETE"])
+@require_user
+def delete_strategy(client_sdr_id: int, strategy_id: int):
+    strategy_archetype_mapping: StrategyClientArchetypeMapping = StrategyClientArchetypeMapping.query.filter_by(
+        strategy_id=strategy_id
+    ).first()
+
+    if strategy_archetype_mapping:
+        db.session.delete(strategy_archetype_mapping)
+
+    strategy: Strategies = Strategies.query.get(strategy_id)
+
+    if strategy:
+        db.session.delete(strategy)
+    else:
+        return "Strategy not found", 404
+
+    db.session.commit()
+
+    return "Strategy deleted", 200
+
 
 @STRATEGIES_BLUEPRINT.route("/<int:strategy_id>/remove_archetype_mapping", methods=["DELETE"])
 @require_user
