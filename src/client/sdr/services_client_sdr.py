@@ -913,12 +913,18 @@ def get_sdr_send_statistics(client_sdr_id: int) -> dict:
             client_sdr AS s
             LEFT JOIN client AS c ON c.id = s.client_id
             LEFT JOIN outbound_campaign AS oc ON s.id = oc.client_sdr_id
-            LEFT JOIN generated_message AS g ON g.outbound_campaign_id = oc.id
+            LEFT JOIN generated_message AS g 
+                ON g.outbound_campaign_id = oc.id and 
+                    g.message_status = 'SENT' and 
+                    g.message_type = 'LINKEDIN'
         WHERE
             s.active
             AND c.active
             AND s.id = :client_sdr_id
             AND g.date_sent > s.created_at
+            AND g.message_status = 'SENT'
+            and g.message_type = 'LINKEDIN'
+            AND g.date_sent > s.created_at;
     """
     results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
     last_7_days_count = results[0][0] if results else 0
@@ -932,12 +938,17 @@ def get_sdr_send_statistics(client_sdr_id: int) -> dict:
             client_sdr AS s
             LEFT JOIN client AS c ON c.id = s.client_id
             LEFT JOIN outbound_campaign AS oc ON s.id = oc.client_sdr_id
-            LEFT JOIN generated_message AS g ON g.outbound_campaign_id = oc.id
+            LEFT JOIN generated_message AS g 
+                ON g.outbound_campaign_id = oc.id and 
+                    g.message_status = 'SENT' and 
+                    g.message_type = 'LINKEDIN'
         WHERE
             s.active
             AND c.active
             AND s.id = :client_sdr_id
-            AND g.date_sent > s.created_at
+            AND g.message_status = 'SENT'
+            and g.message_type = 'LINKEDIN'
+            AND g.date_sent > s.created_at;
     """
     results = db.session.execute(query, {"client_sdr_id": client_sdr_id}).fetchall()
     all_time_count = results[0][0] if results else 0
