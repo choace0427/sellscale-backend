@@ -5688,7 +5688,7 @@ def create_selix_customer(
             messages=[
                 {
                     "role": "user",
-                    "content": f"Given the company name {company_name}, respond with the company tagline. Response: {tagline}\nIMPORTANT: Respond with only the tagline and nothing more\nTagline:"
+                    "content": f"Given the company name {company_name}, respond with the company tagline. Response: {tagline}\nIMPORTANT: Respond with only the tagline and nothing more. Don't make it market-y or gimicky. We need it to be practical and succinct. Bad example: At Apple, we are changing lives. Good example: At Apple, we make the fastest computers.\nTagline:"
                 }
             ],
             model="gpt-4o",
