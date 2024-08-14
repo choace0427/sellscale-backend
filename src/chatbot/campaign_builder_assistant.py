@@ -1257,8 +1257,7 @@ def generate_followup(client_sdr_id: int, device_id: str, prompt: str, chat_mess
 def add_file_to_thread(thread_id: str, file: str, file_name: str, description: str):
     # Create a Selix action call entry
     selix_session_id = SelixSession.query.filter_by(thread_id=thread_id).first().id
-
-
+    
     create_selix_action_call_entry(
         selix_session_id=selix_session_id,
         action_title="Analyze File",
@@ -1274,12 +1273,14 @@ def add_file_to_thread(thread_id: str, file: str, file_name: str, description: s
 def analyze_file(file:str, description:str, file_name: str, session_id: int ):
     #create a task for the user to review the analysis
 
+    order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
     selix_task = SelixSessionTask(
         selix_session_id=session_id,
         actual_completion_time=None,
         title="Analyze File",
         description="Analyze file: {} with description: {}".format(file_name, description),
-        status=SelixSessionTaskStatus.QUEUED
+        status=SelixSessionTaskStatus.QUEUED,
+        order_number=order_number
     )
 
     db.session.add(selix_task)
