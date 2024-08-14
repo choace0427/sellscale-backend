@@ -179,6 +179,12 @@ ALLOWED_FILTERS_APOLLO = {
         "summary": "(list) List of technologies that are used by this segment of people",
         "prompt": "Extract the technology UIDs currently in use from the query."
     },
+    # enable this to populate company names in the search
+    #  "organization_ids":{
+    #     "summary": "(list) List of company names. Please always include this.",
+    #     "output_type": "list",
+    #     "prompt": "From this description of a sales segment, come up with 20 different company names that would be relevant to this segment, be clever. The values should be a list of strings.",
+    # },
     "event_categories": {
         "summary": "(list) List of event categories i.e. news event types, for example, ['leadership', 'acquisition']",
         "prompt": "Relate these event types to the query ask. The values should be one or more of these: 'leadership', 'acquisition', 'expansion', 'new_offering', 'investment', 'cost_cutting', 'partnership', 'recognition', 'contract', 'corporate_challenges', 'relational'."
