@@ -5756,7 +5756,7 @@ def create_selix_customer(
     client: Client = Client.query.get(client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
 
-    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
+    # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
     return {
         "full_name": full_name,
