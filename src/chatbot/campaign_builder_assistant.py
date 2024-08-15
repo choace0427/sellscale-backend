@@ -634,6 +634,12 @@ def wait_for_ai_execution(session_id: int):
         message="Selix Session is waiting for operator: {}".format(session.id),
         webhook_urls=[URL_MAP['eng-sandbox']]
     )
+
+    send_socket_message(
+        'increment-counter',
+        {'message': 'increment', 'thread_id': session.thread_id},
+        session.thread_id
+    )
     
     mark_action_complete(selix_action_id)
     set_session_tab(session_id, "PLANNER")
@@ -1032,7 +1038,7 @@ def chat_with_assistant(
             session_name=session_name or "New Session",
             status=SelixSessionStatus.ACTIVE,
             memory={},
-            estimated_completion_time=datetime.datetime.now() + datetime.timedelta(hours=24),
+            estimated_completion_time=None,
             actual_completion_time=None,
             assistant_id=assistant_id,
             thread_id=thread_id,
