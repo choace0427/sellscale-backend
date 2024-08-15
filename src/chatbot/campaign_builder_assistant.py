@@ -815,7 +815,7 @@ def get_last_n_messages(thread_id):
     # Ensure the first message is always the assistant's greeting
     first_message = {
         "created_time": datetime.datetime.utcfromtimestamp(selix_session.created_at.timestamp()),
-        "message": "Hello! How can I assist you today? Please provide some information about your campaign or what you would like to achieve.",
+        "message": "Hello! How can I assist you today? Please provide some information about your campaign or what you would like to achieve. \n \n Chat below, or try clicking the 🎙️ to talk to me!",
         "role": "assistant",
         "type": "message",
     }
