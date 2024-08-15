@@ -1378,37 +1378,36 @@ def handle_chat_icp(client_sdr_id: int, chat_content: list[dict], prompt: str) -
 
     system_message_response = {
         "role": "system",
-        "content": (
-            "You are an AI tasked with generating three key elements for a sales segment: "
-            "a descriptive segment name, a detailed segment description, and a compelling segment's value proposition, "
-            "along with a friendly acknowledgment message for the user.\n\n"
-            "Ensure the segment description is clearly formatted. For instance:\n\n"
-            "Bad Description Example:\n"
-            "This segment targets passionate Coca-Cola enthusiasts who appreciate the brand's history, "
-            "iconic products, and cultural impact. These individuals are not just casual drinkers; "
-            "they are brand loyalists who enjoy exploring new flavors, participating in promotions, "
-            "and engaging with Coca-Cola's marketing campaigns.\n\n"
-            "Good Description Example:\n"
-            "- Title keywords: Marketing, Client.\n"
-            "- Seniority: Director+\n"
-            "- Account: Advertising or marketing platforms.\n"
-            "These companies optimize marketing/ad spend. They target big brands seeking optimization.\n"
-            "Example companies: Zvnga, LG Ad Solutions.\n\n"
-            "Value Proposition Examples:\n"
-            "Bad: Unlock a world of exclusive Coca-Cola experiences, from limited-edition flavors to brand events.\n"
-            "Good: They aim to access CMOs/marketing/advertising professionals, their main customer base.\n\n"
-            "Segment Name Examples:\n"
-            "Bad: Coca-Cola Connoisseurs\n"
-            "Good: AdTech/MarTech Innovators\n\n"
-            "In your friendly response, offer suggestions to refine the segment or provide constructive feedback. "
-            "Please use the first person in your response."
-        )
+        "content": """
+You are an AI tasked with generating three key elements for a sales segment: a descriptive segment name, a detailed segment description, and a compelling segment's value proposition, along with a friendly acknowledgment message for the user.
+
+Ensure the segment description is clearly formatted. For instance:
+
+Bad Description Example:
+This segment targets passionate Coca-Cola enthusiasts who appreciate the brand's history, iconic products, and cultural impact. These individuals are not just casual drinkers; they are brand loyalists who enjoy exploring new flavors, participating in promotions, and engaging with Coca-Cola's marketing campaigns.
+
+Good Description Example:
+• Title keywords: Marketing, Client.
+• Seniority: Director+
+• Account: Advertising or marketing platforms.
+These companies optimize marketing/ad spend. They target big brands seeking optimization.
+Example companies: Zvnga, LG Ad Solutions.
+
+Value Proposition Examples:
+Bad: Unlock a world of exclusive Coca-Cola experiences, from limited-edition flavors to brand events.
+Good: They aim to access CMOs/marketing/advertising professionals, their main customer base.
+
+Segment Name Examples:
+Bad: Coca-Cola Connoisseurs
+Good: AdTech/MarTech Innovators
+
+In your friendly response, offer suggestions to refine the segment or provide constructive feedback."""
     }
 
     nicely_formatted_message_history_string = '\n'.join([f"{msg['sender']}: {msg.get('query', '')}" for msg in chat_content]) + "\nlast message from user: " + prompt
     nicely_formatted_message_history_string = nicely_formatted_message_history_string[-400:]  # clip this to only be the last 400 tokens
 
-    chat_gpt_prompt = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message.'
+    chat_gpt_prompt = "here is the user's conversation history: \n" + nicely_formatted_message_history_string + "\n\n" + prompt + ' now please generate a clever and detailed new sales segment based on the conversation history and the latest message. it is very important to know that the data must be well-organized and formatted nicely. please use bullet points, not markdown'
 
     # Prepare the messages for the chat response
     messages = [system_message_response, {"role": "user", "content": chat_gpt_prompt}]
@@ -1431,7 +1430,7 @@ def handle_chat_icp(client_sdr_id: int, chat_content: list[dict], prompt: str) -
 
     try:
         response_content = wrapped_chat_gpt_completion(
-            model='gpt-4o',
+            model='gpt-4o-2024-08-06',
             messages=messages,
             temperature=DEFAULT_TEMPERATURE,
             max_tokens=500,
