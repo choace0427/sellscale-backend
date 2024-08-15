@@ -174,7 +174,7 @@ def find_company_from_people_labs(track_event_id, force_retrack_event=False):
         print('402 error')
         # Ensure this message is sent only once a day.
         existing_message = ClientTeamMessage.query.filter_by(
-            client_id=track_source.client_id,
+            client_id=1,
             message_type=MessageType.TEXT,
             message=f"402 error for track event"
         ).order_by(ClientTeamMessage.created_at.desc()).first()
