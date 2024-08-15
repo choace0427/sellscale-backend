@@ -6,7 +6,7 @@ from flask_socketio import send
 from regex import D
 import requests
 from sqlalchemy import or_
-from src.client.models import ClientArchetype, ClientSDR, Client
+from src.client.models import ClientArchetype, ClientSDR, Client, ClientTeamMessage, MessageType
 from src.company.models import Company
 from src.contacts.models import SavedApolloQuery
 from src.contacts.services import apollo_get_contacts
@@ -169,6 +169,32 @@ def find_company_from_people_labs(track_event_id, force_retrack_event=False):
     track_event.company_identify_payload = response.json()
     db.session.add(track_event)
     db.session.commit()
+
+    if response.status_code == 402:
+        print('402 error')
+        # Ensure this message is sent only once a day.
+        existing_message = ClientTeamMessage.query.filter_by(
+            client_id=track_source.client_id,
+            message_type="402 error"
+        ).order_by(ClientTeamMessage.created_at.desc()).first()
+
+        # Store the 402 error in the client_team_messages table. bastardized use of the table.
+        if not existing_message or (datetime.datetime.utcnow() - existing_message.created_at).days >= 1:
+            client_team_message = ClientTeamMessage(
+                client_id=1,
+                client_sdr_id=34,
+                message=f"402 error for track event",
+                message_type=MessageType.TEXT,
+                display_name="System"
+            )
+            db.session.add(client_team_message)
+            db.session.commit()
+
+            send_slack_message(
+            message=f"🚨 402 error for track event {track_event.id}",
+            webhook_urls=[URL_MAP["operations-prospect-uploads"]]
+            )
+        return "402 error"
 
     print('company identification payload: ', response.json())
     print('now we will deanonymize the track event')
