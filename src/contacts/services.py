@@ -274,6 +274,7 @@ MEGA_FILTERS_SCHEMA_APOLLO = {
                         "type": "string"
                     }
                 },
+                "required": ["min"],
                 "additionalProperties": False,
                 "description": "Date range for published content."
             },
