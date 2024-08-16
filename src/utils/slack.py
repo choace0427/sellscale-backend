@@ -61,7 +61,8 @@ URL_MAP = {
     "ops-territory-scraper": "https://hooks.slack.com/services/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",
     "ops-alerts-opportunity-changed": "https://hooks.slack.com/services/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",
     "ops-crm-sync-updates": "https://hooks.slack.com/services/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",
-    "sales-visitors": "https://hooks.slack.com/services/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"
+    "sales-visitors": "https://hooks.slack.com/services/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",
+    "selix-sessions": "https://hooks.slack.com/services/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"
 }
 
 CHANNEL_NAME_MAP = {

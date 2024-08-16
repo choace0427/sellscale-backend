@@ -617,7 +617,6 @@ def create_task(title: str, description: str, session_id: int, create_action=Tru
 def wait_for_ai_execution(session_id: int):
     print("⚡️ AUTO ACTION: wait_for_ai_execution()")
     
-
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
         action_title="Wait for AI Execution",
@@ -639,6 +638,61 @@ def wait_for_ai_execution(session_id: int):
         'increment-counter',
         {'message': 'increment', 'thread_id': session.thread_id},
         session.thread_id
+    )
+
+    session_sdr = ClientSDR.query.get(session.client_sdr_id)
+    company = Client.query.get(session_sdr.client_id)
+    tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id).all()
+    
+    task_blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"🎉🤖 New Selix Session Complete: {session_sdr.name} from {company.company} 🎉",
+                "emoji": True,
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{len(tasks)} tasks created"
+            }
+        }
+    ]
+
+    task_list = "\n".join([f"- {'✅' if task.status == SelixSessionTaskStatus.COMPLETE else '☑️'} {task.title}" for task in tasks])
+    task_blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": task_list
+        }
+    })
+
+    task_blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "Complete task by visiting internal operations tool"
+        },
+        "accessory": {
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": "Internal Tool",
+                "emoji": True
+            },
+            "url": "https://your-portal-url.com",
+            "action_id": "button-action"
+        }
+    })
+
+    send_slack_message(
+        message="New Selix Session Awaiting",
+        webhook_urls=[URL_MAP['selix-sessions']],
+        blocks=task_blocks
     )
     
     mark_action_complete(selix_action_id)
