@@ -17,6 +17,7 @@ from src.contacts.services import get_contacts_from_predicted_query_filters
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import generate_strategy_copilot_response, simple_perplexity_response
 from src.strategies.models import Strategies, StrategyStatuses
+from src.utils.abstract.attr_utils import deep_get
 from src.utils.slack import URL_MAP, send_slack_message
 from src.sockets.services import send_socket_message
 
@@ -449,7 +450,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
         f"Channel: {channel}\n"
         f"Timing: {timing}\n"
         f"Specific Copy: {specific_copy}\n"
-        f"Personalizers: {personalizers}\n"
+        f"Customizations: {personalizers}\n"
         f"Links: {links}"
     )
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
@@ -750,7 +751,20 @@ def run_thread(thread_id, assistant_id):
     increment_session_counter(session_id)
 
     send_socket_message('increment-counter', {'message' : 'increment', 'thread_id': thread_id}, thread_id)
+    
+    error_msg = deep_get(response.json(),'error.message')
 
+    max_attempts = 10
+    attempts = 0
+    while error_msg and 'already has an active run' in error_msg and attempts < max_attempts:
+        time.sleep(1)
+        print('re-fetching')
+        response = requests.post(
+            f"{API_URL}/threads/{thread_id}/runs", headers=HEADERS, json=data
+        )
+        error_msg = deep_get(response.json(),'error.message')
+        attempts += 1
+        
     return response.json()["id"]
 
 def stringStartsWith(string, prefix):
