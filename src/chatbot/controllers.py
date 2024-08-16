@@ -5,6 +5,8 @@ from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
 from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread
+from src.chatbot.models import SelixActionCall
+from src.client.models import ClientSDR
 from src.utils.request_helpers import get_request_parameter
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
@@ -310,6 +312,21 @@ def post_add_file(client_sdr_id: int):
 
     print("Adding file to thread")
     print(thread_id)
+
+    if len(file) > 12 * 1024 * 1024:  # 12 MB in bytes
+        return jsonify({"message": "File size exceeds the 12MB limit"}), 400
+    
+    # check number of total files by specific client_sdr is less than 10
+    from app import db
+    file_entry_count = db.session.query(db.func.count(SelixActionCall.id)).join(SelixSession).filter(
+        SelixSession.client_sdr_id == client_sdr_id,
+        SelixActionCall.action_function == 'analyze_file'
+    ).scalar()
+
+    if file_entry_count >= 10:
+        return jsonify({"message": "File limit exceeded"}), 429
+
+    
 
     add_file_to_thread(thread_id, file, file_name, description)
 

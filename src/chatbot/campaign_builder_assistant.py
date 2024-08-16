@@ -1350,6 +1350,11 @@ def add_file_to_thread(thread_id: str, file: str, file_name: str, description: s
     )        
     analyze_file(file, description, file_name, selix_session_id)
 
+    #send socket message to add the file to the thread
+    thread_id = SelixSession.query.get(selix_session_id).thread_id
+    if thread_id:
+        send_socket_message('incoming-message', {'message': f"Thanks for the file! I'm taking a look now.", 'thread_id': thread_id}, thread_id)
+
     # Log the action
     print(f"File added to thread {thread_id} with description: {description}")
 
