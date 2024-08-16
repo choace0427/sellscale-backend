@@ -3861,10 +3861,18 @@ def create_selix_user():
 
     # Assuming there's a function to create a user in the database
 
-    payload = create_selix_customer(
-        full_name=full_name,
-        email=email
-    )
+    try:
+
+        payload = create_selix_customer(
+            full_name=full_name,
+            email=email
+        )
+
+    except Exception as e:
+        import traceback
+        print("Error creating user:", str(e))
+        traceback.print_exc()
+        return jsonify({"message": "Error creating user", "error": str(e)}), 500
     return jsonify({"data": payload}), 200
 
     # return jsonify({"message": "Error creating user", "error": str(e)}), 500
