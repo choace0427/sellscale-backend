@@ -545,7 +545,7 @@ def create_client_archetype(
             generate_email_sequence_prompt(auto_generation_payload),
             "EMAIL",
             company_name=client.company,
-            persona=archetype,
+            persona=auto_generation_payload.cta_target,
             with_data=auto_generation_payload.with_data,
         )
 
@@ -566,8 +566,9 @@ def create_client_archetype(
             num_steps=auto_generation_payload.num_steps,
             num_variants=auto_generation_payload.num_variance,
             company_name=client.company,
-            persona=archetype,
+            persona=auto_generation_payload.cta_target,
             with_data=auto_generation_payload.with_data,
+
         )
     elif auto_generation_payload.write_li_sequence_draft:
         print("Generating LI sequence")
@@ -586,7 +587,7 @@ def create_client_archetype(
             num_steps=auto_generation_payload.num_steps,
             num_variants=auto_generation_payload.num_variance,
             company_name=client.company,
-            persona=archetype,
+            persona=auto_generation_payload.cta_target,
             with_data=auto_generation_payload.with_data,
         )
 

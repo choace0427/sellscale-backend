@@ -4,7 +4,7 @@ class SequenceAutoGenerationParameters:
     def __init__(self, find_sample_prospects=False, write_email_sequence_draft=False, write_li_sequence_draft=False,
                  email_sequence_opened=False, email_sequence_keywords=None, li_sequence_opened=False, li_general_angle="",
                  email_general_angle="", li_sequence_keywords=None, li_asset_ingestor="", li_cta_generator=False, li_pain_point="",
-                 li_sequence_state=None, email_sequence_state=None, selected_voice=None, num_steps=1, num_variance=1, with_data="", email_asset_ingestor=""):
+                 li_sequence_state=None, email_sequence_state=None, selected_voice=None, num_steps=1, num_variance=1, with_data="", email_asset_ingestor="", cta_target=""):
         self.find_sample_prospects = find_sample_prospects
         self.write_email_sequence_draft = write_email_sequence_draft
         self.write_li_sequence_draft = write_li_sequence_draft
@@ -22,6 +22,7 @@ class SequenceAutoGenerationParameters:
         self.num_steps = num_steps
         self.num_variance = num_variance
         self.with_data = with_data
+        self.cta_target = cta_target
         self.li_sequence_state = SequenceState(
             how_it_works=li_sequence_state.get("howItWorks", False),
             vary_intro_messages=li_sequence_state.get("varyIntroMessages", False),
@@ -71,7 +72,11 @@ def initialize_auto_generation_payload(auto_generation_payload: Optional[dict]) 
         "numSteps": 1,
         "numVariance": 1,
         "withData": "",
+        "ctaTarget": "",
         "email_asset_ingestor": "",
+        "emailAssetIngestor": "",
+        "liAssetIngestor": "",
+        "liCtaGenerator": False,
         "li_cta_generator": False,
         "li_pain_point": "",
         "li_sequence_state": {
@@ -146,6 +151,7 @@ def initialize_auto_generation_payload(auto_generation_payload: Optional[dict]) 
         num_steps=auto_generation_payload.get('numSteps'),
         num_variance=auto_generation_payload.get('numVariance'),
         with_data=auto_generation_payload.get('withData'),
+        cta_target=auto_generation_payload.get('ctaTarget')
     )
 
 def generate_email_sequence_prompt(auto_generation_parameters: SequenceAutoGenerationParameters) -> str:
