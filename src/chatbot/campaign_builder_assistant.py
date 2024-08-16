@@ -408,10 +408,95 @@ def search_internet(query: str, session_id: int):
         action_params={"query": query}
     )
 
-    response, citations, images = simple_perplexity_response(
-        model="llama-3-sonar-large-32k-online",
-        prompt=query + "\nReturn your response in maximum 1-2 paragraphs."
-    )
+    import concurrent.futures
+
+    def check_citation(citation):
+        try:
+            from bs4 import BeautifulSoup
+            import requests
+            if 'reddit' in citation:
+                print(f"⚠️ Citation blocked or not accessible: {citation}")
+                return None
+
+            response = requests.get(citation, timeout=2)
+            if response.status_code == 200:
+                x_frame_options = response.headers.get('X-Frame-Options', '').lower()
+                if x_frame_options != '' and ('sameorigin' or 'deny' in x_frame_options):
+                    print('x frame options for this url are: ', x_frame_options)
+                    print(f"⚠️ Citation blocked due to X-Frame-Options: {citation}")
+                    return None
+
+                print('xframe options were as follows: ', x_frame_options, 'for url ', citation)
+                content_security_policy = response.headers.get('Content-Security-Policy', '').lower()
+                if "frame-ancestors 'self'" in content_security_policy:
+                    print(f"⚠️ Citation blocked due to Content-Security-Policy frame-ancestors directive: {citation}")
+                    return None
+
+                iframe_html = f'<iframe src="{citation}" style="display:none;"></iframe>'
+                soup = BeautifulSoup(iframe_html, 'html.parser')
+                iframe = soup.find('iframe')
+                
+                if iframe and iframe.get('src'):
+                    iframe_response = requests.get(iframe.get('src'), timeout=2)
+                    if iframe_response.status_code == 200:
+                        print('this is a valid citation: ', citation)
+                        return citation
+                    else:
+                        print(f"⚠️ Citation iframe source refused to connect or not accessible: {iframe.get('src')}")
+                        return None
+                else:
+                    print(f"⚠️ Citation blocked or not accessible: {citation}")
+                    return None
+            else:
+                print(f"⚠️ Citation blocked or not accessible: {citation}")
+                return None
+        except Exception as e:
+            print(f"⚠️ Error checking citation {citation}: {e}")
+            return None
+
+    def get_perplexity_response(query):
+        import random
+        prompt_endings = [
+            "\nReturn your response in a maximum of 1-2 engaging paragraphs.",
+            "\nPlease provide a concise and insightful answer in no more than two paragraphs.",
+            "\nSummarize your response in 1-2 short, impactful paragraphs.",
+            "\nCraft your response in 1-2 paragraphs, ensuring it is both clear and compelling.",
+            "\nDeliver your answer in 1-2 paragraphs, focusing on clarity and brevity.",
+            "\nProvide a succinct and informative response in no more than two paragraphs."
+        ]
+        return simple_perplexity_response(
+            model="llama-3-sonar-large-32k-online",
+            prompt = query + random.choice(prompt_endings)
+        )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Get 3 responses to the same query
+        # This is to ensure we get the best response
+        # as the perplexity model can sometimes give
+        # different responses for the same query
+        future_responses = [executor.submit(get_perplexity_response, query) for _ in range(3)]
+        responses = [future.result() for future in concurrent.futures.as_completed(future_responses)]
+
+    best_response = None
+    max_valid_citations = 0
+    best_valid_citations = []
+
+    for response_data in responses:
+        response, citations, images = response_data
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_citation = {executor.submit(check_citation, citation): citation for citation in citations}
+            valid_citations = [future.result() for future in concurrent.futures.as_completed(future_to_citation) if future.result() is not None]
+            print('valid citations: ', valid_citations)
+        if len(valid_citations) > max_valid_citations:
+            max_valid_citations = len(valid_citations)
+            best_response = (response, valid_citations, images)
+            best_valid_citations = valid_citations
+
+    if best_response:
+        response, citations, images = best_response
+        citations = best_valid_citations
+    else:
+        response, citations, images = None, [], []
 
     session: SelixSession = SelixSession.query.get(session_id)
     session.memory["search"] = [{
