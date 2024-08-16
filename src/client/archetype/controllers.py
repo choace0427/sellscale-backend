@@ -4,6 +4,8 @@ from app import db
 
 from src.authentication.decorators import require_user
 from src.chatbot.campaign_builder_assistant import selix_campaign_enabled_handler
+from src.client.SequenceAutoGeneration import SequenceAutoGenerationParameters, initialize_auto_generation_payload, \
+    generate_linkedin_sequence_prompt, generate_email_sequence_prompt
 from src.client.archetype.services_client_archetype import (
     bulk_action_move_prospects_to_archetype,
     bulk_action_withdraw_prospect_invitations,
@@ -19,7 +21,7 @@ from src.client.archetype.services_client_archetype import (
 )
 from src.automation.orchestrator import add_process_for_future
 from src.client.models import Client, ClientArchetype, ClientSDR
-from src.client.services import get_client_assets
+from src.client.services import get_client_assets, campaign_voices_generation
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
@@ -529,6 +531,97 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             )
         
     selix_campaign_enabled_handler(campaign_id=archetype_id)
+
+    return jsonify({"status": "success"}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/generate_ai_sequence", methods=["POST"])
+@require_user
+def post_archetype_generate_ai_sequence(client_sdr_id: int, archetype_id: int):
+    auto_generation_payload = get_request_parameter(
+        "auto_generation_payload", request, json=True, required=True, parameter_type=dict
+    )
+
+    # Get client ID from client SDR ID.
+    client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
+    if not client_sdr or not client_sdr.client_id:
+        return "Failed to find client ID from auth token", 500
+
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype or archetype.client_sdr_id != client_sdr_id:
+        return jsonify({"status": "error", "message": "Invalid archetype"}), 400
+
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    auto_generation_payload: SequenceAutoGenerationParameters = initialize_auto_generation_payload(auto_generation_payload)
+
+    import pdb; pdb.set_trace()
+
+    if auto_generation_payload.write_email_sequence_draft:
+        from src.ml.services import one_shot_sequence_generation
+        one_shot_sequence_generation(
+            client_sdr_id,
+            archetype_id,
+            generate_email_sequence_prompt(auto_generation_payload),
+            "EMAIL",
+            company_name=client.company,
+            persona=auto_generation_payload.cta_target,
+            with_data=auto_generation_payload.with_data,
+        )
+
+    if auto_generation_payload.li_cta_generator:
+        print("Generating LI CTA")
+        from src.ml.services import one_shot_sequence_generation
+        # one_shot_sequence_generation.delay(
+        #     client_sdr_id,
+        #     archetype_id,
+        #     generate_linkedin_sequence_prompt(auto_generation_payload),
+        #     "LINKEDIN-CTA"
+        # )
+        one_shot_sequence_generation.delay(
+            client_sdr_id,
+            archetype_id,
+            generate_linkedin_sequence_prompt(auto_generation_payload),
+            "LINKEDIN-CTA",
+            num_steps=auto_generation_payload.num_steps,
+            num_variants=auto_generation_payload.num_variance,
+            company_name=client.company,
+            persona=auto_generation_payload.cta_target,
+            with_data=auto_generation_payload.with_data,
+
+        )
+    elif auto_generation_payload.write_li_sequence_draft:
+        print("Generating LI sequence")
+        from src.ml.services import one_shot_sequence_generation
+        # one_shot_sequence_generation.delay(
+        #     client_sdr_id,
+        #     archetype_id,
+        #     generate_linkedin_sequence_prompt(auto_generation_payload),
+        #     "LINKEDIN-TEMPLATE"
+        # )
+        one_shot_sequence_generation.delay(
+            client_sdr_id,
+            archetype_id,
+            generate_linkedin_sequence_prompt(auto_generation_payload),
+            "LINKEDIN-TEMPLATE",
+            num_steps=auto_generation_payload.num_steps,
+            num_variants=auto_generation_payload.num_variance,
+            company_name=client.company,
+            persona=auto_generation_payload.cta_target,
+            with_data=auto_generation_payload.with_data,
+        )
+
+        if auto_generation_payload.selected_voice:
+            campaign_voices_generation.delay(
+                archetype=archetype,
+                with_cta=False,
+                with_voice=True,
+                with_follow_up=False,
+                archetype_id=archetype_id,
+                client_id=client_sdr.client_id,
+                client_sdr_id=client_sdr_id,
+                voice_id=auto_generation_payload.selected_voice,
+            )
 
     return jsonify({"status": "success"}), 200
 

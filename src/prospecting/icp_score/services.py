@@ -1826,9 +1826,6 @@ def score_one_prospect(
                     valid_location = keyword
                     break
             reasoning += "(✅ prospect location: " + valid_location + ") "
-        elif icp_scoring_ruleset.included_individual_locations_keywords:
-            score -= num_attributes
-            reasoning += "(❌ prospect location: No Match) "
 
         # Prospect Education
         educations = []
