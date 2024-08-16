@@ -313,8 +313,8 @@ def post_add_file(client_sdr_id: int):
     print("Adding file to thread")
     print(thread_id)
 
-    if len(file) > 12 * 1024 * 1024:  # 12 MB in bytes
-        return jsonify({"message": "File size exceeds the 12MB limit"}), 400
+    if len(file) > 5 * 1024 * 1024:  # 12 MB in bytes
+        return jsonify({"message": "File size exceeds the 5mb limit"}), 400
     
     # check number of total files by specific client_sdr is less than 10
     from app import db
