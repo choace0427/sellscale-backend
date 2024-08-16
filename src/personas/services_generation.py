@@ -18,7 +18,7 @@ from app import db, celery
 from src.automation.orchestrator import add_process_for_future
 from datetime import datetime
 
-GEN_AMOUNT = 3
+GEN_AMOUNT = 5
 ASSET_AMOUNT = 5
 
 MESSAGE_MODEL = "gpt-4o"  # "claude-3-opus-20240229"  # "claude-3-opus-20240229"
@@ -485,6 +485,8 @@ def generate_email_initial(
     additional_prompting: str,
     stream_event: Optional[str] = None,
     stream_room_id: Optional[str] = None,
+    num_steps: int = 1,
+    num_variants: int = 1,
 ):
     """
 
@@ -505,6 +507,8 @@ I will give you 3 few shot examples. Each example contains
 - ## Output: Email
 - ## Angle: Angle-based
 - ## Angle Description: Description of the angle
+- ## Step: Step number
+- ## Variant: Variant number
 
 I’m going to give you outreach information (which includes an asset), and you are to return {GEN_AMOUNT} angles and their associated email copy.
 
@@ -557,6 +561,9 @@ Please generate a cold email outline for generative outreach to prospects.
 
 ## General guidelines
 
+- You are creating this number of emails: {num_steps}, and this number of variants: {num_variants}
+    - for each step, you want to create that number of variants.
+    - You are to use the output format to label the step number and the variant number.
 - Final note - each email should follow a different structure. Here are some things you can vary on:
     - length: extremely short to medium
     - tone - informal, creative, informational (try different types but avoid being salesy)
@@ -1010,7 +1017,7 @@ I will give you 3 few shot examples. Each example contains
 - ## Angle: Angle-based
 - ## Angle Description: Description of the angle
 
-I’m going to give you outreach information (which includes an asset), and you are to return 6 angles and their associated LinkedIn call to action.
+I’m going to give you outreach information (which includes an asset), and you are to return {GEN_AMOUNT} angles and their associated LinkedIn call to action.
 
 The more diverse the outputs are, and creative, the better.
 Pick 1 asset to utilize in your message. In your output say the IDs of the assets you used. Be creative and use them in different ways.

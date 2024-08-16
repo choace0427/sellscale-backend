@@ -4,7 +4,7 @@ class SequenceAutoGenerationParameters:
     def __init__(self, find_sample_prospects=False, write_email_sequence_draft=False, write_li_sequence_draft=False,
                  email_sequence_opened=False, email_sequence_keywords=None, li_sequence_opened=False, li_general_angle="",
                  email_general_angle="", li_sequence_keywords=None, li_asset_ingestor="", li_cta_generator=False, li_pain_point="",
-                 li_sequence_state=None, email_sequence_state=None):
+                 li_sequence_state=None, email_sequence_state=None, selected_voice=None, num_steps=1, num_variance=1, with_data="", email_asset_ingestor=""):
         self.find_sample_prospects = find_sample_prospects
         self.write_email_sequence_draft = write_email_sequence_draft
         self.write_li_sequence_draft = write_li_sequence_draft
@@ -15,8 +15,13 @@ class SequenceAutoGenerationParameters:
         self.email_general_angle = email_general_angle
         self.li_sequence_keywords = li_sequence_keywords if li_sequence_keywords else []
         self.li_asset_ingestor = li_asset_ingestor
+        self.email_asset_ingestor = email_asset_ingestor
         self.li_cta_generator = li_cta_generator
         self.li_pain_point = li_pain_point
+        self.selected_voice = selected_voice
+        self.num_steps = num_steps
+        self.num_variance = num_variance
+        self.with_data = with_data
         self.li_sequence_state = SequenceState(
             how_it_works=li_sequence_state.get("howItWorks", False),
             vary_intro_messages=li_sequence_state.get("varyIntroMessages", False),
@@ -62,6 +67,11 @@ def initialize_auto_generation_payload(auto_generation_payload: Optional[dict]) 
         "email_general_angle": "",
         "li_sequence_keywords": [],
         "li_asset_ingestor": "",
+        "selectedVoice": None,
+        "numSteps": 1,
+        "numVariance": 1,
+        "withData": "",
+        "email_asset_ingestor": "",
         "li_cta_generator": False,
         "li_pain_point": "",
         "li_sequence_state": {
@@ -130,7 +140,12 @@ def initialize_auto_generation_payload(auto_generation_payload: Optional[dict]) 
         li_cta_generator=auto_generation_payload.get('liCtaGenerator'),
         li_pain_point=auto_generation_payload.get('liPainPoint'),
         li_sequence_state=auto_generation_payload.get('liSequenceState'),
-        email_sequence_state=auto_generation_payload.get('emailSequenceState')
+        email_sequence_state=auto_generation_payload.get('emailSequenceState'),
+        email_asset_ingestor=auto_generation_payload.get('emailAssetIngestor'),
+        selected_voice=auto_generation_payload.get('selectedVoice'),
+        num_steps=auto_generation_payload.get('numSteps'),
+        num_variance=auto_generation_payload.get('numVariance'),
+        with_data=auto_generation_payload.get('withData'),
     )
 
 def generate_email_sequence_prompt(auto_generation_parameters: SequenceAutoGenerationParameters) -> str:
@@ -163,6 +178,8 @@ def generate_email_sequence_prompt(auto_generation_parameters: SequenceAutoGener
 
     if auto_generation_parameters.email_sequence_keywords:
         prompt += 'These are the keywords you absolutely have to include: ' + ', '.join(auto_generation_parameters.email_sequence_keywords) + '\n'
+    if auto_generation_parameters.email_asset_ingestor:
+        prompt += f"Here are some extra information the client provided that may be helpful. See if you can incorproate it into messaging, if helpful. Especially useful if assets provided would add to this campaign angle / personalization / specificity in our messaging. Extra Information: {auto_generation_parameters.email_asset_ingestor}\n"
 
     print('Email Sequence Prompt:', prompt)
     return prompt
@@ -200,6 +217,8 @@ def generate_linkedin_sequence_prompt(auto_generation_parameters: SequenceAutoGe
 
     if auto_generation_parameters.li_sequence_keywords:
         prompt += 'These are the keywords you absolutely have to include: ' + ', '.join(auto_generation_parameters.li_sequence_keywords) + '\n'
+    if auto_generation_parameters.li_asset_ingestor:
+        prompt += f"Here are some extra information the client provided that may be helpful. See if you can incorproate it into messaging, if helpful. Especially useful if assets provided would add to this campaign angle / personalization / specificity in our messaging. Extra Information: {auto_generation_parameters.li_asset_ingestor}\n"
 
     print('LinkedIn Sequence Prompt:', prompt)
     return prompt

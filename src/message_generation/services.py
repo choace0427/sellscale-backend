@@ -3391,7 +3391,7 @@ Keep the whole message 1-2 sentences and 1 paragraph long. Keep it short!""",
 
 def get_cta_types():
     return [
-        "In-Person-based",
+        "In-Person-Based",
         "Help-Based",
         "Feedback-Based",
         "Problem-Based",

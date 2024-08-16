@@ -523,7 +523,7 @@ def create_client_archetype(
         persona_lookalike_profile_3=lookalike_3,
         persona_lookalike_profile_4=lookalike_4,
         persona_lookalike_profile_5=lookalike_5,
-        template_mode=True if (not voice_id and not auto_generation_payload.li_cta_generator) else False,
+        template_mode=True if (not voice_id or template_mode) else False,
         transformer_blocklist=transformer_blocklist,
         transformer_blocklist_initial=transformer_blocklist,
         testing_volume=2 ** 31 - 1,  #max int,
@@ -535,35 +535,61 @@ def create_client_archetype(
     db.session.commit()
     archetype_id = client_archetype.id
 
+    client: Client = Client.query.get(client_id)
+
     if auto_generation_payload.write_email_sequence_draft:
         from src.ml.services import one_shot_sequence_generation
         one_shot_sequence_generation.delay(
             client_sdr_id,
             archetype_id,
             generate_email_sequence_prompt(auto_generation_payload),
-            "EMAIL")
+            "EMAIL",
+            company_name=client.company,
+            persona=archetype,
+            with_data=auto_generation_payload.with_data,
+        )
 
     if auto_generation_payload.li_cta_generator:
         print("Generating LI CTA")
         from src.ml.services import one_shot_sequence_generation
+        # one_shot_sequence_generation.delay(
+        #     client_sdr_id,
+        #     archetype_id,
+        #     generate_linkedin_sequence_prompt(auto_generation_payload),
+        #     "LINKEDIN-CTA"
+        # )
         one_shot_sequence_generation.delay(
             client_sdr_id,
             archetype_id,
             generate_linkedin_sequence_prompt(auto_generation_payload),
-            "LINKEDIN-CTA"
+            "LINKEDIN-CTA",
+            num_steps=auto_generation_payload.num_steps,
+            num_variants=auto_generation_payload.num_variance,
+            company_name=client.company,
+            persona=archetype,
+            with_data=auto_generation_payload.with_data,
         )
-    
-    if auto_generation_payload.write_li_sequence_draft:
+    elif auto_generation_payload.write_li_sequence_draft:
         print("Generating LI sequence")
         from src.ml.services import one_shot_sequence_generation
+        # one_shot_sequence_generation.delay(
+        #     client_sdr_id,
+        #     archetype_id,
+        #     generate_linkedin_sequence_prompt(auto_generation_payload),
+        #     "LINKEDIN-TEMPLATE"
+        # )
         one_shot_sequence_generation.delay(
             client_sdr_id,
             archetype_id,
             generate_linkedin_sequence_prompt(auto_generation_payload),
-            "LINKEDIN-TEMPLATE"
+            "LINKEDIN-TEMPLATE",
+            num_steps=auto_generation_payload.num_steps,
+            num_variants=auto_generation_payload.num_variance,
+            company_name=client.company,
+            persona=archetype,
+            with_data=auto_generation_payload.with_data,
         )
 
-    client: Client = Client.query.get(client_id)
     webhook_url: str = client.pipeline_notifications_webhook_url
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     campaign_url = (
@@ -656,6 +682,19 @@ def create_client_archetype(
             client_id=client_id,
             client_sdr_id=client_sdr_id,
             voice_id=voice_id,
+            campaign_additional_context=context,
+        )
+
+    if auto_generation_payload.selected_voice:
+        campaign_voices_generation(
+            archetype=archetype,
+            with_cta=False,
+            with_voice=True,
+            with_follow_up=False,
+            archetype_id=archetype_id,
+            client_id=client_id,
+            client_sdr_id=client_sdr_id,
+            voice_id=auto_generation_payload.selected_voice,
             campaign_additional_context=context,
         )
 

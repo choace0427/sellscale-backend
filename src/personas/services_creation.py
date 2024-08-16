@@ -35,7 +35,7 @@ from src.bump_framework.services import (
 
 
 def add_sequence(
-    client_id, archetype_id, sequence_type, subject_lines, steps, override=False
+    client_id, archetype_id, sequence_type, subject_lines, steps, override=False, new_ctas=[],
 ):
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     print('sequence type is ', sequence_type)
@@ -120,11 +120,11 @@ def add_sequence(
                 delete_cta(cta.id)
 
         # Add the new CTAs
-        for i, cta_input in enumerate(subject_lines):
+        for i, cta_input in enumerate(new_ctas):
             create_cta(
                 archetype_id=archetype_id,
                 text_value=cta_input["text"],
-                asset_ids=cta_input["assets"],
+                cta_type=cta_input.get("type"),
                 expiration_date=None,
             )
 

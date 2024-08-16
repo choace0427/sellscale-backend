@@ -1598,9 +1598,15 @@ def one_shot_sequence_generation(
     campaign_id: int,
     purpose: str,
     sequence_type: str = 'LINKEDIN-TEMPLATE',
+    num_steps: Optional[int] = 2,
+    num_variants: Optional[int] = 1,
+    company_name: Optional[str] = "",
+    persona: Optional[str] = "",
+    with_data: Optional[str] = "",
 ):
     prompt = """You are a sequence generator. I will provide you with a company, company context, campaign name, and a little bit of information about the 'purpose of the campaign', and you will generate an incredible sequence that will get me conversations.
-
+    You will be given this number of steps: {num_steps} and this number of variants: {num_variants}.
+    There can be a number of variants that you can generate. be sure to vary your angles, message, and length for each variant. The style and length of the message should be different for each variant. If one variant's message is long, the next variant at the same step should be shorter.
     Here are a couple top examples:
     -------------------
     EXAMPLE 1:
@@ -1610,11 +1616,11 @@ def one_shot_sequence_generation(
     Purpose: We are contacting prospects with the intention of offering them $150 gift cards for 30 minutes of their time to conduct a B2b business research interview.
 
     Generated Sequence:
-    Step 1:
+    Step 1 (Variant 1):
     - Angle: Great to connect
     - Text: Hi [[first_name]], would you be open to a 30 min interview for $150? We're interviewing brand marketing professionals like yourself about survey data quality on their B2B studies for brand. Happy to also share the findings with you once we finish the report. Look forward to connecting. Thanks!
 
-    Step 2: 
+    Step 2 (Variant 1): 
     - Angle: Follow Up 1
     - Text: Hi [[first_name]].
 
@@ -1623,7 +1629,7 @@ def one_shot_sequence_generation(
 
     Given your role, we think your perspective would be very valuable and would love to chat. Let us know if that works on your end.
 
-    Step 3: 
+    Step 3 (Variant 1): 
     - Angle: Follow Up 2
     - Text: Hey [[first name]] - here's a thought leadership report we recently helped Google release about Gen AI in retail: https://www.googlecloudpresscorner.com/2024-01-11-Google-Cloud-Shares-New-Research-on-2024-Outlook-on-Generative-AI-in-Retail
 
@@ -1638,11 +1644,15 @@ def one_shot_sequence_generation(
     Purpose: We are contacting heads of affiliate marketing and growth to see if they'd be interested in our automated outbound system for TikTok outreach.
 
     Generated Sequence:
-    Step 1: 
+    Step 1 (Variant 1): 
     - Angle: Simple Connect
     - Text: Hi [[first name]]! I noticed you work as a [[lowercase role]] at [[company]] I built a tool that helps brands use TikTok Shop's affiliate program. I'd love your feedback on our solution!
+    
+    Step 1 (Variant 2):
+    - Angle: Hook
+    - Text: Do you want to easily be a part of TikTok's affiliate program? I have a solution that can help you get started. I'd love to chat with you about it!
 
-    Step 2: 
+    Step 2 (Variant 1): 
     - Angle: Intro
     - Text: For some context I developed an affiliate marketing solution for TikTok Shop as a side project and I am looking for people to try it out and give feedback on it's usefulness!
 
@@ -1658,7 +1668,10 @@ def one_shot_sequence_generation(
     Are you interested in trying it out for free? Worst that can happen is that you get 3 days of free affiliate outreach for your store!
 
     If you get this far and still don't want to try it, please do me a solid and treat me like a human just trying to make a living and at least tell me no rather than ghost me. I appreciate it! Thanks!
-
+    
+    Step 2 (Variant 2):
+    - Angle: Exclusive Offer
+    - Text: For some context, I will be giving you exclusive trial to our affiliate marketing solution for TikTok Shop. I am looking for people to try it out and give feedback on it's usefulness!
     ----------------------------
 
     EXAMPLE 3: 
@@ -1668,11 +1681,11 @@ def one_shot_sequence_generation(
     Purpose: We want to reach out to leaders at FQHC hospitals to see if they are hiring for any roles and see if they'd be interested in partnering with us to get those roles filled.
 
     Generated Sequence:
-    Step 1:
+    Step 1 (Variant 1):
     - Angle: Simple Nice Greeting
     - Text: Hi [[first name]]! I've enjoyed following your journey to [[informalized company name]] as the [[lowercase title]]. I work with providers who are passionate about working with underserved populations. I'd love to chat and share more about it if you're open to learning more.
 
-    Step 2: 
+    Step 2 (Variant 1): 
     - Angle: Do you have any challenges or priorities?
     - Text: Hi [[first name]],
     Thank you for accepting my connection request. As an [[lowercase title name]] I'm sure you must encounter unique challenges when it comes to recruiting physicians and streamlining that workflow. I'd be happy to share some insights on how we at Curative have helped similar roles and facilities enhance their physician recruitment process.
@@ -1681,7 +1694,7 @@ def one_shot_sequence_generation(
     Best,
     [[my name]]
 
-    Step 3: 
+    Step 3 (Variant 1): 
     - Angle: Coffee chat?
     - Text: Hi [[prospect name]]!  I know you're super busy. If possible, I'd love to chat with you. Coffee is on me. Would you be too busy for a 10 min call this week?
 
@@ -1695,10 +1708,12 @@ def one_shot_sequence_generation(
     Campaign Name: {campaign_name}
     Purpose: {purpose}
 
-    NOTE: The first message should be less than 300 characters.
+    NOTE: The first message or step should be less than 300 characters.
+    NOTE: You are to create {num_steps} steps in the sequence. Each sequence should have {num_variants} variants. The variants should be different from each other but still follow the same style.
     NOTE: Follow the style of the examples provided above. Be human, creative, and engaging.
-    NOTE: In general, keep the messages not too verbose. Goal on 1-4 sentences range per message.
+    NOTE: In general, keep the messages not too verbose. Goal on 1-2 sentences range per message.
     NOTE: Only respond with the sequence and nothing else.
+    NOTE: You might be given some assets, like websites or additional information or material to be used as part of your messaging. Include those in your messages.
 
     Generated Sequence:"""
 
@@ -1722,13 +1737,17 @@ def one_shot_sequence_generation(
             company=company,
             company_description=company_description,
             campaign_name=campaign_name,
-            purpose=purpose
+            purpose=purpose,
+            num_steps=num_steps,
+            num_variants=num_variants,
         )
         context_info = '''
             Company: {company}
             Company Description: {company_description}
             Campaign Name: {campaign_name}
             '''
+
+        ctas = []
 
         if sequence_type == 'LINKEDIN-TEMPLATE':
             response = wrapped_chat_gpt_completion(
@@ -1744,21 +1763,26 @@ def one_shot_sequence_generation(
         elif sequence_type == 'LINKEDIN-CTA':
             from src.personas.services_generation import generate_linkedin_cta
             print('linkedin cta')
-            response = generate_linkedin_cta(
-                gen_id=0,
-                client_id=client_sdr.client_id,
-                archetype_id=campaign_id,
-                context_info=context_info,
-                assets_str='',
-                additional_prompting=purpose,
+            response = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": enriched_prompt
+                    }
+                ],
+                model='claude-3-opus-20240229',
+                max_tokens=3000
             )
+
+            from src.message_generation.services import generate_cta_examples
+            ctas = generate_cta_examples(company_name, persona, with_data)
         else:
             from src.personas.services_generation import generate_email_follow_up_quick_and_dirty, generate_email_initial
-            response = generate_email_initial(3, client_archetype.client_id, campaign_id, context_info, '', purpose, None, None)
+            response = generate_email_initial(3, client_archetype.client_id, campaign_id, context_info, '', purpose, None, None, num_steps=num_steps, num_variants=num_variants)
             # response = response + '\n + \n + here are some followup emails:' + generate_email_follow_up_quick_and_dirty(3, client_archetype.client_id, campaign_id, 1, context_info, '', purpose, None, None)
 
         if sequence_type == 'LINKEDIN-TEMPLATE':
-            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'title', 'step_num', 'assets', 'angle', and 'text' key for each entry.
+            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'assets', 'step_num', 'angle', and 'text' key for each entry.
 
             ex. {{ "messages": [ {{"assets": [], "step_num": 0, "angle": "Title 1", "text": "Message 1"}}, {{"assets": [], "step_num": 1, "angle": "Title 2", "text": "Message 2"}} ] }}
 
@@ -1766,37 +1790,41 @@ def one_shot_sequence_generation(
             {response}
 
             NOTE: Only respond with the JSON object and nothing else.
+            NOTE: There can be multiple elements with the same "step_num" if you are generating multiple variants per step.
             
             JSON Output:""".format(response=response)
         
         elif sequence_type == 'EMAIL':
             prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with 'subject_lines' and 'steps' keys.
 
-            ex. {{"subject_lines": [{{"text": "Subject Line 1"}}, {{"text": "Subject Line 2"}}], "steps": [{{"assets": [], "step_num": 1, "angle": "Title 1", "text": "Message 1\nwith multiple lines"}}, {{"assets": [], "step_num": 2, "angle": "Title 2", "text": "Message 2"}}, {{"assets": [], "step_num": 3, "angle": "Title 3", "text": "Message 3"}}]}}
+            ex. {{"subject_lines": [{{"text": "Subject Line 1"}}, {{"text": "Subject Line 2"}}], "steps": [{{"assets": [], "step_num": 1, "angle": "Title 1", "text": "Message 1\nwith multiple lines"}}, 
+            {{"assets": [], "step_num": 2, "angle": "Title 2", "text": "Message 2"}}, {{"assets": [], "step_num": 3, "angle": "Title 3", "text": "Message 3"}}]}}
 
             Here is the sequence:
             {response}
 
             NOTE: Only respond with the JSON object and nothing else. Please generate some followups in the empty steps as well.
+            NOTE: There can be multiple elements with the same "step_num" if you are generating multiple variants per step.
             
             JSON Output:""".format(response=response)
 
         elif sequence_type == 'LINKEDIN-CTA':
-            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with a 'subject_lines' key containing an array of objects with 'assets' and 'text' keys.
+            prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with 'messages' as the key containing an array of objects with 'assets', 'step_num', and 'text' keys for each entry.
 
-            ex. {{"subject_lines": [{{"assets": [], "text": "CTA Text 1"}}, {{"assets": [], "text": "CTA Text 2"}}]}}
-
+            ex. {{"messages": [{{"assets": [], "step_num": 1, "angle": "Title 1", "text": "Bump Message 1"}}, {{"assets": [], "step_num": 2, "angle": "Title 2", "text": "Bump Message 2"}}]}}
+            
             Here is the sequence:
             {response}
 
             NOTE: Only respond with the JSON object and nothing else.
+            NOTE: There can be multiple elements with the same "step_num" if you are generating multiple variants per step.
             
             JSON Output:""".format(response=response)
 
         elif sequence_type.startswith('LINKEDIN-'):
             prompt = """You are a JSON converter. I will provide you with a sequence of messages, and you will convert it into a JSON object with an array of objects with 'steps' as the key containing an array of objects with 'title', 'step_num', 'assets', 'angle', and 'text' keys for each entry.
 
-            ex. {{"steps": [{{"assets": [], "step_num": 2, "angle": "Title 1", "text": "Bump Message 1"}}, {{"assets": [], "step_num": 3, "angle": "Title 2", "text": "Bump Message 2"}}]}}
+            ex. {{"steps": [{{"step_num": 2, "angle": "Title 1", "text": "Bump Message 1"}}, {{"step_num": 3, "angle": "Title 2", "text": "Bump Message 2"}}]}}
 
             Here is the sequence:
             {response}
@@ -1804,7 +1832,6 @@ def one_shot_sequence_generation(
             NOTE: Only respond with the JSON object and nothing else.
             
             JSON Output:""".format(response=response)
-
 
         response = wrapped_chat_gpt_completion(
             messages=[
@@ -1821,15 +1848,26 @@ def one_shot_sequence_generation(
 
         json_data = json.loads(sanitized_response)
 
+        final = []
+
+        for cta in ctas:
+            text = cta['cta']
+            type = cta['tag'].replace("[", "").replace(" ", "") + "-Based"
+
+            final.append({"text": text, "type": type})
+
+        cta_json_data = {"ctas": final}
+
         from src.personas.services_creation import add_sequence
 
         add_sequence(
             client_id=client.id,
             archetype_id=client_archetype.id,
             sequence_type=sequence_type,
-            subject_lines=json_data.get("subject_lines") if sequence_type == 'LINKEDIN-CTA' else [],
+            subject_lines=json_data.get("subject_lines") if sequence_type == 'EMAIL' else [],
             steps=json_data.get("steps") if sequence_type == 'EMAIL' else json_data.get("messages"),
-            override=False
+            override=False,
+            new_ctas=cta_json_data.get("ctas") if sequence_type == 'LINKEDIN-CTA' else [],
         )
         # except Exception as e:
         #     print(f"Error generating sequence: {e}")
