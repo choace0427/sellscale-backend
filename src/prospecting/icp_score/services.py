@@ -2533,6 +2533,7 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
         prospect_ids: Optional[list[int]] = None,
         manual_trigger: Optional[list[int]] = None,
 ) -> bool:
+    import pdb; pdb.set_trace()
     # Get the ClientArchetype
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
         id=client_archetype_id
@@ -2588,7 +2589,7 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
     else:
         for i in range(0, len(prospect_ids), 60):
             apply_archetype_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids[i:i + 60]],
+                args=[icp_scoring_job.id, client_archetype_id, prospect_ids[i:i + 60]],
                 queue="icp_scoring",
                 routing_key="icp_scoring",
             )
