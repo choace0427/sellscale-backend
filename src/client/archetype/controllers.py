@@ -736,8 +736,6 @@ def post_archetype_generate_ai_sequence(client_sdr_id: int, archetype_id: int):
 
     auto_generation_payload: SequenceAutoGenerationParameters = initialize_auto_generation_payload(auto_generation_payload)
 
-    import pdb; pdb.set_trace()
-
     if auto_generation_payload.write_email_sequence_draft:
         from src.ml.services import one_shot_sequence_generation
         one_shot_sequence_generation(
