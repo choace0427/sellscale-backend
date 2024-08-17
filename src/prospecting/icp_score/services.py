@@ -2202,8 +2202,8 @@ def append_icp_scoring_segment_ruleset_filters(
         icp_scoring_ruleset.included_individual_industry_keywords = []
         icp_scoring_ruleset.excluded_individual_industry_keywords = []
 
-        icp_scoring_ruleset.individual_years_of_experience_start = []
-        icp_scoring_ruleset.individual_years_of_experience_end = []
+        icp_scoring_ruleset.individual_years_of_experience_start = 0
+        icp_scoring_ruleset.individual_years_of_experience_end = 0
 
         icp_scoring_ruleset.included_individual_skills_keywords = []
         icp_scoring_ruleset.excluded_individual_skills_keywords = []
@@ -2227,8 +2227,8 @@ def append_icp_scoring_segment_ruleset_filters(
         icp_scoring_ruleset.included_company_locations_keywords = []
         icp_scoring_ruleset.excluded_company_locations_keywords = []
 
-        icp_scoring_ruleset.company_size_start = []
-        icp_scoring_ruleset.company_size_end = []
+        icp_scoring_ruleset.company_size_start = 0
+        icp_scoring_ruleset.company_size_end = 0
 
         icp_scoring_ruleset.included_company_industries_keywords = []
         icp_scoring_ruleset.excluded_company_industries_keywords = []
