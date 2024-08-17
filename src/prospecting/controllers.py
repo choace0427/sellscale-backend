@@ -1123,7 +1123,6 @@ def send_slack_reminder():
 @PROSPECTING_BLUEPRINT.route("/add_from_apollo_query_id", methods=["POST"])
 @require_user
 def add_prospect_from_apollo_query_id(client_sdr_id: int):
-    import pdb; pdb.set_trace()
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=False, parameter_type=int
     )
