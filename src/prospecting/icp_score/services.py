@@ -2533,7 +2533,6 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
         prospect_ids: Optional[list[int]] = None,
         manual_trigger: Optional[list[int]] = None,
 ) -> bool:
-    import pdb; pdb.set_trace()
     # Get the ClientArchetype
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
         id=client_archetype_id
