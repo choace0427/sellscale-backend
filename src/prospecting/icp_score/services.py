@@ -2427,25 +2427,10 @@ def append_icp_scoring_segment_ruleset_filters(
     icp_scoring_ruleset.excluded_company_name_keywords = \
         icp_scoring_ruleset.excluded_company_name_keywords + filters["excluded_company_name_keywords"]
 
-    icp_scoring_ruleset.included_company_locations_keywords = \
-        icp_scoring_ruleset.included_company_locations_keywords + filters["included_company_locations_keywords"]
-    icp_scoring_ruleset.excluded_company_locations_keywords = \
-        icp_scoring_ruleset.excluded_company_locations_keywords + filters["excluded_company_locations_keywords"]
-
     icp_scoring_ruleset.company_size_start = \
         icp_scoring_ruleset.company_size_start + filters["company_size_start"][0] if filters["company_size_start"] else 0
     icp_scoring_ruleset.company_size_end = \
         icp_scoring_ruleset.company_size_end + filters["company_size_start"][1] if filters["company_size_start"] else 0
-
-    icp_scoring_ruleset.included_company_industries_keywords = \
-        icp_scoring_ruleset.included_company_industries_keywords + filters["included_company_industries_keywords"]
-    icp_scoring_ruleset.excluded_company_industries_keywords = \
-        icp_scoring_ruleset.excluded_company_industries_keywords + filters["excluded_company_industries_keywords"]
-
-    icp_scoring_ruleset.included_company_generalized_keywords = \
-        icp_scoring_ruleset.included_company_generalized_keywords + filters["included_company_generalized_keywords"]
-    icp_scoring_ruleset.excluded_company_generalized_keywords = \
-        icp_scoring_ruleset.excluded_company_generalized_keywords + filters["excluded_company_generalized_keywords"]
 
     db.session.commit()
 
