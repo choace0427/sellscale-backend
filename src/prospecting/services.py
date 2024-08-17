@@ -1473,114 +1473,13 @@ def send_slack_reminder_for_prospect(prospect_id: int, alert_reason: str):
     return True
 
 
-def add_prospects_from_saved_apollo_query_id(
-    client_sdr_id: int,
-    archetype_id: int,
-    saved_apollo_query_id: int,
-    allow_duplicates: bool = False,
-    segment_id: Optional[int] = None,
-    num_contacts: int = 100,
-):
-    from src.contacts.services import apollo_get_contacts_for_page
-
-    source = ProspectUploadSource.CONTACT_DATABASE
-
-    saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.filter(
-        SavedApolloQuery.id == saved_apollo_query_id
-    ).first()
-    if not saved_apollo_query:
-        return "Saved Apollo Query not found", 400
-
-    saved_apollo_query_client_sdr_id = saved_apollo_query.client_sdr_id
-    saved_apollo_query_client_sdr = ClientSDR.query.get(
-        saved_apollo_query_client_sdr_id
-    )
-    current_client_sdr = ClientSDR.query.get(client_sdr_id)
-    if current_client_sdr.client_id != saved_apollo_query_client_sdr.client_id:
-        return "Client SDR mismatch", 400
-
-    client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
-    if not client_archetype:
-        unassigned_client_archetype = ClientArchetype.query.filter(
-            ClientArchetype.client_sdr_id == client_sdr_id,
-            ClientArchetype.is_unassigned_contact_archetype == True,
-        ).first()
-        archetype_id = unassigned_client_archetype.id
-
-    if client_archetype and client_archetype.client_sdr_id != client_sdr_id:
-        return "Client Archetype does not belong to user", 400
-
-    segment: Segment = Segment.query.get(segment_id)
-    if segment and segment.client_sdr_id != client_sdr_id:
-        return "Segment does not belong to user", 400
-
-    payload = saved_apollo_query.data
-    num_pages = num_contacts // 100
-    all_contacts = []
-    for page in range(1, num_pages + 1):
-        print("Processesing page: ", page)
-        response, data, saved_query_id = apollo_get_contacts_for_page(
-            client_sdr_id=client_sdr_id,
-            page=page,
-            person_titles=payload.get("person_titles", []),
-            person_not_titles=payload.get("person_not_titles", []),
-            q_person_title=payload.get("q_person_title", ""),
-            q_person_name=payload.get("q_person_name", ""),
-            organization_industry_tag_ids=payload.get(
-                "organization_industry_tag_ids", []
-            ),
-            organization_num_employees_ranges=payload.get(
-                "organization_num_employees_ranges", []
-            ),
-            person_locations=payload.get("person_locations", []),
-            organization_ids=payload.get("organization_ids", None),
-            revenue_range=payload.get("revenue_range", {"min": None, "max": None}),
-            organization_latest_funding_stage_cd=payload.get(
-                "organization_latest_funding_stage_cd", []
-            ),
-            currently_using_any_of_technology_uids=payload.get(
-                "currently_using_any_of_technology_uids", []
-            ),
-            event_categories=payload.get("event_categories", None),
-            published_at_date_range=payload.get("published_at_date_range", None),
-            person_seniorities=payload.get("person_seniorities", None),
-            q_organization_search_list_id=payload.get(
-                "q_organization_search_list_id", None
-            ),
-            organization_department_or_subdepartment_counts=payload.get(
-                "organization_department_or_subdepartment_counts", None
-            ),
-            is_prefilter=payload.get("is_prefilter", False),
-            q_organization_keyword_tags=payload.get(
-                "q_organization_keyword_tags", None
-            ),
-        )
-
-        # get the contacts and people
-        contacts = response["contacts"]
-        people = response["people"]
-        new_contacts = contacts + people
-        all_contacts = all_contacts + new_contacts
-
-        for contact in new_contacts:
-            add_prospect_from_apollo.delay(
-                current_client_sdr.client_id,
-                archetype_id,
-                client_sdr_id,
-                contact,
-                segment_id,
-            )
-
-    return True
-
-
 @celery.task
 def add_prospect_from_apollo(
+    segment_id: int,
     client_id: int,
     archetype_id: int,
     client_sdr_id: int,
     contact: dict,
-    segment_id: Optional[int] = None,
 ) -> Union[int, None]:
     """Adds a Prospect to the database from an Apollo contact.
 

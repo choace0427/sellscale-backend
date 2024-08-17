@@ -25,7 +25,6 @@ from src.segment.services import (
 )
 from src.prospecting.services import (
     add_prospect,
-    add_prospects_from_saved_apollo_query_id,
     bulk_mark_not_qualified,
     create_prospect_from_linkedin_link,
     get_linkedin_slug_from_url,
@@ -1124,6 +1123,7 @@ def send_slack_reminder():
 @PROSPECTING_BLUEPRINT.route("/add_from_apollo_query_id", methods=["POST"])
 @require_user
 def add_prospect_from_apollo_query_id(client_sdr_id: int):
+    import pdb; pdb.set_trace()
     archetype_id = get_request_parameter(
         "archetype_id", request, json=True, required=False, parameter_type=int
     )
@@ -1234,8 +1234,6 @@ def add_prospects_from_saved_apollo_query_id(
     segment_id: Optional[int] = None,
     num_contacts: int = 100
 ):
-    
-    print('got here', saved_apollo_query_id)
     from src.contacts.services import apollo_get_contacts_for_page
 
     source = ProspectUploadSource.CONTACT_DATABASE
@@ -1319,14 +1317,11 @@ def add_prospects_from_saved_apollo_query_id(
 
         for contact in new_contacts:
             add_prospect_from_apollo.delay(
+                segment_id,
                 current_client_sdr.client_id,
                 archetype_id,
                 client_sdr_id,
                 contact,
-                segment_id,
-                # include propsect_uploads.id in this call
-                    # within the call, update prospect_uploads status to SUCCESS if successful and update prospect_upload_history's processed counts
-
             )
 
     print(len(all_contacts))
