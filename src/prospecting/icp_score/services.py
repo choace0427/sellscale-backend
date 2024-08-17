@@ -2194,6 +2194,48 @@ def append_icp_scoring_segment_ruleset_filters(
             client_archetype_id=unassigned_archetype.id,
             segment_id=segment_id
         )
+
+        # Individual
+        icp_scoring_ruleset.included_individual_title_keywords = []
+        icp_scoring_ruleset.excluded_individual_title_keywords = []
+
+        icp_scoring_ruleset.included_individual_industry_keywords = []
+        icp_scoring_ruleset.excluded_individual_industry_keywords = []
+
+        icp_scoring_ruleset.individual_years_of_experience_start = []
+        icp_scoring_ruleset.individual_years_of_experience_end = []
+
+        icp_scoring_ruleset.included_individual_skills_keywords = []
+        icp_scoring_ruleset.excluded_individual_skills_keywords = []
+
+        icp_scoring_ruleset.included_individual_locations_keywords = []
+        icp_scoring_ruleset.excluded_individual_locations_keywords = []
+
+        icp_scoring_ruleset.included_individual_generalized_keywords = []
+        icp_scoring_ruleset.excluded_individual_generalized_keywords = []
+
+        icp_scoring_ruleset.included_individual_education_keywords = []
+        icp_scoring_ruleset.excluded_individual_education_keywords = []
+
+        icp_scoring_ruleset.included_individual_seniority_keywords = []
+        icp_scoring_ruleset.excluded_individual_seniority_keywords = []
+
+        # Company
+        icp_scoring_ruleset.included_company_name_keywords = []
+        icp_scoring_ruleset.excluded_company_name_keywords = []
+
+        icp_scoring_ruleset.included_company_locations_keywords = []
+        icp_scoring_ruleset.excluded_company_locations_keywords = []
+
+        icp_scoring_ruleset.company_size_start = []
+        icp_scoring_ruleset.company_size_end = []
+
+        icp_scoring_ruleset.included_company_industries_keywords = []
+        icp_scoring_ruleset.excluded_company_industries_keywords = []
+
+        icp_scoring_ruleset.included_company_generalized_keywords = []
+        icp_scoring_ruleset.excluded_company_generalized_keywords = []
+
         db.session.add(icp_scoring_ruleset)
         db.session.commit()
 

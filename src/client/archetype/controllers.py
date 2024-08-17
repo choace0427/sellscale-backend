@@ -73,6 +73,21 @@ def get_archetypes_endpoint(client_sdr_id: int):
     return jsonify({"status": "success", "data": result}), 200
 
 
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/prospects", methods=["GET"])
+@require_user
+def get_prospects_by_archetype(client_sdr_id: int, archetype_id: int):
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+
+    if not archetype:
+        return "Archetype not found", 404
+
+    prospects = Prospect.query.filter(
+        Prospect.archetype_id == archetype_id
+        ).all()
+
+    return jsonify({"prospects": [prospect.simple_to_dict() for prospect in prospects]}), 200
+
+
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/bulk_action/move", methods=["POST"])
 @require_user
 def post_archetype_bulk_action_move_prospects(client_sdr_id: int):
