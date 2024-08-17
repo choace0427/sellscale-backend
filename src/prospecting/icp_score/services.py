@@ -20,6 +20,7 @@ from app import db, app, celery
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from model_import import ResearchPayload
 from src.segment.models import Segment
+from src.sockets.services import send_socket_message
 from src.utils.abstract.attr_utils import deep_get
 from sqlalchemy.sql.expression import func
 from tqdm import tqdm
@@ -121,15 +122,15 @@ def update_icp_scoring_ruleset(
 
     if not icp_scoring_ruleset:
         if segment_id:
-            empty_icp_scoring_ruleset = ICPScoringRuleset(
+            icp_scoring_ruleset = ICPScoringRuleset(
                 client_archetype_id=client_archetype_id,
                 segment_id=segment_id,
             )
         else:
-            empty_icp_scoring_ruleset = ICPScoringRuleset(
+            icp_scoring_ruleset = ICPScoringRuleset(
                 client_archetype_id=client_archetype_id,
             )
-        db.session.add(empty_icp_scoring_ruleset)
+        db.session.add(icp_scoring_ruleset)
         db.session.commit()
 
     if segment_id:
@@ -240,6 +241,90 @@ def count_num_icp_attributes_segment(client_archetype_id: int, segment_id):
     icp_scoring_ruleset = ICPScoringRuleset.query.filter_by(
         client_archetype_id=client_archetype_id,
         segment_id=segment_id
+    ).first()
+
+    if not icp_scoring_ruleset:
+        return 0
+
+    individual_count = 0
+    company_count = 0
+
+    if icp_scoring_ruleset.included_individual_title_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_title_keywords:
+        individual_count += 1
+
+    if icp_scoring_ruleset.included_individual_seniority_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_seniority_keywords:
+        individual_count += 1
+
+    if icp_scoring_ruleset.included_individual_industry_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_industry_keywords:
+        individual_count += 1
+
+    if (icp_scoring_ruleset.individual_years_of_experience_start or
+            icp_scoring_ruleset.individual_years_of_experience_end):
+        individual_count += 1
+
+    if icp_scoring_ruleset.included_individual_skills_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_skills_keywords:
+        individual_count += 1
+
+    if icp_scoring_ruleset.included_individual_locations_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_locations_keywords:
+        individual_count += 1
+
+    if icp_scoring_ruleset.included_individual_generalized_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_generalized_keywords:
+        individual_count += 1
+
+    if icp_scoring_ruleset.included_individual_education_keywords:
+        individual_count += 1
+    if icp_scoring_ruleset.excluded_individual_education_keywords:
+        individual_count += 1
+
+    if icp_scoring_ruleset.individual_ai_filters:
+        individual_count += len(icp_scoring_ruleset.individual_ai_filters)
+
+    # Company
+
+    if icp_scoring_ruleset.included_company_name_keywords:
+        company_count += 1
+    if icp_scoring_ruleset.excluded_company_name_keywords:
+        company_count += 1
+
+    if icp_scoring_ruleset.included_company_locations_keywords:
+        company_count += 1
+    if icp_scoring_ruleset.excluded_company_locations_keywords:
+        company_count += 1
+
+    if icp_scoring_ruleset.company_size_start or icp_scoring_ruleset.company_size_end:
+        company_count += 1
+
+    if icp_scoring_ruleset.included_company_industries_keywords:
+        company_count += 1
+    if icp_scoring_ruleset.excluded_company_industries_keywords:
+        company_count += 1
+
+    if icp_scoring_ruleset.included_company_generalized_keywords:
+        company_count += 1
+    if icp_scoring_ruleset.excluded_company_generalized_keywords:
+        company_count += 1
+
+    if icp_scoring_ruleset.company_ai_filters:
+        company_count += len(icp_scoring_ruleset.company_ai_filters)
+
+    return individual_count, company_count
+
+
+def count_num_icp_attributes_archetype(client_archetype_id: int):
+    icp_scoring_ruleset = ICPScoringRuleset.query.filter_by(
+        client_archetype_id=client_archetype_id,
     ).first()
 
     if not icp_scoring_ruleset:
@@ -576,7 +661,9 @@ def score_ai_filters(
         icp_scoring_ruleset: dict,
         dealbreaker: dict,
         individual_score: dict[str, int],
-        company_score: dict[str, int]):
+        company_score: dict[str, int],
+        from_archetype: Optional[bool] = False,
+):
     import copy
     # go through each prospect
     current_company_answers = {}
@@ -766,8 +853,12 @@ def score_ai_filters(
             current_company_answers[prospect.company]["score"] = prospect_company_score
             current_company_answers[prospect.company]["reasoning"] = copy.deepcopy(current_company_reason)
 
-        total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_segment(
-            icp_scoring_ruleset["client_archetype_id"], prospect.segment_id)
+        if from_archetype:
+            total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_archetype(
+                icp_scoring_ruleset["client_archetype_id"])
+        else:
+            total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_segment(
+                icp_scoring_ruleset["client_archetype_id"], prospect.segment_id)
 
         updated_company_score = -1
         updated_individual_score = -1
@@ -809,6 +900,8 @@ def score_ai_filters(
         db.session.add(prospect)
 
     db.session.commit()
+
+    send_socket_message('update_prospect_list', {'update': True})
 
     return True
 
@@ -2382,11 +2475,17 @@ def apply_segment_icp_scoring_ruleset_filters_task(
                 prospect_ids=prospect_ids,
             )
         else:
-            apply_segment_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job_queue_id, client_archetype_id, segment_id],
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-            )
+            for i in range(0, len(prospect_ids), 60):
+                apply_segment_icp_scoring_ruleset_filters.apply_async(
+                    args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids[i:i + 60]],
+                    queue="icp_scoring",
+                    routing_key="icp_scoring",
+                )
+            # apply_segment_icp_scoring_ruleset_filters.apply_async(
+            #     args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids],
+            #     queue="icp_scoring",
+            #     routing_key="icp_scoring",
+            # )
 
         return True
 
@@ -2413,13 +2512,372 @@ def apply_segment_icp_scoring_ruleset_filters_task(
             prospect_ids=prospect_ids,
         )
     else:
-        apply_segment_icp_scoring_ruleset_filters.apply_async(
-            args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids],
-            queue="icp_scoring",
-            routing_key="icp_scoring",
-        )
+        for i in range(0, len(prospect_ids), 60):
+            apply_segment_icp_scoring_ruleset_filters.apply_async(
+                args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids[i:i + 60]],
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
+        # apply_segment_icp_scoring_ruleset_filters.apply_async(
+        #     args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids],
+        #     queue="icp_scoring",
+        #     routing_key="icp_scoring",
+        # )
 
     return True
+
+
+def apply_archetype_icp_scoring_ruleset_filters_task(
+        client_archetype_id: int,
+        icp_scoring_job_queue_id: Optional[int] = None,
+        prospect_ids: Optional[list[int]] = None,
+        manual_trigger: Optional[list[int]] = None,
+) -> bool:
+    # Get the ClientArchetype
+    client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
+        id=client_archetype_id
+    ).first()
+
+    # Get the ClientSDR ID
+    client_sdr_id = client_archetype.client_sdr_id
+
+    # If there is already an ICPScoringJobQueue object, trigger the job
+    if icp_scoring_job_queue_id:
+        if prospect_ids and len(prospect_ids) <= 60:
+            apply_archetype_icp_scoring_ruleset_filters(
+                icp_scoring_job_id=icp_scoring_job_queue_id,
+                client_archetype_id=client_archetype_id,
+                prospect_ids=prospect_ids,
+            )
+        else:
+            for i in range(0, len(prospect_ids), 60):
+                apply_archetype_icp_scoring_ruleset_filters.apply_async(
+                    args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids[i:i + 60]],
+                    queue="icp_scoring",
+                    routing_key="icp_scoring",
+                )
+            # apply_archetype_icp_scoring_ruleset_filters.apply_async(
+            #     args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
+            #     queue="icp_scoring",
+            #     routing_key="icp_scoring",
+            # )
+
+        return True
+
+    if prospect_ids is None:
+        # Get Prospects that belong in this ClientArchetype
+        prospects = Prospect.query.filter_by(archetype_id=client_archetype_id).all()
+        prospect_ids = [prospect.id for prospect in prospects]
+
+    # Create ICPScoringJobQueue object
+    icp_scoring_job = ICPScoringJobQueue(
+        client_sdr_id=client_sdr_id,
+        client_archetype_id=client_archetype_id,
+        prospect_ids=prospect_ids,
+        manual_trigger=manual_trigger,
+    )
+    db.session.add(icp_scoring_job)
+    db.session.commit()
+
+    if prospect_ids and len(prospect_ids) <= 60:
+        apply_archetype_icp_scoring_ruleset_filters(
+            icp_scoring_job_id=icp_scoring_job.id,
+            client_archetype_id=client_archetype_id,
+            prospect_ids=prospect_ids,
+        )
+    else:
+        for i in range(0, len(prospect_ids), 60):
+            apply_archetype_icp_scoring_ruleset_filters.apply_async(
+                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids[i:i + 60]],
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
+        # apply_archetype_icp_scoring_ruleset_filters.apply_async(
+        #     args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
+        #     queue="icp_scoring",
+        #     routing_key="icp_scoring",
+        # )
+
+    return True
+
+
+@celery.task(bind=True, max_retries=3)
+def apply_archetype_icp_scoring_ruleset_filters(
+        self,
+        icp_scoring_job_id: int,
+        client_archetype_id: int,
+        prospect_ids: Optional[list[int]] = None,
+):
+    try:
+        """
+        Apply the ICP scoring ruleset to all prospects in the client archetype.
+        """
+        individual_count, company_count = count_num_icp_attributes_archetype(client_archetype_id)
+
+        # Get the scoring job, mark it as in progress
+        icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+            id=icp_scoring_job_id
+        ).first()
+        if icp_scoring_job.run_status not in [
+            ICPScoringJobQueueStatus.PENDING,
+            ICPScoringJobQueueStatus.FAILED,
+        ]:
+            return
+        icp_scoring_job.run_status = ICPScoringJobQueueStatus.IN_PROGRESS
+        icp_scoring_job.attempts = (
+            icp_scoring_job.attempts + 1 if icp_scoring_job.attempts else 1
+        )
+        db.session.commit()
+
+        prospect_ids = icp_scoring_job.prospect_ids or prospect_ids
+        if not prospect_ids:
+            # Get Prospects that belong in this segment
+            prospects = Prospect.query.filter_by(client_archetype_id=client_archetype_id).all()
+            prospect_ids = [prospect.id for prospect in prospects]
+            icp_scoring_job.prospect_ids = prospect_ids
+
+        # Step 1: Get the raw prospect list with data enriched
+        print("Pulling raw enriched prospect companies list...")
+        raw_enriched_prospect_companies_list = get_raw_enriched_prospect_companies_list(
+            client_archetype_id=client_archetype_id,
+            prospect_ids=prospect_ids,
+        )
+        print(
+            "Pulled raw enriched prospect companies list with length: "
+            + str(len(raw_enriched_prospect_companies_list))
+        )
+
+        icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter_by(
+            client_archetype_id=client_archetype_id,
+        ).first()
+
+        if not icp_scoring_ruleset:
+            return
+
+        if icp_scoring_ruleset.dealbreakers:
+            dealbreaker = {value: index for index, value in enumerate(icp_scoring_ruleset.dealbreakers)}
+        else:
+            dealbreaker = {}
+
+        # Step 2: Score all the prospects
+        print("Scoring prospects...")
+        score_map = {}
+        entries = raw_enriched_prospect_companies_list.items()
+        raw_data = []
+
+        results_queue = queue.Queue()
+        max_threads = 5
+
+        prospect_enriched_list = []
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+            futures = []
+            for (
+                    prospect_id,
+                    enriched_prospect_company,
+            ) in tqdm(entries):
+                prospect_enriched_list.append(enriched_prospect_company.to_dict())
+
+                futures.append(
+                    executor.submit(
+                        score_one_prospect_segment,
+                        enriched_prospect_company=enriched_prospect_company,
+                        icp_scoring_ruleset=icp_scoring_ruleset,
+                        dealbreaker=dealbreaker,
+                        queue=results_queue,
+                    )
+                )
+
+            concurrent.futures.wait(futures)
+
+        # for (
+        #     prospect_id,
+        #     enriched_prospect_company,
+        # ) in tqdm(entries):
+        #     prospect_enriched_list.append(enriched_prospect_company.to_dict())
+        #
+        #     score_one_prospect_segment(
+        #         enriched_prospect_company=enriched_prospect_company,
+        #         icp_scoring_ruleset=icp_scoring_ruleset,
+        #         dealbreaker=dealbreaker,
+        #         queue=results_queue,
+        #     )
+
+        individual_score_dict = {}
+        company_score_dict = {}
+
+        while not results_queue.empty():
+            result = results_queue.get()
+            enriched_company: EnrichedProspectCompany = result[0]
+            score = result[1]
+            company_score = result[2]
+            individual_reasoning = result[3]
+            company_reasoning = result[4]
+            reasoning = result[5]
+
+            prospect_id = enriched_company.prospect_id
+
+            raw_data.append(
+                {
+                    "prospect_id": prospect_id,
+                    "score": score,
+                    "company_score": company_score,
+                    "reasoning": reasoning,
+                    "individual_reasoning": individual_reasoning,
+                    "company_reasoning": company_reasoning,
+                }
+            )
+
+            individual_score_dict[prospect_id] = score
+            company_score_dict[prospect_id] = company_score
+
+        # Distribution
+        # -1 will always be very low (0).
+        # distribute the rest of the score to be between 1-4
+        # We can do it based on percentage:
+        # 25% is low, 50% is medium, 75% is high, 100% is very high
+        updated_mapping = {}
+
+        for entry in raw_data:
+            prospect_id = entry["prospect_id"]
+
+            score = entry["score"]
+            company_score = entry["company_score"]
+
+            updated_individual_score = -1
+            updated_company_score = -1
+
+            if score == -1 or individual_count == 0:
+                updated_individual_score = 0
+            else:
+                percentage = score / individual_count * 100
+
+                if 0 <= percentage <= 25:
+                    updated_individual_score = 1
+                elif 25 < percentage <= 50:
+                    updated_individual_score = 2
+                elif 50 < percentage <= 75:
+                    updated_individual_score = 3
+                elif 75 < percentage <= 100:
+                    updated_individual_score = 4
+
+            if company_score == -1 or company_count == 0:
+                updated_company_score = 0
+            else:
+                percentage = company_score / company_count * 100
+
+                if 0 <= percentage <= 25:
+                    updated_company_score = 1
+                elif 25 < percentage <= 50:
+                    updated_company_score = 2
+                elif 50 < percentage <= 75:
+                    updated_company_score = 3
+                elif 75 < percentage <= 100:
+                    updated_company_score = 4
+
+            updated_mapping[prospect_id] = {
+                "individual_score": updated_individual_score,
+                "company_score": updated_company_score,
+                "reasoning": entry["reasoning"] if entry["reasoning"] else "",
+                "individual_reasoning": entry["individual_reasoning"],
+                "company_reasoning": entry["company_reasoning"],
+            }
+
+        # Step 4: Batch Update all the prospects
+        for prospect_id, updated_data in updated_mapping.items():
+            individual_score = updated_data["individual_score"]
+            company_score = updated_data["company_score"]
+            reasoning = updated_data["reasoning"]
+            individual_reasoning = updated_data["individual_reasoning"]
+            company_reasoning = updated_data["company_reasoning"]
+
+            prospect: Prospect = Prospect.query.get(prospect_id)
+            if prospect:
+                prospect.icp_fit_score = individual_score
+                prospect.icp_company_fit_score = company_score
+                prospect.icp_fit_reason = reasoning
+                prospect.icp_fit_reason_v2 = individual_reasoning
+                prospect.icp_company_fit_reason = company_reasoning
+
+        db.session.commit()
+
+        print("Done!")
+        # score_one_prospect_segment only scores the programmatic filters
+        # we will do the ai filters in a celery task.
+        # we have to send over the icp_scoring_ruleset
+        # we have to send over dealbreaker
+        # we have to send over the current score and company score
+        # score_ai_filters(
+        #     prospect_enriched_list=prospect_enriched_list,
+        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+        #     dealbreaker=dealbreaker,
+        #     individual_score=individual_score_dict,
+        #     company_score=company_score_dict,
+        # )
+
+        # score_ai_filters.delay(
+        #     prospect_enriched_list=prospect_enriched_list,
+        #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+        #     dealbreaker=dealbreaker,
+        #     individual_score=individual_score_dict,
+        #     company_score=company_score_dict,
+        # )
+
+        # Sort the prospect_enriched_list by the company name
+        # For every 5 prospects create a new celery task
+        prospect_enriched_list = sorted(prospect_enriched_list, key=lambda x: x.get("company_name") or "")
+
+        for i in range(0, len(prospect_enriched_list), 5):
+            chunk = prospect_enriched_list[i:i + 5]
+            score_ai_filters.apply_async(
+                args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict, True],
+                priority=1,
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
+            # score_ai_filters(
+            #     chunk,
+            #     icp_scoring_ruleset.to_dict(),
+            #     dealbreaker,
+            #     individual_score_dict,
+            #     company_score_dict,
+            #     from_archetype=True,
+            # )
+
+        # score_ai_filters.delay(
+        #     prospect_enriched_list,
+        #     icp_scoring_ruleset.to_dict(),
+        #     dealbreaker,
+        #     individual_score_dict,
+        #     company_score_dict,
+        # )
+        #
+        # score_ai_filters.apply_async(
+        #     args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
+        #     priority=1,
+        # )
+
+        # Get the scoring job, mark it as complete
+        icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+            id=icp_scoring_job_id
+        ).first()
+        icp_scoring_job.run_status = ICPScoringJobQueueStatus.COMPLETED
+        icp_scoring_job.error_message = None
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        db.session.rollback()
+
+        # Get the scoring job, mark it as failed
+        icp_scoring_job: ICPScoringJobQueue = ICPScoringJobQueue.query.filter_by(
+            id=icp_scoring_job_id
+        ).first()
+        icp_scoring_job.run_status = ICPScoringJobQueueStatus.FAILED
+        icp_scoring_job.error_message = str(e)
+        db.session.commit()
+
+        raise self.retry(exc=e)
 
 
 @celery.task(bind=True, max_retries=3)
@@ -2646,13 +3104,30 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     individual_score=individual_score_dict,
         #     company_score=company_score_dict,
         # )
-        score_ai_filters.delay(
-            prospect_enriched_list,
-            icp_scoring_ruleset.to_dict(),
-            dealbreaker,
-            individual_score_dict,
-            company_score_dict,
-        )
+
+        for i in range(0, len(prospect_enriched_list), 5):
+            chunk = prospect_enriched_list[i:i + 5]
+            score_ai_filters.apply_async(
+                args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
+                priority=1,
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
+            # score_ai_filters(
+            #     chunk,
+            #     icp_scoring_ruleset.to_dict(),
+            #     dealbreaker,
+            #     individual_score_dict,
+            #     company_score_dict,
+            # )
+
+        # score_ai_filters.delay(
+        #     prospect_enriched_list,
+        #     icp_scoring_ruleset.to_dict(),
+        #     dealbreaker,
+        #     individual_score_dict,
+        #     company_score_dict,
+        # )
         #
         # score_ai_filters.apply_async(
         #     args=[prospect_enriched_list, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],

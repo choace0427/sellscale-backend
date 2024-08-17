@@ -95,6 +95,37 @@ def create_segment(client_sdr_id: int):
         db.session.add(empty_icp_scoring_ruleset)
         db.session.commit()
 
+        update_icp_scoring_ruleset(
+            client_archetype_id=unassigned_archetype.id,
+            included_individual_title_keywords=[],
+            excluded_individual_title_keywords=[],
+            included_individual_industry_keywords=[],
+            excluded_individual_industry_keywords=[],
+            individual_years_of_experience_start=0,
+            individual_years_of_experience_end=0,
+            included_individual_skills_keywords=[],
+            excluded_individual_skills_keywords=[],
+            included_individual_locations_keywords=[],
+            excluded_individual_locations_keywords=[],
+            included_individual_generalized_keywords=[],
+            excluded_individual_generalized_keywords=[],
+            included_company_name_keywords=[],
+            excluded_company_name_keywords=[],
+            included_company_locations_keywords=[],
+            excluded_company_locations_keywords=[],
+            company_size_start=0,
+            company_size_end=0,
+            included_company_industries_keywords=[],
+            excluded_company_industries_keywords=[],
+            included_company_generalized_keywords=[],
+            excluded_company_generalized_keywords=[],
+            included_individual_education_keywords=[],
+            excluded_individual_education_keywords=[],
+            included_individual_seniority_keywords=[],
+            excluded_individual_seniority_keywords=[],
+            segment_id=segment.id,
+        )
+
     if segment:
         return segment.to_dict(), 200
     else:
@@ -211,6 +242,37 @@ def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
         db.session.add(empty_icp_scoring_ruleset)
         db.session.commit()
 
+        update_icp_scoring_ruleset(
+            client_archetype_id=client_archetype.id,
+            included_individual_title_keywords=[],
+            excluded_individual_title_keywords=[],
+            included_individual_industry_keywords=[],
+            excluded_individual_industry_keywords=[],
+            individual_years_of_experience_start=0,
+            individual_years_of_experience_end=0,
+            included_individual_skills_keywords=[],
+            excluded_individual_skills_keywords=[],
+            included_individual_locations_keywords=[],
+            excluded_individual_locations_keywords=[],
+            included_individual_generalized_keywords=[],
+            excluded_individual_generalized_keywords=[],
+            included_company_name_keywords=[],
+            excluded_company_name_keywords=[],
+            included_company_locations_keywords=[],
+            excluded_company_locations_keywords=[],
+            company_size_start=0,
+            company_size_end=0,
+            included_company_industries_keywords=[],
+            excluded_company_industries_keywords=[],
+            included_company_generalized_keywords=[],
+            excluded_company_generalized_keywords=[],
+            included_individual_education_keywords=[],
+            excluded_individual_education_keywords=[],
+            included_individual_seniority_keywords=[],
+            excluded_individual_seniority_keywords=[],
+            segment_id=segment_id,
+        )
+
         # Reset all score of prospects in the segment
         prospects = Prospect.query.filter(
             Prospect.segment_id == segment_id,
@@ -222,6 +284,9 @@ def get_icp_ruleset_by_segment(client_sdr_id: int, segment_id: int):
             prospect.icp_fit_reason_v2 = {}
             prospect.icp_fit_score = 0
             prospect.icp_company_fit_reason = 0
+
+            db.session.add(prospect)
+            db.session.commit()
 
         return jsonify({"icp_ruleset": empty_icp_scoring_ruleset.to_dict()}), 200
 

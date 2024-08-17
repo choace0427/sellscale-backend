@@ -45,6 +45,8 @@ from src.operator_dashboard.models import (
     OperatorDashboardTaskType,
 )
 from src.operator_dashboard.services import create_operator_dashboard_entry
+from src.prospecting.icp_score.services import update_icp_scoring_ruleset, \
+    apply_segment_icp_scoring_ruleset_filters_task, apply_archetype_icp_scoring_ruleset_filters_task
 from src.prospecting.models import Prospect
 from src.research.models import ResearchPointType
 from src.smartlead.services import create_smartlead_campaign
@@ -86,6 +88,170 @@ def get_prospects_by_archetype(client_sdr_id: int, archetype_id: int):
         ).all()
 
     return jsonify({"prospects": [prospect.simple_to_dict() for prospect in prospects]}), 200
+
+
+@CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/score", methods=["POST"])
+@require_user
+def post_score_archetype_with_ruleset(client_sdr_id: int, archetype_id: int):
+    client_archetype: ClientArchetype = ClientArchetype.query.filter(
+        ClientArchetype.client_sdr_id == client_sdr_id,
+        ClientArchetype.id == archetype_id,
+        ).first()
+
+    if not client_archetype:
+        return "Cannot find unassigned client archetype", 400
+
+    included_individual_title_keywords = get_request_parameter(
+        "included_individual_title_keywords", request, json=True, required=False
+    )
+    excluded_individual_title_keywords = get_request_parameter(
+        "excluded_individual_title_keywords", request, json=True, required=False
+    )
+    included_individual_industry_keywords = get_request_parameter(
+        "included_individual_industry_keywords", request, json=True, required=False
+    )
+    excluded_individual_industry_keywords = get_request_parameter(
+        "excluded_individual_industry_keywords", request, json=True, required=False
+    )
+    individual_years_of_experience_start = get_request_parameter(
+        "individual_years_of_experience_start", request, json=True, required=False
+    )
+    individual_years_of_experience_end = get_request_parameter(
+        "individual_years_of_experience_end", request, json=True, required=False
+    )
+    included_individual_skills_keywords = get_request_parameter(
+        "included_individual_skills_keywords", request, json=True, required=False
+    )
+    excluded_individual_skills_keywords = get_request_parameter(
+        "excluded_individual_skills_keywords", request, json=True, required=False
+    )
+    included_individual_locations_keywords = get_request_parameter(
+        "included_individual_locations_keywords", request, json=True, required=False
+    )
+    excluded_individual_locations_keywords = get_request_parameter(
+        "excluded_individual_locations_keywords", request, json=True, required=False
+    )
+    included_individual_generalized_keywords = get_request_parameter(
+        "included_individual_generalized_keywords", request, json=True, required=False
+    )
+    excluded_individual_generalized_keywords = get_request_parameter(
+        "excluded_individual_generalized_keywords", request, json=True, required=False
+    )
+    included_individual_education_keywords = get_request_parameter(
+        "included_individual_education_keywords", request, json=True, required=False
+    )
+    excluded_individual_education_keywords = get_request_parameter(
+        "excluded_individual_education_keywords", request, json=True, required=False
+    )
+    included_individual_seniority_keywords = get_request_parameter(
+        "included_individual_seniority_keywords", request, json=True, required=False
+    )
+    excluded_individual_seniority_keywords = get_request_parameter(
+        "excluded_individual_seniority_keywords", request, json=True, required=False
+    )
+    included_company_name_keywords = get_request_parameter(
+        "included_company_name_keywords", request, json=True, required=False
+    )
+    excluded_company_name_keywords = get_request_parameter(
+        "excluded_company_name_keywords", request, json=True, required=False
+    )
+    included_company_locations_keywords = get_request_parameter(
+        "included_company_locations_keywords", request, json=True, required=False
+    )
+    excluded_company_locations_keywords = get_request_parameter(
+        "excluded_company_locations_keywords", request, json=True, required=False
+    )
+    company_size_start = get_request_parameter(
+        "company_size_start", request, json=True, required=False
+    )
+    company_size_end = get_request_parameter(
+        "company_size_end", request, json=True, required=False
+    )
+    included_company_industries_keywords = get_request_parameter(
+        "included_company_industries_keywords", request, json=True, required=False
+    )
+    excluded_company_industries_keywords = get_request_parameter(
+        "excluded_company_industries_keywords", request, json=True, required=False
+    )
+    included_company_generalized_keywords = get_request_parameter(
+        "included_company_generalized_keywords", request, json=True, required=False
+    )
+    excluded_company_generalized_keywords = get_request_parameter(
+        "excluded_company_generalized_keywords", request, json=True, required=False
+    )
+    individual_personalizers = get_request_parameter(
+        "individual_personalizers", request, json=True, required=False
+    )
+    company_personalizers = get_request_parameter(
+        "company_personalizers", request, json=True, required=False
+    )
+    dealbreakers = get_request_parameter(
+        "dealbreakers", request, json=True, required=False
+    )
+    individual_ai_filters = get_request_parameter(
+        "individual_ai_filters", request, json=True, required=False
+    )
+    company_ai_filters = get_request_parameter(
+        "company_ai_filters", request, json=True, required=False
+    )
+    selected_contacts = get_request_parameter(
+        "selectedContacts", request, json=True, required=False
+    )
+
+    update_icp_scoring_ruleset(
+        client_archetype_id=client_archetype.id,
+        included_individual_title_keywords=included_individual_title_keywords,
+        excluded_individual_title_keywords=excluded_individual_title_keywords,
+        included_individual_industry_keywords=included_individual_industry_keywords,
+        excluded_individual_industry_keywords=excluded_individual_industry_keywords,
+        individual_years_of_experience_start=individual_years_of_experience_start,
+        individual_years_of_experience_end=individual_years_of_experience_end,
+        included_individual_skills_keywords=included_individual_skills_keywords,
+        excluded_individual_skills_keywords=excluded_individual_skills_keywords,
+        included_individual_locations_keywords=included_individual_locations_keywords,
+        excluded_individual_locations_keywords=excluded_individual_locations_keywords,
+        included_individual_generalized_keywords=included_individual_generalized_keywords,
+        excluded_individual_generalized_keywords=excluded_individual_generalized_keywords,
+        included_company_name_keywords=included_company_name_keywords,
+        excluded_company_name_keywords=excluded_company_name_keywords,
+        included_company_locations_keywords=included_company_locations_keywords,
+        excluded_company_locations_keywords=excluded_company_locations_keywords,
+        company_size_start=company_size_start,
+        company_size_end=company_size_end,
+        included_company_industries_keywords=included_company_industries_keywords,
+        excluded_company_industries_keywords=excluded_company_industries_keywords,
+        included_company_generalized_keywords=included_company_generalized_keywords,
+        excluded_company_generalized_keywords=excluded_company_generalized_keywords,
+        included_individual_education_keywords=included_individual_education_keywords,
+        excluded_individual_education_keywords=excluded_individual_education_keywords,
+        included_individual_seniority_keywords=included_individual_seniority_keywords,
+        excluded_individual_seniority_keywords=excluded_individual_seniority_keywords,
+        individual_personalizers=individual_personalizers,
+        company_personalizers=company_personalizers,
+        dealbreakers=dealbreakers,
+        individual_ai_filters=individual_ai_filters,
+        company_ai_filters=company_ai_filters,
+    )
+
+    # If selected contact is empty, we want to score all prospects in the segment
+    if not selected_contacts or len(selected_contacts) == 0:
+        prospects = Prospect.query.filter(
+            Prospect.archetype_id == archetype_id
+            ).all()
+
+        prospect_ids = [prospect.id for prospect in prospects]
+    else:
+        prospect_ids = selected_contacts
+
+    success = apply_archetype_icp_scoring_ruleset_filters_task(
+        client_archetype_id=client_archetype.id,
+        prospect_ids=prospect_ids,
+    )
+
+    if success:
+        return {"message": "ok"}, 200
+
+    return "Failed to apply ICP Scoring Ruleset", 500
 
 
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/bulk_action/move", methods=["POST"])

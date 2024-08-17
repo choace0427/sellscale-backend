@@ -1,6 +1,6 @@
 import yaml
 from typing import Optional
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, desc
 from sqlalchemy.exc import SQLAlchemyError
 
 from regex import E
@@ -304,15 +304,51 @@ def update_segment(
             ICPScoringRuleset.segment_id == segment_id,
         ).first()
 
-        current_icp_scoring_rulesets: list[ICPScoringRuleset] = ICPScoringRuleset.query.filter(
+        current_icp_scoring_ruleset: ICPScoringRuleset = ICPScoringRuleset.query.filter(
             ICPScoringRuleset.client_archetype_id == client_archetype_id,
-        ).all()
+        ).first()
 
-        for current_icp_scoring_ruleset in current_icp_scoring_rulesets:
-            current_icp_scoring_ruleset.client_archetype_id = None
+        # If there is already a icp_scoring_ruleset for the campaign, update it
+        if current_icp_scoring_ruleset:
+            update_icp_scoring_ruleset(
+                client_archetype_id=client_archetype_id,
+                included_individual_title_keywords=(icp_scoring_ruleset.included_individual_title_keywords if icp_scoring_ruleset.included_individual_title_keywords else []) + (current_icp_scoring_ruleset.included_individual_title_keywords if current_icp_scoring_ruleset.included_individual_title_keywords else []),
+                excluded_individual_title_keywords=(icp_scoring_ruleset.excluded_individual_title_keywords if icp_scoring_ruleset.excluded_individual_title_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_title_keywords if current_icp_scoring_ruleset.excluded_individual_title_keywords else []),
+                included_individual_industry_keywords=(icp_scoring_ruleset.included_individual_industry_keywords if icp_scoring_ruleset.included_individual_industry_keywords else []) + (current_icp_scoring_ruleset.included_individual_industry_keywords if current_icp_scoring_ruleset.included_individual_industry_keywords else []),
+                excluded_individual_industry_keywords=(icp_scoring_ruleset.excluded_individual_industry_keywords if icp_scoring_ruleset.excluded_individual_industry_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_industry_keywords if current_icp_scoring_ruleset.excluded_individual_industry_keywords else []),
+                individual_years_of_experience_start=icp_scoring_ruleset.individual_years_of_experience_start if icp_scoring_ruleset.individual_years_of_experience_start else 0,
+                individual_years_of_experience_end=icp_scoring_ruleset.individual_years_of_experience_end if icp_scoring_ruleset.individual_years_of_experience_end else 0,
+                included_individual_skills_keywords=(icp_scoring_ruleset.included_individual_skills_keywords if icp_scoring_ruleset.included_individual_skills_keywords else []) + (current_icp_scoring_ruleset.included_individual_skills_keywords if current_icp_scoring_ruleset.included_individual_skills_keywords else []),
+                excluded_individual_skills_keywords=(icp_scoring_ruleset.excluded_individual_skills_keywords if icp_scoring_ruleset.excluded_individual_skills_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_skills_keywords if current_icp_scoring_ruleset.excluded_individual_skills_keywords else []),
+                included_individual_locations_keywords=(icp_scoring_ruleset.included_individual_locations_keywords if icp_scoring_ruleset.included_individual_locations_keywords else []) + (current_icp_scoring_ruleset.included_individual_locations_keywords if current_icp_scoring_ruleset.included_individual_locations_keywords else []),
+                excluded_individual_locations_keywords=(icp_scoring_ruleset.excluded_individual_locations_keywords if icp_scoring_ruleset.excluded_individual_locations_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_locations_keywords if current_icp_scoring_ruleset.excluded_individual_locations_keywords else []),
+                included_individual_generalized_keywords=(icp_scoring_ruleset.included_individual_generalized_keywords if icp_scoring_ruleset.included_individual_generalized_keywords else []) + (current_icp_scoring_ruleset.included_individual_generalized_keywords if current_icp_scoring_ruleset.included_individual_generalized_keywords else []),
+                excluded_individual_generalized_keywords=(icp_scoring_ruleset.excluded_individual_generalized_keywords if icp_scoring_ruleset.excluded_individual_generalized_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_generalized_keywords if current_icp_scoring_ruleset.excluded_individual_generalized_keywords else []),
+                included_company_name_keywords=(icp_scoring_ruleset.included_company_name_keywords if icp_scoring_ruleset.included_company_name_keywords else []) + (current_icp_scoring_ruleset.included_company_name_keywords if current_icp_scoring_ruleset.included_company_name_keywords else []),
+                excluded_company_name_keywords=(icp_scoring_ruleset.excluded_company_name_keywords if icp_scoring_ruleset.excluded_company_name_keywords else []) + (current_icp_scoring_ruleset.excluded_company_name_keywords if current_icp_scoring_ruleset.excluded_company_name_keywords else []),
+                included_company_locations_keywords=(icp_scoring_ruleset.included_company_locations_keywords if icp_scoring_ruleset.included_company_locations_keywords else []) + (current_icp_scoring_ruleset.included_company_locations_keywords if current_icp_scoring_ruleset.included_company_locations_keywords else []),
+                excluded_company_locations_keywords=(icp_scoring_ruleset.excluded_company_locations_keywords if icp_scoring_ruleset.excluded_company_locations_keywords else []) + (current_icp_scoring_ruleset.excluded_company_locations_keywords if current_icp_scoring_ruleset.excluded_company_locations_keywords else []),
+                company_size_start=icp_scoring_ruleset.company_size_start if icp_scoring_ruleset.company_size_start else 0,
+                company_size_end=icp_scoring_ruleset.company_size_end if icp_scoring_ruleset.company_size_end else 0,
+                included_company_industries_keywords=(icp_scoring_ruleset.included_company_industries_keywords if icp_scoring_ruleset.included_company_industries_keywords else []) + (current_icp_scoring_ruleset.included_company_industries_keywords if current_icp_scoring_ruleset.included_company_industries_keywords else []),
+                excluded_company_industries_keywords=(icp_scoring_ruleset.excluded_company_industries_keywords if icp_scoring_ruleset.excluded_company_industries_keywords else []) + (current_icp_scoring_ruleset.excluded_company_industries_keywords if current_icp_scoring_ruleset.excluded_company_industries_keywords else []),
+                included_company_generalized_keywords=(icp_scoring_ruleset.included_company_generalized_keywords if icp_scoring_ruleset.included_company_generalized_keywords else []) + (current_icp_scoring_ruleset.included_company_generalized_keywords if current_icp_scoring_ruleset.included_company_generalized_keywords else []),
+                excluded_company_generalized_keywords=(icp_scoring_ruleset.excluded_company_generalized_keywords if icp_scoring_ruleset.excluded_company_generalized_keywords else []) + (current_icp_scoring_ruleset.excluded_company_generalized_keywords if current_icp_scoring_ruleset.excluded_company_generalized_keywords else []),
+                included_individual_education_keywords=(icp_scoring_ruleset.included_individual_education_keywords if icp_scoring_ruleset.included_individual_education_keywords else []) + (current_icp_scoring_ruleset.included_individual_education_keywords if current_icp_scoring_ruleset.included_individual_education_keywords else []),
+                excluded_individual_education_keywords=(icp_scoring_ruleset.excluded_individual_education_keywords if icp_scoring_ruleset.excluded_individual_education_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_education_keywords if current_icp_scoring_ruleset.excluded_individual_education_keywords else []),
+                included_individual_seniority_keywords=(icp_scoring_ruleset.included_individual_seniority_keywords if icp_scoring_ruleset.included_individual_seniority_keywords else []) + (current_icp_scoring_ruleset.included_individual_seniority_keywords if current_icp_scoring_ruleset.included_individual_seniority_keywords else []),
+                excluded_individual_seniority_keywords=(icp_scoring_ruleset.excluded_individual_seniority_keywords if icp_scoring_ruleset.excluded_individual_seniority_keywords else []) + (current_icp_scoring_ruleset.excluded_individual_seniority_keywords if current_icp_scoring_ruleset.excluded_individual_seniority_keywords else []),
+                individual_personalizers=(icp_scoring_ruleset.individual_personalizers if icp_scoring_ruleset.individual_personalizers else []) + (current_icp_scoring_ruleset.individual_personalizers if current_icp_scoring_ruleset.individual_personalizers else []),
+                company_personalizers=(icp_scoring_ruleset.company_personalizers if icp_scoring_ruleset.company_personalizers else []) + (current_icp_scoring_ruleset.company_personalizers if current_icp_scoring_ruleset.company_personalizers else []),
+                dealbreakers=(icp_scoring_ruleset.dealbreakers if icp_scoring_ruleset.dealbreakers else []) + (current_icp_scoring_ruleset.dealbreakers if current_icp_scoring_ruleset.dealbreakers else []),
+                individual_ai_filters=(icp_scoring_ruleset.individual_ai_filters if icp_scoring_ruleset.individual_ai_filters else []) + (current_icp_scoring_ruleset.individual_ai_filters if current_icp_scoring_ruleset.individual_ai_filters else []),
+                company_ai_filters=(icp_scoring_ruleset.company_ai_filters if icp_scoring_ruleset.company_ai_filters else []) + (current_icp_scoring_ruleset.company_ai_filters if current_icp_scoring_ruleset.company_ai_filters else []),
+            )
+        else:
+            icp_scoring_ruleset.client_archetype_id = client_archetype_id
 
-        icp_scoring_ruleset.client_archetype_id = client_archetype_id
         db.session.add(icp_scoring_ruleset)
+        db.session.add(current_icp_scoring_ruleset)
         db.session.commit()
 
     return segment
