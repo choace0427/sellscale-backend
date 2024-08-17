@@ -2195,49 +2195,49 @@ def append_icp_scoring_segment_ruleset_filters(
             segment_id=segment_id
         )
 
-        # Individual
-        icp_scoring_ruleset.included_individual_title_keywords = []
-        icp_scoring_ruleset.excluded_individual_title_keywords = []
-
-        icp_scoring_ruleset.included_individual_industry_keywords = []
-        icp_scoring_ruleset.excluded_individual_industry_keywords = []
-
-        icp_scoring_ruleset.individual_years_of_experience_start = 0
-        icp_scoring_ruleset.individual_years_of_experience_end = 0
-
-        icp_scoring_ruleset.included_individual_skills_keywords = []
-        icp_scoring_ruleset.excluded_individual_skills_keywords = []
-
-        icp_scoring_ruleset.included_individual_locations_keywords = []
-        icp_scoring_ruleset.excluded_individual_locations_keywords = []
-
-        icp_scoring_ruleset.included_individual_generalized_keywords = []
-        icp_scoring_ruleset.excluded_individual_generalized_keywords = []
-
-        icp_scoring_ruleset.included_individual_education_keywords = []
-        icp_scoring_ruleset.excluded_individual_education_keywords = []
-
-        icp_scoring_ruleset.included_individual_seniority_keywords = []
-        icp_scoring_ruleset.excluded_individual_seniority_keywords = []
-
-        # Company
-        icp_scoring_ruleset.included_company_name_keywords = []
-        icp_scoring_ruleset.excluded_company_name_keywords = []
-
-        icp_scoring_ruleset.included_company_locations_keywords = []
-        icp_scoring_ruleset.excluded_company_locations_keywords = []
-
-        icp_scoring_ruleset.company_size_start = 0
-        icp_scoring_ruleset.company_size_end = 0
-
-        icp_scoring_ruleset.included_company_industries_keywords = []
-        icp_scoring_ruleset.excluded_company_industries_keywords = []
-
-        icp_scoring_ruleset.included_company_generalized_keywords = []
-        icp_scoring_ruleset.excluded_company_generalized_keywords = []
-
         db.session.add(icp_scoring_ruleset)
         db.session.commit()
+
+    # Individual
+    icp_scoring_ruleset.included_individual_title_keywords = icp_scoring_ruleset.included_individual_title_keywords if icp_scoring_ruleset.included_individual_title_keywords else []
+    icp_scoring_ruleset.excluded_individual_title_keywords = icp_scoring_ruleset.excluded_individual_title_keywords if icp_scoring_ruleset.excluded_individual_title_keywords else []
+
+    icp_scoring_ruleset.included_individual_industry_keywords = icp_scoring_ruleset.included_individual_industry_keywords if icp_scoring_ruleset.included_individual_industry_keywords else []
+    icp_scoring_ruleset.excluded_individual_industry_keywords = icp_scoring_ruleset.excluded_individual_industry_keywords if icp_scoring_ruleset.excluded_individual_industry_keywords else []
+
+    icp_scoring_ruleset.individual_years_of_experience_start = icp_scoring_ruleset.individual_years_of_experience_start if icp_scoring_ruleset.individual_years_of_experience_start else 0
+    icp_scoring_ruleset.individual_years_of_experience_end = icp_scoring_ruleset.individual_years_of_experience_end if icp_scoring_ruleset.individual_years_of_experience_end else 0
+
+    icp_scoring_ruleset.included_individual_skills_keywords = icp_scoring_ruleset.included_individual_skills_keywords if icp_scoring_ruleset.included_individual_skills_keywords else []
+    icp_scoring_ruleset.excluded_individual_skills_keywords = icp_scoring_ruleset.excluded_individual_skills_keywords if icp_scoring_ruleset.excluded_individual_skills_keywords else []
+
+    icp_scoring_ruleset.included_individual_locations_keywords = icp_scoring_ruleset.included_individual_locations_keywords if icp_scoring_ruleset.included_individual_locations_keywords else []
+    icp_scoring_ruleset.excluded_individual_locations_keywords = icp_scoring_ruleset.excluded_individual_locations_keywords if icp_scoring_ruleset.excluded_individual_locations_keywords else []
+
+    icp_scoring_ruleset.included_individual_generalized_keywords = icp_scoring_ruleset.included_individual_generalized_keywords if icp_scoring_ruleset.included_individual_generalized_keywords else []
+    icp_scoring_ruleset.excluded_individual_generalized_keywords = icp_scoring_ruleset.excluded_individual_generalized_keywords if icp_scoring_ruleset.excluded_individual_generalized_keywords else []
+
+    icp_scoring_ruleset.included_individual_education_keywords = icp_scoring_ruleset.included_individual_education_keywords if icp_scoring_ruleset.included_individual_education_keywords else []
+    icp_scoring_ruleset.excluded_individual_education_keywords = icp_scoring_ruleset.excluded_individual_education_keywords if icp_scoring_ruleset.excluded_individual_education_keywords else []
+
+    icp_scoring_ruleset.included_individual_seniority_keywords = icp_scoring_ruleset.included_individual_seniority_keywords if icp_scoring_ruleset.included_individual_seniority_keywords else []
+    icp_scoring_ruleset.excluded_individual_seniority_keywords = icp_scoring_ruleset.excluded_individual_seniority_keywords if icp_scoring_ruleset.excluded_individual_seniority_keywords else []
+
+    # Company
+    icp_scoring_ruleset.included_company_name_keywords = icp_scoring_ruleset.included_company_name_keywords if icp_scoring_ruleset.included_company_name_keywords else []
+    icp_scoring_ruleset.excluded_company_name_keywords = icp_scoring_ruleset.excluded_company_name_keywords if icp_scoring_ruleset.excluded_company_name_keywords else []
+
+    icp_scoring_ruleset.included_company_locations_keywords = icp_scoring_ruleset.included_company_locations_keywords if icp_scoring_ruleset.included_company_locations_keywords else []
+    icp_scoring_ruleset.excluded_company_locations_keywords = icp_scoring_ruleset.excluded_company_locations_keywords if icp_scoring_ruleset.excluded_company_locations_keywords else []
+
+    icp_scoring_ruleset.company_size_start = icp_scoring_ruleset.company_size_start if icp_scoring_ruleset.company_size_start else 0
+    icp_scoring_ruleset.company_size_end = icp_scoring_ruleset.company_size_end if icp_scoring_ruleset.company_size_end else 0
+
+    icp_scoring_ruleset.included_company_industries_keywords = icp_scoring_ruleset.included_company_industries_keywords if icp_scoring_ruleset.included_company_industries_keywords else []
+    icp_scoring_ruleset.excluded_company_industries_keywords = icp_scoring_ruleset.excluded_company_industries_keywords if icp_scoring_ruleset.excluded_company_industries_keywords else []
+
+    icp_scoring_ruleset.included_company_generalized_keywords = icp_scoring_ruleset.included_company_generalized_keywords if icp_scoring_ruleset.included_company_generalized_keywords else []
+    icp_scoring_ruleset.excluded_company_generalized_keywords = icp_scoring_ruleset.excluded_company_generalized_keywords if icp_scoring_ruleset.excluded_company_generalized_keywords else []
 
     saved_apollo_query: SavedApolloQuery = SavedApolloQuery.query.get(
         saved_apollo_query_id
