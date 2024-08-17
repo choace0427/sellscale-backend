@@ -227,6 +227,14 @@ def update_icp_scoring_ruleset(
     if company_ai_filters is not None:
         icp_scoring_ruleset.company_ai_filters = company_ai_filters
 
+    if icp_scoring_ruleset.individual_years_of_experience_start == 0 and icp_scoring_ruleset.individual_years_of_experience_end == 0:
+        icp_scoring_ruleset.individual_years_of_experience_start = None
+        icp_scoring_ruleset.individual_years_of_experience_end = None
+
+    if icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end == 0:
+        icp_scoring_ruleset.company_size_start = None
+        icp_scoring_ruleset.company_size_end = None
+
     db.session.add(icp_scoring_ruleset)
     db.session.commit()
 
@@ -2298,9 +2306,6 @@ def append_icp_scoring_segment_ruleset_filters(
     icp_scoring_ruleset.included_individual_industry_keywords = icp_scoring_ruleset.included_individual_industry_keywords if icp_scoring_ruleset.included_individual_industry_keywords else []
     icp_scoring_ruleset.excluded_individual_industry_keywords = icp_scoring_ruleset.excluded_individual_industry_keywords if icp_scoring_ruleset.excluded_individual_industry_keywords else []
 
-    icp_scoring_ruleset.individual_years_of_experience_start = icp_scoring_ruleset.individual_years_of_experience_start if icp_scoring_ruleset.individual_years_of_experience_start else 0
-    icp_scoring_ruleset.individual_years_of_experience_end = icp_scoring_ruleset.individual_years_of_experience_end if icp_scoring_ruleset.individual_years_of_experience_end else 0
-
     icp_scoring_ruleset.included_individual_skills_keywords = icp_scoring_ruleset.included_individual_skills_keywords if icp_scoring_ruleset.included_individual_skills_keywords else []
     icp_scoring_ruleset.excluded_individual_skills_keywords = icp_scoring_ruleset.excluded_individual_skills_keywords if icp_scoring_ruleset.excluded_individual_skills_keywords else []
 
@@ -2322,9 +2327,6 @@ def append_icp_scoring_segment_ruleset_filters(
 
     icp_scoring_ruleset.included_company_locations_keywords = icp_scoring_ruleset.included_company_locations_keywords if icp_scoring_ruleset.included_company_locations_keywords else []
     icp_scoring_ruleset.excluded_company_locations_keywords = icp_scoring_ruleset.excluded_company_locations_keywords if icp_scoring_ruleset.excluded_company_locations_keywords else []
-
-    icp_scoring_ruleset.company_size_start = icp_scoring_ruleset.company_size_start if icp_scoring_ruleset.company_size_start else 0
-    icp_scoring_ruleset.company_size_end = icp_scoring_ruleset.company_size_end if icp_scoring_ruleset.company_size_end else 0
 
     icp_scoring_ruleset.included_company_industries_keywords = icp_scoring_ruleset.included_company_industries_keywords if icp_scoring_ruleset.included_company_industries_keywords else []
     icp_scoring_ruleset.excluded_company_industries_keywords = icp_scoring_ruleset.excluded_company_industries_keywords if icp_scoring_ruleset.excluded_company_industries_keywords else []
@@ -2373,8 +2375,8 @@ def append_icp_scoring_segment_ruleset_filters(
         "excluded_individual_locations_keywords": excluded_location_keywords or [],
         "included_individual_skills_keywords": included_skills_keywords or [],
         "excluded_individual_skills_keywords": excluded_skills_keywords or [],
-        "individual_years_of_experience_start": years_of_experience_start or 0,
-        "individual_years_of_experience_end": years_of_experience_end or 0,
+        "individual_years_of_experience_start": years_of_experience_start or None,
+        "individual_years_of_experience_end": years_of_experience_end or None,
         "company_size_start": included_company_size or [],
         "included_individual_industry_keywords": included_industry_keywords or [],
         "excluded_individual_industry_keywords": excluded_industry_keywords or [],
@@ -2391,10 +2393,8 @@ def append_icp_scoring_segment_ruleset_filters(
     icp_scoring_ruleset.excluded_individual_industry_keywords = \
         icp_scoring_ruleset.excluded_individual_industry_keywords + filters["excluded_individual_industry_keywords"]
 
-    icp_scoring_ruleset.individual_years_of_experience_start = \
-        icp_scoring_ruleset.individual_years_of_experience_start + filters["individual_years_of_experience_start"]
-    icp_scoring_ruleset.individual_years_of_experience_end = \
-        icp_scoring_ruleset.individual_years_of_experience_end + filters["individual_years_of_experience_end"]
+    icp_scoring_ruleset.individual_years_of_experience_start = filters["individual_years_of_experience_start"]
+    icp_scoring_ruleset.individual_years_of_experience_end = filters["individual_years_of_experience_end"]
 
     icp_scoring_ruleset.included_individual_skills_keywords = \
         icp_scoring_ruleset.included_individual_skills_keywords + filters["included_individual_skills_keywords"]
@@ -2427,10 +2427,8 @@ def append_icp_scoring_segment_ruleset_filters(
     icp_scoring_ruleset.excluded_company_name_keywords = \
         icp_scoring_ruleset.excluded_company_name_keywords + filters["excluded_company_name_keywords"]
 
-    icp_scoring_ruleset.company_size_start = \
-        icp_scoring_ruleset.company_size_start + filters["company_size_start"][0] if filters["company_size_start"] else 0
-    icp_scoring_ruleset.company_size_end = \
-        icp_scoring_ruleset.company_size_end + filters["company_size_start"][1] if filters["company_size_start"] else 0
+    icp_scoring_ruleset.company_size_start = filters["company_size_start"][0] if filters["company_size_start"] else None
+    icp_scoring_ruleset.company_size_end = filters["company_size_start"][1] if filters["company_size_start"] else None
 
     db.session.commit()
 
