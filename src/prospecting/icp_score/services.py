@@ -2787,6 +2787,8 @@ def apply_archetype_icp_scoring_ruleset_filters(
         db.session.commit()
 
         print("Done!")
+
+        send_socket_message('update_prospect_list', {'update': True})
         # score_one_prospect_segment only scores the programmatic filters
         # we will do the ai filters in a celery task.
         # we have to send over the icp_scoring_ruleset
@@ -3069,6 +3071,7 @@ def apply_segment_icp_scoring_ruleset_filters(
         db.session.commit()
 
         print("Done!")
+        send_socket_message('update_prospect_list', {'update': True})
         # score_one_prospect_segment only scores the programmatic filters
         # we will do the ai filters in a celery task.
         # we have to send over the icp_scoring_ruleset
