@@ -755,15 +755,18 @@ def get_available_sla_count(
     if campaign_type == GeneratedMessageType.LINKEDIN:
         if per_day:
             # Get Campaign that starts today and ends tomorrow and is a daily generation
-            campaign: OutboundCampaign = OutboundCampaign.query.filter(
+            campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter(
                 OutboundCampaign.client_sdr_id == client_sdr_id,
                 OutboundCampaign.campaign_type == campaign_type,
                 OutboundCampaign.status != OutboundCampaignStatus.CANCELLED,
                 func.date(OutboundCampaign.campaign_start_date) == start_date,
                 func.date(OutboundCampaign.campaign_end_date) == tomorrow,
                 OutboundCampaign.is_daily_generation == True,
-            ).first()
-            if campaign:
+            ).all()
+            total_count_prospects = 0
+            for c in campaigns:
+                total_count_prospects += len(c.prospect_ids)
+            if total_count_prospects >= sla_schedule.linkedin_volume // 5:
                 return (
                     -1,
                     -1,

@@ -570,7 +570,7 @@ def create_outbound_campaign(
         and archetype.testing_volume < num_messages_sent_this_week
     ):
         raise Exception("This client has reached their weekly cap for outreach")
-
+    
     # Smart get prospects to use
     if num_prospects > len(prospect_ids):
         top_prospects = smart_get_prospects_for_campaign(
@@ -661,70 +661,16 @@ def smart_get_prospects_for_campaign(
     """
     remaining_num_prospects = num_prospects
 
-    # If warm_emails is True and campaign_type is EMAIL, get warmed prospects
-    warmed_prospects = []
-    if warm_emails and campaign_type == GeneratedMessageType.EMAIL:
-        warmed_prospects = get_warmed_prospects(
-            client_archetype_id=client_archetype_id,
-            num_prospects=num_prospects,
-            campaign_type=campaign_type,
-        )
-        remaining_num_prospects = num_prospects - len(warmed_prospects)
-        if remaining_num_prospects < 0:
-            raise Exception(
-                "Incorrect number of prospects returned from get_warmed_prospects"
-            )
+    whitelist = Prospect.query.filter(
+        Prospect.archetype_id == client_archetype_id
+    ).all()
+    whitelist_prospect_ids = [p.id for p in whitelist]
 
-        # Since we are targeting warmed prospects, we can return early
-        return warmed_prospects
-
-    # Get prospects with highest ICP intent score
-    top_intent_prospects = get_top_intent_prospects(
-        client_archetype_id=client_archetype_id,
-        num_prospects=remaining_num_prospects,
-        campaign_type=campaign_type,
-    )
-    remaining_num_prospects = num_prospects - len(top_intent_prospects)
-    if remaining_num_prospects < 0:
-        raise Exception(
-            "Incorrect number of prospects returned from get_top_intent_prospects"
-        )
-
-    # Get prospects with highest health check score
-    top_healthscore_prospects = get_top_healthscore_prospects(
-        client_archetype_id=client_archetype_id,
-        num_prospects=remaining_num_prospects,
-        campaign_type=campaign_type,
-        blacklist=top_intent_prospects,
-    )
-    remaining_num_prospects = remaining_num_prospects - len(top_healthscore_prospects)
-    if remaining_num_prospects < 0:
-        raise Exception(
-            "Incorrect number of prospects returned from get_top_healthscore_prospects"
-        )
-
-    # Get prospects randomly
-    random_prospects = get_random_prospects(
-        client_archetype_id=client_archetype_id,
-        num_prospects=remaining_num_prospects,
-        campaign_type=campaign_type,
-        blacklist=top_intent_prospects + top_healthscore_prospects,
-    )
-    remaining_num_prospects = remaining_num_prospects - len(random_prospects)
-    if remaining_num_prospects < 0:
-        raise Exception(
-            "Incorrect number of prospects returned from get_top_healthscore_prospects"
-        )
-
-    prospect_ids: list[int] = (
-        top_intent_prospects + top_healthscore_prospects + random_prospects
+    client_archetype: ClientArchetype = ClientArchetype.query.get(
+        client_archetype_id
     )
 
-    # Filter Based on Omni Rules for Linkedin
-    if campaign_type == GeneratedMessageType.LINKEDIN:
-        client_archetype: ClientArchetype = ClientArchetype.query.get(
-            client_archetype_id
-        )
+    if campaign_type == GeneratedMessageType.LINKEDIN and client_archetype.email_to_linkedin_connection:    
         email_opened_prospects_query = """
         select
             array_agg(distinct prospect.id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH') "prospects_sent_outreach",
@@ -751,42 +697,105 @@ def smart_get_prospects_for_campaign(
             == EmailToLinkedInConnection.ALL_PROSPECTS
         ):
             # Filter prospect ids for prospects that have been sent outreach
-            if email_opened_prospects["prospects_sent_outreach"] is not None:
-                prospect_ids = list(
-                    set(prospect_ids).intersection(
-                        email_opened_prospects["prospects_sent_outreach"]
-                    )
-                )
-            else:
-                prospect_ids = []
+            # if email_opened_prospects["prospects_sent_outreach"] is not None:
+            #     prospect_ids = list(
+            #         set(prospect_ids).intersection(
+            #             email_opened_prospects["prospects_sent_outreach"]
+            #         )
+            #     )
+            # else:
+            #     prospect_ids = []
+            whitelist_prospect_ids = email_opened_prospects["prospects_sent_outreach"]
         elif (
             client_archetype.email_to_linkedin_connection
             == EmailToLinkedInConnection.OPENED_EMAIL_PROSPECTS_ONLY
         ):
             # Filter prospect ids for prospects that have opened emails
-            if email_opened_prospects["prospects_email_opened"] is not None:
-                prospect_ids = list(
-                    set(prospect_ids).intersection(
-                        email_opened_prospects["prospects_email_opened"]
-                    )
-                )
-            else:
-                prospect_ids = []
+            # if email_opened_prospects["prospects_email_opened"] is not None:
+            #     prospect_ids = list(
+            #         set(prospect_ids).intersection(
+            #             email_opened_prospects["prospects_email_opened"]
+            #         )
+            #     )
+            # else:
+            #     prospect_ids = []
+            whitelist_prospect_ids = email_opened_prospects["prospects_email_opened"]
         elif (
             client_archetype.email_to_linkedin_connection
             == EmailToLinkedInConnection.CLICKED_LINK_PROSPECTS_ONLY
         ):
             # Filter prospect ids for prospects that have clicked emails
-            if email_opened_prospects["prospects_clicked"] is not None:
-                prospect_ids = list(
-                    set(prospect_ids).intersection(
-                        email_opened_prospects["prospects_clicked"]
-                    )
-                )
-            else:
-                prospect_ids = []
-    else:
-        client_archetype = ClientArchetype.query.get(client_archetype_id)
+            # if email_opened_prospects["prospects_clicked"] is not None:
+            #     prospect_ids = list(
+            #         set(prospect_ids).intersection(
+            #             email_opened_prospects["prospects_clicked"]
+            #         )
+            #     )
+            # else:
+            #     prospect_ids = []
+            whitelist_prospect_ids = email_opened_prospects["prospects_clicked"]
+
+    # If warm_emails is True and campaign_type is EMAIL, get warmed prospects
+    warmed_prospects = []
+    if warm_emails and campaign_type == GeneratedMessageType.EMAIL:
+        warmed_prospects = get_warmed_prospects(
+            client_archetype_id=client_archetype_id,
+            num_prospects=num_prospects,
+            campaign_type=campaign_type,
+            whitelist=whitelist_prospect_ids,
+        )
+        remaining_num_prospects = num_prospects - len(warmed_prospects)
+        if remaining_num_prospects < 0:
+            raise Exception(
+                "Incorrect number of prospects returned from get_warmed_prospects"
+            )
+
+        # Since we are targeting warmed prospects, we can return early
+        return warmed_prospects
+
+    # Get prospects with highest ICP intent score
+    top_intent_prospects = get_top_intent_prospects(
+        client_archetype_id=client_archetype_id,
+        num_prospects=remaining_num_prospects,
+        campaign_type=campaign_type,
+        whitelist=whitelist_prospect_ids,
+    )
+    remaining_num_prospects = num_prospects - len(top_intent_prospects)
+    if remaining_num_prospects < 0:
+        raise Exception(
+            "Incorrect number of prospects returned from get_top_intent_prospects"
+        )
+
+    # Get prospects with highest health check score
+    top_healthscore_prospects = get_top_healthscore_prospects(
+        client_archetype_id=client_archetype_id,
+        num_prospects=remaining_num_prospects,
+        campaign_type=campaign_type,
+        blacklist=top_intent_prospects,
+        whitelist=whitelist_prospect_ids,
+    )
+    remaining_num_prospects = remaining_num_prospects - len(top_healthscore_prospects)
+    if remaining_num_prospects < 0:
+        raise Exception(
+            "Incorrect number of prospects returned from get_top_healthscore_prospects"
+        )
+
+    # Get prospects randomly
+    random_prospects = get_random_prospects(
+        client_archetype_id=client_archetype_id,
+        num_prospects=remaining_num_prospects,
+        campaign_type=campaign_type,
+        blacklist=top_intent_prospects + top_healthscore_prospects,
+    )
+    remaining_num_prospects = remaining_num_prospects - len(random_prospects)
+    if remaining_num_prospects < 0:
+        raise Exception(
+            "Incorrect number of prospects returned from get_top_healthscore_prospects"
+        )
+
+    prospect_ids: list[int] = (
+        top_intent_prospects + top_healthscore_prospects + random_prospects
+    )
 
     # check against the daily limit, if we want to send more than, we need to cut down
     weekday = datetime.datetime.now().weekday()
@@ -813,6 +822,7 @@ def get_warmed_prospects(
     client_archetype_id: int,
     num_prospects: int,
     campaign_type: GeneratedMessageType,
+    whitelist: list[int] = [],
 ) -> list[int]:
     """Gets warmed prospects for a campaign
 
@@ -844,6 +854,12 @@ def get_warmed_prospects(
                 ]
             ),
         )
+    )
+    if whitelist:
+        warmed_prospects = warmed_prospects.filter(Prospect.id.in_(whitelist))
+    
+    warmed_prospects = (
+        warmed_prospects
         .limit(num_prospects)
         .all()
     )
@@ -857,6 +873,7 @@ def get_top_intent_prospects(
     num_prospects: int,
     campaign_type: GeneratedMessageType,
     blacklist: Optional[list[int]] = [],
+    whitelist: Optional[list[int]] = [],
 ) -> list[int]:
     """Gets the top prospects using intent score (LinkedIn or Email)
 
@@ -894,8 +911,6 @@ def get_top_intent_prospects(
                 Prospect.overall_status != ProspectOverallStatus.BUMPED.value,
             )
             .order_by(Prospect.email_intent_score.desc(), func.random())
-            .limit(num_prospects)
-            .all()
         )
     elif campaign_type == GeneratedMessageType.LINKEDIN:
         prospects = (
@@ -904,9 +919,12 @@ def get_top_intent_prospects(
                 Prospect.approved_outreach_message_id == None,
             )
             .order_by(Prospect.li_intent_score.desc(), func.random())
-            .limit(num_prospects)
-            .all()
         )
+
+    if whitelist:
+        prospects = prospects.filter(Prospect.id.in_(whitelist))
+
+    prospects = prospects.limit(num_prospects).all()
 
     prospect_ids: list[int] = [p.id for p in prospects]
     return prospect_ids
@@ -917,6 +935,7 @@ def get_top_healthscore_prospects(
     num_prospects: int,
     campaign_type: GeneratedMessageType,
     blacklist: Optional[list[int]] = [],
+    whitelist: Optional[list[int]] = [],
 ) -> list[int]:
     """Gets the top prospects using health score (LinkedIn or Email)
 
@@ -957,6 +976,10 @@ def get_top_healthscore_prospects(
         prospects = prospects.filter(
             Prospect.approved_outreach_message_id == None,
         )
+
+    if whitelist:
+        prospects = prospects.filter(Prospect.id.in_(whitelist))
+
     prospects = (
         prospects.order_by(Prospect.health_check_score.desc(), func.random())
         .limit(num_prospects)
