@@ -5742,8 +5742,8 @@ Response: {response}
 IMPORTANT: Respond with only the company name, tagline, sales segment details, and a nicely organized (bullet-pointed with this char: •) customer sales segment (essentially, a sales segment) with title and value proposition. 
 IMPORTANT: Tagline should not be too market-y or vision-y, it should be a practical quick description of the company.
 
-bad tagline example: "Revolutionizing the way we think about data"
-good tagline example: "Data analytics for small businesses"
+bad tagline example: "Powering the world's best businesses"
+good tagline example: "Hubspot is a customer relationship management software for SMB and medium-sized businesses."
 
 Few-shot examples:
 
