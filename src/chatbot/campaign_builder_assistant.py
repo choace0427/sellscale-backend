@@ -1468,3 +1468,75 @@ def analyze_file(file:str, description:str, file_name: str, session_id: int ):
         send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
 
     return {"success": True}
+
+@celery.task
+def get_suggested_first_message(client_sdr_id: int, room_id: str):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    latest_segment_description: SavedApolloQuery = SavedApolloQuery.query.filter(
+        SavedApolloQuery.segment_description.isnot(None),
+        SavedApolloQuery.client_sdr_id == client_sdr_id
+    ).order_by(SavedApolloQuery.id.desc()).first()
+    
+    prompt = f"""
+You are a campaign angle suggestor for a chatbot that helps clients create sales campaigns. Based on the following client information, 
+suggest three different short campaign angles (1 sentence each) for the campaign that are creative and are ultra specific. 
+
+Company: {client.company} Tagline: {client.tagline} Description: {client.description} Segment Description: {latest_segment_description}
+
+All angles should stem on things that we can reasonably search from the internet. 
+Make it specific to the comapny and the persona. 
+
+Examples of angles you can take
+1. Company-level angles
+    -job postings
+    -published articles
+2. Person-level angles
+    -Have XYZ written on their linkedin profiles
+    -recent news about XYZ
+
+ BE CREATIVE. No messages should exceed 70 characters.
+
+Example Good Angle 1: 'Write a campaign targeting series a founders who recently posted for an SDR.' 
+Example Good Angle 2: 'Write a campaign targeting recently hired founding sales individuals'' 
+
+"""
+    
+    print('hello test')
+
+    
+    response_schema = {
+        "name": "response_schema",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "message_1": {"type": "string"},
+                "message_2": {"type": "string"},
+                "message_3": {"type": "string"},
+            },
+            "required": ["message_1", "message_2", "message_3"],
+            "additionalProperties": False
+        }
+    }
+
+    response = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        model="gpt-4o-2024-08-06",
+        max_tokens=300,
+        response_format={"type": "json_schema", "json_schema": response_schema}
+    )
+
+    response = json.loads(response)
+    response = [response.get(f"message_{i+1}").replace('"', '').replace("'", '') for i in range(3)]
+
+    if room_id:
+        send_socket_message('first-message-suggestion', {'messages': response, 'room_id': room_id}, room_id)
+    
+    return response

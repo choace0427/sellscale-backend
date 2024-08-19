@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread, get_suggested_first_message
 from src.chatbot.models import SelixActionCall
 from src.client.models import ClientSDR
 from src.utils.request_helpers import get_request_parameter
@@ -34,7 +34,20 @@ def create_session(client_sdr_id: int):
     task_titles = get_request_parameter(
         "task_titles", request, json=True, required=False
     )
+
+    if room_id:
+        get_suggested_first_message.delay(client_sdr_id, room_id)
     chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name, task_titles=task_titles)
+
+    return "OK", 200
+
+@SELIX_BLUEPRINT.route("/get_one_suggested_first_message", methods=["POST"])
+@require_user
+def get_one_suggested_first_message(client_sdr_id: int):
+    room_id = get_request_parameter(
+        "room_id", request, json=True, required=True
+    )
+    get_suggested_first_message.delay(client_sdr_id, room_id)
     return "OK", 200
 
 @SELIX_BLUEPRINT.route("/delete_session", methods=["DELETE"])
