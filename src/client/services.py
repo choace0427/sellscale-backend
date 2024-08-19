@@ -5741,16 +5741,17 @@ Response: {response}
 
 IMPORTANT: Respond with only the company name, tagline, sales segment details, and a nicely organized (bullet-pointed with this char: •) customer sales segment (essentially, a sales segment) with title and value proposition. 
 IMPORTANT: Tagline should not be too market-y or vision-y, it should be a practical quick description of the company.
+IMPORTANT: Description is a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products.
 
 bad tagline example: "Powering the world's best businesses"
 good tagline example: "Hubspot is a customer relationship management software for SMB and medium-sized businesses."
 
 Few-shot examples:
 
-Bad Description Example:
+Bad Sales Segment Description Example:
 This segment targets passionate Coca-Cola enthusiasts who appreciate the brand's history, iconic products, and cultural impact. These individuals are not just casual drinkers; they are brand loyalists who enjoy exploring new flavors, participating in promotions, and engaging with Coca-Cola's marketing campaigns.
 
-Good Description Example:
+Good Sales Segment Description Example:
 • Title keywords: Marketing, Client.
 • Seniority: Director+
 • Account: Advertising or marketing platforms.
