@@ -5709,7 +5709,7 @@ def create_selix_customer(
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the email {email}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and a detailed sales / segment description of their customer demographic."
+                prompt=f"Given the email {email}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
             )
             
             details_schema = {
@@ -5734,7 +5734,37 @@ def create_selix_customer(
                 messages=[
                     {
                         "role": "user",
-                        "content": f"Given the response and email address, respond with the company name, tagline, and description. Email: {email} Response: {response}\nIMPORTANT: Respond with only the company name, tagline, description, and a nicely organized (bullet-pointed with this char: •) customer sales segment (essentially, a sales segment) with title and value proposition . IMPORTANT:, tagline should not be too market-y or vision-y, it should be a practical quick description of the company. \n"
+                        "content": f'''
+Given the response and email address, respond with the company name, tagline, and description. 
+Email: {email} 
+Response: {response}
+
+IMPORTANT: Respond with only the company name, tagline, sales segment details, and a nicely organized (bullet-pointed with this char: •) customer sales segment (essentially, a sales segment) with title and value proposition. 
+IMPORTANT: Tagline should not be too market-y or vision-y, it should be a practical quick description of the company.
+
+bad tagline example: "Revolutionizing the way we think about data"
+good tagline example: "Data analytics for small businesses"
+
+Few-shot examples:
+
+Bad Description Example:
+This segment targets passionate Coca-Cola enthusiasts who appreciate the brand's history, iconic products, and cultural impact. These individuals are not just casual drinkers; they are brand loyalists who enjoy exploring new flavors, participating in promotions, and engaging with Coca-Cola's marketing campaigns.
+
+Good Description Example:
+• Title keywords: Marketing, Client.
+• Seniority: Director+
+• Account: Advertising or marketing platforms.
+These companies optimize marketing/ad spend. They target big brands seeking optimization.
+Example companies: Zvnga, LG Ad Solutions.
+
+Value Proposition Examples:
+Bad: Unlock a world of exclusive Coca-Cola experiences, from limited-edition flavors to brand events.
+Good: They aim to access CMOs/marketing/advertising professionals, their main customer base.
+
+Segment Title Examples:
+Bad: Coca-Cola Connoisseurs
+Good: AdTech/MarTech Innovators
+'''
                     }
                 ],
                 model="gpt-4o-2024-08-06",
