@@ -3,6 +3,7 @@ from src.ml.openai_wrappers import (
     OPENAI_COMPLETION_DAVINCI_3_MODEL,
     wrapped_create_completion,
 )
+from app import celery
 from src.prospecting.models import Prospect
 from src.client.services import create_client_archetype
 from model_import import ClientSDR, ClientArchetype
@@ -10,6 +11,7 @@ import json
 import yaml
 
 
+@celery.task
 def create_unassigned_contacts_archetype(client_sdr_id: int) -> tuple[bool, str]:
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     if not client_sdr:

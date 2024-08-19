@@ -486,7 +486,10 @@ def create_client_archetype(
         sdr.default_transformer_blocklist if sdr.default_transformer_blocklist else []
     )
     
-    auto_generation_payload: SequenceAutoGenerationParameters = initialize_auto_generation_payload(auto_generation_payload)
+    auto_generation_payload = auto_generation_payload or {}
+
+    if auto_generation_payload:
+        auto_generation_payload: SequenceAutoGenerationParameters = initialize_auto_generation_payload(auto_generation_payload)
 
     client_archetype = ClientArchetype(
         client_id=client_id,
@@ -528,8 +531,8 @@ def create_client_archetype(
         transformer_blocklist_initial=transformer_blocklist,
         testing_volume=2 ** 31 - 1,  #max int,
         setup_status="SETUP",
-        li_seq_generation_in_progress= (True if auto_generation_payload.write_li_sequence_draft else False),
-        email_seq_generation_in_progress= (True if auto_generation_payload.write_email_sequence_draft else False),
+        li_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_li_sequence_draft else False),
+        email_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_email_sequence_draft else False),
     )
     db.session.add(client_archetype)
     db.session.commit()
@@ -537,7 +540,7 @@ def create_client_archetype(
 
     client: Client = Client.query.get(client_id)
 
-    if auto_generation_payload.write_email_sequence_draft:
+    if auto_generation_payload and auto_generation_payload.write_email_sequence_draft:
         from src.ml.services import one_shot_sequence_generation
         one_shot_sequence_generation.delay(
             client_sdr_id,
@@ -549,7 +552,7 @@ def create_client_archetype(
             with_data=auto_generation_payload.with_data,
         )
 
-    if auto_generation_payload.li_cta_generator:
+    if auto_generation_payload and auto_generation_payload.li_cta_generator:
         print("Generating LI CTA")
         from src.ml.services import one_shot_sequence_generation
         # one_shot_sequence_generation.delay(
@@ -570,7 +573,7 @@ def create_client_archetype(
             with_data=auto_generation_payload.with_data,
 
         )
-    elif auto_generation_payload.write_li_sequence_draft:
+    elif auto_generation_payload and auto_generation_payload.write_li_sequence_draft:
         print("Generating LI sequence")
         from src.ml.services import one_shot_sequence_generation
         # one_shot_sequence_generation.delay(
@@ -686,7 +689,7 @@ def create_client_archetype(
             campaign_additional_context=context,
         )
 
-    if auto_generation_payload.selected_voice:
+    if auto_generation_payload and auto_generation_payload.selected_voice:
         campaign_voices_generation(
             archetype=archetype,
             with_cta=False,
@@ -1109,8 +1112,8 @@ def create_client_sdr(
 
     # create_sight_onboarding(sdr.id)
 
-    print("Creating unassigned contacts archetype")
-    create_unassigned_contacts_archetype(sdr.id)
+    print('async unassigned archetype creation')
+    create_unassigned_contacts_archetype.delay(sdr.id)
     create_default_ai_researcher(sdr.id)
 
     print("Creating the anchor email")
@@ -5704,75 +5707,51 @@ def create_selix_customer(
     # Get company name
     import concurrent.futures
 
-    def fetch_company_name(email):
+    def fetch_company_details(email):
         try:
-            company_name = simple_perplexity_response(
+            response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the email {email}, please provide the company name.",
+                prompt=f"Given the email {email}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products."
             )
-            company_name = wrapped_chat_gpt_completion(
+            
+            details_schema = {
+                "name": "details_schema",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "company_name": {"type": "string"},
+                        "tagline": {"type": "string"},
+                        "description": {"type": "string"}
+                    },
+                    "required": ["company_name", "tagline", "description"],
+                    "additionalProperties": False
+                }
+            }
+
+            details = wrapped_chat_gpt_completion(
                 messages=[
                     {
                         "role": "user",
-                        "content": f"Given the response and email address, respond with ONLY the company name. Email: {email} Response: {company_name}\nIMPORTANT: Respond with only the company name and nothing more\nCompany Name:"
+                        "content": f"Given the response and email address, respond with the company name, tagline, and description. Email: {email} Response: {response}\nIMPORTANT: Respond with only the company name, tagline, and description in the following format:\nCompany Name: [company name]\nTagline: [tagline] (Note: The tagline should not be too market-y and should be a quick short description of the purpose of the company.)\nDescription: [description]\n"
                     }
                 ],
                 model="gpt-4o",
-                max_tokens=20
+                max_tokens=300,
+                response_format={"type": "json_schema", "json_schema": details_schema}
             )
-            return company_name.strip().replace('"', '')
+            details = json.loads(details)
+            company_name = details["company_name"]
+            tagline = details["tagline"]
+            description = details["description"]
+            return company_name, tagline, description
         except:
-            return email.split('@')[-1]
+            domain = email.split('@')[-1]
+            return domain, "", ""
 
-    def fetch_tagline(company_name):
-        try:
-            tagline = simple_perplexity_response(
-                model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the company name {company_name}, please provide the company tagline. Maximum 6-8 words.",
-            )
-            tagline = wrapped_chat_gpt_completion(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Given the company name {company_name}, respond with the company tagline. Response: {tagline}\nIMPORTANT: Respond with only the tagline and nothing more. Don't make it market-y or gimicky. We need it to be practical and succinct. Bad example: At Apple, we are changing lives. Good example: At Apple, we make the fastest computers.\nTagline:"
-                    }
-                ],
-                model="gpt-4o",
-                max_tokens=20
-            )
-            return tagline.strip().replace('"', '')
-        except:
-            return ""
+    company_name, tagline, description = fetch_company_details(email)
 
-    def fetch_description(company_name, domain):
-        try:
-            description = simple_perplexity_response(
-                model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the company name {company_name} ({domain}), please provide a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products."
-            )
-            description = wrapped_chat_gpt_completion(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Given the company name {company_name}, respond with a 1-2 paragraph description of the company. Keep it succinct, no yapping. 4-5 sentences max. Response: {description}\nIMPORTANT: Respond with only the description and nothing more\nDescription:"
-                    }
-                ],
-                model="gpt-4o",
-                max_tokens=200
-            )
-            return description.strip().replace('"', '')
-        except:
-            return ""
-
-    with app.app_context():
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            future_company_name = executor.submit(fetch_company_name, email)
-            future_tagline = executor.submit(fetch_tagline, future_company_name.result())
-            future_description = executor.submit(fetch_description, future_company_name.result(), email.split('@')[-1])
-
-            company_name = future_company_name.result()
-            tagline = future_tagline.result()
-            description = future_description.result()
+    print(f"Company Name: {company_name}", f"Tagline: {tagline}", f"Description: {description}", sep="\n")
 
     # Create client or short circuit if client already exists
     client_json = create_client(

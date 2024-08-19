@@ -27,6 +27,7 @@ from src.track.services import find_company_from_people_labs #for celery task re
 from src.ml.ai_researcher_services import run_ai_researcher_question #for celery task registration
 from src.li_conversation.services import detect_demo_set #for celery task registration
 from src.merge_crm.services import poll_crm_contacts
+from src.client.services_unassigned_contacts_archetype import create_unassigned_contacts_archetype #for celery task registration
 from src.ml.spam_detection import run_algorithmic_spam_detection
 from src.prospecting.models import Prospect
 from src.authentication.decorators import require_user
