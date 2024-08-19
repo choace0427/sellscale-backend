@@ -490,6 +490,7 @@ class Prospect(db.Model):
 
     icp_fit_reason_v2 = db.Column(db.JSON, nullable=True)
 
+    icp_prospect_fit_score = db.Column(db.Integer, nullable=True)
     icp_company_fit_score = db.Column(db.Integer, nullable=True)
     icp_company_fit_reason = db.Column(db.JSON, nullable=True)
 
@@ -572,6 +573,7 @@ class Prospect(db.Model):
             "email": self.email,
             "valid_primary_email": self.valid_primary_email,
             "industry": self.industry,
+            "icp_prospect_fit_score": self.icp_prospect_fit_score,
             "icp_fit_score": self.icp_fit_score,
             "icp_fit_last_hash": self.icp_fit_last_hash,
             "icp_fit_reason": self.icp_fit_reason,
@@ -692,6 +694,7 @@ class Prospect(db.Model):
                 "icp_fit_last_hash": self.icp_fit_last_hash,
                 "icp_fit_reason": self.icp_fit_reason,
                 "icp_fit_reason_v2": self.icp_fit_reason_v2,
+                "icp_prospect_fit_score": self.icp_prospect_fit_score,
                 "icp_company_fit_score": self.icp_company_fit_score,
                 "icp_company_fit_reason": self.icp_company_fit_reason,
                 "li_public_id": (
@@ -870,6 +873,7 @@ class Prospect(db.Model):
             "icp_fit_reason": self.icp_fit_reason,
             "icp_fit_error": self.icp_fit_error,
             "icp_fit_reason_v2": self.icp_fit_reason_v2,
+            "icp_prospect_fit_score": self.icp_prospect_fit_score,
             "icp_company_fit_score": self.icp_company_fit_score,
             "icp_company_fit_reason": self.icp_company_fit_reason,
             "img_url": self.img_url,
