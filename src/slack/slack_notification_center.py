@@ -15,7 +15,7 @@
 
 import os
 
-from app import db, slack_app
+from app import db, slack_app, celery
 from typing import Optional, TypedDict, Union
 from slack_sdk.webhook import WebhookClient
 from datetime import datetime
@@ -366,7 +366,7 @@ def subscribe_all_sdrs_to_notification(
 
     return True
 
-
+@celery.task
 def subscribe_sdr_to_all_notifications(client_sdr_id: int) -> bool:
     """Subscribe an SDR to all of the Slack notifications
 

@@ -16,6 +16,7 @@ from src.client.sdr.services_client_sdr import (
 )
 from sqlalchemy import cast, String
 from src.company.models import Company
+from src.contacts.models import SavedApolloQuery
 from src.contacts.services import handle_chat_icp
 from src.domains.services import create_domain_and_managed_inboxes
 from src.email_scheduling.services import (
@@ -1052,6 +1053,7 @@ def create_client_sdr(
     if not c:
         return None
 
+
     print("Creating client sdr")
     sdr = ClientSDR(
         client_id=client_id,
@@ -1123,8 +1125,7 @@ def create_client_sdr(
         email_type=EmailType.ANCHOR,
     )
 
-    print("Subscribe to all notifications")
-    subscribe_sdr_to_all_notifications(
+    subscribe_sdr_to_all_notifications.delay(
         client_sdr_id=sdr.id,
     )
 
@@ -5703,15 +5704,12 @@ def create_selix_customer(
     company_name = domain
     tagline = ""
     description = ""
-    
-    # Get company name
-    import concurrent.futures
 
     def fetch_company_details(email):
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the email {email}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products."
+                prompt=f"Given the email {email}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and a detailed sales / segment description of their customer demographic."
             )
             
             details_schema = {
@@ -5722,9 +5720,12 @@ def create_selix_customer(
                     "properties": {
                         "company_name": {"type": "string"},
                         "tagline": {"type": "string"},
-                        "description": {"type": "string"}
+                        "description": {"type": "string"},
+                        "detailed_sales_segment": {"type": "string"},
+                        "detailed_sales_segment_title": {"type": "string"},
+                        "detailed_sales_segment_value_proposition": {"type": "string"},
                     },
-                    "required": ["company_name", "tagline", "description"],
+                    "required": ["company_name", "tagline", "description", "detailed_sales_segment", "detailed_sales_segment_title", "detailed_sales_segment_value_proposition"],
                     "additionalProperties": False
                 }
             }
@@ -5733,10 +5734,10 @@ def create_selix_customer(
                 messages=[
                     {
                         "role": "user",
-                        "content": f"Given the response and email address, respond with the company name, tagline, and description. Email: {email} Response: {response}\nIMPORTANT: Respond with only the company name, tagline, and description in the following format:\nCompany Name: [company name]\nTagline: [tagline] (Note: The tagline should not be too market-y and should be a quick short description of the purpose of the company.)\nDescription: [description]\n"
+                        "content": f"Given the response and email address, respond with the company name, tagline, and description. Email: {email} Response: {response}\nIMPORTANT: Respond with only the company name, tagline, description, and a nicely organized (bullet-pointed with this char: •) customer sales segment (essentially, a sales segment) with title and value proposition . IMPORTANT:, tagline should not be too market-y or vision-y, it should be a practical quick description of the company. \n"
                     }
                 ],
-                model="gpt-4o",
+                model="gpt-4o-2024-08-06",
                 max_tokens=300,
                 response_format={"type": "json_schema", "json_schema": details_schema}
             )
@@ -5744,12 +5745,18 @@ def create_selix_customer(
             company_name = details["company_name"]
             tagline = details["tagline"]
             description = details["description"]
-            return company_name, tagline, description
-        except:
-            domain = email.split('@')[-1]
-            return domain, "", ""
+            detailed_sales_segment_description = details["detailed_sales_segment"].replace('*', '')
+            detailed_sales_segment_title = details["detailed_sales_segment_title"]
+            detailed_sales_segment_value_proposition = details["detailed_sales_segment_value_proposition"]
 
-    company_name, tagline, description = fetch_company_details(email)
+            return company_name, tagline, description, detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition
+        except Exception as e:
+            print("Error fetching company details")
+            print(e)
+            domain = email.split('@')[-1]
+            return domain, "", "", "", "", ""
+
+    company_name, tagline, description, detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition = fetch_company_details(email)
 
     print(f"Company Name: {company_name}", f"Tagline: {tagline}", f"Description: {description}", sep="\n")
 
@@ -5790,21 +5797,40 @@ def create_selix_customer(
 
     client: Client = Client.query.get(client_id)
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    
+
+    #just create a blank saved apollo query for the client
+
+    saved_query = SavedApolloQuery(
+        is_icp_filter=False,
+        custom_name=detailed_sales_segment_title,
+        value_proposition=detailed_sales_segment_value_proposition,
+        segment_description=detailed_sales_segment_description,
+        name_query=f"Preliminary ICP Filter for {company_name}",
+        data={},
+        results={},
+        client_sdr_id=client_sdr_id,
+        is_prefilter=True,
+        num_results=0,
+    )
+
+    db.session.add(saved_query)
+    db.session.commit()
 
     # Create a first ICP filter
-    def generate_first_icp_filter(client_sdr_id, company_domain):
-        #run perplexity query to get ideal customer profile text. 
-        icp_description = simple_perplexity_response(
-                model="llama-3-sonar-large-32k-online",
-                prompt=f"Tell me the ideal customer profile for {company_domain} Be descriptive. Break down your response in terms of account & contact. For account, mention type of company, stage, size, location, industry, fundraising stage, revenue range, etc. For contact, mention location, title, seniority, and other relevent details. Use bullet points.".format(company_domain=company_domain)
-        )
+    # def generate_first_icp_filter(client_sdr_id, company_domain):
+    #     #run perplexity query to get ideal customer profile text. 
+    #     icp_description = simple_perplexity_response(
+    #             model="llama-3-sonar-large-32k-online",
+    #             prompt=f"Tell me the ideal customer profile for {company_domain} Be descriptive. Break down your response in terms of account & contact. For account, mention type of company, stage, size, location, industry, fundraising stage, revenue range, etc. For contact, mention location, title, seniority, and other relevent details. Use bullet points.".format(company_domain=company_domain)
+    #     )
 
-        icp_description = icp_description[0].replace('"', '').strip()
-        # The issue is with the 'chat_content' parameter. It should be a list of dictionaries, not a list of tuples.
-        sample_chat_content = [{'sender': 'chatbot', 'query': "Hey there! I'm SellScale AI, your friendly chatbot for creating sales segments. To get started, tell me a bit about your business or who you're targeting.", 'created_at': 'August 14, 12:11 pm'}]
-        handle_chat_icp(client_sdr_id=client_sdr_id, chat_content=sample_chat_content, prompt=icp_description)
+    #     icp_description = icp_description[0].replace('"', '').strip()
+    #     # The issue is with the 'chat_content' parameter. It should be a list of dictionaries, not a list of tuples.
+    #     sample_chat_content = [{'sender': 'chatbot', 'query': "Hey there! I'm SellScale AI, your friendly chatbot for creating sales segments. To get started, tell me a bit about your business or who you're targeting.", 'created_at': 'August 14, 12:11 pm'}]
+    #     handle_chat_icp(client_sdr_id=client_sdr_id, chat_content=sample_chat_content, prompt=icp_description)
 
-    generate_first_icp_filter(client_sdr_id, client.domain)
+    # generate_first_icp_filter(client_sdr_id, client.domain)
 
     # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
