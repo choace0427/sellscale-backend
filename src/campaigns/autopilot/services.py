@@ -75,7 +75,7 @@ def daily_collect_and_generate_campaigns_for_sdr(self):
     # If the current day is a weekend, then don't generate campaigns
     if datetime.today().weekday() in [5, 6]:
         return
-
+    
     # Get active clients that have auto_generate_li_messages enabled
     li_clients: list[Client] = Client.query.filter(
         Client.active == True,
@@ -229,18 +229,25 @@ def daily_generate_linkedin_campaign_for_sdr(
                         GeneratedMessageType.LINKEDIN,
                     )
                 )
-                # Create the campaign
-                oc = create_outbound_campaign(
-                    prospect_ids=[],
-                    num_prospects=num_to_generate,
-                    campaign_type=GeneratedMessageType.LINKEDIN,
-                    client_archetype_id=archetype.id,
-                    client_sdr_id=client_sdr.id,
-                    campaign_start_date=start_date,
-                    campaign_end_date=end_date,
-                    ctas=[cta.id for cta in ctas],
-                    is_daily_generation=True,
-                )
+                oc = None
+                if num_available_prospects == 0:
+                    send_slack_message(
+                        f"🤖 ❌ 🧑‍🤝‍🧑 Daily Campaign (LI): No prospects to generate. {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
+                        [SLACK_CHANNEL],
+                    )
+                else:
+                    # Create the campaign
+                    oc = create_outbound_campaign(
+                        prospect_ids=[],
+                        num_prospects=num_to_generate,
+                        campaign_type=GeneratedMessageType.LINKEDIN,
+                        client_archetype_id=archetype.id,
+                        client_sdr_id=client_sdr.id,
+                        campaign_start_date=start_date,
+                        campaign_end_date=end_date,
+                        ctas=[cta.id for cta in ctas],
+                        is_daily_generation=True,
+                    )
                 if not oc:
                     send_slack_message(
                         f"🤖 ❌ ❓ Daily Campaign (LI): Campaign not created for {client_sdr.name} (#{client_sdr.id}). Persona: {archetype.emoji} {archetype.archetype}.",
