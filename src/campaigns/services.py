@@ -1196,7 +1196,45 @@ def mark_campaign_as_ready_to_send(campaign_id: int):
 
     return True
 
+def mark_campaigns_as_initial_review_complete(days=1):
+    """
+    Marks all campaigns as initial edit that are created after the given days as complete
+    """
+    outbound_campaigns = OutboundCampaign.query.filter(
+        OutboundCampaign.status.in_([OutboundCampaignStatus.NEEDS_REVIEW, OutboundCampaignStatus.INITIAL_EDIT_COMPLETE]),
+        OutboundCampaign.created_at <= datetime.datetime.now() - datetime.timedelta(hours=3),
+        OutboundCampaign.created_at >= datetime.datetime.now() - datetime.timedelta(days=days),
+    ).all()
 
+    for campaign in tqdm(outbound_campaigns):
+        print("Marking campaign as initial review complete: #", campaign.id)
+        try:
+            mark_campaign_as_initial_review_complete(campaign.id)
+        except Exception as e:
+            send_slack_message(
+                message="Error while marking campaign as initial review complete: #{}".format(campaign.id),
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Error while marking campaign as initial review complete: #{}".format(campaign.id),
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": str(e),
+                        },
+                    },
+                ],
+                webhook_urls=[URL_MAP["operations-ready-campaigns"]],
+            )
+
+    return True
+
+@celery.task
 def mark_campaign_as_initial_review_complete(campaign_id: int):
     """Marks the campaign as initial edit is complete
 
@@ -1308,6 +1346,16 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
         batch_mark_prospects_in_email_campaign_queued(
             campaign_id=campaign_id,
         )
+
+    # try:
+    #     from src.automation.models import PhantomBusterConfig, PhantomBusterType, PhantomBusterAgent
+    #     pb_config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+    #     ).filter_by(client_sdr_id=client_sdr_id, pb_type=PhantomBusterType.OUTBOUND_ENGINE).first()
+    #     pb_id = pb_config.phantom_uuid
+    #     pb_client = PhantomBusterAgent(pb_id)
+    #     pb_client.run_phantom()
+    # except Exception as e:
+    #     print(e)
 
     return True
 

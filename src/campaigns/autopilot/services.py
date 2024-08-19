@@ -1007,9 +1007,12 @@ def send_slack_message_for_invalid_messages(
 
 @celery.task(bind=True, max_retries=3)
 def auto_send_campaigns_and_send_approved_messages_job(self):
+    from src.campaigns.services import mark_campaigns_as_initial_review_complete
+
     try:
         auto_send_all_campaigns()
         send_approved_messages_in_complete_campaigns()
+        mark_campaigns_as_initial_review_complete()
     except Exception as e:
         send_slack_message(
             f"❌ Error in auto_send_campaigns_and_send_approved_messages_job: {e}",
