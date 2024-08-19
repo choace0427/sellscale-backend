@@ -90,6 +90,13 @@ def add_company_cache_to_db(json_data) -> bool:
 
     career_page_url = (details.get("call_to_action") or {}).get("url", None)
 
+    existing_company = Company.query.filter(
+        Company.li_company_id == str(li_company_id)
+    ).first()
+    if existing_company:
+        print(f"Skipping existing company: {universal_name}/{li_company_id}")
+        return True
+
     return add_company(
         name=name,
         universal_name=universal_name,
