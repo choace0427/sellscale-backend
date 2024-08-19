@@ -85,6 +85,15 @@ def simulate_linkedin_bucketing(client_sdr_id: int):
     linkedin_url = f"linkedin.com/in/{slug}"
     linkedin_bio = deep_get(payload, "summary")
     title = deep_get(payload, "sub_title")
+    print('entire payload:', payload)
+    current_titles_other = [
+        position.get("title")
+        for group in payload.get("position_groups", [])
+        for position in group.get("profile_positions", [])
+        #current position
+        if group.get("date").get("end") == {'month': None, 'day': None, 'year': None}
+    ]
+    print('titles_other:', current_titles_other)
     twitter_url = None
 
     education_1 = deep_get(payload, "education.0.school.name")
@@ -120,7 +129,8 @@ def simulate_linkedin_bucketing(client_sdr_id: int):
             prospect_company=company_name,
             prospect_title=title,
             webpage_click=visited_page,
-            icp_route_id=rule.id
+            icp_route_id=rule.id,
+            current_titles_other=current_titles_other
         )
         if route != -1:
             route : ICPRouting = ICPRouting.query.get(route)

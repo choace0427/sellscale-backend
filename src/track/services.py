@@ -1021,7 +1021,7 @@ def clean_company_name(name):
     return name
 
 
-def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prospect_title: str, webpage_click: str, icp_route_id: int) -> tuple[int, list[str]]:
+def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prospect_title: str, webpage_click: str, icp_route_id: int, current_titles_other: Optional[list[str]] = None) -> tuple[int, list[str]]:
     icp_route: ICPRouting = ICPRouting.query.get(icp_route_id)
 
     print(f"Categorizing prospect: {prospect_name} from company: {prospect_company} with title: {prospect_title}")
@@ -1036,6 +1036,8 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
     if not rules or len(rules) == 0:
         print("No rules found for ICP Route")
         return -1, met_conditions
+
+    all_titles = [prospect_title.lower()] + [title.lower() for title in (current_titles_other or [])]
 
     for rule in rules:
         condition = rule.get("condition")
@@ -1053,12 +1055,12 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
         condition_met = False
 
         if condition == "title_contains":
-            if value in prospect_title.lower():
-                print(f"Condition 'title_contains' met: {value} in {prospect_title}")
+            if any(value in title for title in all_titles):
+                print(f"Condition 'title_contains' met: {value} in {all_titles}")
                 condition_met = True
         elif condition == "title_not_contains":
-            if value not in prospect_title.lower():
-                print(f"Condition 'title_not_contains' met: {value} not in {prospect_title}")
+            if all(value not in title for title in all_titles):
+                print(f"Condition 'title_not_contains' met: {value} not in {all_titles}")
                 condition_met = True
         elif condition == "company_name_is":
             if value in prospect_company.lower():
@@ -1125,12 +1127,8 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
             if relevant_breadcrumbs.get("title_breadcrumbs"):
                 title_matched = False
                 for breadcrumb in relevant_breadcrumbs["title_breadcrumbs"]:
-                    if breadcrumb["display_name"].lower() in prospect_title.lower():
+                    if any(breadcrumb["display_name"].lower() in title for title in all_titles):
                         met_condition_to_append["title_breadcrumbs"] = breadcrumb["display_name"]
-                        # met_conditions.append({
-                        #     "condition": condition,
-                        #     "title_breadcrumbs": breadcrumb["display_name"]
-                        # })
                         title_matched = True
                         break
                 if not title_matched:
@@ -1141,8 +1139,8 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
                 management_level_matched = False
                 for breadcrumb in relevant_breadcrumbs["management_level_breadcrumbs"]:
                     breadcrumb_display_name = breadcrumb["display_name"].lower()
-                    if (breadcrumb_display_name in prospect_title.lower() or
-                        (breadcrumb_display_name in ['vp', 'vice president'] and any(title in prospect_title.lower() for title in ['vp', 'vice president']))):
+                    if (any(breadcrumb_display_name in title for title in all_titles) or
+                        (breadcrumb_display_name in ['vp', 'vice president'] and any(title in all_titles for title in ['vp', 'vice president']))):
                         met_condition_to_append["seniority_breadcrumbs"] = breadcrumb["display_name"]
                         management_level_matched = True
                         break
@@ -1155,10 +1153,6 @@ def categorize_via_rules_direct(prospect_name: str, prospect_company: str, prosp
                 for breadcrumb in relevant_breadcrumbs["company_breadcrumbs"]:
                     if breadcrumb["display_name"].strip().lower() == prospect_company.strip().lower():
                         met_condition_to_append["title_breadcrumbs"] = breadcrumb["display_name"]
-                        # met_conditions.append({
-                        #     "condition": condition,
-                        #     "company_breadcrumbs": breadcrumb["display_name"]
-                        # })
                         company_matched = True
                         break
                 if not company_matched:
