@@ -210,13 +210,13 @@ def run_message_rule_engine(message_id: int):
     highlighted_words = []
 
     # Hallucination check for Linkedin only
-    if message.message_type == GeneratedMessageType.LINKEDIN:
-        rule_no_hallucinations(
-            message_id=message_id,
-            problems=problems,
-            blocking_problems=blocking_problems,
-            highlighted_words=highlighted_words,
-        )
+    # if message.message_type == GeneratedMessageType.LINKEDIN:
+    #     rule_no_hallucinations(
+    #         message_id=message_id,
+    #         problems=problems,
+    #         blocking_problems=blocking_problems,
+    #         highlighted_words=highlighted_words,
+    #     )
 
     # Strict Rules
     rule_no_profanity(
