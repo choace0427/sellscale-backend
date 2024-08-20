@@ -5705,7 +5705,7 @@ def create_selix_customer(
     tagline = ""
     description = ""
 
-    def fetch_company_details(email):
+    def fetch_company_details(email, domain):
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
@@ -5787,7 +5787,7 @@ Good: AdTech/MarTech Innovators
             domain = email.split('@')[-1]
             return domain, "", "", "", "", ""
 
-    company_name, tagline, description, detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition = fetch_company_details(email)
+    company_name, tagline, description, detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition = fetch_company_details(email, domain)
 
     print(f"Company Name: {company_name}", f"Tagline: {tagline}", f"Description: {description}", sep="\n")
 
