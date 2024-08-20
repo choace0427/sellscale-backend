@@ -5881,6 +5881,7 @@ Good: AdTech/MarTech Innovators
 
     # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
+
     try:
         slack_message_blocks = [
             {
@@ -5895,7 +5896,17 @@ Good: AdTech/MarTech Innovators
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"{tagline}"
+                    "text": f"_{tagline}_"
+                }
+            },
+            {
+                "type": "divider"
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Domain:* {domain} | *Email:* {email}"
                 }
             }
         ]
