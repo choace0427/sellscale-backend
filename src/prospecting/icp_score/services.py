@@ -2780,7 +2780,7 @@ def apply_archetype_icp_scoring_ruleset_filters(
             if company_score == -1 or score == -1 or (individual_count + company_count == 0):
                 updated_combined_score = 0
             else:
-                percentage = (individual_score + company_score) / (individual_count + company_count) * 100
+                percentage = (score + company_score) / (individual_count + company_count) * 100
 
                 if 0 <= percentage <= 25:
                     updated_combined_score = 1
@@ -3083,7 +3083,7 @@ def apply_segment_icp_scoring_ruleset_filters(
             if company_score == -1 or score == -1 or (individual_count + company_count == 0):
                 updated_combined_score = 0
             else:
-                percentage = (individual_score + company_score) / (individual_count + company_count) * 100
+                percentage = (score + company_score) / (individual_count + company_count) * 100
 
                 if 0 <= percentage <= 25:
                     updated_combined_score = 1
