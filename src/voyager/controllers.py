@@ -25,7 +25,7 @@ from src.message_generation.services import (
 from src.voyager.services import reconnect_disconnected_linkedins
 
 from src.merge_crm.services import add_contact_to_db # for celery task registration
-from src.chatbot.campaign_builder_assistant import generate_followup, get_suggested_first_message # for celery task registration
+from src.chatbot.campaign_builder_assistant import generate_followup, get_suggested_first_message, edit_strategy # for celery task registration
 
 
 VOYAGER_BLUEPRINT = Blueprint("voyager", __name__)

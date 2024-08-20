@@ -5,7 +5,7 @@ import sqlalchemy
 from src.ai_requests.services import create_ai_requests
 from src.automation.orchestrator import add_process_for_future
 from src.bump_framework.services import create_bump_framework
-from src.chatbot.campaign_builder_assistant import chat_with_assistant
+from src.chatbot.campaign_builder_assistant import chat_with_assistant, edit_strategy
 from src.client.SequenceAutoGeneration import SequenceAutoGenerationParameters, generate_email_sequence_prompt, generate_linkedin_sequence_prompt, initialize_auto_generation_payload
 from src.client.sdr.email.models import EmailType
 from src.client.sdr.email.services_email_bank import create_sdr_email_bank
@@ -5709,7 +5709,7 @@ def create_selix_customer(
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the email {email}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
+                prompt=f"Given the doman {domain}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
             )
             
             details_schema = {

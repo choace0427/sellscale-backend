@@ -294,19 +294,24 @@ def find_prospects(query_description: str):
         "breadcrumbs": breadcrumbs,
     }
 
+@celery.task
 def edit_strategy(
     edit_description: str,
-    session_id: int
+    session_id: int,
+    should_create_action: bool = True
 ):
+    print('editing strategy')
     print("⚡️ AUTO ACTION: edit_strategy('{}')".format(edit_description))
     
-    selix_action_id = create_selix_action_call_entry(
+    selix_action_id = None
+    if should_create_action:
+        selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
         action_title="Edit Strategy",
         action_description="Edit the strategy based on the description provided: {}".format(edit_description),
         action_function="edit_strategy",
         action_params={"edit_description": edit_description}
-    )
+        )
 
     strategy_id: int = SelixSession.query.get(session_id).memory.get("strategy_id", None)
     if not strategy_id:
@@ -371,8 +376,8 @@ def edit_strategy(
     db.session.add(strategy)
     db.session.commit()
 
-
-    mark_action_complete(selix_action_id)
+    if selix_action_id:
+        mark_action_complete(selix_action_id)
     set_session_tab(
         session_id, 
         "STRATEGY_CREATOR"

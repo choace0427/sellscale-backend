@@ -4,7 +4,7 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread, get_suggested_first_message
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, edit_strategy, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread, get_suggested_first_message
 from src.chatbot.models import SelixActionCall
 from src.client.models import ClientSDR
 from src.utils.request_helpers import get_request_parameter
@@ -345,3 +345,23 @@ def post_add_file(client_sdr_id: int):
 
     return jsonify({"message": "File added successfully"}), 200
     # handle_run_thread(thread_id, session
+
+@SELIX_BLUEPRINT.route("/edit_strategy", methods=["POST"])
+@require_user
+def post_edit_strategy(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+    message = get_request_parameter(
+        "message", request, json=True, required=True
+    )
+    session: SelixSession = SelixSession.query.get(session_id)
+    thread_id = session.thread_id
+
+    print("Adding message to thread")
+    print(thread_id)
+
+    print('params are', message, session_id, False)
+    edit_strategy.delay(message, session_id, False)
+
+    return "OK", 200
