@@ -11,7 +11,7 @@ from src.prospecting.services import update_prospect_status_email
 
 
 @celery.task()
-def classify_email(prospect_id: int, email_body: str) -> ProspectEmailOutreachStatus:
+def classify_email(prospect_id: int, email_body: str, metadata: dict = {}) -> ProspectEmailOutreachStatus:
     """Classifies an email into an ACTIVE_CONVO substatuses using heuristics, classifiers, and GPT.
 
     Args:
@@ -38,6 +38,7 @@ def classify_email(prospect_id: int, email_body: str) -> ProspectEmailOutreachSt
     update_prospect_status_email(
         prospect_id=prospect_id,
         new_status=status,
+        metadata=metadata
     )
 
     return status

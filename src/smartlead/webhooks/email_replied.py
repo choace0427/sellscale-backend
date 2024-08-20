@@ -180,6 +180,7 @@ def process_email_replied_webhook(payload_id: int):
             status = classify_email(
                 prospect_id=prospect.id,
                 email_body=reply_message,
+                metadata=metadata,
             )
         except Exception as e:
             print(f"Failed to classify email: {str(e)}")
