@@ -481,16 +481,8 @@ def prospect_exists_for_client(full_name: str, client_id: int, first_name=None, 
 
     print("finding prospects")
     p: Prospect = Prospect.query.filter(
-        and_(
-            or_(
-                Prospect.full_name == full_name,
-                and_(
-                    Prospect.first_name == first_name,
-                    Prospect.last_name == last_name,
-                    ),
-                ),
-            Prospect.client_id == client_id
-        )
+        Prospect.full_name == full_name,
+        Prospect.client_id == client_id
     ).first()
 
     print("found prospect: ", p)
