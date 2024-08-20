@@ -5709,7 +5709,7 @@ def create_selix_customer(
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Tell me more about {domain}. Provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
+                prompt=f"Tell me more about {domain}"
             )
 
             web_domain = domain
@@ -5772,7 +5772,7 @@ Good: AdTech/MarTech Innovators
     response=response[0],
     web_domain=web_domain
 )
-
+            
             details = wrapped_chat_gpt_completion(
                 messages=[
                     {
