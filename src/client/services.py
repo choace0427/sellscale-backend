@@ -5881,6 +5881,35 @@ Good: AdTech/MarTech Innovators
 
     # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
+    try:
+        slack_message_blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"🚀 New User: {full_name} from {company_name}",
+                    "emoji": True,
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{tagline}"
+                }
+            }
+        ]
+
+        # Send the Slack message
+        send_slack_message(
+            message="New User Created",
+            webhook_urls=[URL_MAP['selix-sessions']],
+            blocks=slack_message_blocks
+        )
+    except Exception as e:
+        print("Error sending Slack message")
+        print(e)
+
     return {
         "full_name": full_name,
         "email": email,
