@@ -199,6 +199,8 @@ def update_sdr_timezone_from_li(client_sdr_id: int):
         return "No personal info found", 400
 
     location = deep_get(personal_info, "location.country")
+    if not location:
+        location = deep_get(personal_info, "location.short")
 
     timezone = "America/Los_Angeles"
     if location == "United States":
