@@ -5709,7 +5709,7 @@ def create_selix_customer(
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Tell me more about {domain}. Provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
+                prompt=f"Tell me more about tryskylink.com. Provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
             )
 
             web_domain = domain
@@ -5789,18 +5789,21 @@ Good: AdTech/MarTech Innovators
             company_name = details["company_name"]
             tagline = details["tagline"]
             description = details["description"]
-            detailed_sales_segment_description = details["detailed_sales_segment"].replace('*', '')
-            detailed_sales_segment_title = details["detailed_sales_segment_title"]
-            detailed_sales_segment_value_proposition = details["detailed_sales_segment_value_proposition"]
+            # detailed_sales_segment_description = details["detailed_sales_segment"].replace('*', '')
+            # detailed_sales_segment_title = details["detailed_sales_segment_title"]
+            # detailed_sales_segment_value_proposition = details["detailed_sales_segment_value_proposition"]
 
-            return company_name, tagline, description, detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition
+            return company_name, tagline, description
+            # , detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition
         except Exception as e:
             print("Error fetching company details")
             print(e)
             domain = email.split('@')[-1]
-            return domain, "", "", "", "", ""
+            return domain, "", ""
+            # , "", "", ""
 
-    company_name, tagline, description, detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition = fetch_company_details(email, domain)
+    company_name, tagline, description = fetch_company_details(email, domain)
+    # , detailed_sales_segment_description, detailed_sales_segment_title, detailed_sales_segment_value_proposition 
 
     print(f"Company Name: {company_name}", f"Tagline: {tagline}", f"Description: {description}", sep="\n")
 
@@ -5845,36 +5848,36 @@ Good: AdTech/MarTech Innovators
 
     #just create a blank saved apollo query for the client
 
-    saved_query = SavedApolloQuery(
-        is_icp_filter=False,
-        custom_name=detailed_sales_segment_title,
-        value_proposition=detailed_sales_segment_value_proposition,
-        segment_description=detailed_sales_segment_description,
-        name_query=f"Preliminary ICP Filter for {company_name}",
-        data={},
-        results={},
-        client_sdr_id=client_sdr_id,
-        is_prefilter=True,
-        num_results=0,
-    )
+    # saved_query = SavedApolloQuery(
+    #     is_icp_filter=False,
+    #     custom_name=detailed_sales_segment_title,
+    #     value_proposition=detailed_sales_segment_value_proposition,
+    #     segment_description=detailed_sales_segment_description,
+    #     name_query=f"Preliminary ICP Filter for {company_name}",
+    #     data={},
+    #     results={},
+    #     client_sdr_id=client_sdr_id,
+    #     is_prefilter=True,
+    #     num_results=0,
+    # )
 
-    db.session.add(saved_query)
-    db.session.commit()
+    # db.session.add(saved_query)
+    # db.session.commit()
 
     # Create a first ICP filter
-    # def generate_first_icp_filter(client_sdr_id, company_domain):
-    #     #run perplexity query to get ideal customer profile text. 
-    #     icp_description = simple_perplexity_response(
-    #             model="llama-3-sonar-large-32k-online",
-    #             prompt=f"Tell me the ideal customer profile for {company_domain} Be descriptive. Break down your response in terms of account & contact. For account, mention type of company, stage, size, location, industry, fundraising stage, revenue range, etc. For contact, mention location, title, seniority, and other relevent details. Use bullet points.".format(company_domain=company_domain)
-    #     )
+    def generate_first_icp_filter(client_sdr_id, company_domain):
+        #run perplexity query to get ideal customer profile text. 
+        icp_description = simple_perplexity_response(
+                model="llama-3-sonar-large-32k-online",
+                prompt=f"Tell me the ideal customer profile for {company_domain} Be descriptive. Break down your response in terms of account & contact. For account, mention type of company, stage, size, location, industry, fundraising stage, revenue range, etc. For contact, mention location, title, seniority, and other relevent details. Use bullet points.".format(company_domain=company_domain)
+        )
 
-    #     icp_description = icp_description[0].replace('"', '').strip()
-    #     # The issue is with the 'chat_content' parameter. It should be a list of dictionaries, not a list of tuples.
-    #     sample_chat_content = [{'sender': 'chatbot', 'query': "Hey there! I'm SellScale AI, your friendly chatbot for creating sales segments. To get started, tell me a bit about your business or who you're targeting.", 'created_at': 'August 14, 12:11 pm'}]
-    #     handle_chat_icp(client_sdr_id=client_sdr_id, chat_content=sample_chat_content, prompt=icp_description)
+        icp_description = icp_description[0].replace('"', '').strip()
+        # The issue is with the 'chat_content' parameter. It should be a list of dictionaries, not a list of tuples.
+        sample_chat_content = [{'sender': 'chatbot', 'query': "Hey there! I'm SellScale AI, your friendly chatbot for creating sales segments. To get started, tell me a bit about your business or who you're targeting.", 'created_at': 'August 14, 12:11 pm'}]
+        handle_chat_icp(client_sdr_id=client_sdr_id, chat_content=sample_chat_content, prompt=icp_description)
 
-    # generate_first_icp_filter(client_sdr_id, client.domain)
+    generate_first_icp_filter(client_sdr_id, client.domain)
 
     # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
 
