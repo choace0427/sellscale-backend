@@ -5709,8 +5709,10 @@ def create_selix_customer(
         try:
             response = simple_perplexity_response(
                 model="llama-3-sonar-large-32k-online",
-                prompt=f"Given the doman {domain}, please provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
+                prompt=f"Tell me more about {domain}. Provide the company name, tagline, and a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products and then a 1 paragraph detailed sales / segment description of their core customer demographic."
             )
+
+            web_domain = domain
             
             details_schema = {
                 "name": "details_schema",
@@ -5730,18 +5732,19 @@ def create_selix_customer(
                 }
             }
 
-            details = wrapped_chat_gpt_completion(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f'''
+            print("Response: ", response[0])
+            print("Email: ", email)
+            print("Domain: ", domain)
+
+            whole_prompt = '''
 Given the response and email address, respond with the company name, tagline, and description. 
-Email: {email} 
+Company: {web_domain} 
 Response: {response}
 
 IMPORTANT: Respond with only the company name, tagline, sales segment details, and a nicely organized (bullet-pointed with this char: •) customer sales segment (essentially, a sales segment) with title and value proposition. 
 IMPORTANT: Tagline should not be too market-y or vision-y, it should be a practical quick description of the company.
 IMPORTANT: Description is a 1-2 paragraph description of the company, what they offer/build, who they serve, their mission, any core products.
+IMPORTANT: The sales segment description is the ideal customer profile for the company. It should be descriptive. Break down your response in terms of account & contact. For account, mention type of company, stage, size, location, industry, fundraising stage, revenue range, etc. For contact, mention location, title, seniority, and other relevant details. Use bullet points.
 
 bad tagline example: "Powering the world's best businesses"
 good tagline example: "Hubspot is a customer relationship management software for SMB and medium-sized businesses."
@@ -5765,11 +5768,21 @@ Good: They aim to access CMOs/marketing/advertising professionals, their main cu
 Segment Title Examples:
 Bad: Coca-Cola Connoisseurs
 Good: AdTech/MarTech Innovators
-'''
+'''.format(
+    response=response[0],
+    web_domain=web_domain
+)
+
+            details = wrapped_chat_gpt_completion(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": whole_prompt
+                    
                     }
                 ],
                 model="gpt-4o-2024-08-06",
-                max_tokens=300,
+                max_tokens=1000,
                 response_format={"type": "json_schema", "json_schema": details_schema}
             )
             details = json.loads(details)
