@@ -870,6 +870,7 @@ def score_ai_filters(
 
         updated_company_score = -1
         updated_individual_score = -1
+        updated_combined_score = -1
 
         if prospect_individual_score == -1 or total_individual_filter_count == 0:
             updated_individual_score = 0
@@ -898,8 +899,24 @@ def score_ai_filters(
                 updated_company_score = 3
             elif 75 < percentage <= 100:
                 updated_company_score = 4
+        
+        if prospect_company_score == -1 or prospect_individual_score == -1 or (total_company_filter_count + total_individual_filter_count == 0):
+            updated_combined_score = 0
+        else:
+            percentage = (prospect_individual_score + prospect_company_score) / (total_company_filter_count + total_individual_filter_count) * 100
 
-        prospect.icp_fit_score = updated_individual_score
+            if 0 <= percentage <= 25:
+                updated_combined_score = 1
+            elif 25 < percentage <= 50:
+                updated_combined_score = 2
+            elif 50 < percentage <= 75:
+                updated_combined_score = 3
+            elif 75 < percentage <= 100:
+                updated_combined_score = 4
+
+
+        prospect.icp_prospect_fit_score = updated_individual_score
+        prospect.icp_fit_score = updated_combined_score
         prospect.icp_company_fit_score = updated_company_score
         prospect.icp_fit_reason_v2 = current_prospect_reason_v2
         prospect.icp_company_fit_reason = current_company_reason
@@ -2730,6 +2747,8 @@ def apply_archetype_icp_scoring_ruleset_filters(
             updated_individual_score = -1
             updated_company_score = -1
 
+            updated_combined_score = -1
+
             if score == -1 or individual_count == 0:
                 updated_individual_score = 0
             else:
@@ -2758,7 +2777,22 @@ def apply_archetype_icp_scoring_ruleset_filters(
                 elif 75 < percentage <= 100:
                     updated_company_score = 4
 
+            if company_score == -1 or score == -1 or (individual_count + company_count == 0):
+                updated_combined_score = 0
+            else:
+                percentage = (individual_score + company_score) / (individual_count + company_count) * 100
+
+                if 0 <= percentage <= 25:
+                    updated_combined_score = 1
+                elif 25 < percentage <= 50:
+                    updated_combined_score = 2
+                elif 50 < percentage <=75:
+                    updated_combined_score = 3
+                elif 75 < percentage <= 100:
+                    updated_combined_score = 4
+
             updated_mapping[prospect_id] = {
+                "combined_score": updated_combined_score,
                 "individual_score": updated_individual_score,
                 "company_score": updated_company_score,
                 "reasoning": entry["reasoning"] if entry["reasoning"] else "",
@@ -2768,6 +2802,7 @@ def apply_archetype_icp_scoring_ruleset_filters(
 
         # Step 4: Batch Update all the prospects
         for prospect_id, updated_data in updated_mapping.items():
+            combined_score = updated_data["combined_score"]
             individual_score = updated_data["individual_score"]
             company_score = updated_data["company_score"]
             reasoning = updated_data["reasoning"]
@@ -2776,7 +2811,8 @@ def apply_archetype_icp_scoring_ruleset_filters(
 
             prospect: Prospect = Prospect.query.get(prospect_id)
             if prospect:
-                prospect.icp_fit_score = individual_score
+                prospect.icp_fit_score = combined_score
+                prospect.icp_prospect_fit_score = individual_score
                 prospect.icp_company_fit_score = company_score
                 prospect.icp_fit_reason = reasoning
                 prospect.icp_fit_reason_v2 = individual_reasoning
@@ -3004,7 +3040,7 @@ def apply_segment_icp_scoring_ruleset_filters(
         # We can do it based on percentage:
         # 25% is low, 50% is medium, 75% is high, 100% is very high
         updated_mapping = {}
-
+        
         for entry in raw_data:
             prospect_id = entry["prospect_id"]
 
@@ -3013,6 +3049,8 @@ def apply_segment_icp_scoring_ruleset_filters(
 
             updated_individual_score = -1
             updated_company_score = -1
+
+            updated_combined_score = -1
 
             if score == -1 or individual_count == 0:
                 updated_individual_score = 0
@@ -3042,7 +3080,22 @@ def apply_segment_icp_scoring_ruleset_filters(
                 elif 75 < percentage <= 100:
                     updated_company_score = 4
 
+            if company_score == -1 or score == -1 or (individual_count + company_count == 0):
+                updated_combined_score = 0
+            else:
+                percentage = (individual_score + company_score) / (individual_count + company_count) * 100
+
+                if 0 <= percentage <= 25:
+                    updated_combined_score = 1
+                elif 25 < percentage <= 50:
+                    updated_combined_score = 2
+                elif 50 < percentage <=75:
+                    updated_combined_score = 3
+                elif 75 < percentage <= 100:
+                    updated_combined_score = 4
+
             updated_mapping[prospect_id] = {
+                "combined_score": updated_combined_score,
                 "individual_score": updated_individual_score,
                 "company_score": updated_company_score,
                 "reasoning": entry["reasoning"] if entry["reasoning"] else "",
@@ -3052,6 +3105,7 @@ def apply_segment_icp_scoring_ruleset_filters(
 
         # Step 4: Batch Update all the prospects
         for prospect_id, updated_data in updated_mapping.items():
+            combined_score = updated_data["combined_score"]
             individual_score = updated_data["individual_score"]
             company_score = updated_data["company_score"]
             reasoning = updated_data["reasoning"]
@@ -3060,12 +3114,13 @@ def apply_segment_icp_scoring_ruleset_filters(
 
             prospect: Prospect = Prospect.query.get(prospect_id)
             if prospect:
-                prospect.icp_fit_score = individual_score
+                prospect.icp_fit_score = combined_score
+                prospect.icp_prospect_fit_score = individual_score
                 prospect.icp_company_fit_score = company_score
                 prospect.icp_fit_reason = reasoning
                 prospect.icp_fit_reason_v2 = individual_reasoning
                 prospect.icp_company_fit_reason = company_reasoning
-
+        
         db.session.commit()
 
         print("Done!")
