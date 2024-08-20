@@ -333,9 +333,9 @@ def populate_prospect_uploads_from_json_payload(
         ProspectUploads.data_hash.in_(prospect_hashes),
     ).all()
     existing_prospect_hash = set()
-    # if allow_duplicates:
-    #     for existing_prospect_upload in existing_prospect_uploads:
-    #         existing_prospect_hash.add(existing_prospect_upload.data_hash)
+    if allow_duplicates:
+        for existing_prospect_upload in existing_prospect_uploads:
+            existing_prospect_hash.add(existing_prospect_upload.data_hash)
 
     # Create ProspectUploads
     prospect_uploads = []
