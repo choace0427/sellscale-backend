@@ -1370,16 +1370,6 @@ def mark_campaign_as_initial_review_complete(campaign_id: int):
             campaign_id=campaign_id,
         )
 
-    # try:
-    #     from src.automation.models import PhantomBusterConfig, PhantomBusterType, PhantomBusterAgent
-    #     pb_config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
-    #     ).filter_by(client_sdr_id=client_sdr_id, pb_type=PhantomBusterType.OUTBOUND_ENGINE).first()
-    #     pb_id = pb_config.phantom_uuid
-    #     pb_client = PhantomBusterAgent(pb_id)
-    #     pb_client.run_phantom()
-    # except Exception as e:
-    #     print(e)
-
     return True
 
 

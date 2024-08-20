@@ -591,7 +591,7 @@ def create_pb_linkedin_invite_csv(client_sdr_id: int) -> list:
         gm.pb_csv_count += 1
 
         # If the message has now been sent more than twice, we mark it as failed until the PB webhook is called
-        if gm.pb_csv_count > 2:
+        if gm.pb_csv_count > 3:
             gm.message_status = GeneratedMessageStatus.FAILED_TO_SEND
             update_prospect_status_linkedin(
                 prospect_id=prospect_id, new_status=ProspectStatus.SEND_OUTREACH_FAILED

@@ -613,3 +613,17 @@ def register_phantom_buster_sales_navigator_account_filters_url(
     except Exception as e:
         print(f"Error updating account_filters_url: {e}")
         return False
+
+    
+def run_outbound_phantoms_for_sdrs(client_sdr_ids: list[int]):
+    for client_sdr_id in client_sdr_ids:
+        try:
+            print(f"Running Phantom for SDR: {client_sdr_id}")
+            from src.automation.models import PhantomBusterConfig, PhantomBusterType, PhantomBusterAgent
+            pb_config: PhantomBusterConfig = PhantomBusterConfig.query.filter(
+            ).filter_by(client_sdr_id=client_sdr_id, pb_type=PhantomBusterType.OUTBOUND_ENGINE).first()
+            pb_id = pb_config.phantom_uuid
+            pb_client = PhantomBusterAgent(pb_id)
+            pb_client.run_phantom()
+        except Exception as e:
+            print(e)

@@ -10,6 +10,7 @@ from src.automation.phantom_buster.services import (
     register_phantom_buster_sales_navigator_url,
     reset_sales_navigator_launch,
     register_phantom_buster_sales_navigator_account_filters_url,
+    run_outbound_phantoms_for_sdrs,
 )
 from src.utils.converters.dictionary_converters import dictionary_normalization
 
@@ -166,5 +167,16 @@ def update_sales_navigator_launch_account_filters_url(client_sdr_id: int, launch
 def sales_navigator_webhook():
     """Webhook for sales navigator"""
     collect_and_load_sales_navigator_results.delay()
+
+    return jsonify({"status": "success", "data": {}}), 200
+
+@PHANTOM_BUSTER_BLUEPRINT.route("/run_phantoms_for_sdrs", methods=["POST"])
+def run_phantoms_for_sdrs():
+    """Run phantoms for all SDRs"""
+    client_sdr_ids = get_request_parameter("client_sdr_ids", request, json=True, required=True)
+
+    run_outbound_phantoms_for_sdrs(
+        client_sdr_ids=client_sdr_ids
+    )
 
     return jsonify({"status": "success", "data": {}}), 200
