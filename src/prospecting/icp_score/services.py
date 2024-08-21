@@ -2406,7 +2406,12 @@ def append_icp_scoring_segment_ruleset_filters(
     years_of_experience_end = saved_apollo_query.data.get("years_of_experience_end")
     included_company_size = saved_apollo_query.data.get("organization_num_employees_ranges")
     included_industry_keywords = saved_apollo_query.data.get("organization_industry_tag_ids")
-    excluded_industry_keywords = saved_apollo_query.data.get("organization_not_industry_tag_ids")
+    excluded_industry_keywords = saved_apollo_query.data.get("organization_not_industry_tag_ids") 
+
+    company_sizes = [csv.split(',') for csv in included_company_size]
+    min_company_size = min([int(size[0]) for size in company_sizes])
+    max_company_size = max([int(size[1]) for size in company_sizes])
+
     filters = {
         "included_individual_title_keywords": included_title_keywords or [],
         "excluded_individual_title_keywords": excluded_title_keywords or [],
@@ -2424,7 +2429,7 @@ def append_icp_scoring_segment_ruleset_filters(
         "excluded_individual_skills_keywords": excluded_skills_keywords or [],
         "individual_years_of_experience_start": years_of_experience_start or None,
         "individual_years_of_experience_end": years_of_experience_end or None,
-        "company_size_start": included_company_size or [],
+        "company_size_start": [min_company_size, max_company_size] if included_company_size else [],
         "included_individual_industry_keywords": included_industry_keywords or [],
         "excluded_individual_industry_keywords": excluded_industry_keywords or [],
     }
