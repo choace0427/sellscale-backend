@@ -11,6 +11,7 @@ class ResearchType(enum.Enum):
     SERP_PAYLOAD = "SERP_PAYLOAD"
     SDR_QUESTIONNAIRE = "SDR_QUESTIONNAIRE"
     CUSTOM_DATA = "CUSTOM_DATA"
+    AI_QUESTION_DATA = "AI_QUESTION_DATA"
 
 
 class AccountResearchType(enum.Enum):

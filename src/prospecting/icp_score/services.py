@@ -10,13 +10,16 @@ from pyparsing import dictOf
 
 from src.contacts.models import SavedApolloQuery
 from src.ml.services import get_text_generation, get_perplexity_response
-from src.client.models import ClientArchetype
+from src.client.models import ClientArchetype, ClientSDR
 from src.prospecting.icp_score.models import (
     ICPScoringJobQueue,
     ICPScoringJobQueueStatus,
     ICPScoringRuleset,
 )
 from app import db, app, celery
+from src.research.generate_research import generate_research_points
+from src.research.models import ResearchType
+from src.research.services import create_research_payload, get_all_research_point_types, get_research_point_type, create_research_point_type
 from src.prospecting.models import Prospect, ProspectOverallStatus, ProspectStatus
 from model_import import ResearchPayload
 from src.segment.models import Segment
@@ -923,6 +926,33 @@ def score_ai_filters(
         prospect.icp_fit_reason = prospect_reasoning
 
         db.session.add(prospect)
+        
+        # For each prospect, for each filter, create the research payload
+        # We only want to create the research payload for those that have a YES
+        for individual_ai_filter in individual_ai_filters:
+            current_data = current_prospect_reason_v2[individual_ai_filter["key"]]
+
+            if current_data["answer"] == "YES":
+                create_research_payload(
+                    prospect.id,
+                    ResearchType.AI_QUESTION_DATA, 
+                    {"reasoning": current_data["reasoning"]},
+                    sub_type=individual_ai_filter["key"]
+                )
+
+        for company_ai_filter in company_ai_filters:
+            current_data = current_company_reason[company_ai_filter["key"]]
+            
+            if current_data["answer"] == "YES":
+                create_research_payload(
+                    prospect.id,
+                    ResearchType.AI_QUESTION_DATA,
+                    {"reasoning": current_data["reasoning"]},
+                    sub_type=company_ai_filter["key"]
+                )
+        
+        # For each prospect, generate the research points
+        generate_research_points(prospect.id, test_mode = False)
 
     db.session.commit()
 
@@ -2823,6 +2853,49 @@ def apply_archetype_icp_scoring_ruleset_filters(
         print("Done!")
 
         send_socket_message('update_prospect_list', {'update': True})
+
+        client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+        # We want to remove ai research point types that are not present anymore
+        research_point_types = get_all_research_point_types(
+            client_archetype.client_sdr_id, archetype_id=client_archetype_id
+        )
+
+        ai_filters = []
+
+        icp_scoring_ruleset_to_dict = icp_scoring_ruleset.to_dict()
+
+        if icp_scoring_ruleset_to_dict.get("individual_ai_filters"):
+            for individual_ai_filter in icp_scoring_ruleset_to_dict["individual_ai_filters"]:
+                ai_filters.append(individual_ai_filter["key"])
+
+        if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
+            for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
+                ai_filters.append(company_ai_filter["key"])
+
+        for research_point_type in research_point_types:
+            if research_point_type.get("name"):
+                research_point_type_name = research_point_type["name"]
+                if "aiind" in research_point_type_name or "aicomp" in research_point_type_name:
+                    if research_point_type_name not in ai_filters:
+                        db.session.delete(research_point_type)
+
+        db.session.commit()
+
+        ### Create research point types for ai_filters
+        
+        # Cannot create research payload here, because we have to answer the ai questions
+        # Creating research point type
+        for ai_filter in ai_filters:
+            create_research_point_type(
+                name=ai_filter,
+                description="AI question personalizer",
+                client_sdr_id=client_archetype.client_sdr_id,
+                function_name="get_ai_research",
+                archetype_id=client_archetype_id,
+                category="ARCHETYPE"
+            )
+        
         # score_one_prospect_segment only scores the programmatic filters
         # we will do the ai filters in a celery task.
         # we have to send over the icp_scoring_ruleset
@@ -2857,11 +2930,11 @@ def apply_archetype_icp_scoring_ruleset_filters(
                 routing_key="icp_scoring",
             )
             # score_ai_filters(
-            #     chunk,
-            #     icp_scoring_ruleset.to_dict(),
-            #     dealbreaker,
-            #     individual_score_dict,
-            #     company_score_dict,
+            #     prospect_enriched_list=chunk,
+            #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+            #     dealbreaker=dealbreaker,
+            #     individual_score=individual_score_dict,
+            #     company_score=company_score_dict,
             #     from_archetype=True,
             # )
 
@@ -3125,6 +3198,51 @@ def apply_segment_icp_scoring_ruleset_filters(
 
         print("Done!")
         send_socket_message('update_prospect_list', {'update': True})
+
+        client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
+
+        # We want to remove ai research point types that are not present anymore
+        research_point_types = get_all_research_point_types(
+            client_archetype.client_sdr_id, archetype_id=client_archetype_id
+        )
+
+        ai_filters = []
+
+        icp_scoring_ruleset_to_dict = icp_scoring_ruleset.to_dict()
+
+        if icp_scoring_ruleset_to_dict.get("individual_ai_filters"):
+            for individual_ai_filter in icp_scoring_ruleset_to_dict["individual_ai_filters"]:
+                ai_filters.append(individual_ai_filter["key"])
+
+        if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
+            for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
+                ai_filters.append(company_ai_filter["key"])
+
+        for research_point_type in research_point_types:
+            if research_point_type.get("name"):
+                research_point_type_name = research_point_type["name"]
+                if "aiind" in research_point_type_name or "aicomp" in research_point_type_name:
+                    if research_point_type_name not in ai_filters:
+                        db.session.delete(research_point_type)
+
+        db.session.commit()
+
+        ### Create research point types for ai_filters
+        
+        # Cannot create research payload here, because we have to answer the ai questions
+        # Creating research point type
+
+        # For now, even though we are in a segment, we are making it archetype only
+        for ai_filter in ai_filters:
+            create_research_point_type(
+                name=ai_filter,
+                description="AI question personalizer",
+                client_sdr_id=client_archetype.client_sdr_id,
+                function_name="get_ai_research",
+                archetype_id=client_archetype_id,
+                category="ARCHETYPE"
+            )
+
         # score_one_prospect_segment only scores the programmatic filters
         # we will do the ai filters in a celery task.
         # we have to send over the icp_scoring_ruleset

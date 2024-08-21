@@ -66,6 +66,14 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
                     == research_point_type.get("name"),
                 ).first()
 
+                if payload is None:
+                    # We get ai data
+                    payload: ResearchPayload = ResearchPayload.query.filter(
+                        ResearchPayload.prospect_id == prospect_id,
+                        ResearchPayload.research_type == ResearchType.AI_QUESTION_DATA,
+                        ResearchPayload.research_sub_type == research_point_type.get("name")
+                    ).first()
+
             if payload is None:
                 continue
 
@@ -112,6 +120,9 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
     #           serp_extractor = SerpNewsExtractorTransformer(prospect_id=prospect_id)
     #           serp_extractor.run()
 
+
+def get_ai_research(prospect_id: int, data: dict) -> dict:
+    return {"response": data.get("reasoning", "")}
 
 ##############################
 # REGISTER TRANSFORMERS HERE #
@@ -162,8 +173,12 @@ TRANSFORMERS_MAP = {
     "get_custom_research": {
         "function": get_custom_research,
     },
+    "get_ai_research": {
+        "function": get_ai_research,
+    }
 }
 ###############################
+
 
 
 def execute_research_point_type(
