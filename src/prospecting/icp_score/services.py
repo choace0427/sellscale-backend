@@ -2408,9 +2408,15 @@ def append_icp_scoring_segment_ruleset_filters(
     included_industry_keywords = saved_apollo_query.data.get("organization_industry_tag_ids")
     excluded_industry_keywords = saved_apollo_query.data.get("organization_not_industry_tag_ids") 
 
-    company_sizes = [csv.split(',') for csv in included_company_size]
-    min_company_size = min([int(size[0]) for size in company_sizes])
-    max_company_size = max([int(size[1]) for size in company_sizes])
+    company_sizes = []
+    if included_company_size:
+        company_sizes = [csv.split(',') for csv in included_company_size]
+    if company_sizes:
+        min_company_size = min([int(size[0]) for size in company_sizes])
+        max_company_size = max([int(size[1]) for size in company_sizes])
+    else:
+        min_company_size = 0
+        max_company_size = 0
 
     filters = {
         "included_individual_title_keywords": included_title_keywords or [],
