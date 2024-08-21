@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
+from src.automation.models import ProcessQueue
 from src.bump_framework.models import BumpFramework
 from src.prospecting.services import send_to_purgatory
 from src.utils.slack import URL_MAP, send_slack_message
@@ -340,6 +341,57 @@ def get_conversation(client_sdr_id: int):
         ),
         200,
     )
+
+@VOYAGER_BLUEPRINT.route("/scheduled_messages", methods=["GET"])
+@require_user
+def get_scheduled_messages(client_sdr_id: int):
+    """Get all scheduled messages for an SDR"""
+
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=False, required=True, parameter_type=int
+    )
+
+    #loop through process_queue items and, based off the .meta_data attribute, return the ones that are for the prospect_id
+
+    scheduled_messages: list[ProcessQueue] = ProcessQueue.query.filter_by(type="send_scheduled_linkedin_message").all()
+
+    scheduled_messages_by_prospect = [
+        filtered_message.to_dict() for filtered_message in scheduled_messages 
+        if filtered_message.meta_data.get("args", {}).get("prospect_id") == prospect_id
+    ]
+
+    return jsonify({"message": "Success", "data": scheduled_messages_by_prospect}), 200
+
+
+@VOYAGER_BLUEPRINT.route("/delete_scheduled_message/<int:message_id>", methods=["DELETE"])
+@require_user
+def delete_scheduled_message(client_sdr_id: int, message_id: int):
+    """Delete a scheduled message by its ID"""
+    
+
+    # message_id = get_request_parameter(
+    #     "message_id", request, json=False, required=True, parameter_type=int
+    # )
+
+    scheduled_message: ProcessQueue = ProcessQueue.query.get(message_id)
+
+    print('message sdr id is', scheduled_message.meta_data.get("args", {}).get("client_sdr_id"))
+    print('compared to client sdr id', client_sdr_id)
+
+    if scheduled_message.meta_data.get("args", {}).get("client_sdr_id") != client_sdr_id:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    if not scheduled_message:
+        return jsonify({"message": "Scheduled message not found"}), 404
+
+    if scheduled_message.type != "send_scheduled_linkedin_message":
+        return jsonify({"message": "Invalid message type"}), 400
+
+    db.session.delete(scheduled_message)
+    db.session.commit()
+
+    return jsonify({"message": "Scheduled message deleted successfully"}), 200
+
 
 
 @VOYAGER_BLUEPRINT.route("/recent_conversations", methods=["GET"])
