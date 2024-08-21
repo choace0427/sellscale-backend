@@ -63,7 +63,7 @@ from model_import import ClientSDR, Client
 from app import db, celery
 from tqdm import tqdm
 from src.utils.abstract.attr_utils import deep_get
-from src.voyager.linkedin import LinkedIn
+from src.voyager.linkedin import LinkedIn, send_linkedin_disconnected_email, send_linkedin_disconnected_slack_message
 from sqlalchemy import or_
 from fuzzywuzzy import fuzz
 from datetime import datetime, timedelta
@@ -1444,6 +1444,17 @@ def attempt_li_at_token_reconnection(client_sdr_id: int):
         sdr.li_at_token = 'INVALID'
         db.session.add(sdr)
         db.session.commit()
+
+        send_slack_message(
+            message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+            webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+        )
+        send_linkedin_disconnected_email(
+            client_sdr_id=sdr.id,
+        )
+        send_linkedin_disconnected_slack_message(
+            client_sdr_id=sdr.id,
+        )
 
     return True
 
