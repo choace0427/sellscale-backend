@@ -1430,6 +1430,17 @@ def attempt_li_at_token_reconnection(client_sdr_id: int):
             db.session.add(sdr)
             db.session.commit()
 
+            send_slack_message(
+                message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
+                webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
+            )
+            send_linkedin_disconnected_email(
+                client_sdr_id=sdr.id,
+            )
+            send_linkedin_disconnected_slack_message(
+                client_sdr_id=sdr.id,
+            )
+
         li: LinkedIn = LinkedIn(client_sdr_id)
         profile = li.get_profile()
 
@@ -1444,17 +1455,6 @@ def attempt_li_at_token_reconnection(client_sdr_id: int):
         sdr.li_at_token = 'INVALID'
         db.session.add(sdr)
         db.session.commit()
-
-        send_slack_message(
-            message=f"SDR {sdr.name} (#{sdr.id})'s LinkedIn cookie is now invalid! It needs to be resynced.",
-            webhook_urls=[URL_MAP["operations-li-invalid-cookie"]],
-        )
-        send_linkedin_disconnected_email(
-            client_sdr_id=sdr.id,
-        )
-        send_linkedin_disconnected_slack_message(
-            client_sdr_id=sdr.id,
-        )
 
     return True
 
