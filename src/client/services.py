@@ -5879,9 +5879,6 @@ Good: AdTech/MarTech Innovators
 
     generate_first_icp_filter(client_sdr_id, client.domain)
 
-    # chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=None, additional_context="", session_name="New Session", task_titles=None)
-
-
     try:
         slack_message_blocks = [
             {

@@ -37,7 +37,15 @@ def create_session(client_sdr_id: int):
 
     if room_id:
         get_suggested_first_message.delay(client_sdr_id, room_id)
-    chat_with_assistant(client_sdr_id=client_sdr_id, session_id=None, in_terminal=False, room_id=room_id, additional_context=additional_context, session_name=session_name, task_titles=task_titles)
+    chat_with_assistant(
+        client_sdr_id=client_sdr_id, 
+        session_id=None, 
+        in_terminal=False, 
+        room_id=room_id, 
+        additional_context=additional_context, 
+        session_name=session_name, 
+        task_titles=task_titles
+    )
 
     return "OK", 200
 

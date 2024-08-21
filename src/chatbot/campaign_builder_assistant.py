@@ -1,6 +1,7 @@
 import datetime
 from http import client
 import json
+from operator import is_
 from tracemalloc import start
 from typing import Optional
 from numpy import add
@@ -1179,6 +1180,11 @@ def chat_with_assistant(
     thread_id = None
     selix_session = None
 
+    is_draft_session = False
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    if client_sdr.role == 'FREE':
+        is_draft_session = True
+
     if session_id:
         selix_session: SelixSession = SelixSession.query.get(session_id)
         thread_id = selix_session.thread_id
@@ -1200,7 +1206,7 @@ def chat_with_assistant(
             actual_completion_time=None,
             assistant_id=assistant_id,
             thread_id=thread_id,
-            draft_session=True
+            draft_session=is_draft_session
         )
         db.session.add(selix_session)
         db.session.commit()
@@ -1366,15 +1372,6 @@ Follow-up Questions:""".format(
     )
 
     return text
-
-
-# Example usage
-# chat_with_assistant("asst_uJJtKPGaVeVYQjgqCquTL3Bq")
-# create_strategy OR select_existing_strategy
-# 2. create_tasks
-
-# DECK:
-# https://docs.google.com/presentation/d/1AVmn12UGnUQMhwPuFzI7b9stos50cqJRfYFTbG5NfpA/edit#slide=id.g279d89168bd_0_108
 
 @celery.task
 def generate_followup(client_sdr_id: int, device_id: str, prompt: str, chat_messages: list, room_id: str, previous_follow_up: str):
