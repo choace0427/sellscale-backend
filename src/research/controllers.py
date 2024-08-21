@@ -2,6 +2,7 @@ import random
 import re
 from flask import Blueprint, jsonify, request
 from model_import import ClientArchetype
+from src.client.models import Client, ClientSDR
 from src.prospecting.models import Prospect
 from src.research.linkedin.iscraper import (
     get_linkedin_search_results_from_iscraper,
@@ -109,9 +110,13 @@ def get_all_research_point_types_details():
 @RESEARCH_BLUEPRINT.route("/all_research_point_types", methods=["GET"])
 @require_user
 def get_all_research_point_types_endpoint(client_sdr_id: int):
+    archetype_id = get_request_parameter(
+        "archetype_id", request, json=False, required=False
+    )
+
     return (
         jsonify(
-            {"message": "Success", "data": get_all_research_point_types(client_sdr_id)}
+            {"message": "Success", "data": get_all_research_point_types(client_sdr_id=client_sdr_id, archetype_id=int(archetype_id))}
         ),
         200,
     )
