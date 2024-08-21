@@ -93,6 +93,11 @@ class ResearchPointType(db.Model):
     archetype_id = db.Column(
         db.Integer, db.ForeignKey("client_archetype.id"), nullable=True
     )
+
+    segment_id = db.Column(
+        db.Integer, db.ForeignKey("segment.id"), nullable=True
+    )
+
     category = db.Column(db.String, nullable=True)
 
     def to_dict(self):

@@ -2867,11 +2867,13 @@ def apply_archetype_icp_scoring_ruleset_filters(
 
         if icp_scoring_ruleset_to_dict.get("individual_ai_filters"):
             for individual_ai_filter in icp_scoring_ruleset_to_dict["individual_ai_filters"]:
-                ai_filters.append(individual_ai_filter["key"])
+                if individual_ai_filter["key"] in icp_scoring_ruleset_to_dict["individual_personalizers"]:
+                    ai_filters.append(individual_ai_filter["key"])
 
         if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
-                ai_filters.append(company_ai_filter["key"])
+                if company_ai_filter["key"] in icp_scoring_ruleset_to_dict["company_personalizers"]:
+                    ai_filters.append(company_ai_filter["key"])
 
         db.session.commit()
 
@@ -3205,11 +3207,13 @@ def apply_segment_icp_scoring_ruleset_filters(
 
         if icp_scoring_ruleset_to_dict.get("individual_ai_filters"):
             for individual_ai_filter in icp_scoring_ruleset_to_dict["individual_ai_filters"]:
-                ai_filters.append(individual_ai_filter["key"])
+                if individual_ai_filter["key"] in icp_scoring_ruleset_to_dict["individual_personalizers"]:
+                    ai_filters.append(individual_ai_filter["key"])
 
         if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
-                ai_filters.append(company_ai_filter["key"])
+                if company_ai_filter["key"] in icp_scoring_ruleset_to_dict["company_personalizers"]:
+                    ai_filters.append(company_ai_filter["key"])
 
         db.session.commit()
 
