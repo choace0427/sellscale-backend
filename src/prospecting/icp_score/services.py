@@ -2873,13 +2873,6 @@ def apply_archetype_icp_scoring_ruleset_filters(
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
                 ai_filters.append(company_ai_filter["key"])
 
-        for research_point_type in research_point_types:
-            if research_point_type.get("name"):
-                research_point_type_name = research_point_type["name"]
-                if "aiind" in research_point_type_name or "aicomp" in research_point_type_name:
-                    if research_point_type_name not in ai_filters:
-                        db.session.delete(research_point_type)
-
         db.session.commit()
 
         ### Create research point types for ai_filters
@@ -3217,13 +3210,6 @@ def apply_segment_icp_scoring_ruleset_filters(
         if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
                 ai_filters.append(company_ai_filter["key"])
-
-        for research_point_type in research_point_types:
-            if research_point_type.get("name"):
-                research_point_type_name = research_point_type["name"]
-                if "aiind" in research_point_type_name or "aicomp" in research_point_type_name:
-                    if research_point_type_name not in ai_filters:
-                        db.session.delete(research_point_type)
 
         db.session.commit()
 
