@@ -534,16 +534,29 @@ def create_review_card(campaign_id: dict):
     return {"success": True}
 
 def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing: str, specific_copy: str, personalizers: str, links: str, session_id: int):
-    description = (
-        f"Angle: {angle}\n"
-        f"Prospects: {prospects}\n"
-        f"Offer: {offer}\n"
-        f"Channel: {channel}\n"
-        f"Timing: {timing}\n"
-        f"Specific Copy: {specific_copy}\n"
-        f"Customizations: {personalizers}\n"
-        f"Links: {links}"
-    )
+    # description = (
+    #     f"Angle: {angle}\n"
+    #     f"Prospects: {prospects}\n"
+    #     f"Offer: {offer}\n"
+    #     f"Channel: {channel}\n"
+    #     f"Timing: {timing}\n"
+    #     f"Specific Copy: {specific_copy}\n"
+    #     f"Customizations: {personalizers}\n"
+    #     f"Links: {links}"
+    # )
+
+    description = ''
+    # Fetch the whole transcript from the conversation
+    session: SelixSession = SelixSession.query.get(session_id)
+    thread_id = session.thread_id
+    messages = get_last_n_messages(thread_id)
+    description = ""
+    for message in messages:
+        if 'message' in message:
+            description += f"{message['role']}:\n{message['message']}\n\n"
+
+    import pdb; pdb.set_trace()
+
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
 
     selix_action_id = create_selix_action_call_entry(
