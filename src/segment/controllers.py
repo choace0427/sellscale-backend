@@ -43,6 +43,7 @@ from src.segment.services import (
     reset_prospect_contacts,
 )
 from src.segment.services_auto_segment import run_auto_segment
+from src.research.models import ResearchPointType
 from src.utils.request_helpers import get_request_parameter
 from src.segment.services import reset_prospect_task
 
@@ -207,6 +208,16 @@ def create_segment_from_market_map(client_sdr_id: int, segment_id: int):
             company_ai_filters=icp_ruleset.company_ai_filters,
             segment_id=segment.id,
         )
+
+        # retrieve all research point types and modify its segment id
+        research_point_types: ResearchPointType = ResearchPointType.query.filter(
+            ResearchPointType.segment_id == segment_id
+        ).all()
+
+        for research_point_type in research_point_types:
+            research_point_type.segment_id = segment.id 
+
+            db.session.add(research_point_type)
 
         db.session.add(new_icp_ruleset)
         db.session.commit()

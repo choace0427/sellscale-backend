@@ -3131,7 +3131,13 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
     raw_research_points = ResearchPoints.query.filter(
         ResearchPoints.id.in_(research_points)
     ).all()
-    rp_values = [x.value for x in raw_research_points] if raw_research_points else []
+
+    rp_values = []
+    for research_point_id in research_points:
+        researchPoint = ResearchPoints.query.get(research_point_id)
+
+        if researchPoint:
+            rp_values.append(researchPoint.value)
 
     completion, few_shot_prompt = get_config_completion(TOP_CONFIGURATION, prompt)
 
@@ -3140,6 +3146,7 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
         "cta": cta,
         "research_points": research_points,
         "notes": rp_values,
+        "combined": [{"id": x.id, "value": x.value, "research_point_type": x.research_point_type} for x in raw_research_points],
     }
 
 

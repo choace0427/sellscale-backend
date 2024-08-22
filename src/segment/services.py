@@ -16,6 +16,7 @@ from src.prospecting.models import (
     ProspectOverallStatus,
     ProspectUploadHistory, ProspectStatus, ProspectStatusRecords,
 )
+from src.research.models import ResearchPointType
 from src.segment.models import Segment
 from src.segment.models import SegmentTags
 from sqlalchemy import case
@@ -346,6 +347,16 @@ def update_segment(
             )
         else:
             icp_scoring_ruleset.client_archetype_id = client_archetype_id
+
+        # Update the research point types (if there exists any) to the new archetype
+        research_point_types: ResearchPointType = ResearchPointType.query.filter(
+            ResearchPointType.segment_id == segment_id
+        ).all()
+
+        for research_point_type in research_point_types:
+            research_point_type.archetype_id = client_archetype_id
+
+            db.session.add(research_point_type)
 
         db.session.add(icp_scoring_ruleset)
         db.session.add(current_icp_scoring_ruleset)

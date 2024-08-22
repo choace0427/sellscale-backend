@@ -162,6 +162,7 @@ def create_research_point_type(
     function_name: str,
     category: Optional[str] = None,
     archetype_id: Optional[int] = None,
+    segment_id: Optional[int] = None,
 ):
     """Creates a research point type"""
     name = convert_to_research_point_type_name(name)
@@ -184,6 +185,7 @@ def create_research_point_type(
         function_name=function_name,
         archetype_id=archetype_id,
         category=category,
+        segment_id=segment_id,
     )
     db.session.add(research_point_type)
     db.session.commit()

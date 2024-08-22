@@ -111,6 +111,7 @@ class ResearchPointType(db.Model):
             "function_name": self.function_name,
             "archetype_id": self.archetype_id,
             "category": self.category,
+            "segment_id": self.segment_id
         }
 
     def get_allowedlist_from_blocklist(blocklist: list[str]) -> list[str]:

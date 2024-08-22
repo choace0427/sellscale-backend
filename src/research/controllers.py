@@ -179,6 +179,15 @@ def get_account_research_points_endpoint(client_sdr_id: int):
     return jsonify(get_account_research_points_by_prospect_id(prospect_id=prospect_id))
 
 
+@RESEARCH_BLUEPRINT.route("/research_points/<prospect_id>", methods=["GET"])
+@require_user
+def get_research_points_by_prospect_id(client_sdr_id: int, prospect_id: int):
+    points = ResearchPoints.get_research_points_by_prospect_id(prospect_id)
+    
+    return jsonify({"data": [{"id": point.id, "value": point.value, "research_point_type": point.research_point_type} for point in points]})
+
+
+
 @RESEARCH_BLUEPRINT.route("/account_research_points/inputs", methods=["GET"])
 @require_user
 def get_account_research_points_inputs_endpoint(client_sdr_id: int):

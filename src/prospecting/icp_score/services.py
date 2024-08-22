@@ -1162,7 +1162,7 @@ def score_one_prospect_segment(
             if (
                 enriched_prospect_company.prospect_years_of_experience
                 and (
-                    icp_scoring_ruleset.individual_years_of_experience_start
+                    (icp_scoring_ruleset.individual_years_of_experience_start or (icp_scoring_ruleset.individual_years_of_experience_start == 0 and icp_scoring_ruleset.individual_years_of_experience_end != 0))
                     and enriched_prospect_company.prospect_years_of_experience
                     and enriched_prospect_company.prospect_years_of_experience
                     >= icp_scoring_ruleset.individual_years_of_experience_start
@@ -1185,7 +1185,7 @@ def score_one_prospect_segment(
                 )
             elif enriched_prospect_company.prospect_years_of_experience and (
                 (
-                    icp_scoring_ruleset.individual_years_of_experience_start
+                    (icp_scoring_ruleset.individual_years_of_experience_start or (icp_scoring_ruleset.individual_years_of_experience_start == 0 and icp_scoring_ruleset.individual_years_of_experience_end != 0))
                     and enriched_prospect_company.prospect_years_of_experience
                     and enriched_prospect_company.prospect_years_of_experience
                     < icp_scoring_ruleset.individual_years_of_experience_start
@@ -1553,7 +1553,7 @@ def score_one_prospect_segment(
             # Company Size
             if enriched_prospect_company.company_employee_count is not None and (
                 (
-                    icp_scoring_ruleset.company_size_start
+                    (icp_scoring_ruleset.company_size_start or (icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end != 0))
                     and enriched_prospect_company.company_employee_count
                     and int(enriched_prospect_company.company_employee_count)
                     >= icp_scoring_ruleset.company_size_start
@@ -1572,7 +1572,7 @@ def score_one_prospect_segment(
 
             elif enriched_prospect_company.company_employee_count is not None and (
                 (
-                    icp_scoring_ruleset.company_size_start
+                    (icp_scoring_ruleset.company_size_start or (icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end != 0))
                     and enriched_prospect_company.company_employee_count
                     and int(enriched_prospect_company.company_employee_count)
                     < icp_scoring_ruleset.company_size_start
@@ -2867,24 +2867,18 @@ def apply_archetype_icp_scoring_ruleset_filters(
 
         client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
 
-        # We want to remove ai research point types that are not present anymore
-        research_point_types = get_all_research_point_types(
-            client_archetype.client_sdr_id, archetype_id=client_archetype_id
-        )
-
-        ai_filters = []
+        ai_filters = {}
 
         icp_scoring_ruleset_to_dict = icp_scoring_ruleset.to_dict()
 
         if icp_scoring_ruleset_to_dict.get("individual_ai_filters"):
             for individual_ai_filter in icp_scoring_ruleset_to_dict["individual_ai_filters"]:
                 if individual_ai_filter["key"] in icp_scoring_ruleset_to_dict["individual_personalizers"]:
-                    ai_filters.append(individual_ai_filter["key"])
-
+                    ai_filters[individual_ai_filter["key"]] = individual_ai_filter["prompt"]
         if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
                 if company_ai_filter["key"] in icp_scoring_ruleset_to_dict["company_personalizers"]:
-                    ai_filters.append(company_ai_filter["key"])
+                   ai_filters[company_ai_filter["key"]] = company_ai_filter["prompt"] 
 
         db.session.commit()
 
@@ -2892,15 +2886,18 @@ def apply_archetype_icp_scoring_ruleset_filters(
         
         # Cannot create research payload here, because we have to answer the ai questions
         # Creating research point type
+
+        # For now, even though we are in a segment, we are making it archetype only
         for ai_filter in ai_filters:
             create_research_point_type(
                 name=ai_filter,
-                description="AI question personalizer",
+                description= ai_filters[ai_filter],
                 client_sdr_id=client_archetype.client_sdr_id,
                 function_name="get_ai_research",
                 archetype_id=client_archetype_id,
-                category="ARCHETYPE"
+                category="ARCHETYPE",
             )
+
         
         # score_one_prospect_segment only scores the programmatic filters
         # we will do the ai filters in a celery task.
@@ -3208,23 +3205,19 @@ def apply_segment_icp_scoring_ruleset_filters(
         client_archetype: ClientArchetype = ClientArchetype.query.get(client_archetype_id)
 
         # We want to remove ai research point types that are not present anymore
-        research_point_types = get_all_research_point_types(
-            client_archetype.client_sdr_id, archetype_id=client_archetype_id
-        )
 
-        ai_filters = []
+        ai_filters = {}
 
         icp_scoring_ruleset_to_dict = icp_scoring_ruleset.to_dict()
 
         if icp_scoring_ruleset_to_dict.get("individual_ai_filters"):
             for individual_ai_filter in icp_scoring_ruleset_to_dict["individual_ai_filters"]:
                 if individual_ai_filter["key"] in icp_scoring_ruleset_to_dict["individual_personalizers"]:
-                    ai_filters.append(individual_ai_filter["key"])
-
+                    ai_filters[individual_ai_filter["key"]] = individual_ai_filter["prompt"]
         if icp_scoring_ruleset_to_dict.get("company_ai_filters"):
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
                 if company_ai_filter["key"] in icp_scoring_ruleset_to_dict["company_personalizers"]:
-                    ai_filters.append(company_ai_filter["key"])
+                   ai_filters[company_ai_filter["key"]] = company_ai_filter["prompt"] 
 
         db.session.commit()
 
@@ -3237,11 +3230,12 @@ def apply_segment_icp_scoring_ruleset_filters(
         for ai_filter in ai_filters:
             create_research_point_type(
                 name=ai_filter,
-                description="AI question personalizer",
+                description= ai_filters[ai_filter],
                 client_sdr_id=client_archetype.client_sdr_id,
                 function_name="get_ai_research",
                 archetype_id=client_archetype_id,
-                category="ARCHETYPE"
+                category="ARCHETYPE",
+                segment_id=segment_id
             )
 
         # score_one_prospect_segment only scores the programmatic filters

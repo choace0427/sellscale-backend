@@ -55,6 +55,7 @@ def get_li_convo(client_sdr_id: int):
             .order_by(Simulation.created_at.desc())
             .first()
         )
+
         if not simulation:
             prospect: Prospect = Prospect.query.get(prospect_id)
             archetype_id = prospect.archetype_id
