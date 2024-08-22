@@ -1,4 +1,4 @@
-import datetime
+import datetimeicp_score/serv
 import json
 import yaml
 from multiprocessing import process
@@ -2506,6 +2506,11 @@ def apply_segment_icp_scoring_ruleset_filters_task(
     # Get the ClientSDR ID
     client_sdr_id = client_archetype.client_sdr_id
 
+    if prospect_ids is None:
+        # Get Prospects that belong in this Segment
+        prospects = Prospect.query.filter(Prospect.segment_id == segment_id).all()
+        prospect_ids = [prospect.id for prospect in prospects]
+
     # If there is already an ICPScoringJobQueue object, trigger the job
     if icp_scoring_job_queue_id:
         if prospect_ids and len(prospect_ids) <= 60:
@@ -2529,11 +2534,6 @@ def apply_segment_icp_scoring_ruleset_filters_task(
             # )
 
         return True
-
-    if prospect_ids is None:
-        # Get Prospects that belong in this ClientArchetype
-        prospects = Prospect.query.filter_by(archetype_id=client_archetype_id).all()
-        prospect_ids = [prospect.id for prospect in prospects]
 
     # Create ICPScoringJobQueue object
     icp_scoring_job = ICPScoringJobQueue(
@@ -2582,6 +2582,11 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
     # Get the ClientSDR ID
     client_sdr_id = client_archetype.client_sdr_id
 
+    if prospect_ids is None:
+        # Get Prospects that belong in this ClientArchetype
+        prospects = Prospect.query.filter_by(archetype_id=client_archetype_id).all()
+        prospect_ids = [prospect.id for prospect in prospects]
+
     # If there is already an ICPScoringJobQueue object, trigger the job
     if icp_scoring_job_queue_id:
         if prospect_ids and len(prospect_ids) <= 60:
@@ -2604,11 +2609,6 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
             # )
 
         return True
-
-    if prospect_ids is None:
-        # Get Prospects that belong in this ClientArchetype
-        prospects = Prospect.query.filter_by(archetype_id=client_archetype_id).all()
-        prospect_ids = [prospect.id for prospect in prospects]
 
     # Create ICPScoringJobQueue object
     icp_scoring_job = ICPScoringJobQueue(
@@ -2670,7 +2670,7 @@ def apply_archetype_icp_scoring_ruleset_filters(
         )
         db.session.commit()
 
-        prospect_ids = icp_scoring_job.prospect_ids or prospect_ids
+        prospect_ids = prospect_ids or icp_scoring_job.prospect_ids 
         if not prospect_ids:
             # Get Prospects that belong in this segment
             prospects = Prospect.query.filter_by(client_archetype_id=client_archetype_id).all()
@@ -3004,7 +3004,7 @@ def apply_segment_icp_scoring_ruleset_filters(
         )
         db.session.commit()
 
-        prospect_ids = icp_scoring_job.prospect_ids or prospect_ids
+        prospect_ids = prospect_ids or icp_scoring_job.prospect_ids
         if not prospect_ids:
             # Get Prospects that belong in this segment
             prospects = Prospect.query.filter_by(segment_id=segment_id).all()
