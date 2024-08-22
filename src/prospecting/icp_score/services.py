@@ -665,7 +665,7 @@ def get_raw_enriched_prospect_companies_list(
     return processed
 
 
-@celery.task(bind=True)
+@celery.task(bind=True, max_retries=3)
 def score_ai_filters(
         self,
         prospect_enriched_list: list[dict],
@@ -676,135 +676,60 @@ def score_ai_filters(
         from_archetype: Optional[bool] = False,
 ):
     import copy
-    # go through each prospect
-    current_company_answers = {}
 
-    for enriched_prospect_company in prospect_enriched_list:
-        prospect_id = enriched_prospect_company["prospect_id"]
-        individual_ai_filters = icp_scoring_ruleset["individual_ai_filters"] if icp_scoring_ruleset["individual_ai_filters"] else []
-        company_ai_filters = icp_scoring_ruleset["company_ai_filters"] if icp_scoring_ruleset["company_ai_filters"] else []
+    try:
+        # go through each prospect
+        current_company_answers = {}
 
-        try:
-            prospect_individual_score = individual_score[str(prospect_id)]
-            prospect_company_score = company_score[str(prospect_id)]
-        except KeyError:
-            prospect_individual_score = individual_score[prospect_id]
-            prospect_company_score = company_score[prospect_id]
+        for enriched_prospect_company in prospect_enriched_list:
+            prospect_id = enriched_prospect_company["prospect_id"]
+            individual_ai_filters = icp_scoring_ruleset["individual_ai_filters"] if icp_scoring_ruleset["individual_ai_filters"] else []
+            company_ai_filters = icp_scoring_ruleset["company_ai_filters"] if icp_scoring_ruleset["company_ai_filters"] else []
 
-        prospect: Prospect = Prospect.query.get(prospect_id)
+            try:
+                prospect_individual_score = individual_score[str(prospect_id)]
+                prospect_company_score = company_score[str(prospect_id)]
+            except KeyError:
+                prospect_individual_score = individual_score[prospect_id]
+                prospect_company_score = company_score[prospect_id]
 
-        if not prospect:
-            continue
+            prospect: Prospect = Prospect.query.get(prospect_id)
 
-        current_prospect_reason_v2 = copy.deepcopy(prospect.icp_fit_reason_v2)
-        current_company_reason = copy.deepcopy(prospect.icp_company_fit_reason)
-        prospect_reasoning = prospect.icp_fit_reason
+            if not prospect:
+                continue
 
-        for individual_ai_filter in individual_ai_filters:
-            prompt = "Prospect: "
+            current_prospect_reason_v2 = copy.deepcopy(prospect.icp_fit_reason_v2)
+            current_company_reason = copy.deepcopy(prospect.icp_company_fit_reason)
+            prospect_reasoning = prospect.icp_fit_reason
 
-            if prospect.full_name:
-                prompt += prospect.full_name
+            for individual_ai_filter in individual_ai_filters:
+                prompt = "Prospect: "
 
-            if prospect.title:
-                prompt += f" - {prospect.title}"
+                if prospect.full_name:
+                    prompt += prospect.full_name
 
-            if prospect.company:
-                prompt += " at " + prospect.company
+                if prospect.title:
+                    prompt += f" - {prospect.title}"
 
-            if prospect.linkedin_url:
-                prompt += ". LinkedIn: " + prospect.linkedin_url
+                if prospect.company:
+                    prompt += " at " + prospect.company
 
-            prompt += f". {individual_ai_filter['prompt']}"
+                if prospect.linkedin_url:
+                    prompt += ". LinkedIn: " + prospect.linkedin_url
 
-            if individual_ai_filter["use_linkedin"]:
-                prompt += ". Limit your search to only the LinkedIn URL provided. "
-
-            prompt += "Your response will strictly be in the format of a json object with the following structure: (answer: 'YES'/NO', reasoning: 'a one sentence reasoning for the answer, including a summary of your source.', source: 'a link to your primary and reliable source') Do not include any words outside of the json"
-
-            messages = [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-
-            perplexity_response = get_perplexity_response(model="llama-3.1-sonar-large-128k-online",
-                                                          messages=messages)
-            content = perplexity_response["content"].replace('```', '').replace('json', '').replace('\n', '').strip()
-
-            if content:
-                content = json.loads(content)
-                answer = content["answer"] if content["answer"] else "NO"
-                reasoning = content["reasoning"] if content["reasoning"] else "Could not find a reasoning"
-                source = content["source"] if content["source"] else "Could not find a source"
+                prompt += f". {individual_ai_filter['prompt']}"
 
                 if individual_ai_filter["use_linkedin"]:
-                    citation = enriched_prospect_company["prospect_linkedin_url"] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
-                else:
-                    if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
-                        citation = source
-                    else:
-                        citation = "Could not find a citation"
-
-                if answer.lower() == "yes":
-                    if prospect_individual_score != -1:
-                        prospect_individual_score += 1
-                    current_prospect_reason_v2[individual_ai_filter["key"]] = {
-                        "answer": "YES",
-                        "reasoning": f"✅ {reasoning}",
-                        "source": citation
-                    }
-                    prospect_reasoning += f"✅ {individual_ai_filter['key']} - {reasoning}, "
-                else:
-                    if individual_ai_filter["key"] in dealbreaker:
-                        prospect_individual_score = -1
-                        current_prospect_reason_v2[individual_ai_filter["key"]] = {
-                            "answer": "NO",
-                            "reasoning": f"❌ {reasoning} - dealbreaker",
-                            "source": citation
-                        }
-                        prospect_reasoning += f"❌ {individual_ai_filter['key']} - {reasoning} - dealbreaker, "
-                    else:
-                        current_prospect_reason_v2[individual_ai_filter["key"]] = {
-                            "answer": "NO",
-                            "reasoning": f"❌ {reasoning}",
-                            "source": citation
-                        }
-                        prospect_reasoning += f"❌ {individual_ai_filter['key']} - {reasoning}, "
-            else:
-                current_prospect_reason_v2[individual_ai_filter["key"]] = {
-                    "answer": "UNKNOWN",
-                    "reasoning": f"❌ Could not find an answer",
-                    "source": "Could not find a citation"
-                }
-                prospect_reasoning += f"❌ Could not find an answer, "
-
-        if prospect.company in current_company_answers:
-            prospect_company_score = current_company_answers[prospect.company]["score"]
-            current_company_reason = current_company_answers[prospect.company]["reasoning"]
-        else:
-            current_company_answers[prospect.company] = {}
-
-            # Company AI Filters
-            for company_ai_filter in company_ai_filters:
-                prompt = ""
-
-                current_company_answers[prospect.company][company_ai_filter["key"]] = {}
-
-                if enriched_prospect_company["company_name"]:
-                    prompt += f"Company: {enriched_prospect_company['company_name']}. "
-
-                prompt += f"{company_ai_filter['prompt']}. "
+                    prompt += ". Limit your search to only the LinkedIn URL provided. "
 
                 prompt += "Your response will strictly be in the format of a json object with the following structure: (answer: 'YES'/NO', reasoning: 'a one sentence reasoning for the answer, including a summary of your source.', source: 'a link to your primary and reliable source') Do not include any words outside of the json"
 
                 messages = [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+                        {
+                            "role": "user",
+                            "content": prompt
+                            }
+                        ]
 
                 perplexity_response = get_perplexity_response(model="llama-3.1-sonar-large-128k-online",
                                                               messages=messages)
@@ -816,8 +741,8 @@ def score_ai_filters(
                     reasoning = content["reasoning"] if content["reasoning"] else "Could not find a reasoning"
                     source = content["source"] if content["source"] else "Could not find a source"
 
-                    if company_ai_filter["use_linkedin"]:
-                        citation = enriched_prospect_company['prospect_linkedin_url'] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
+                    if individual_ai_filter["use_linkedin"]:
+                        citation = enriched_prospect_company["prospect_linkedin_url"] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
                     else:
                         if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
                             citation = source
@@ -825,142 +750,224 @@ def score_ai_filters(
                             citation = "Could not find a citation"
 
                     if answer.lower() == "yes":
-                        if prospect_company_score != -1:
-                            prospect_company_score += 1
-                        current_company_reason[company_ai_filter["key"]] = {
-                            "answer": "YES",
-                            "reasoning": f"✅ {reasoning}",
-                            "source": citation
-                        }
-
-                        prospect_reasoning += f"✅ {company_ai_filter['key']} - {reasoning}, "
+                        if prospect_individual_score != -1:
+                            prospect_individual_score += 1
+                        current_prospect_reason_v2[individual_ai_filter["key"]] = {
+                                "answer": "YES",
+                                "reasoning": f"✅ {reasoning}",
+                                "source": citation
+                                }
+                        prospect_reasoning += f"✅ {individual_ai_filter['key']} - {reasoning}, "
                     else:
-                        if company_ai_filter["key"] in dealbreaker:
-                            prospect_company_score = -1
-                            current_company_reason[company_ai_filter["key"]] = {
-                                "answer": "NO",
-                                "reasoning": f"❌ {reasoning} - dealbreaker",
-                                "source": citation
-                            }
-
-                            prospect_reasoning += f"❌ {company_ai_filter['key']} - {reasoning} - dealbreaker, "
+                        if individual_ai_filter["key"] in dealbreaker:
+                            prospect_individual_score = -1
+                            current_prospect_reason_v2[individual_ai_filter["key"]] = {
+                                    "answer": "NO",
+                                    "reasoning": f"❌ {reasoning} - dealbreaker",
+                                    "source": citation
+                                    }
+                            prospect_reasoning += f"❌ {individual_ai_filter['key']} - {reasoning} - dealbreaker, "
                         else:
-                            current_company_reason[company_ai_filter["key"]] = {
-                                "answer": "NO",
-                                "reasoning": f"❌ - {reasoning}",
-                                "source": citation
-                            }
-
-                            prospect_reasoning += f"❌ {company_ai_filter['key']} - {reasoning}, "
+                            current_prospect_reason_v2[individual_ai_filter["key"]] = {
+                                    "answer": "NO",
+                                    "reasoning": f"❌ {reasoning}",
+                                    "source": citation
+                                    }
+                            prospect_reasoning += f"❌ {individual_ai_filter['key']} - {reasoning}, "
                 else:
-                    current_company_reason[company_ai_filter["key"]] = {
-                        "answer": "UNKNOWN",
-                        "reasoning": f"❌ Could not find an answer",
-                        "source": "Could not find a citation"
-                    }
-
+                    current_prospect_reason_v2[individual_ai_filter["key"]] = {
+                            "answer": "UNKNOWN",
+                            "reasoning": f"❌ Could not find an answer",
+                            "source": "Could not find a citation"
+                            }
                     prospect_reasoning += f"❌ Could not find an answer, "
 
-            current_company_answers[prospect.company]["score"] = prospect_company_score
-            current_company_answers[prospect.company]["reasoning"] = copy.deepcopy(current_company_reason)
+            if prospect.company in current_company_answers:
+                prospect_company_score = current_company_answers[prospect.company]["score"]
+                current_company_reason = current_company_answers[prospect.company]["reasoning"]
+            else:
+                current_company_answers[prospect.company] = {}
 
-        if from_archetype:
-            total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_archetype(
-                icp_scoring_ruleset["client_archetype_id"])
-        else:
-            total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_segment(
-                icp_scoring_ruleset["client_archetype_id"], prospect.segment_id)
+                # Company AI Filters
+                for company_ai_filter in company_ai_filters:
+                    prompt = ""
 
-        updated_company_score = -1
-        updated_individual_score = -1
-        updated_combined_score = -1
+                    current_company_answers[prospect.company][company_ai_filter["key"]] = {}
 
-        if prospect_individual_score == -1 or total_individual_filter_count == 0:
-            updated_individual_score = 0
-        else:
-            percentage = prospect_individual_score / total_individual_filter_count * 100
+                    if enriched_prospect_company["company_name"]:
+                        prompt += f"Company: {enriched_prospect_company['company_name']}. "
 
-            if 0 <= percentage <= 25:
-                updated_individual_score = 1
-            elif 25 < percentage <= 50:
-                updated_individual_score = 2
-            elif 50 < percentage <= 75:
-                updated_individual_score = 3
-            elif 75 < percentage <= 100:
-                updated_individual_score = 4
+                    prompt += f"{company_ai_filter['prompt']}. "
 
-        if prospect_company_score == -1 or total_company_filter_count == 0:
-            updated_company_score = 0
-        else:
-            percentage = prospect_company_score / total_company_filter_count * 100
+                    prompt += "Your response will strictly be in the format of a json object with the following structure: (answer: 'YES'/NO', reasoning: 'a one sentence reasoning for the answer, including a summary of your source.', source: 'a link to your primary and reliable source') Do not include any words outside of the json"
 
-            if 0 <= percentage <= 25:
-                updated_company_score = 1
-            elif 25 < percentage <= 50:
-                updated_company_score = 2
-            elif 50 < percentage <= 75:
-                updated_company_score = 3
-            elif 75 < percentage <= 100:
-                updated_company_score = 4
-        
-        if prospect_company_score == -1 or prospect_individual_score == -1 or (total_company_filter_count + total_individual_filter_count == 0):
-            updated_combined_score = 0
-        else:
-            percentage = (prospect_individual_score + prospect_company_score) / (total_company_filter_count + total_individual_filter_count) * 100
+                    messages = [
+                            {
+                                "role": "user",
+                                "content": prompt
+                                }
+                            ]
 
-            if 0 <= percentage <= 25:
-                updated_combined_score = 1
-            elif 25 < percentage <= 50:
-                updated_combined_score = 2
-            elif 50 < percentage <= 75:
-                updated_combined_score = 3
-            elif 75 < percentage <= 100:
-                updated_combined_score = 4
+                    perplexity_response = get_perplexity_response(model="llama-3.1-sonar-large-128k-online",
+                                                                  messages=messages)
+                    content = perplexity_response["content"].replace('```', '').replace('json', '').replace('\n', '').strip()
+
+                    if content:
+                        content = json.loads(content)
+                        answer = content["answer"] if content["answer"] else "NO"
+                        reasoning = content["reasoning"] if content["reasoning"] else "Could not find a reasoning"
+                        source = content["source"] if content["source"] else "Could not find a source"
+
+                        if company_ai_filter["use_linkedin"]:
+                            citation = enriched_prospect_company['prospect_linkedin_url'] if enriched_prospect_company['prospect_linkedin_url'] else "Linkedin"
+                        else:
+                            if perplexity_response["citations"] and len(perplexity_response["citations"]) > 0:
+                                citation = source
+                            else:
+                                citation = "Could not find a citation"
+
+                        if answer.lower() == "yes":
+                            if prospect_company_score != -1:
+                                prospect_company_score += 1
+                            current_company_reason[company_ai_filter["key"]] = {
+                                    "answer": "YES",
+                                    "reasoning": f"✅ {reasoning}",
+                                    "source": citation
+                                    }
+
+                            prospect_reasoning += f"✅ {company_ai_filter['key']} - {reasoning}, "
+                        else:
+                            if company_ai_filter["key"] in dealbreaker:
+                                prospect_company_score = -1
+                                current_company_reason[company_ai_filter["key"]] = {
+                                        "answer": "NO",
+                                        "reasoning": f"❌ {reasoning} - dealbreaker",
+                                        "source": citation
+                                        }
+
+                                prospect_reasoning += f"❌ {company_ai_filter['key']} - {reasoning} - dealbreaker, "
+                            else:
+                                current_company_reason[company_ai_filter["key"]] = {
+                                        "answer": "NO",
+                                        "reasoning": f"❌ - {reasoning}",
+                                        "source": citation
+                                        }
+
+                                prospect_reasoning += f"❌ {company_ai_filter['key']} - {reasoning}, "
+                    else:
+                        current_company_reason[company_ai_filter["key"]] = {
+                                "answer": "UNKNOWN",
+                                "reasoning": f"❌ Could not find an answer",
+                                "source": "Could not find a citation"
+                                }
+
+                        prospect_reasoning += f"❌ Could not find an answer, "
+
+                current_company_answers[prospect.company]["score"] = prospect_company_score
+                current_company_answers[prospect.company]["reasoning"] = copy.deepcopy(current_company_reason)
+
+            if from_archetype:
+                total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_archetype(
+                        icp_scoring_ruleset["client_archetype_id"])
+            else:
+                total_individual_filter_count, total_company_filter_count = count_num_icp_attributes_segment(
+                        icp_scoring_ruleset["client_archetype_id"], prospect.segment_id)
+
+            updated_company_score = -1
+            updated_individual_score = -1
+            updated_combined_score = -1
+
+            if prospect_individual_score == -1 or total_individual_filter_count == 0:
+                updated_individual_score = 0
+            else:
+                percentage = prospect_individual_score / total_individual_filter_count * 100
+
+                if 0 <= percentage <= 25:
+                    updated_individual_score = 1
+                elif 25 < percentage <= 50:
+                    updated_individual_score = 2
+                elif 50 < percentage <= 75:
+                    updated_individual_score = 3
+                elif 75 < percentage <= 100:
+                    updated_individual_score = 4
+
+            if prospect_company_score == -1 or total_company_filter_count == 0:
+                updated_company_score = 0
+            else:
+                percentage = prospect_company_score / total_company_filter_count * 100
+
+                if 0 <= percentage <= 25:
+                    updated_company_score = 1
+                elif 25 < percentage <= 50:
+                    updated_company_score = 2
+                elif 50 < percentage <= 75:
+                    updated_company_score = 3
+                elif 75 < percentage <= 100:
+                    updated_company_score = 4
+
+            if prospect_company_score == -1 or prospect_individual_score == -1 or (total_company_filter_count + total_individual_filter_count == 0):
+                updated_combined_score = 0
+            else:
+                percentage = (prospect_individual_score + prospect_company_score) / (total_company_filter_count + total_individual_filter_count) * 100
+
+                if 0 <= percentage <= 25:
+                    updated_combined_score = 1
+                elif 25 < percentage <= 50:
+                    updated_combined_score = 2
+                elif 50 < percentage <= 75:
+                    updated_combined_score = 3
+                elif 75 < percentage <= 100:
+                    updated_combined_score = 4
 
 
-        prospect.icp_prospect_fit_score = updated_individual_score
-        prospect.icp_fit_score = updated_combined_score
-        prospect.icp_company_fit_score = updated_company_score
-        prospect.icp_fit_reason_v2 = current_prospect_reason_v2
-        prospect.icp_company_fit_reason = current_company_reason
-        prospect.icp_fit_reason = prospect_reasoning
+            prospect.icp_prospect_fit_score = updated_individual_score
+            prospect.icp_fit_score = updated_combined_score
+            prospect.icp_company_fit_score = updated_company_score
+            prospect.icp_fit_reason_v2 = current_prospect_reason_v2
+            prospect.icp_company_fit_reason = current_company_reason
+            prospect.icp_fit_reason = prospect_reasoning
+
+            db.session.commit()
+
+            # For each prospect, for each filter, create the research payload
+            # We only want to create the research payload for those that have a YES
+            for individual_ai_filter in individual_ai_filters:
+                current_data = current_prospect_reason_v2[individual_ai_filter["key"]]
+
+                if current_data["answer"] == "YES":
+                    create_research_payload(
+                            prospect.id,
+                            ResearchType.AI_QUESTION_DATA, 
+                            {"reasoning": current_data["reasoning"]},
+                            sub_type=individual_ai_filter["key"]
+                            )
+
+            for company_ai_filter in company_ai_filters:
+                current_data = current_company_reason[company_ai_filter["key"]]
+
+                if current_data["answer"] == "YES":
+                    create_research_payload(
+                            prospect.id,
+                            ResearchType.AI_QUESTION_DATA,
+                            {"reasoning": current_data["reasoning"]},
+                            sub_type=company_ai_filter["key"]
+                            )
+
+            # For each prospect, generate the research points
+            generate_research_points(prospect.id, test_mode = False)
 
         db.session.commit()
-        
-        # For each prospect, for each filter, create the research payload
-        # We only want to create the research payload for those that have a YES
-        for individual_ai_filter in individual_ai_filters:
-            current_data = current_prospect_reason_v2[individual_ai_filter["key"]]
 
-            if current_data["answer"] == "YES":
-                create_research_payload(
-                    prospect.id,
-                    ResearchType.AI_QUESTION_DATA, 
-                    {"reasoning": current_data["reasoning"]},
-                    sub_type=individual_ai_filter["key"]
-                )
+        send_socket_message('update_prospect_list', {'update': True})
 
-        for company_ai_filter in company_ai_filters:
-            current_data = current_company_reason[company_ai_filter["key"]]
-            
-            if current_data["answer"] == "YES":
-                create_research_payload(
-                    prospect.id,
-                    ResearchType.AI_QUESTION_DATA,
-                    {"reasoning": current_data["reasoning"]},
-                    sub_type=company_ai_filter["key"]
-                )
-        
-        # For each prospect, generate the research points
-        generate_research_points(prospect.id, test_mode = False)
+        return True
+    except Exception as e:
+        db.session.rollback()
 
-    db.session.commit()
-
-    send_socket_message('update_prospect_list', {'update': True})
-
-    return True
+        raise self.retry(exc=e, countdown=4**self.request.retries)
 
 
+    
 def score_one_prospect_segment(
     enriched_prospect_company: EnrichedProspectCompany,
     icp_scoring_ruleset: ICPScoringRuleset,
@@ -3258,6 +3265,7 @@ def apply_segment_icp_scoring_ruleset_filters(
             chunk = prospect_enriched_list[i:i + 5]
             score_ai_filters.apply_async(
                 args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
+                countdown=4,
                 priority=1,
                 queue="icp_scoring",
                 routing_key="icp_scoring",
