@@ -24,6 +24,7 @@ from src.bump_framework.services import (
     send_new_framework_created_message,
 )
 from src.client.models import Client, ClientArchetype, ClientSDR
+from src.li_conversation.models import LinkedinInitialMessageTemplate
 from src.utils.request_helpers import get_request_parameter
 from src.authentication.decorators import require_user
 from src.ml.services import (
@@ -483,7 +484,7 @@ def patch_bump_framework(client_sdr_id: int):
         "bump_framework_id", request, json=True, required=True
     )
     overall_status = get_request_parameter(
-        "overall_status", request, json=True, required=True, parameter_type=str
+        "overall_status", request, json=True, required=False, parameter_type=str
     )
     description = (
         get_request_parameter(
@@ -563,6 +564,20 @@ def patch_bump_framework(client_sdr_id: int):
     human_feedback = get_request_parameter(
         "human_feedback", request, json=True, required=False, parameter_type=str
     )
+
+    step_number = get_request_parameter(
+        "step_number", request, json=True, required=False, parameter_type=int
+    )
+
+    if step_number == 0:
+        template: LinkedinInitialMessageTemplate = LinkedinInitialMessageTemplate.query.get(bump_framework_id)
+
+        if template:
+            template.message = description
+
+            db.session.commit()
+
+        return jsonify({"status": "success", "data": {}}), 200 
 
     if bump_delay_days < 2:
         return (
