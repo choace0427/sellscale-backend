@@ -925,7 +925,7 @@ def score_ai_filters(
         prospect.icp_company_fit_reason = current_company_reason
         prospect.icp_fit_reason = prospect_reasoning
 
-        db.session.add(prospect)
+        db.session.commit()
         
         # For each prospect, for each filter, create the research payload
         # We only want to create the research payload for those that have a YES
@@ -2880,8 +2880,6 @@ def apply_archetype_icp_scoring_ruleset_filters(
                 if company_ai_filter["key"] in icp_scoring_ruleset_to_dict["company_personalizers"]:
                    ai_filters[company_ai_filter["key"]] = company_ai_filter["prompt"] 
 
-        db.session.commit()
-
         ### Create research point types for ai_filters
         
         # Cannot create research payload here, because we have to answer the ai questions
@@ -3040,7 +3038,6 @@ def apply_segment_icp_scoring_ruleset_filters(
 
         # Step 2: Score all the prospects
         print("Scoring prospects...")
-        score_map = {}
         entries = raw_enriched_prospect_companies_list.items()
         raw_data = []
 
@@ -3218,8 +3215,6 @@ def apply_segment_icp_scoring_ruleset_filters(
             for company_ai_filter in icp_scoring_ruleset_to_dict["company_ai_filters"]:
                 if company_ai_filter["key"] in icp_scoring_ruleset_to_dict["company_personalizers"]:
                    ai_filters[company_ai_filter["key"]] = company_ai_filter["prompt"] 
-
-        db.session.commit()
 
         ### Create research point types for ai_filters
         
