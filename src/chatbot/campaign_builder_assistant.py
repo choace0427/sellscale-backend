@@ -555,8 +555,6 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
         if 'message' in message:
             description += f"{message['role']}:\n{message['message']}\n\n"
 
-    import pdb; pdb.set_trace()
-
     print("⚡️ AUTO ACTION: create_strategy('{}')".format(description))
 
     selix_action_id = create_selix_action_call_entry(
