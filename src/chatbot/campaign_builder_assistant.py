@@ -905,7 +905,8 @@ def get_all_threads_with_tasks(client_sdr_id: int) -> list[dict]:
             'updated_at', sst.updated_at,
             'description', sst.description,
             'order_number', sst.order_number,
-            'proof_of_work_img', sst.proof_of_work_img
+            'proof_of_work_img', sst.proof_of_work_img,
+            'rewind_img', sst.rewind_img
         )) AS tasks
     FROM selix_session ss
     LEFT JOIN selix_session_task sst ON ss.id = sst.selix_session_id
