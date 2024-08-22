@@ -903,6 +903,7 @@ def get_all_threads_with_tasks(client_sdr_id: int) -> list[dict]:
             'status', sst.status,
             'created_at', sst.created_at,
             'updated_at', sst.updated_at,
+            'widget_type', sst.widget_type,
             'description', sst.description,
             'order_number', sst.order_number,
             'proof_of_work_img', sst.proof_of_work_img,
