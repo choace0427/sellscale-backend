@@ -221,6 +221,9 @@ def update_task(client_sdr_id: int):
     widget_type = get_request_parameter(
         "widget_type", request, json=True, required=False
     )
+    rewind_img = get_request_parameter(
+        "rewind_img", request, json=True, required=False
+    )
 
     success, message = update_selix_task(
         client_sdr_id=client_sdr_id,
@@ -231,7 +234,8 @@ def update_task(client_sdr_id: int):
         new_description=new_description,
         internal_notes=internal_notes,
         internal_review_needed=internal_review_needed,
-        widget_type=widget_type
+        widget_type=widget_type,
+        rewind_img=rewind_img
     )
 
     if not success:

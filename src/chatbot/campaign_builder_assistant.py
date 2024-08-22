@@ -116,7 +116,8 @@ def update_selix_task(
         new_description: Optional[str] = None, 
         internal_notes: Optional[str] = None,
         internal_review_needed: Optional[bool] = None,
-        widget_type: Optional[str] = None
+        widget_type: Optional[str] = None,
+        rewind_img: Optional[str] = None
 ) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
     session: SelixSession = SelixSession.query.get(task.selix_session_id)
@@ -139,6 +140,8 @@ def update_selix_task(
         task.requires_review = internal_review_needed
     if widget_type:
         task.widget_type = widget_type
+    if rewind_img:
+        task.rewind_img = rewind_img
 
     db.session.add(task)
     db.session.commit()
