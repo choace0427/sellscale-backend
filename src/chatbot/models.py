@@ -86,6 +86,7 @@ class SelixSessionTask(db.Model):
     requires_review = db.Column(db.Boolean, nullable=True, default=False)
 
     proof_of_work_img = db.Column(db.String, nullable=True)
+    rewind_img = db.Column(db.String, nullable=True)
 
     def to_dict(self) -> dict:
         return {
@@ -97,6 +98,7 @@ class SelixSessionTask(db.Model):
             "description": self.description,
             "status": self.status.value,
             "proof_of_work_img": self.proof_of_work_img,
+            "rewind_img": self.rewind_img,
         }
 
 class SelixActionCall(db.Model):
