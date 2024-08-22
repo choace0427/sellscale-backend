@@ -47,6 +47,7 @@ class SelixSession(db.Model):
     session_name = db.Column(db.String(255), nullable=True)
     status = db.Column(db.Enum(SelixSessionStatus), nullable=False, default=SelixSessionStatus.ACTIVE)
     memory = db.Column(db.JSON, nullable=True)
+    widget_type = db.Column(db.String, nullable=True)
     estimated_completion_time = db.Column(db.DateTime, nullable=True)
     actual_completion_time = db.Column(db.DateTime, nullable=True)
     assistant_id = db.Column(db.String(255), nullable=True)
@@ -61,6 +62,7 @@ class SelixSession(db.Model):
             "session_name": self.session_name,
             "status": self.status.value,
             "memory": self.memory,
+            "widget_type": self.widget_type,
             "estimated_completion_time": self.estimated_completion_time,
             "actual_completion_time": self.actual_completion_time,
             "assistant_id": self.assistant_id,
