@@ -71,7 +71,7 @@ def adjust_selix_task_order(client_sdr_id: int, task_id: int, new_order: int) ->
     db.session.commit()
     return True, "Task order updated successfully"
 
-def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> tuple[bool, str]:
+def create_selix_task(client_sdr_id: int, session_id: int, task_title: str, widget_type: Optional[str] = None) -> tuple[bool, str]:
     order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
     task = SelixSessionTask(
         selix_session_id=session_id,
@@ -79,7 +79,8 @@ def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> t
         title=task_title,
         description="",
         status=SelixSessionTaskStatus.QUEUED,
-        order_number=order_number
+        order_number=order_number,
+        widget_type=widget_type
     )
 
     session: SelixSession = SelixSession.query.get(session_id)
@@ -90,11 +91,11 @@ def create_selix_task(client_sdr_id: int, session_id: int, task_title: str) -> t
     db.session.commit()
     return True, "Task created successfully"
 
-def bulk_create_selix_tasks(client_sdr_id: int, session_id: int, task_titles: list[str]) -> tuple[bool, str]:
+def bulk_create_selix_tasks(client_sdr_id: int, session_id: int, task_titles: list[str], widget_type: Optional[str] = None) -> tuple[bool, str]:
     total_success = False
     total_message = ""
     for task_title in task_titles:
-        success, message = create_selix_task(client_sdr_id, session_id, task_title)
+        success, message = create_selix_task(client_sdr_id, session_id, task_title, widget_type)
 
         if not success:
             total_success = False
@@ -114,7 +115,8 @@ def update_selix_task(
         new_proof_of_work: Optional[str] = None, 
         new_description: Optional[str] = None, 
         internal_notes: Optional[str] = None,
-        internal_review_needed: Optional[bool] = None
+        internal_review_needed: Optional[bool] = None,
+        widget_type: Optional[str] = None
 ) -> tuple[bool, str]:
     task: SelixSessionTask = SelixSessionTask.query.get(task_id)
     session: SelixSession = SelixSession.query.get(task.selix_session_id)
@@ -135,6 +137,8 @@ def update_selix_task(
         task.internal_notes = internal_notes
     if internal_review_needed is not None:
         task.requires_review = internal_review_needed
+    if widget_type:
+        task.widget_type = widget_type
 
     db.session.add(task)
     db.session.commit()

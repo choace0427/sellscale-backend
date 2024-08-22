@@ -178,11 +178,15 @@ def create_task(client_sdr_id: int):
     task_titles = get_request_parameter(
         "task_titles", request, json=True, required=True
     )
+    widget_type = get_request_parameter(
+        "widget_type", request, json=True, required=False
+    )
 
     success, message = bulk_create_selix_tasks(
         client_sdr_id=client_sdr_id,
         session_id=session_id,
-        task_titles=task_titles
+        task_titles=task_titles,
+        widget_type=widget_type
     )
 
     if not success:
@@ -214,6 +218,9 @@ def update_task(client_sdr_id: int):
     internal_review_needed = get_request_parameter(
         "internal_review_needed", request, json=True, required=False
     )
+    widget_type = get_request_parameter(
+        "widget_type", request, json=True, required=False
+    )
 
     success, message = update_selix_task(
         client_sdr_id=client_sdr_id,
@@ -223,7 +230,8 @@ def update_task(client_sdr_id: int):
         new_proof_of_work=new_proof_of_work,
         new_description=new_description,
         internal_notes=internal_notes,
-        internal_review_needed=internal_review_needed
+        internal_review_needed=internal_review_needed,
+        widget_type=widget_type
     )
 
     if not success:
