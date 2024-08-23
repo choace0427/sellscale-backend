@@ -35,78 +35,84 @@ def post_session_complete():
     session_id = get_request_parameter(
         "session_id", request, json=True, required=True
     )
-    selix_session: SelixSession = SelixSession.query.get(session_id)
-    session_sdr: ClientSDR = ClientSDR.query.get(selix_session.client_sdr_id)
-    company: Client = Client.query.get(session_sdr.client_id)
-    tasks: list[SelixSessionTask] = SelixSessionTask.query.filter_by(selix_session_id=session_id).order_by(SelixSessionTask.order_number.is_(None).desc(), SelixSessionTask.order_number.asc()).all()
+    return handle_session_complete(session_id)
 
-    webhook_url = company.pipeline_notifications_webhook_url
+def handle_session_complete(session_id: int):
+    try:
+        selix_session: SelixSession = SelixSession.query.get(session_id)
+        session_sdr: ClientSDR = ClientSDR.query.get(selix_session.client_sdr_id)
+        company: Client = Client.query.get(session_sdr.client_id)
+        tasks: list[SelixSessionTask] = SelixSessionTask.query.filter_by(selix_session_id=session_id).order_by(SelixSessionTask.order_number.is_(None).desc(), SelixSessionTask.order_number.asc()).all()
 
-    session_memory = selix_session.memory
-    archetype_name = ''
-    if (session_memory and session_memory.get('campaign_id')):
-        archetype_id = int(session_memory.get('archetype_id'))
-        client_archetype : ClientArchetype = ClientArchetype.query.get(archetype_id)
-        archetype_name = client_archetype.archetype
+        webhook_url = company.pipeline_notifications_webhook_url
 
-    if not archetype_name or archetype_name == '':
-        return "NOT OK", 400
-    
-    deep_link =  f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={session_sdr.auth_token}&redirect=selix&thread_id={selix_session.thread_id}&session_id={selix_session.id}"
+        session_memory = selix_session.memory
+        archetype_name = ''
+        if (session_memory and session_memory.get('campaign_id')):
+            archetype_id = int(session_memory.get('campaign_id'))
+            client_archetype : ClientArchetype = ClientArchetype.query.get(archetype_id)
+            archetype_name = client_archetype.archetype
 
-    header = session_sdr.name + ', the "' + archetype_name + '" campaign is ready to review.'
+        if not archetype_name or archetype_name == '':
+            return "NOT OK", 400
+        
+        deep_link =  f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={session_sdr.auth_token}&redirect=selix&thread_id={selix_session.thread_id}&session_id={selix_session.id}"
 
-    task_blocks = [
-    {
-        "type": "header",
-        "text": {
-            "type": "plain_text",
-            "text": header,
-            "emoji": True,
-        },
-    },
-    {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": f"{len(tasks)} tasks completed"
-        }
-    }
-]
+        header = session_sdr.name + ', the "' + archetype_name + '" campaign is ready to review.'
 
-    task_list = "\n".join([f"- {'✅' if task.status == SelixSessionTaskStatus.COMPLETE else '☑️'} {task.title}" for task in tasks])
-    task_blocks.append({
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": task_list
-        }
-    })
-
-    task_blocks.append({
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": "View completed tasks here:"
-        },
-        "accessory": {
-            "type": "button",
+        task_blocks = [
+        {
+            "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Review & Launch",
-                "emoji": True
+                "text": header,
+                "emoji": True,
             },
-            "url": deep_link,
-            "action_id": "button-action"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{len(tasks)} tasks completed"
+            }
         }
-    })
+    ]
 
-    send_slack_message(
-        message="New Selix Session Awaiting",
-        #please advise correct webhook url
-        webhook_urls=[webhook_url],
-        blocks=task_blocks
-    )
+        task_list = "\n".join([f"- {'✅' if task.status == SelixSessionTaskStatus.COMPLETE else '☑️'} {task.title}" for task in tasks])
+        task_blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": task_list
+            }
+        })
 
-    return "OK", 200
-    
+        task_blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "View completed tasks here:"
+            },
+            "accessory": {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Review & Launch",
+                    "emoji": True
+                },
+                "url": deep_link,
+                "action_id": "button-action"
+            }
+        })
+
+        send_slack_message(
+            message="New Selix Session Awaiting",
+            #please advise correct webhook url
+            webhook_urls=[webhook_url],
+            blocks=task_blocks
+        )
+
+        return "OK", 200
+    except Exception as e:
+        print('exception: ', e)
+        return "NOT OK", 400
