@@ -25,6 +25,7 @@ def handle_webhook(
             "prospect_title": prospect.title,
             "prospect_location": prospect.prospect_location,
             "prospect_status": prospect.overall_status.value,
+            "prospect_direct_link": "https://app.sellscale.com/prospects/" + str(prospect_id),
             "company": prospect.company,
             "company_url": prospect.company_url,
             "company_location": prospect.company_location,
@@ -37,6 +38,13 @@ def handle_webhook(
         ):
             if client.on_demo_set_webhook:
                 requests.post(client.on_demo_set_webhook, json=payload)
+
+        if (
+            previous_status != ProspectOverallStatus.ACTIVE_CONVO
+            and new_status == ProspectOverallStatus.ACTIVE_CONVO
+        ):
+            if client.on_active_convo_webhook:
+                requests.post(client.on_active_convo_webhook, json=payload)
     except Exception as e:
         print(f"Error in handle_webhook: {e}")
         return

@@ -85,6 +85,7 @@ class Client(db.Model):
     merge_crm_account_token = db.Column(db.String, nullable=True)
 
     on_demo_set_webhook = db.Column(db.String, nullable=True)
+    on_reply_webhook = db.Column(db.String, nullable=True)
 
     free_client = db.Column(db.Boolean, nullable=True, default=False)
 

@@ -239,7 +239,7 @@ def get_client_webhooks(client_sdr_id: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
     client: Client = Client.query.get(client_sdr.client_id)
 
-    webhooks = {"on_demo_set": client.on_demo_set_webhook}
+    webhooks = {"on_demo_set": client.on_demo_set_webhook, "on_reply": client.on_reply_webhook}
 
     return jsonify(webhooks), 200
 
@@ -261,6 +261,25 @@ def set_on_demo_set_webhook(client_sdr_id: int):
     db.session.commit()
 
     return "Webhook set successfully", 200
+
+@WEBHOOKS_BLUEPRINT.route("/set_on_reply_webhook", methods=["POST"])
+@require_user
+def set_on_reply_webhook(client_sdr_id: int):
+    """Set the webhook for when a reply is received."""
+    from src.client.models import ClientSDR, Client
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client: Client = Client.query.get(client_sdr.client_id)
+
+    on_reply_webhook = get_request_parameter(
+        key="on_reply_webhook", req=request, required=True, json=True
+    )
+
+    client.on_reply_webhook = on_reply_webhook
+    db.session.commit()
+
+    return "Webhook set successfully", 200
+
 
 
 @WEBHOOKS_BLUEPRINT.route("/prospect/find-phone-number/<client_sdr_id>/<prospect_id>", methods=["POST"])
