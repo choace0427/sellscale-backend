@@ -50,7 +50,7 @@ def post_session_complete():
         archetype_name = client_archetype.archetype
 
     if not archetype_name or archetype_name == '':
-        return "OK", 200
+        return "NOT OK", 400
     
     deep_link =  f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={session_sdr.auth_token}&redirect=selix&thread_id={selix_session.thread_id}&session_id={selix_session.id}"
 
@@ -107,4 +107,6 @@ def post_session_complete():
         webhook_urls=[webhook_url],
         blocks=task_blocks
     )
+
+    return "OK", 200
     
