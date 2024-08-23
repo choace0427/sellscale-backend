@@ -14,7 +14,7 @@ from model_import import SelixSession, SelixSessionTask, SelixSessionStatus, Sel
 from src.client.models import ClientSDR, Client
 from src.contacts.models import SavedApolloQuery
 
-from src.contacts.services import get_contacts_from_predicted_query_filters
+from src.contacts.services import get_contacts_from_predicted_query_filters, handle_chat_icp
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import generate_strategy_copilot_response, simple_perplexity_response
 from src.strategies.models import Strategies, StrategyStatuses
@@ -838,6 +838,39 @@ def create_tasks_from_strategy(session_id: int):
     
     return {"success": True}
 
+def create_icp(
+    icp_description: str,
+    session_id: int,
+    should_create_action: bool = True
+):
+    
+    #create the action call
+
+    selix_action_id = None
+    if should_create_action:
+        selix_action_id = create_selix_action_call_entry(
+            selix_session_id=session_id,
+            action_title="Create ICP",
+            action_description="Create an ICP based on the description provided: {}".format(icp_description),
+            action_function="create_icp",
+            action_params={"icp_description": icp_description}
+        )
+
+    print('parameters are', icp_description, session_id, should_create_action)
+    
+    selix_session: SelixSession = SelixSession.query.get(session_id)
+
+    #idk maybe we should populate chat_content with the previous messages
+    handle_chat_icp(client_sdr_id=selix_session.client_sdr_id, chat_content=[], prompt=icp_description)
+
+    #change tab to ICP
+    set_session_tab(session_id, "ICP")
+
+    if selix_action_id:
+        mark_action_complete(selix_action_id)
+
+    return {"success": True}
+
 
 ACTION_MAP = {
     "create_campaign": create_campaign,
@@ -849,7 +882,8 @@ ACTION_MAP = {
     "wait_for_ai_execution": wait_for_ai_execution,
     "search_internet": search_internet,
     "edit_strategy": edit_strategy,
-    "create_tasks_from_strategy": create_tasks_from_strategy
+    "create_tasks_from_strategy": create_tasks_from_strategy,
+    "create_icp": create_icp,
 }
 
 
