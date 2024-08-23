@@ -580,7 +580,7 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
             500,
         )
     
-def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int) -> bool:
+def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int) -> bool, str:
     # Check if the archetype can be activated for LinkedIn
     if not archetype:
         return False, "Archetype does not exist"
@@ -588,7 +588,7 @@ def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int) 
         return False, "Unauthorized: client_sdr_id does not match"
     # Check if there are LinkedIn sequences
     if (not archetype.template_mode):
-        return True
+        return True, "Archetype can be activated for LinkedIn"
     sequences = get_client_archetype_sequences(archetype.id)
     if not sequences.get("linkedin_sequence"):
         return False, "No LinkedIn sequence found"
