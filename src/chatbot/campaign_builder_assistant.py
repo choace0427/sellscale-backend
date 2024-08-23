@@ -18,6 +18,7 @@ from src.contacts.services import get_contacts_from_predicted_query_filters
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.ml.services import generate_strategy_copilot_response, simple_perplexity_response
 from src.strategies.models import Strategies, StrategyStatuses
+from src.strategies.services import create_task_list_from_strategy
 from src.utils.abstract.attr_utils import deep_get
 from src.utils.slack import URL_MAP, send_slack_message
 from src.sockets.services import send_socket_message
@@ -809,6 +810,34 @@ def wait_for_ai_execution(session_id: int):
     set_session_tab(session_id, "PLANNER")
     return {"success": True}
 
+def create_tasks_from_strategy(session_id: int):
+    print("⚡️ AUTO ACTION: create_tasks_from_strategy()")
+    set_session_tab(session_id, "PLANNER")
+
+    selix_action_id = create_selix_action_call_entry(
+        selix_session_id=session_id,
+        action_title="Create Tasks from Strategy",
+        action_description="Create tasks based on the strategy",
+        action_function="create_tasks_from_strategy",
+        action_params={}
+    )
+    
+    tasks: list[dict[str, str]] = create_task_list_from_strategy(
+        selix_session_id=session_id
+    )
+    
+    for task in tasks:
+        create_task(
+            title=task["title"],
+            description=task["description"],
+            session_id=session_id,
+            create_action=True
+        )
+
+    mark_action_complete(selix_action_id)
+    
+    return {"success": True}
+
 
 ACTION_MAP = {
     "create_campaign": create_campaign,
@@ -819,7 +848,8 @@ ACTION_MAP = {
     "create_task": create_task,
     "wait_for_ai_execution": wait_for_ai_execution,
     "search_internet": search_internet,
-    "edit_strategy": edit_strategy
+    "edit_strategy": edit_strategy,
+    "create_tasks_from_strategy": create_tasks_from_strategy
 }
 
 

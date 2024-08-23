@@ -2,6 +2,8 @@ from typing import Optional
 from model_import import Strategies, StrategyClientArchetypeMapping, ClientSDR
 from app import db
 from src.client.models import ClientArchetype
+from src.ml.models import LLM
+from src.ml.openai_wrappers import wrapped_chat_gpt_completion
 from src.strategies.models import StrategyStatuses
 
 def create_strategy(
@@ -253,3 +255,107 @@ def get_all_strategies(client_sdr_id: int):
         }
         for strategy in strategies
     ]
+
+
+
+
+def create_task_list_from_strategy(selix_session_id: int) -> list[dict[str, str]]:
+    """
+    Creates an executable task list from a strategy.
+
+    task_list: [
+        {
+            'title': 'Send out first email',
+            'description': 'Send out the first email to the prospects',
+        },
+        ...
+    ]
+    """
+    from src.chatbot.campaign_builder_assistant import get_action_calls
+    from src.chatbot.models import SelixSession
+
+    selix_session: SelixSession = SelixSession.query.get(selix_session_id)
+
+    strategy_id = selix_session.memory.get("strategy_id", None)
+    if not strategy_id:
+        return []
+    
+    strategy: Strategies = Strategies.query.get(strategy_id)
+    if not strategy:
+        return []
+    
+    client_sdr: ClientSDR = ClientSDR.query.get(selix_session.client_sdr_id)
+    action_calls: list[dict] = get_action_calls(selix_session_id)
+    files = ""
+    for action_call in action_calls:
+        if action_call.get("action_function") == "analyze_file":
+            files += '`{}` - {}'.format(action_call.get("action_params", {}).get("file_name", ""), action_call.get("action_params", {}).get("description", "")) + '\n'
+
+    username = client_sdr.name
+    strategy_name = strategy.title
+    strategy_description = strategy.description
+    
+    llm: LLM = LLM.query.filter(
+        LLM.name == 'generate_task_list_from_strategy'
+    ).first()
+    if not llm:
+        raise ValueError("LLM not found")
+    
+    prompt = llm.user
+    if not prompt:
+        raise ValueError("LLM user prompt not found")
+    
+    prompt = prompt.format(
+        files=files,
+        username=username,
+        strategy_name=strategy_name,
+        strategy_description=strategy_description,
+    )
+
+    try:
+        response = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    'role': 'user',
+                    'content': prompt,
+                }
+            ],
+            model='gpt-4o',
+            max_tokens=llm.max_tokens,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "task_list_schema",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "tasks": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": { "type": "string" },
+                                        "description": { "type": "string" }
+                                    },
+                                    "required": ["title", "description"],
+                                    "additionalProperties": False
+                                }
+                            }
+                        },
+                        "required": ["tasks"],
+                        "additionalProperties": False
+                    },
+                    "strict": True
+                }
+            }
+        )
+    except Exception as e:
+        print(e)
+        response = {"error": "Error in generating task list."}
+        print(response)
+
+    import json
+    response = json.loads(response)
+    retval = response["tasks"]
+
+    return retval
