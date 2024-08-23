@@ -751,9 +751,9 @@ def wait_for_ai_execution(session_id: int):
         session.thread_id
     )
 
-    session_sdr = ClientSDR.query.get(session.client_sdr_id)
-    company = Client.query.get(session_sdr.client_id)
-    tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id).all()
+    session_sdr: ClientSDR = ClientSDR.query.get(session.client_sdr_id)
+    company: Client = Client.query.get(session_sdr.client_id)
+    tasks: list[SelixSessionTask] = SelixSessionTask.query.filter_by(selix_session_id=session_id).order_by(SelixSessionTask.order_number.is_(None).desc(), SelixSessionTask.order_number.asc()).all()
     
     task_blocks = [
         {
