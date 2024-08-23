@@ -581,7 +581,7 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
             500,
         )
     
-def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int) -> Tuple[bool, str]:
+def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int):
     # Check if the archetype can be activated for LinkedIn
     if not archetype:
         return False, "Archetype does not exist"
