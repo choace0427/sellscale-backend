@@ -587,6 +587,8 @@ def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int) 
     if archetype.client_sdr_id != client_sdr_id:
         return False, "Unauthorized: client_sdr_id does not match"
     # Check if there are LinkedIn sequences
+    if (not archetype.template_mode):
+        return True
     sequences = get_client_archetype_sequences(archetype.id)
     if not sequences.get("linkedin_sequence"):
         return False, "No LinkedIn sequence found"
