@@ -22,6 +22,7 @@ from src.client.archetype.services_client_archetype import (
 from src.automation.orchestrator import add_process_for_future
 from src.client.models import Client, ClientArchetype, ClientSDR
 from src.client.services import get_client_assets, campaign_voices_generation
+from src.client.services_client_archetype import get_client_archetype_sequences
 from src.email_outbound.email_store.hunter import (
     find_hunter_emails_for_prospects_under_archetype,
 )
@@ -578,6 +579,26 @@ def post_archetype_li_template_detect_research(client_sdr_id: int, archetype_id:
             jsonify({"status": "error", "message": "Failed to detect research points"}),
             500,
         )
+    
+def check_can_activate_linkedin(archetype: ClientArchetype, client_sdr_id: int) -> bool:
+    # Check if the archetype can be activated for LinkedIn
+    if not archetype:
+        return False, "Archetype does not exist"
+    if archetype.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized: client_sdr_id does not match"
+    # Check if there are LinkedIn sequences
+    sequences = get_client_archetype_sequences(archetype.id)
+    if not sequences.get("linkedin_sequence"):
+        return False, "No LinkedIn sequence found"
+    if not sequences.get("initial_message_templates"):
+        return False, "No initial message templates found"
+    
+    #check for contacts 
+    prospects = Prospect.query.filter(Prospect.archetype_id == archetype.id).all()
+    if not prospects:
+        return False, "No prospects found for this archetype"
+
+    return True, "Archetype can be activated for LinkedIn"
 
 
 @CLIENT_ARCHETYPE_BLUEPRINT.route(
@@ -597,6 +618,10 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
             jsonify({"status": "error", "message": "Bad archetype, not authorized"}),
             403,
         )
+    
+    can_activate, message = check_can_activate_linkedin(archetype, client_sdr_id)
+    if not can_activate:
+        return jsonify({"status": "error", "message": message}), 400
 
     if active and not archetype.linkedin_active:
         meta_data = archetype.meta_data or {}
@@ -635,26 +660,55 @@ def post_archetype_linkedin_active(client_sdr_id: int, archetype_id: int):
 
     return jsonify({"status": "success"}), 200
 
+def check_can_activate_email(archetype: ClientArchetype, client_sdr_id: int) -> bool:
+    # Check if the archetype can be activated for Email
+    if not archetype:
+        return False, "Archetype does not exist"
+    if archetype.client_sdr_id != client_sdr_id:
+        return False, "Unauthorized: client_sdr_id does not match"
+    # Check if there are email sequences
+    sequences = get_client_archetype_sequences(archetype.id)
+    if not sequences.get("email_sequence"):
+        return False, "No email sequence found"
+    if not sequences.get("email_subject_lines"):
+        return False, "No email subject lines found"
+    #check for contacts 
+    prospects = Prospect.query.filter(Prospect.archetype_id == archetype.id).all()
+    if not prospects:
+        return False, "No prospects found for this archetype"
+
+
+    return True, "Archetype can be activated for Email"
 
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/email/active", methods=["POST"])
 @require_user
 def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
+    print("Starting post_archetype_email_active function")
     active = get_request_parameter(
         "active", request, json=True, required=True, parameter_type=bool
     )
+    print(f"Active parameter received: {active}")
 
     archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
     if not archetype or archetype.client_sdr_id != client_sdr_id:
+        print("Invalid archetype or unauthorized access")
         return jsonify({"status": "error", "message": "Invalid archetype"}), 400
     elif archetype.client_sdr_id != client_sdr_id:
+        print("Unauthorized: client_sdr_id does not match")
         return (
             jsonify({"status": "error", "message": "Bad archetype, not authorized"}),
             403,
         )
+    
+    can_activate, message = check_can_activate_email(archetype, client_sdr_id)
+    print(f"Can activate: {can_activate}, Message: {message}")
+    if not can_activate:
+        return jsonify({"status": "error", "message": message}), 400
 
     if active and not archetype.email_active:
         meta_data = archetype.meta_data or {}
         has_been_active = meta_data.get("email_has_been_active", False)
+        print(f"Email has been active before: {has_been_active}")
         if not has_been_active:
             archetype.meta_data = {
                 **meta_data,
@@ -664,6 +718,7 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
             archetype.active = active
             archetype.setup_status = "ACTIVE" if active else "INACTIVE"
             db.session.commit()
+            print("Archetype status updated and committed to the database")
 
             # Send out campaign because it's the first time enabling
             print("Sending out campaign because it's the first time enabling")
@@ -679,12 +734,15 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
     archetype.active = active
     archetype.setup_status = "ACTIVE" if active else "INACTIVE"
     db.session.commit()
+    print("Archetype email status updated and committed to the database")
 
     if active:
         # Find emails for prospects under this archetype
+        print("Finding emails for prospects under this archetype")
         find_emails_for_archetype(archetype_id=archetype_id)
 
         # Send slack notification
+        print("Sending slack notification for campaign activation")
         send_slack_notif_campaign_active(client_sdr_id, archetype_id, "email")
 
         # Turn on auto generate and auto sending for this SDR
@@ -693,12 +751,19 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
         client: Client = Client.query.get(sdr.client_id)
         client.auto_generate_email_messages = True
         db.session.commit()
+        print("Auto generate and auto sending for SDR updated and committed to the database")
 
         # Sync this campaign to Smartlead
+        print("Syncing campaign to Smartlead")
+        #check if email campaign already has a smartlead campaign
+        if (archetype.smartlead_campaign_id):
+            return jsonify({"status": "error", "message": "Smartlead campaign already exists"}), 400
+
         success, message, smartlead_id = create_smartlead_campaign(
             archetype_id=archetype_id,
             sync_to_archetype=True,
         )
+        print(f"Smartlead sync success: {success}, Message: {message}")
 
         if not success:
             return (
@@ -711,9 +776,32 @@ def post_archetype_email_active(client_sdr_id: int, archetype_id: int):
                 400,
             )
         
+    print("Enabling Selix campaign handler")
     selix_campaign_enabled_handler(campaign_id=archetype_id)
 
+    print("Returning success response")
     return jsonify({"status": "success"}), 200
+
+#useful for debugging
+def reset_campaign_status(archetype_id: int):
+    archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)
+    if not archetype:
+        return "Archetype not found", 404
+
+    archetype.email_active = False
+    archetype.linkedin_active = False
+    archetype.active = False
+    archetype.setup_status = "INACTIVE"
+
+    archetype.meta_data = {
+        "email_has_been_active": False,
+        "linkedin_has_been_active": False,
+    }
+
+    archetype.smartlead_campaign_id = None
+    db.session.commit()
+
+    return "Campaign status reset", 200
 
 
 @CLIENT_ARCHETYPE_BLUEPRINT.route("/<int:archetype_id>/generate_ai_sequence", methods=["POST"])
