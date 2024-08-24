@@ -391,6 +391,21 @@ class Smartlead:
             time.sleep(self.DELAY_SECONDS)
             return self.add_leads_to_campaign_by_id(campaign_id, lead_list)
         return response.json()
+    
+    def forward_email(self, campaign_id: int, message_id: str, stats_id: str, to_emails: str):
+        url = f"{self.BASE_URL}/campaigns/{campaign_id}/forward-email?api_key={self.api_key}"
+        data = {
+            "message_id": message_id,
+            "stats_id": stats_id,
+            "to_emails": to_emails,
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 429 or not is_jsonable(response):
+            print("Rate limited while forwarding email, retrying...")
+            time.sleep(self.DELAY_SECONDS)
+            return self.forward_email(campaign_id, message_id, stats_id, to_emails)
+        return response.json()
 
     def reply_to_lead(
         self,

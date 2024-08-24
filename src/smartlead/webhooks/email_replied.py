@@ -1,7 +1,7 @@
 import re
 from bs4 import BeautifulSoup
 from app import db, celery
-from src.client.models import ClientArchetype
+from src.client.models import ClientArchetype, ClientSDR
 from src.email_classifier.services import classify_email
 from src.email_outbound.models import (
     ProspectEmail,
@@ -13,6 +13,7 @@ from src.email_sequencing.models import EmailSequenceStep
 from src.prospecting.models import Prospect
 from src.prospecting.services import update_prospect_status_email
 from src.smartlead.services import generate_smart_email_response
+from src.smartlead.smartlead import Smartlead
 
 from src.smartlead.webhooks.models import (
     SmartleadWebhookPayloads,
@@ -187,6 +188,11 @@ def process_email_replied_webhook(payload_id: int):
             status = None
             pass
 
+        check_and_forward_email_to_sdr(
+            prospect_id=prospect.id,
+            payload_id=payload_id
+        )
+
         # ANALYTICS
         if old_status and (
             "ACTIVE_CONVO" not in old_status.value or "ACTIVE_CONVO_OOO" in old_status.value
@@ -227,6 +233,40 @@ def process_email_replied_webhook(payload_id: int):
         db.session.commit()
         return False, str(e)
 
+
+def check_and_forward_email_to_sdr(prospect_id, payload_id):
+    try:
+        prospect: Prospect = Prospect.query.get(prospect_id)
+        payload: SmartleadWebhookPayloads = SmartleadWebhookPayloads.query.get(payload_id)
+        if not prospect or not payload:
+            return False
+        
+        client_sdr: ClientSDR = ClientSDR.query.get(prospect.client_sdr_id)
+        if not client_sdr:
+            return False
+        
+        # todo(Aakash) - Remove this check once we have the correct way to gate this feature
+        if client_sdr.id != 225:
+            return False
+        
+        sl = Smartlead()
+        campaign_id = payload.smartlead_payload.get("campaign_id")
+        message_id = payload.smartlead_payload.get("reply_message", {}).get("message_id")
+        stats_id = payload.smartlead_payload.get("stats_id")
+        to_emails = "aakash@sellscale.com"
+        
+        response = sl.forward_email(
+            campaign_id=campaign_id,
+            message_id=message_id,
+            stats_id=stats_id,
+            to_emails=to_emails
+        )
+
+        return True
+    except Exception as e:
+        print(f"Failed to forward email to SDR: {str(e)}")
+        return False    
+    
 
 def backfill():
     """Backfill all EMAIL_REPLY payloads."""
