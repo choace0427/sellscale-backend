@@ -145,7 +145,7 @@ def reset_prospect_task(prospect_id: int, new_segment_name: str):
 
 
 def get_segments_for_sdr(
-    sdr_id: int, include_all_in_client: bool = False, tag_filter: int = None
+    sdr_id: int, include_all_in_client: bool = False, tag_filter: int = None, archetype_id: int = None
 ) -> list[dict]:
     client_sdr: ClientSDR = ClientSDR.query.get(sdr_id)
     client_id: int = client_sdr.client_id
@@ -179,12 +179,21 @@ def get_segments_for_sdr(
         left join saved_apollo_query saq on s.saved_apollo_query_id = saq.id
         left join prospect p on s.id = p.segment_id and p.client_id = :client_id
         where s.client_sdr_id in :sdr_ids
+        {archetype_filter}
         group by s.id, s.is_market_map, csdr.client_id, csdr.name, csdr.img_url, saq.num_results, archetype.archetype, archetype.emoji
     """
 
-    segments_data = db.session.execute(
-        segments_query, {"client_id": client_id, "sdr_ids": tuple(sdr_ids)}
-    ).fetchall()
+    archetype_filter = ""
+    if archetype_id:
+        archetype_filter = "and s.client_archetype_id = :archetype_id"
+
+    segments_query = segments_query.format(archetype_filter=archetype_filter)
+
+    query_params = {"client_id": client_id, "sdr_ids": tuple(sdr_ids)}
+    if archetype_id:
+        query_params["archetype_id"] = archetype_id
+
+    segments_data = db.session.execute(segments_query, query_params).fetchall()
 
     retval = []
     for row in segments_data:
@@ -233,7 +242,6 @@ def get_segments_for_sdr(
     retval = sorted(retval, key=lambda x: x["id"], reverse=True)
 
     return retval
-
 
 def get_base_segment_for_archetype(archetype_id: int) -> Segment:
     client_archetype: ClientArchetype = ClientArchetype.query.get(archetype_id)

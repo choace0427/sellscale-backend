@@ -520,8 +520,12 @@ def get_segments(client_sdr_id: int):
         "tag_filter", request, json=False, required=False
     )
 
+    archetype_id: int = get_request_parameter(
+        "archetype_id", request, json=False, required=False
+    )
+
     segments: list[dict] = get_segments_for_sdr(client_sdr_id, include_all_in_client=include_all_in_client,
-                                                tag_filter=tag_filter)
+                                                tag_filter=tag_filter, archetype_id=archetype_id)
 
     return {"segments": segments}, 200
 
