@@ -753,6 +753,8 @@ def wait_for_ai_execution(session_id: int):
     session_sdr: ClientSDR = ClientSDR.query.get(session.client_sdr_id)
     company: Client = Client.query.get(session_sdr.client_id)
     tasks: list[SelixSessionTask] = SelixSessionTask.query.filter_by(selix_session_id=session_id).order_by(SelixSessionTask.order_number.is_(None).desc(), SelixSessionTask.order_number.asc()).all()
+
+    deep_link =  f"https://app.sellscale.com/authenticate?stytch_token_type=direct&token={session_sdr.auth_token}&redirect=selix&thread_id={session.thread_id}&session_id={session.id}"
     
     task_blocks = [
         {
@@ -794,7 +796,7 @@ def wait_for_ai_execution(session_id: int):
                 "text": "Internal Tool",
                 "emoji": True
             },
-            "url": "https://your-portal-url.com",
+            "url": deep_link,
             "action_id": "button-action"
         }
     })
