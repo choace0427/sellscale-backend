@@ -139,8 +139,7 @@ def update_selix_task(
         task.internal_notes = internal_notes
     if internal_review_needed is not None:
         task.requires_review = internal_review_needed
-    if widget_type:
-        task.widget_type = widget_type
+    task.widget_type = widget_type if widget_type else None
     if rewind_img:
         task.rewind_img = rewind_img
 
