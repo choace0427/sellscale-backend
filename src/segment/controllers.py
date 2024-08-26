@@ -315,7 +315,7 @@ def get_prospects_by_segment(client_sdr_id: int, segment_id: int):
     if not segment:
         return "Segment not found", 404
 
-    prospects = Prospect.query.filter(
+    prospects: list[Prospect] = Prospect.query.filter(
         Prospect.segment_id == segment_id,
         Prospect.overall_status != ProspectOverallStatus.REMOVED,
     ).all()

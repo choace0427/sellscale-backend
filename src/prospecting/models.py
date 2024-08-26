@@ -580,6 +580,7 @@ class Prospect(db.Model):
             "icp_fit_reason_v2": self.icp_fit_reason_v2,
             "icp_company_fit_score": self.icp_company_fit_score,
             "icp_company_fit_reason": self.icp_company_fit_reason,
+            "company_url": self.company_url,
             "li_public_id": (
                 self.linkedin_url.split("/in/")[1].split("/")[0]
                 if self.linkedin_url
