@@ -91,7 +91,7 @@ def handle_session_complete(session_id: int):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "View completed tasks here:"
+                "text": "Review campaign and launch here:"
             },
             "accessory": {
                 "type": "button",
