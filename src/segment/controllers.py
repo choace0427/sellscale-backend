@@ -317,6 +317,7 @@ def get_prospects_by_segment(client_sdr_id: int, segment_id: int):
 
     prospects = Prospect.query.filter(
         Prospect.segment_id == segment_id,
+        Prospect.overall_status != ProspectOverallStatus.REMOVED,
     ).all()
 
     return jsonify({"prospects": [prospect.simple_to_dict() for prospect in prospects]}), 200

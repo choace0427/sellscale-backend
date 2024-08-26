@@ -49,7 +49,7 @@ from src.operator_dashboard.models import (
 from src.operator_dashboard.services import create_operator_dashboard_entry
 from src.prospecting.icp_score.services import update_icp_scoring_ruleset, \
     apply_segment_icp_scoring_ruleset_filters_task, apply_archetype_icp_scoring_ruleset_filters_task
-from src.prospecting.models import Prospect
+from src.prospecting.models import Prospect, ProspectOverallStatus
 from src.research.models import ResearchPointType
 from src.smartlead.services import create_smartlead_campaign
 from src.utils.request_helpers import get_request_parameter
@@ -86,7 +86,8 @@ def get_prospects_by_archetype(client_sdr_id: int, archetype_id: int):
         return "Archetype not found", 404
 
     prospects = Prospect.query.filter(
-        Prospect.archetype_id == archetype_id
+        Prospect.archetype_id == archetype_id,
+        Prospect.overall_status != ProspectOverallStatus.REMOVED,
         ).all()
 
     return jsonify({"prospects": [prospect.simple_to_dict() for prospect in prospects]}), 200
