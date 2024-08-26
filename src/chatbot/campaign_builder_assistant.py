@@ -787,7 +787,25 @@ def wait_for_ai_execution(session_id: int):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": "Complete task by visiting internal operations tool"
+            "text": "View the session here:"
+        },
+        "accessory": {
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": "Deep Link",
+                "emoji": True
+            },
+            "url": deep_link,
+            "action_id": "button-action"
+        }
+    })
+
+    task_blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "Internal Tool"
         },
         "accessory": {
             "type": "button",
@@ -796,8 +814,8 @@ def wait_for_ai_execution(session_id: int):
                 "text": "Internal Tool",
                 "emoji": True
             },
-            "url": deep_link,
-            "action_id": "button-action"
+            "url": "https://sellscale.retool.com/apps/d844610e-5523-11ef-8ac7-4fac094b8e83/Selix%20MVP/Selix%20AI%20-%20Internal%20Operations%20View?_releaseVersion=latest",
+            "action_id": "button-action-internal-tool"
         }
     })
 
