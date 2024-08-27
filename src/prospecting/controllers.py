@@ -1148,11 +1148,16 @@ def add_prospect_from_apollo_query_id(client_sdr_id: int):
         num_contacts=num_contacts,
     )
 
-    append_icp_scoring_segment_ruleset_filters(
-        client_sdr_id=client_sdr_id,
-        saved_apollo_query_id=saved_apollo_query_id,
-        segment_id=segment_id
-    )
+    try:
+
+        append_icp_scoring_segment_ruleset_filters(
+            client_sdr_id=client_sdr_id,
+            saved_apollo_query_id=saved_apollo_query_id,
+            segment_id=segment_id
+        )
+
+    except Exception as e:
+        print('exception:', e)
 
     if success:
         return "OK", 200
