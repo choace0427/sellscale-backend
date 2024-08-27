@@ -789,16 +789,18 @@ def apollo_get_organizations_from_company_names(
             "https://app.apollo.io/api/v1/organizations/search",
             headers=headers,
             json=data,
+            allow_redirects=True,
+            timeout=30,
         )
 
-        # Get the organizations and append the first one to the objects list
+        # Get the organizations and append all to the objects list
         try:
             organizations = response.json().get("organizations")
             if organizations and len(organizations) > 0:
-                return organizations[0]
+                return organizations
         except:
             print("ERROR", response.text)
-        return None
+        return []
 
     results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -808,6 +810,9 @@ def apollo_get_organizations_from_company_names(
                 company_names,
             )
         )
+
+    # Flatten the list of lists
+    results = [org for sublist in results for org in sublist]
 
     # Remove NONE from the results
     results = [obj for obj in results if obj]
