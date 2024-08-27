@@ -2462,12 +2462,11 @@ def apply_segment_icp_scoring_ruleset_filters_task(
                 prospect_ids=prospect_ids,
             )
         else:
-            for i in range(0, len(prospect_ids), 60):
-                apply_segment_icp_scoring_ruleset_filters.apply_async(
-                    args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids[i:i + 60]],
-                    queue="icp_scoring",
-                    routing_key="icp_scoring",
-                )
+            apply_segment_icp_scoring_ruleset_filters.apply_async(
+                args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids],
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
             # apply_segment_icp_scoring_ruleset_filters.apply_async(
             #     args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids],
             #     queue="icp_scoring",
@@ -2494,12 +2493,11 @@ def apply_segment_icp_scoring_ruleset_filters_task(
             prospect_ids=prospect_ids,
         )
     else:
-        for i in range(0, len(prospect_ids), 60):
-            apply_segment_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids[i:i + 60]],
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-            )
+        apply_segment_icp_scoring_ruleset_filters.apply_async(
+            args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids],
+            queue="icp_scoring",
+            routing_key="icp_scoring",
+        )
         # apply_segment_icp_scoring_ruleset_filters.apply_async(
         #     args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids],
         #     queue="icp_scoring",
@@ -2537,12 +2535,11 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
                 prospect_ids=prospect_ids,
             )
         else:
-            for i in range(0, len(prospect_ids), 60):
-                apply_archetype_icp_scoring_ruleset_filters.apply_async(
-                    args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids[i:i + 60]],
-                    queue="icp_scoring",
-                    routing_key="icp_scoring",
-                )
+            apply_archetype_icp_scoring_ruleset_filters.apply_async(
+                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
+                queue="icp_scoring",
+                routing_key="icp_scoring",
+            )
             # apply_archetype_icp_scoring_ruleset_filters.apply_async(
             #     args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
             #     queue="icp_scoring",
@@ -2568,12 +2565,11 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
             prospect_ids=prospect_ids,
         )
     else:
-        for i in range(0, len(prospect_ids), 60):
-            apply_archetype_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job.id, client_archetype_id, prospect_ids[i:i + 60]],
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-            )
+        apply_archetype_icp_scoring_ruleset_filters.apply_async(
+            args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
+            queue="icp_scoring",
+            routing_key="icp_scoring",
+        )
         # apply_archetype_icp_scoring_ruleset_filters.apply_async(
         #     args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
         #     queue="icp_scoring",
