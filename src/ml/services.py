@@ -1741,7 +1741,7 @@ def one_shot_sequence_generation(
             num_steps=num_steps,
             num_variants=num_variants,
         )
-        context_info = '''
+        context_info = f'''
             Company: {company}
             Company Description: {company_description}
             Campaign Name: {campaign_name}

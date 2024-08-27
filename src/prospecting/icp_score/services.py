@@ -1,5 +1,6 @@
 import datetime
 import json
+from sqlalchemy import update
 import yaml
 from multiprocessing import process
 from typing import Counter, Optional
@@ -1026,7 +1027,7 @@ def score_ai_filters(
 
         db.session.commit()
 
-        send_socket_message('update_prospect_list', {'update': True})
+        send_socket_message('update_prospect_list', {'update': [prospect["prospect_id"] for prospect in prospect_enriched_list]})
 
         return True
     except Exception as e:
@@ -1040,7 +1041,8 @@ def score_one_prospect_segment(
     enriched_prospect_company: EnrichedProspectCompany,
     icp_scoring_ruleset: ICPScoringRuleset,
     dealbreaker: dict,
-    queue: queue.Queue
+    queue: queue.Queue,
+    update_list: Optional[list] = [],
 ):
     """
     This will be the function to score one prospect from the market map segment
@@ -1506,52 +1508,52 @@ def score_one_prospect_segment(
                                                                                     "source": "Linkedin"}
 
             # Company Size
-            if enriched_prospect_company.company_employee_count is not None and (
-                (
-                    (icp_scoring_ruleset.company_size_start or (icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end != 0))
-                    and enriched_prospect_company.company_employee_count
-                    and int(enriched_prospect_company.company_employee_count)
-                    >= icp_scoring_ruleset.company_size_start
-                )
-                and (
-                    icp_scoring_ruleset.company_size_end
-                    and int(enriched_prospect_company.company_employee_count)
-                    <= icp_scoring_ruleset.company_size_end
-                )
-            ):
-                company_score += 1
-                company_reasoning["company_size"] = {"answer": "YES",
-                                                     "reasoning": f"{enriched_prospect_company.company_employee_count}",
-                                                     "source": "Linkedin"}
-                reasoning += "(✅ company size: " + str(enriched_prospect_company.company_employee_count) + ") "
-
-            elif enriched_prospect_company.company_employee_count is not None and (
-                (
-                    (icp_scoring_ruleset.company_size_start or (icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end != 0))
-                    and enriched_prospect_company.company_employee_count
-                    and int(enriched_prospect_company.company_employee_count)
-                    < icp_scoring_ruleset.company_size_start
-                )
-                or (
-                    icp_scoring_ruleset.company_size_end
-                    and int(enriched_prospect_company.company_employee_count)
-                    > icp_scoring_ruleset.company_size_end
-                )
-            ):
-                if "company_size" in dealbreaker:
-                    company_score = -1
-                    company_reasoning["company_size"] = {"answer": "NO",
-                                                         "reasoning": f"{enriched_prospect_company.company_employee_count} - dealbreaker",
-                                                         "source": "Linkedin"}
-                else:
-                    company_reasoning["company_size"] = {"answer": "NO",
-                                                         "reasoning": f"{enriched_prospect_company.company_employee_count}",
-                                                         "source": "Linkedin"}
-                reasoning += (
-                    "(❌ company size: "
-                    + str(enriched_prospect_company.company_employee_count)
-                    + ") "
-                )
+            # if enriched_prospect_company.company_employee_count is not None and (
+            #     (
+            #         (icp_scoring_ruleset.company_size_start or (icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end != 0))
+            #         and enriched_prospect_company.company_employee_count
+            #         and int(enriched_prospect_company.company_employee_count)
+            #         >= icp_scoring_ruleset.company_size_start
+            #     )
+            #     and (
+            #         icp_scoring_ruleset.company_size_end
+            #         and int(enriched_prospect_company.company_employee_count)
+            #         <= icp_scoring_ruleset.company_size_end
+            #     )
+            # ):
+            #     company_score += 1
+            #     company_reasoning["company_size"] = {"answer": "YES",
+            #                                          "reasoning": f"{enriched_prospect_company.company_employee_count}",
+            #                                          "source": "Linkedin"}
+            #     reasoning += "(✅ company size: " + str(enriched_prospect_company.company_employee_count) + ") "
+            #
+            # elif enriched_prospect_company.company_employee_count is not None and (
+            #     (
+            #         (icp_scoring_ruleset.company_size_start or (icp_scoring_ruleset.company_size_start == 0 and icp_scoring_ruleset.company_size_end != 0))
+            #         and enriched_prospect_company.company_employee_count
+            #         and int(enriched_prospect_company.company_employee_count)
+            #         < icp_scoring_ruleset.company_size_start
+            #     )
+            #     or (
+            #         icp_scoring_ruleset.company_size_end
+            #         and int(enriched_prospect_company.company_employee_count)
+            #         > icp_scoring_ruleset.company_size_end
+            #     )
+            # ):
+            #     if "company_size" in dealbreaker:
+            #         company_score = -1
+            #         company_reasoning["company_size"] = {"answer": "NO",
+            #                                              "reasoning": f"{enriched_prospect_company.company_employee_count} - dealbreaker",
+            #                                              "source": "Linkedin"}
+            #     else:
+            #         company_reasoning["company_size"] = {"answer": "NO",
+            #                                              "reasoning": f"{enriched_prospect_company.company_employee_count}",
+            #                                              "source": "Linkedin"}
+            #     reasoning += (
+            #         "(❌ company size: "
+            #         + str(enriched_prospect_company.company_employee_count)
+            #         + ") "
+            #     )
 
             # Company Industry - Exclude
             if icp_scoring_ruleset.excluded_company_industries_keywords and enriched_prospect_company.prospect_industry:
@@ -1663,6 +1665,9 @@ def score_one_prospect_segment(
                 queue.put((enriched_prospect_company, score, company_score, individual_reasoning, company_reasoning, reasoning))
 
             db.session.close()
+            
+            if update_list and len(update_list) > 0:
+                send_socket_message("update_progress", {"update": update_list})
 
             return enriched_prospect_company, score, company_score, individual_reasoning, company_reasoning, reasoning
 
@@ -2650,21 +2655,39 @@ def apply_archetype_icp_scoring_ruleset_filters(
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             futures = []
+            update_list = []
             for (
                     prospect_id,
                     enriched_prospect_company,
             ) in tqdm(entries):
                 prospect_enriched_list.append(enriched_prospect_company.to_dict())
+                
+                if len(update_list) <= 8:
+                    update_list.append(enriched_prospect_company.prospect_id)
 
-                futures.append(
-                    executor.submit(
-                        score_one_prospect_segment,
-                        enriched_prospect_company=enriched_prospect_company,
-                        icp_scoring_ruleset=icp_scoring_ruleset,
-                        dealbreaker=dealbreaker,
-                        queue=results_queue,
+                    futures.append(
+                        executor.submit(
+                            score_one_prospect_segment,
+                            enriched_prospect_company=enriched_prospect_company,
+                            icp_scoring_ruleset=icp_scoring_ruleset,
+                            dealbreaker=dealbreaker,
+                            queue=results_queue,
+                        )
                     )
-                )
+                else:
+                    update_list.append(enriched_prospect_company.prospect_id)
+                    futures.append(
+                        executor.submit(
+                            score_one_prospect_segment,
+                            enriched_prospect_company=enriched_prospect_company,
+                            icp_scoring_ruleset=icp_scoring_ruleset,
+                            dealbreaker=dealbreaker,
+                            queue=results_queue,
+                            update_list=update_list
+                        )
+                    )
+
+                    update_list = []
 
             concurrent.futures.wait(futures)
 
@@ -2985,21 +3008,40 @@ def apply_segment_icp_scoring_ruleset_filters(
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             futures = []
+            update_list = []
             for (
                 prospect_id,
                 enriched_prospect_company,
             ) in tqdm(entries):
                 prospect_enriched_list.append(enriched_prospect_company.to_dict())
+                
+                if len(update_list) <= 8:
+                    update_list.append(enriched_prospect_company.prospect_id)
 
-                futures.append(
-                    executor.submit(
-                        score_one_prospect_segment,
-                        enriched_prospect_company=enriched_prospect_company,
-                        icp_scoring_ruleset=icp_scoring_ruleset,
-                        dealbreaker=dealbreaker,
-                        queue=results_queue,
+                    futures.append(
+                        executor.submit(
+                            score_one_prospect_segment,
+                            enriched_prospect_company=enriched_prospect_company,
+                            icp_scoring_ruleset=icp_scoring_ruleset,
+                            dealbreaker=dealbreaker,
+                            queue=results_queue,
+                        )
                     )
-                )
+                else:
+                    update_list.append(enriched_prospect_company.prospect_id)
+                    futures.append(
+                        executor.submit(
+                            score_one_prospect_segment,
+                            enriched_prospect_company=enriched_prospect_company,
+                            icp_scoring_ruleset=icp_scoring_ruleset,
+                            dealbreaker=dealbreaker,
+                            queue=results_queue,
+                            update_list=update_list
+                        )
+                    )
+
+                    update_list = []
+            
 
             concurrent.futures.wait(futures)
 

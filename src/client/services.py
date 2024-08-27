@@ -541,9 +541,12 @@ def create_client_archetype(
 
     client: Client = Client.query.get(client_id)
 
+    is_one_shot_generation = False
+
     if auto_generation_payload and auto_generation_payload.write_email_sequence_draft:
         from src.ml.services import one_shot_sequence_generation
-        one_shot_sequence_generation.delay(
+        is_one_shot_generation = True
+        one_shot_sequence_generation(
             client_sdr_id,
             archetype_id,
             generate_email_sequence_prompt(auto_generation_payload),
@@ -556,13 +559,14 @@ def create_client_archetype(
     if auto_generation_payload and auto_generation_payload.li_cta_generator:
         print("Generating LI CTA")
         from src.ml.services import one_shot_sequence_generation
+        is_one_shot_generation = True
         # one_shot_sequence_generation.delay(
         #     client_sdr_id,
         #     archetype_id,
         #     generate_linkedin_sequence_prompt(auto_generation_payload),
         #     "LINKEDIN-CTA"
         # )
-        one_shot_sequence_generation.delay(
+        one_shot_sequence_generation(
             client_sdr_id,
             archetype_id,
             generate_linkedin_sequence_prompt(auto_generation_payload),
@@ -577,13 +581,15 @@ def create_client_archetype(
     elif auto_generation_payload and auto_generation_payload.write_li_sequence_draft:
         print("Generating LI sequence")
         from src.ml.services import one_shot_sequence_generation
+
+        is_one_shot_generation = True
         # one_shot_sequence_generation.delay(
         #     client_sdr_id,
         #     archetype_id,
         #     generate_linkedin_sequence_prompt(auto_generation_payload),
         #     "LINKEDIN-TEMPLATE"
         # )
-        one_shot_sequence_generation.delay(
+        one_shot_sequence_generation(
             client_sdr_id,
             archetype_id,
             generate_linkedin_sequence_prompt(auto_generation_payload),
@@ -606,7 +612,7 @@ def create_client_archetype(
     # Create default bump frameworks for this Archetype
     # If we are using voice_id, then we want to clone the voice_id and assign it to
     # this archetype_id and client_sdr_id
-    if not voice_id:
+    if not voice_id and not is_one_shot_generation:
         create_default_bump_frameworks(
             client_sdr_id=client_sdr_id,
             client_archetype_id=archetype_id,
@@ -5930,3 +5936,4 @@ Good: AdTech/MarTech Innovators
         "client_sdr": client_sdr.to_dict(),
         "auth_token": client_sdr.auth_token,
     }
+
