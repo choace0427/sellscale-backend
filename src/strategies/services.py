@@ -335,9 +335,10 @@ def create_task_list_from_strategy(selix_session_id: int) -> list[dict[str, str]
                                     "type": "object",
                                     "properties": {
                                         "title": { "type": "string" },
-                                        "description": { "type": "string" }
+                                        "description": { "type": "string" },
+                                        "widget_type": { "type": "string" }
                                     },
-                                    "required": ["title", "description"],
+                                    "required": ["title", "description", "widget_type"],
                                     "additionalProperties": False
                                 }
                             }

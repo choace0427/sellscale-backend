@@ -55,7 +55,7 @@ def get_one_suggested_first_message(client_sdr_id: int):
     room_id = get_request_parameter(
         "room_id", request, json=True, required=True
     )
-    get_suggested_first_message.delay(client_sdr_id, room_id)
+    get_suggested_first_message(client_sdr_id, room_id)
     return "OK", 200
 
 @SELIX_BLUEPRINT.route("/delete_session", methods=["DELETE"])
