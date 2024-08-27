@@ -196,8 +196,8 @@ def update_segment_description(client_sdr_id, prefilter_id):
     if not prefilter:
         return jsonify({"status": "error", "message": "Prefilter not found."}), 404
 
-    if prefilter.client_sdr_id != client_sdr_id:
-        return jsonify({"status": "error", "message": "You are not authorized to update this prefilter."}), 403
+    # if prefilter.client_sdr_id != client_sdr_id:
+    #     return jsonify({"status": "error", "message": "You are not authorized to update this prefilter."}), 403
 
     prefilter.segment_description = new_segment_description
     db.session.commit()
