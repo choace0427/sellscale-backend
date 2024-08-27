@@ -2358,8 +2358,8 @@ def append_icp_scoring_segment_ruleset_filters(
     if included_company_size:
         company_sizes = [csv.split(',') for csv in included_company_size]
     if company_sizes:
-        min_company_size = min([int(size[0]) for size in company_sizes])
-        max_company_size = max([int(size[1]) for size in company_sizes])
+        min_company_size = min([int(size[0]) for size in company_sizes if len(size) > 0]) if company_sizes else 0
+        max_company_size = max([int(size[1]) for size in company_sizes if len(size) > 1]) if company_sizes else 0
     else:
         min_company_size = 0
         max_company_size = 0
