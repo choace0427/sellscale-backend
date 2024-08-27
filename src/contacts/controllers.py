@@ -214,6 +214,9 @@ def get_company(client_sdr_id: int):
     company_prompt = get_request_parameter(
         "company_prompt", request, json=True, required=False, default_value=None
     )
+    fuzzy = get_request_parameter(
+        "fuzzy", request, json=True, required=False, default_value=False
+    )
 
     if not company_names and not company_urls and not company_prompt:
         return jsonify(
@@ -229,6 +232,7 @@ def get_company(client_sdr_id: int):
         company_names=company_names,
         company_urls=company_urls,
         company_prompt=company_prompt,
+        fuzzy=fuzzy,
     )
 
     return jsonify(

@@ -626,6 +626,7 @@ def apollo_get_organizations(
     company_names: list[str] = [],
     company_urls: list[str] = [],
     company_prompt: str = "",
+    fuzzy: bool = False,
 ) -> list:
     """A near-pass-through function which will collect organization objects from Apollo based on the company names provided.
 
@@ -670,6 +671,7 @@ def apollo_get_organizations(
         orgs = apollo_get_organizations_from_company_names(
             client_sdr_id=client_sdr_id,
             company_names=company_names,
+            fuzzy=fuzzy,
         )
         data.extend(orgs)
 
@@ -758,12 +760,14 @@ def get_company_name_using_urllib(urls: list[str]) -> list[str]:
 def apollo_get_organizations_from_company_names(
     client_sdr_id: int,
     company_names: list[str],
+    fuzzy: bool = False
 ) -> list:
     """A near-pass-through function which will collect organization objects from Apollo based on the company names provided.
 
     Args:
         client_sdr_id (int): SDR to tie this query to
         company_names (list[str]): List of company names to search for
+        fuzzy (bool): Whether to perform a fuzzy search or not
 
     Returns:
         list: List of organization objects
@@ -797,7 +801,10 @@ def apollo_get_organizations_from_company_names(
         try:
             organizations = response.json().get("organizations")
             if organizations and len(organizations) > 0:
-                return organizations
+                if fuzzy:
+                    return organizations
+                else:
+                    return [organizations[0]]
         except:
             print("ERROR", response.text)
         return []
