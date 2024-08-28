@@ -209,7 +209,8 @@ def create_selix_action_call_entry(
     thread_id = SelixSession.query.get(selix_session_id).thread_id
     if thread_id:
         action_dict = selix_action_call.to_dict()
-        action_dict.pop('action_params', None) #remove action params as too large of a file can cause issues
+        if 'file' in action_dict.get('action_params', {}):
+            del action_dict['action_params']['file'] #remove the file from the action params as it is not serializable and will cause an error when sending to the frontend
         for key, value in action_dict.items():
             if isinstance(value, datetime.datetime):
                 action_dict[key] = value.isoformat()
@@ -732,7 +733,7 @@ def wait_for_ai_execution(session_id: int):
         action_title="Wait for AI Execution",
         action_description="Wait for AI Execution to complete.",
         action_function="wait_for_ai_execution",
-        action_params={}
+        action_params={'title': 'Awaiting AI Completion'}
     )
 
     session: SelixSession = SelixSession.query.get(session_id)
@@ -1552,7 +1553,7 @@ def add_file_to_thread(thread_id: str, file: str, file_name: str, description: s
         action_title="Analyze File",
         action_description="Analyze file with name: {} and description: '{}'".format(file_name, description),
         action_function="analyze_file",
-        action_params={"file": file, "description": description, "file_name": file_name}
+        action_params={"file": file, "description": description, "file_name": file_name, 'title': 'Analyze File'}
     )        
     analyze_file(file, description, file_name, selix_session_id)
 
