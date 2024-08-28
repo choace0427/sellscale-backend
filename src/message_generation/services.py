@@ -3089,6 +3089,7 @@ def generate_li_convo_init_msg(prospect_id: int, template_id: Optional[int] = No
 
         return completion, {
             "prompt": prompt,
+            "template_id": template.id,
             "cta": None,
             "research_points": None,
             "notes": None,

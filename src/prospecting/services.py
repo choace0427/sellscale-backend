@@ -1902,25 +1902,34 @@ def get_duplicate_prospects_from_csv_payload(client_sdr_id: int,
         full_name = prospect.get("full_name")
         first_name = prospect.get("first_name")
         last_name = prospect.get("last_name")
-
-        if not full_name:
-            full_name = ""
-            if first_name:
-                full_name += first_name
-            if last_name:
-                full_name += " " + last_name
-
-            full_name = first_name + " " + last_name
+        linkedin = prospect.get("linkedin_url")
+        email = prospect.get("email")
+        
+        if linkedin:
+            existing_prospect = Prospect.query.filter(
+                Prospect.linkedin_url == linkedin
+            ).first()
+        elif email:
+            existing_prospect = Prospect.query.filter(
+                Prospect.email == email
+            ).first()
         else:
-            first_name = full_name.split(" ")[0]
-            last_name = full_name.split(" ")[1]
+            if not full_name:
+                full_name = ""
+                if first_name:
+                    full_name += first_name
+                if last_name:
+                    full_name += " " + last_name
+            else:
+                first_name = full_name.split(" ")[0]
+                last_name = full_name.split(" ")[1]
 
-        full_name = full_name.title()
-        first_name = first_name.title()
-        last_name = last_name.title()
+            full_name = full_name.title()
+            first_name = first_name.title()
+            last_name = last_name.title()
 
-        existing_prospect = prospect_exists_for_client(full_name=full_name, client_id=client_sdr.client_id,
-                                                       first_name=first_name, last_name=last_name)
+            existing_prospect = prospect_exists_for_client(full_name=full_name, client_id=client_sdr.client_id,
+                                                           first_name=first_name, last_name=last_name)
 
         if existing_prospect:
             prospect_details = get_prospect_duplicate_details(existing_prospect.id)

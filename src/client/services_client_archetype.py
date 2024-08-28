@@ -1491,6 +1491,7 @@ def get_client_archetype_sequences(client_archetype_id):
             "bumped_count": step_data["step"]["bumped_count"],
             "overall_status": step_data["step"]["overall_status"],
             "assets": step_data["assets"],
+            "sequence_delay_days": step_data["step"].get("sequence_delay_days") if step_data["step"].get("sequence_delay_days") else 0
         }
         for step_data in filtered_email_sequence
     ]
@@ -1502,7 +1503,8 @@ def get_client_archetype_sequences(client_archetype_id):
             description,
             bumped_count,
             active,
-            overall_status
+            overall_status,
+            bump_delay_days
         from
             bump_framework
         where client_archetype_id = {client_archetype_id}
@@ -1529,6 +1531,7 @@ def get_client_archetype_sequences(client_archetype_id):
             "assets": get_all_bump_framework_assets(row[0]),
             "active": row[4],
             "overall_status": row[5],
+            "bump_delay_days": row[6],
         }
         for row in data
     ]

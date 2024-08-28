@@ -351,13 +351,19 @@ def research_point_acceptance_rate():
         text(
             """
             select 
-	research_point.research_point_type,
-	cast(count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'ACCEPTED') as float) / count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') "avg. acceptance %"
+    research_point.research_point_type,
+    CASE 
+        WHEN count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') = 0 
+        THEN NULL -- or 0 if you prefer
+        ELSE cast(count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'ACCEPTED') as float) / 
+             count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH')
+    END as "avg. acceptance %"
 from generated_message
-	join research_point on research_point.id = any(generated_message.research_points)
-	join prospect on prospect.approved_outreach_message_id = generated_message.id
-	join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+    join research_point on research_point.id = any(generated_message.research_points)
+    join prospect on prospect.approved_outreach_message_id = generated_message.id
+    join prospect_status_records on prospect_status_records.prospect_id = prospect.id
 group by 1;
+
         """
         )
     ).fetchall()
