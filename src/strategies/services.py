@@ -1,9 +1,11 @@
 from typing import Optional
 from model_import import Strategies, StrategyClientArchetypeMapping, ClientSDR
 from app import db
+from src.chatbot.models import SelixSessionTask, SelixSessionTaskStatus
 from src.client.models import ClientArchetype
 from src.ml.models import LLM
 from src.ml.openai_wrappers import wrapped_chat_gpt_completion
+from src.sockets.services import send_socket_message
 from src.strategies.models import StrategyStatuses
 
 def create_strategy(
@@ -48,6 +50,57 @@ def create_strategy_client_archetype_mapping(
     """
     Create a mapping between a strategy and a client archetype.
     """
+
+    #go thru all the SelixSessions and look through the memory. if the strategy id matches, then insert the client_archetype_id as campaign_id in the memory
+    from src.chatbot.models import SelixSession
+    selix_sessions: list[SelixSession] = SelixSession.query.all()
+    for selix_session in selix_sessions:
+        if selix_session.memory.get("strategy_id") == strategy_id:
+            print('found selix session', selix_session)
+            selix_session.memory["campaign_id"] = client_archetype_id
+            selix_session.memory["tab"] = "PLANNER"
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(selix_session, "memory")
+            db.session.add(selix_session)
+            db.session.commit()
+            #update the session
+            thread_id = selix_session.thread_id
+            if (thread_id):
+                import datetime
+                from src.chatbot.campaign_builder_assistant import bulk_create_selix_tasks
+                session_sdr: ClientSDR= ClientSDR.query.get(selix_session.client_sdr_id)
+                task_title = 'Notify ' + session_sdr.name + ' For Campaign review'
+                success, message = bulk_create_selix_tasks(
+                    client_sdr_id=client_sdr_id,
+                    session_id=selix_session.id,
+                    task_titles=[task_title],
+                    widget_type='LAUNCH_CAMPAIGN'
+                )
+                selix_task = SelixSessionTask(
+                        selix_session_id=selix_session.id,
+                        actual_completion_time=datetime.datetime.now(),
+                        title="Launch Campaign",
+                        description="Notify " + session_sdr.name + " for campaign review",
+                        status=SelixSessionTaskStatus.BLOCKED
+                    )
+                db.session.add(selix_task)
+                db.session.commit()
+                #add selix task to review the campaign
+                if thread_id:
+                    task_dict = selix_task.to_dict()
+                    for key, value in task_dict.items():
+                        if isinstance(value, datetime.datetime):
+                            task_dict[key] = value.isoformat()
+                    session_dict = selix_session.to_dict()
+                    #loop through the task and see if things need to be converted to serializable
+                    for key, value in session_dict.items():
+                        if isinstance(value, datetime.datetime):
+                            session_dict[key] = value.isoformat()
+                    send_socket_message('add-task-to-session', {'task': task_dict, 'thread_id': thread_id}, thread_id)
+                    send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+                    send_socket_message('change-tab', {'tab': 'PLANNER', 'thread_id': thread_id}, thread_id)
+            break
+
     existing_mapping = StrategyClientArchetypeMapping.query.filter_by(
         strategy_id=strategy_id,
         client_archetype_id=client_archetype_id,
