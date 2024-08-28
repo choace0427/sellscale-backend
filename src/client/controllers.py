@@ -542,6 +542,10 @@ def create_archetype(client_sdr_id: int):
         "connected_strategy_id", request, json=True, required=False
     )
 
+    override_archetype_id = get_request_parameter(
+        "override_archetype_id", request, json=True, required=False
+    )
+
     # Get client ID from client SDR ID.
     client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not client_sdr or not client_sdr.client_id:
@@ -565,6 +569,7 @@ def create_archetype(client_sdr_id: int):
         connection_type=email_to_linkedin_connection,
         purpose=purpose,
         auto_generation_payload=auto_generation_payload,
+        override_archetype_id=override_archetype_id,
     )
     
     if (connected_strategy_id and ca):

@@ -316,7 +316,7 @@ def edit_strategy(
     if should_create_action:
         selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
-        action_title="Edit Strategy",
+        action_title="Adjusting the strategy",
         action_description="Edit the strategy based on the description provided: {}".format(edit_description),
         action_function="edit_strategy",
         action_params={"edit_description": edit_description}
@@ -692,7 +692,7 @@ def create_task(title: str, description: str, session_id: int, create_action=Tru
     if create_action:
         selix_action_id = create_selix_action_call_entry(
             selix_session_id=session_id,
-            action_title="Create Task",
+            action_title="Adding task: {}".format(title),
             action_description="Create a task with the title: {} and description: {}".format(title, description),
             action_function="create_task",
             action_params={"title": title, "description": description}
@@ -730,7 +730,7 @@ def wait_for_ai_execution(session_id: int):
     
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
-        action_title="Wait for AI Execution",
+        action_title="Start working on tasks",
         action_description="Wait for AI Execution to complete.",
         action_function="wait_for_ai_execution",
         action_params={'title': 'Awaiting AI Completion'}
@@ -852,7 +852,7 @@ def create_tasks_from_strategy(session_id: int):
 
     selix_action_id = create_selix_action_call_entry(
         selix_session_id=session_id,
-        action_title="Create Tasks from Strategy",
+        action_title="Creating task list from strategy",
         action_description="Create tasks based on the strategy",
         action_function="create_tasks_from_strategy",
         action_params={}
@@ -886,7 +886,7 @@ def create_icp(
     if should_create_action:
         selix_action_id = create_selix_action_call_entry(
             selix_session_id=session_id,
-            action_title="Create ICP",
+            action_title="Creating new ICP",
             action_description="Create an ICP based on the description provided: {}".format(icp_description),
             action_function="create_icp",
             action_params={"icp_description": icp_description}
@@ -1550,7 +1550,7 @@ def add_file_to_thread(thread_id: str, file: str, file_name: str, description: s
     
     create_selix_action_call_entry(
         selix_session_id=selix_session_id,
-        action_title="Analyze File",
+        action_title="Analyzing File",
         action_description="Analyze file with name: {} and description: '{}'".format(file_name, description),
         action_function="analyze_file",
         action_params={"file": file, "description": description, "file_name": file_name, 'title': 'Analyze File'}

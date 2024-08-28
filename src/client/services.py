@@ -476,6 +476,7 @@ def create_client_archetype(
         with_follow_up: Optional[bool] = False,
         context: Optional[str] = "",
         auto_generation_payload: Optional[dict] = None,
+        override_archetype_id: Optional[int] = None,
 ):
     c: Client = get_client(client_id=client_id)
     sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
@@ -492,51 +493,56 @@ def create_client_archetype(
     if auto_generation_payload:
         auto_generation_payload: SequenceAutoGenerationParameters = initialize_auto_generation_payload(auto_generation_payload)
 
-    client_archetype = ClientArchetype(
-        client_id=client_id,
-        client_sdr_id=client_sdr_id,
-        archetype=archetype,
-        filters=filters,
-        disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
-        persona_fit_reason=persona_fit_reason,
-        icp_matching_prompt=icp_matching_prompt,
-        persona_contact_objective=persona_contact_objective,
-        is_unassigned_contact_archetype=is_unassigned_contact_archetype,
-        active=active,
-        linkedin_active=linkedin_active,
-        email_active=email_active,
-        email_to_linkedin_connection=connection_type,
+    if override_archetype_id:
+        client_archetype: ClientArchetype = ClientArchetype.query.get(override_archetype_id)
+    else:
+        client_archetype = ClientArchetype(
+            client_id=client_id,
+            client_sdr_id=client_sdr_id,
+            archetype=archetype,
+            filters=filters,
+            disable_ai_after_prospect_engaged=disable_ai_after_prospect_engaged,
+            persona_fit_reason=persona_fit_reason,
+            icp_matching_prompt=icp_matching_prompt,
+            persona_contact_objective=persona_contact_objective,
+            is_unassigned_contact_archetype=is_unassigned_contact_archetype,
+            active=active,
+            linkedin_active=linkedin_active,
+            email_active=email_active,
+            email_to_linkedin_connection=connection_type,
 
-        email_blocks_configuration=[
-            "Personalize the title to their company and or the prospect",
-            "Include a greeting with Hi, Hello, or Hey with their first name",
-            "Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.",
-            "Mention what we do and offer and how it can help them based on their background, company, and key details.",
-            "Use the objective for a call to action",
-            "End with Best, (new line) (My Name) (new line) (Title)",
-        ],
-        contract_size=persona_contract_size or c.contract_size,
-        li_bump_amount=li_bump_amount,
-        persona_cta_framework_company=cta_blanks_company,
-        persona_cta_framework_persona=cta_blanks_persona,
-        persona_cta_framework_action=cta_blanks_solution,
-        persona_use_cases=common_use_cases,
-        persona_filters=persona_filters,
-        persona_lookalike_profile_1=lookalike_1,
-        persona_lookalike_profile_2=lookalike_2,
-        persona_lookalike_profile_3=lookalike_3,
-        persona_lookalike_profile_4=lookalike_4,
-        persona_lookalike_profile_5=lookalike_5,
-        template_mode=True if (not voice_id or template_mode) else False,
-        transformer_blocklist=transformer_blocklist,
-        transformer_blocklist_initial=transformer_blocklist,
-        testing_volume=2 ** 31 - 1,  #max int,
-        setup_status="SETUP",
-        li_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_li_sequence_draft else False),
-        email_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_email_sequence_draft else False),
-    )
-    db.session.add(client_archetype)
-    db.session.commit()
+            email_blocks_configuration=[
+                "Personalize the title to their company and or the prospect",
+                "Include a greeting with Hi, Hello, or Hey with their first name",
+                "Personalized 1-2 lines. Mentioned details about them, their role, their company, or other relevant pieces of information. Use personal details about them to be natural and personal.",
+                "Mention what we do and offer and how it can help them based on their background, company, and key details.",
+                "Use the objective for a call to action",
+                "End with Best, (new line) (My Name) (new line) (Title)",
+            ],
+            contract_size=persona_contract_size or c.contract_size,
+            li_bump_amount=li_bump_amount,
+            persona_cta_framework_company=cta_blanks_company,
+            persona_cta_framework_persona=cta_blanks_persona,
+            persona_cta_framework_action=cta_blanks_solution,
+            persona_use_cases=common_use_cases,
+            persona_filters=persona_filters,
+            persona_lookalike_profile_1=lookalike_1,
+            persona_lookalike_profile_2=lookalike_2,
+            persona_lookalike_profile_3=lookalike_3,
+            persona_lookalike_profile_4=lookalike_4,
+            persona_lookalike_profile_5=lookalike_5,
+            template_mode=True if (not voice_id or template_mode) else False,
+            transformer_blocklist=transformer_blocklist,
+            transformer_blocklist_initial=transformer_blocklist,
+            testing_volume=2 ** 31 - 1,  #max int,
+            setup_status="SETUP",
+            # li_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_li_sequence_draft else False),
+            # email_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_email_sequence_draft else False),
+            li_seq_generation_in_progress=False,
+            email_seq_generation_in_progress=False,
+        )
+        db.session.add(client_archetype)
+        db.session.commit()
     archetype_id = client_archetype.id
 
     client: Client = Client.query.get(client_id)
@@ -609,66 +615,67 @@ def create_client_archetype(
             + "&redirect=campaigns"
     )
 
-    # Create default bump frameworks for this Archetype
-    # If we are using voice_id, then we want to clone the voice_id and assign it to
-    # this archetype_id and client_sdr_id
-    if not voice_id and not is_one_shot_generation:
-        create_default_bump_frameworks(
-            client_sdr_id=client_sdr_id,
+    if not override_archetype_id:
+        # Create default bump frameworks for this Archetype
+        # If we are using voice_id, then we want to clone the voice_id and assign it to
+        # this archetype_id and client_sdr_id
+        if not voice_id and not is_one_shot_generation:
+            create_default_bump_frameworks(
+                client_sdr_id=client_sdr_id,
+                client_archetype_id=archetype_id,
+            )
+
+        predict_archetype_emoji(
+            archetype_id=archetype_id,
+        )
+
+        # titles = predict_titles_from_archetype_name(archetype)
+        update_icp_scoring_ruleset(
             client_archetype_id=archetype_id,
+            included_individual_title_keywords=[],
+            excluded_individual_title_keywords=[],
+            included_individual_industry_keywords=[],
+            excluded_individual_industry_keywords=[],
+            individual_years_of_experience_start=0,
+            individual_years_of_experience_end=0,
+            included_individual_skills_keywords=[],
+            excluded_individual_skills_keywords=[],
+            included_individual_locations_keywords=[],
+            excluded_individual_locations_keywords=[],
+            included_individual_generalized_keywords=[],
+            excluded_individual_generalized_keywords=[],
+            included_company_name_keywords=[],
+            excluded_company_name_keywords=[],
+            included_company_locations_keywords=[],
+            excluded_company_locations_keywords=[],
+            company_size_start=0,
+            company_size_end=0,
+            included_company_industries_keywords=[],
+            excluded_company_industries_keywords=[],
+            included_company_generalized_keywords=[],
+            excluded_company_generalized_keywords=[],
+            included_individual_education_keywords=[],
+            excluded_individual_education_keywords=[],
+            included_individual_seniority_keywords=[],
+            excluded_individual_seniority_keywords=[],
         )
 
-    predict_archetype_emoji(
-        archetype_id=archetype_id,
-    )
+        auto_assign_ai_researcher_to_client_archetype(archetype_id)
 
-    # titles = predict_titles_from_archetype_name(archetype)
-    update_icp_scoring_ruleset(
-        client_archetype_id=archetype_id,
-        included_individual_title_keywords=[],
-        excluded_individual_title_keywords=[],
-        included_individual_industry_keywords=[],
-        excluded_individual_industry_keywords=[],
-        individual_years_of_experience_start=0,
-        individual_years_of_experience_end=0,
-        included_individual_skills_keywords=[],
-        excluded_individual_skills_keywords=[],
-        included_individual_locations_keywords=[],
-        excluded_individual_locations_keywords=[],
-        included_individual_generalized_keywords=[],
-        excluded_individual_generalized_keywords=[],
-        included_company_name_keywords=[],
-        excluded_company_name_keywords=[],
-        included_company_locations_keywords=[],
-        excluded_company_locations_keywords=[],
-        company_size_start=0,
-        company_size_end=0,
-        included_company_industries_keywords=[],
-        excluded_company_industries_keywords=[],
-        included_company_generalized_keywords=[],
-        excluded_company_generalized_keywords=[],
-        included_individual_education_keywords=[],
-        excluded_individual_education_keywords=[],
-        included_individual_seniority_keywords=[],
-        excluded_individual_seniority_keywords=[],
-    )
-
-    auto_assign_ai_researcher_to_client_archetype(archetype_id)
-
-    # Add an activity log
-    add_activity_log(
-        client_sdr_id=client_sdr_id,
-        type="CAMPAIGN-CREATED",
-        name="Campaign Created",
-        description=f"Created a new campaign for {archetype}",
-    )
-
-    if purpose:
-        from src.ml.services import find_contacts_from_serp, one_shot_sequence_generation
-        find_contacts_from_serp.delay(
-            archetype_id,
-            purpose
+        # Add an activity log
+        add_activity_log(
+            client_sdr_id=client_sdr_id,
+            type="CAMPAIGN-CREATED",
+            name="Campaign Created",
+            description=f"Created a new campaign for {archetype}",
         )
+
+        if purpose:
+            from src.ml.services import find_contacts_from_serp, one_shot_sequence_generation
+            find_contacts_from_serp.delay(
+                archetype_id,
+                purpose
+            )
 
     if voice_id:
         # campaign_voices_generation.delay(
