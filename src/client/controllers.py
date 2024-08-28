@@ -13,6 +13,7 @@ from src.client.sdr.services_client_sdr import update_sdr_blacklist_words
 from src.personas.services import (
     clone_persona,
 )
+from src.strategies.models import Strategies
 from src.prospecting.models import Prospect
 from src.client.services import (
     campaign_voices_generation,
@@ -60,6 +61,7 @@ from src.client.services import (
     update_phantom_buster_launch_schedule,
     write_client_pre_onboarding_survey,
 )
+from src.strategies.services import create_strategy_client_archetype_mapping
 from src.vision.services import attempt_chat_completion_with_vision
 from src.client.services import mark_prospect_removed
 from src.slack.models import SlackNotificationType
@@ -536,11 +538,16 @@ def create_archetype(client_sdr_id: int):
         "auto_generation_payload", request, json=True, required=False
     )
 
+    connected_strategy_id = get_request_parameter(
+        "connected_strategy_id", request, json=True, required=False
+    )
+
     # Get client ID from client SDR ID.
     client_sdr: ClientSDR = ClientSDR.query.filter(ClientSDR.id == client_sdr_id).first()
     if not client_sdr or not client_sdr.client_id:
         return "Failed to find client ID from auth token", 500
 
+    #this function has a weird return type: object {client_archetype_id: int}
     ca: object = create_client_archetype(
         client_id=client_sdr.client_id,
         client_sdr_id=client_sdr_id,
@@ -559,6 +566,12 @@ def create_archetype(client_sdr_id: int):
         purpose=purpose,
         auto_generation_payload=auto_generation_payload,
     )
+    
+    if (connected_strategy_id and ca):
+        strategy: Strategies = Strategies.query.get(connected_strategy_id)
+        if strategy:
+            create_strategy_client_archetype_mapping(client_sdr_id, strategy.id, ca.get("client_archetype_id"))  
+
     if not ca:
         return "Client not found", 404
 
