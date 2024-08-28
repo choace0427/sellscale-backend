@@ -359,3 +359,108 @@ def create_task_list_from_strategy(selix_session_id: int) -> list[dict[str, str]
     retval = response["tasks"]
 
     return retval
+
+def generate_campaign_from_strategy(strategy_id: int) -> dict:
+    """
+    Generate a campaign from a strategy.
+    """
+    # get strategy
+    strategy: Strategies = Strategies.query.get(strategy_id)
+
+    # grab the strategy description
+    strategy_description = strategy.description
+
+    # grab the title
+    strategy_title = strategy.title
+    
+    # Prepare the system message for the wrapped_chat_gpt_completion
+    system_message = {
+        "role": "system",
+        "content": """
+        You are a Selix AI assistant. Your task is to generate a campaign from a given strategy. 
+        The frontend expects the data in the following format:
+
+        type StrategyResponseData = {
+          createdPersona: string; <-- The persona created for the campaign, campaign name.
+          fitReason: string; <-- The reason why the campaign fits the target audience
+          icpMatchingPrompt: string; <-- The description of the ICP for the campaign 
+          emailSequenceKeywords: string[]; <-- Keywords that MUST be in the email sequence (max 3) do not make these conflicting with eachother.
+          liSequenceKeywords: string[]; <-- Keywords that MUST be in the LinkedIn sequence (max 3). do not make these conflicting with eachother. 
+          liGeneralAngle: string; <-- General angle for the LinkedIn sequence
+          emailGeneralAngle: string; <-- General angle for the email sequence
+          purpose: string; <-- Description of the Ideal Customer Profile. This should be a very detailed description of the ICP and written in the third person.
+          liPainPoint: string; <-- Pain point for the LinkedIn sequence (optional, can be empty)
+          withData: string; <-- Description of the data used for the campaign
+          liAssetIngestor: string; <-- Any other information for the campaign
+          emailAssetIngestor: string; <-- Any other information for the campaign from the strategy.
+        };
+
+        Please provide the data in the above format with appropriate descriptions for each field.
+        """
+    }
+
+    # Prepare the user message with the strategy details
+    user_message = {
+        "role": "user",
+        "content": f"""
+        Strategy Title: {strategy_title}
+        Strategy Description: {strategy_description}
+        """
+    }
+
+    # Get the response from the wrapped_chat_gpt_completion
+    response = wrapped_chat_gpt_completion(
+        messages=[system_message, user_message],
+        model="gpt-4o-2024-08-06",
+        max_tokens=700,
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": "strategy_response_schema",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "createdPersona": { "type": "string" },
+                        "fitReason": { "type": "string" },
+                        "icpMatchingPrompt": { "type": "string" },
+                        "emailSequenceKeywords": { "type": "array", "items": { "type": "string" } },
+                        "liSequenceKeywords": { "type": "array", "items": { "type": "string" } },
+                        "liGeneralAngle": { "type": "string" },
+                        "emailGeneralAngle": { "type": "string" },
+                        "purpose": { "type": "string" },
+                        "liPainPoint": { "type": "string" },
+                        "ctaTarget": { "type": "string" },
+                        "withData": { "type": "string" },
+                        "liAssetIngestor": { "type": "string" },
+                        "emailAssetIngestor": { "type": "string" }
+                    },
+                    "required": ["createdPersona", "fitReason", "icpMatchingPrompt", "emailSequenceKeywords", "liSequenceKeywords", "liGeneralAngle", "emailGeneralAngle", "purpose", "liPainPoint", "ctaTarget", "withData", "liAssetIngestor", "emailAssetIngestor"],
+                    "additionalProperties": False
+                },
+            }
+        }
+    )
+
+    import json
+
+    # Parse the response
+    response_data = json.loads(response)
+
+    # Ensure the response data matches the expected format
+    strategy_response_data = {
+        "createdPersona": response_data.get("createdPersona", ""),
+        "fitReason": response_data.get("fitReason", ""),
+        "icpMatchingPrompt": response_data.get("icpMatchingPrompt", ""),
+        "emailSequenceKeywords": response_data.get("emailSequenceKeywords", []),
+        "liSequenceKeywords": response_data.get("liSequenceKeywords", []),
+        "liGeneralAngle": response_data.get("liGeneralAngle", ""),
+        "emailGeneralAngle": response_data.get("emailGeneralAngle", ""),
+        "purpose": response_data.get("purpose", ""),
+        "liPainPoint": response_data.get("liPainPoint", ""),
+        "ctaTarget": response_data.get("ctaTarget", ""),
+        "withData": response_data.get("withData", ""),
+        "liAssetIngestor": response_data.get("liAssetIngestor", ""),
+        "emailAssetIngestor": response_data.get("emailAssetIngestor", "")
+    }
+
+    return strategy_response_data

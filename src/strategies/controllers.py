@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from src.authentication.decorators import require_user
 from src.strategies.models import StrategyClientArchetypeMapping, Strategies
-from src.strategies.services import create_strategy, create_strategy_client_archetype_mapping, delete_strategy_archetype_mapping, edit_strategy, get_all_strategies, get_strategy_dict
+from src.strategies.services import create_strategy, create_strategy_client_archetype_mapping, delete_strategy_archetype_mapping, edit_strategy, get_all_strategies, get_strategy_dict, generate_campaign_from_strategy
 
 from src.utils.request_helpers import get_request_parameter
 
@@ -90,6 +90,35 @@ def patch_update_strategy(client_sdr_id: int, strategy_id: int):
     )
 
     return jsonify(strategy), 200
+
+@STRATEGIES_BLUEPRINT.route("/generate_campaign_from_strategy", methods=["POST"])
+@require_user
+def post_generate_campaign_from_strategy(client_sdr_id: int):
+
+    strategy_id = get_request_parameter(
+        "strategy_id", request, json=True, required=True, parameter_type=int
+    )
+
+    response = generate_campaign_from_strategy(strategy_id=strategy_id)
+
+    strategy_response_data = {
+        "createdPersona": response.get("createdPersona", ""),
+        "fitReason": response.get("fitReason", ""),
+        "icpMatchingPrompt": response.get("icpMatchingPrompt", ""),
+        "emailSequenceKeywords": response.get("emailSequenceKeywords", []),
+        "liSequenceKeywords": response.get("liSequenceKeywords", []),
+        "liGeneralAngle": response.get("liGeneralAngle", ""),
+        "emailGeneralAngle": response.get("emailGeneralAngle", ""),
+        "purpose": response.get("purpose", ""),
+        "liPainPoint": response.get("liPainPoint", ""),
+        "ctaTarget": response.get("ctaTarget", ""),
+        "withData": response.get("withData", ""),
+        "liAssetIngestor": response.get("liAssetIngestor", ""),
+        "emailAssetIngestor": response.get("emailAssetIngestor", "")
+    }
+
+    return jsonify(strategy_response_data), 200
+
 
 @STRATEGIES_BLUEPRINT.route("/<int:strategy_id>/add_archetype_mapping", methods=["POST"])
 @require_user
