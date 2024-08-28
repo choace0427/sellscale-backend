@@ -304,7 +304,7 @@ def create_task_list_from_strategy(selix_session_id: int) -> list[dict[str, str]
     prompt = llm.user
     if not prompt:
         raise ValueError("LLM user prompt not found")
-    
+        
     prompt = prompt.format(
         files=files,
         username=username,
@@ -336,8 +336,9 @@ def create_task_list_from_strategy(selix_session_id: int) -> list[dict[str, str]
                                     "properties": {
                                         "title": { "type": "string" },
                                         "description": { "type": "string" },
+                                        "widget_type": { "type": "string" },
                                     },
-                                    "required": ["title", "description"],
+                                    "required": ["title", "description", "widget_type"],
                                     "additionalProperties": False
                                 }
                             }

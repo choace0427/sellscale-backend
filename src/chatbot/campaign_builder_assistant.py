@@ -685,7 +685,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
     set_session_tab(session_id, "STRATEGY_CREATOR")
     return {"success": True}
 
-def create_task(title: str, description: str, session_id: int, create_action=True):
+def create_task(title: str, description: str, session_id: int, create_action=True, widget_type=None):
     print("⚡️ AUTO ACTION: create_task('{}', '{}')".format(title, description))
     
     selix_action_id = None
@@ -695,7 +695,7 @@ def create_task(title: str, description: str, session_id: int, create_action=Tru
             action_title="Adding task: {}".format(title),
             action_description="Create a task with the title: {} and description: {}".format(title, description),
             action_function="create_task",
-            action_params={"title": title, "description": description}
+            action_params={"title": title, "description": description},
         )
 
     order_number = SelixSessionTask.query.filter_by(selix_session_id=session_id).count() + 1
@@ -706,7 +706,8 @@ def create_task(title: str, description: str, session_id: int, create_action=Tru
         title=title,
         description=description,
         status=SelixSessionTaskStatus.QUEUED,
-        order_number=order_number
+        order_number=order_number,
+        widget_type=widget_type if widget_type != 'NULL' else None
     )
     db.session.add(task)
     db.session.commit()
@@ -867,7 +868,8 @@ def create_tasks_from_strategy(session_id: int):
             title=task["title"],
             description=task["description"],
             session_id=session_id,
-            create_action=True
+            create_action=True,
+            widget_type=task['widget_type']
         )
 
     mark_action_complete(selix_action_id)
