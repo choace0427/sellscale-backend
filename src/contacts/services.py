@@ -199,7 +199,7 @@ ALLOWED_FILTERS_APOLLO = {
     },
     "person_locations": {
         "summary": "(list) List of person locations",
-        "prompt": "Extract the person locations from the query. The values should be a list of strings, strictly, the choice should be one or more of these (if applicable): ['United States', 'Europe', 'Germany', 'India', 'United Kingdom', 'France', 'Canada', 'Australia']"
+        "prompt": "Extract the person locations from the query. The values should be a list of strings."
     },
     "person_titles": {
         "summary": "(list) List of person titles. Please always include this",

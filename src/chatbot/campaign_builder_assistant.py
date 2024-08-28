@@ -750,6 +750,22 @@ def wait_for_ai_execution(session_id: int):
         session.thread_id
     )
 
+    #take first queued task and mark it as in progress
+    task = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).order_by(SelixSessionTask.order_number.asc()).first()
+
+    if task:
+        task.status = SelixSessionTaskStatus.IN_PROGRESS
+        db.session.add(task)
+        db.session.commit()
+
+        thread_id = session.thread_id
+        if thread_id:
+            task_dict = task.to_dict()
+            for key, value in task_dict.items():
+                if isinstance(value, datetime.datetime):
+                    task_dict[key] = value.isoformat()
+            send_socket_message('update-task', {'task': task_dict, 'thread_id': thread_id}, thread_id)
+
     session_sdr: ClientSDR = ClientSDR.query.get(session.client_sdr_id)
     company: Client = Client.query.get(session_sdr.client_id)
     tasks: list[SelixSessionTask] = SelixSessionTask.query.filter_by(selix_session_id=session_id).order_by(SelixSessionTask.order_number.is_(None).desc(), SelixSessionTask.order_number.asc()).all()
