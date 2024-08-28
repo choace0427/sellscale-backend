@@ -201,6 +201,10 @@ def post_score_archetype_with_ruleset(client_sdr_id: int, archetype_id: int):
         "selectedContacts", request, json=True, required=False
     )
 
+    score_ai = get_request_parameter(
+        "score_ai", request, json=True, required=True
+    )
+
     update_icp_scoring_ruleset(
         client_archetype_id=client_archetype.id,
         included_individual_title_keywords=included_individual_title_keywords,
@@ -249,6 +253,7 @@ def post_score_archetype_with_ruleset(client_sdr_id: int, archetype_id: int):
     success = apply_archetype_icp_scoring_ruleset_filters_task(
         client_archetype_id=client_archetype.id,
         prospect_ids=prospect_ids,
+        score_ai=score_ai,
     )
 
     if success:

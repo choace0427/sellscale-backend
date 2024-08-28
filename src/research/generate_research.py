@@ -66,7 +66,7 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
                     == research_point_type.get("name"),
                 ).first()
 
-                if payload is None:
+                if not payload:
                     # We get ai data
                     payload: ResearchPayload = ResearchPayload.query.filter(
                         ResearchPayload.prospect_id == prospect_id,
@@ -74,7 +74,7 @@ def generate_research_points(prospect_id: int, test_mode: bool = False):
                         ResearchPayload.research_sub_type == research_point_type.get("name")
                     ).first()
 
-            if payload is None:
+            if not payload:
                 continue
 
             # If the research point already exists, we append it

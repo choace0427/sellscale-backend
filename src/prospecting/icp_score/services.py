@@ -2443,6 +2443,7 @@ def apply_segment_icp_scoring_ruleset_filters_task(
         icp_scoring_job_queue_id: Optional[int] = None,
         prospect_ids: Optional[list[int]] = None,
         manual_trigger: Optional[list[int]] = None,
+        score_ai: Optional[bool] = True,
 ) -> bool:
     # Get the ClientArchetype
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
@@ -2465,10 +2466,11 @@ def apply_segment_icp_scoring_ruleset_filters_task(
                 client_archetype_id=client_archetype_id,
                 segment_id=segment_id,
                 prospect_ids=prospect_ids,
+                score_ai=score_ai,
             )
         else:
             apply_segment_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids],
+                args=[icp_scoring_job_queue_id, client_archetype_id, segment_id, prospect_ids, score_ai],
                 queue="icp_scoring",
                 routing_key="icp_scoring",
             )
@@ -2496,10 +2498,11 @@ def apply_segment_icp_scoring_ruleset_filters_task(
             client_archetype_id=client_archetype_id,
             segment_id=segment_id,
             prospect_ids=prospect_ids,
+            score_ai=score_ai,
         )
     else:
         apply_segment_icp_scoring_ruleset_filters.apply_async(
-            args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids],
+            args=[icp_scoring_job.id, client_archetype_id, segment_id, prospect_ids, score_ai],
             queue="icp_scoring",
             routing_key="icp_scoring",
         )
@@ -2517,6 +2520,7 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
         icp_scoring_job_queue_id: Optional[int] = None,
         prospect_ids: Optional[list[int]] = None,
         manual_trigger: Optional[list[int]] = None,
+        score_ai: Optional[bool] = True,
 ) -> bool:
     # Get the ClientArchetype
     client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
@@ -2538,10 +2542,11 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
                 icp_scoring_job_id=icp_scoring_job_queue_id,
                 client_archetype_id=client_archetype_id,
                 prospect_ids=prospect_ids,
+                score_ai=score_ai,
             )
         else:
             apply_archetype_icp_scoring_ruleset_filters.apply_async(
-                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids],
+                args=[icp_scoring_job_queue_id, client_archetype_id, prospect_ids, score_ai],
                 queue="icp_scoring",
                 routing_key="icp_scoring",
             )
@@ -2568,10 +2573,11 @@ def apply_archetype_icp_scoring_ruleset_filters_task(
             icp_scoring_job_id=icp_scoring_job.id,
             client_archetype_id=client_archetype_id,
             prospect_ids=prospect_ids,
+            score_ai=score_ai,
         )
     else:
         apply_archetype_icp_scoring_ruleset_filters.apply_async(
-            args=[icp_scoring_job.id, client_archetype_id, prospect_ids],
+            args=[icp_scoring_job.id, client_archetype_id, prospect_ids, score_ai],
             queue="icp_scoring",
             routing_key="icp_scoring",
         )
@@ -2590,6 +2596,7 @@ def apply_archetype_icp_scoring_ruleset_filters(
         icp_scoring_job_id: int,
         client_archetype_id: int,
         prospect_ids: Optional[list[int]] = None,
+        score_ai: Optional[bool] = True,
 ):
     try:
         """
@@ -2653,6 +2660,9 @@ def apply_archetype_icp_scoring_ruleset_filters(
 
         prospect_enriched_list = []
 
+        length = len(entries)
+        count = 0
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             futures = []
             update_list = []
@@ -2662,7 +2672,7 @@ def apply_archetype_icp_scoring_ruleset_filters(
             ) in tqdm(entries):
                 prospect_enriched_list.append(enriched_prospect_company.to_dict())
                 
-                if len(update_list) <= 8:
+                if len(update_list) <= 8 and count != length - 1:
                     update_list.append(enriched_prospect_company.prospect_id)
 
                     futures.append(
@@ -2688,6 +2698,8 @@ def apply_archetype_icp_scoring_ruleset_filters(
                     )
 
                     update_list = []
+
+                count += 1
 
             concurrent.futures.wait(futures)
 
@@ -2881,23 +2893,24 @@ def apply_archetype_icp_scoring_ruleset_filters(
         # Sort the prospect_enriched_list by the company name
         # For every 5 prospects create a new celery task
         prospect_enriched_list = sorted(prospect_enriched_list, key=lambda x: x.get("company_name") or "")
-
-        for i in range(0, len(prospect_enriched_list), 5):
-            chunk = prospect_enriched_list[i:i + 5]
-            score_ai_filters.apply_async(
-                args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict, True],
-                priority=1,
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-            )
-            # score_ai_filters(
-            #     prospect_enriched_list=chunk,
-            #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
-            #     dealbreaker=dealbreaker,
-            #     individual_score=individual_score_dict,
-            #     company_score=company_score_dict,
-            #     from_archetype=True,
-            # )
+        
+        if (icp_scoring_ruleset.individual_ai_filters and len(icp_scoring_ruleset.individual_ai_filters) > 0 or icp_scoring_ruleset.company_ai_filters and len(icp_scoring_ruleset.company_ai_filters) > 0) and score_ai:
+            for i in range(0, len(prospect_enriched_list), 5):
+                chunk = prospect_enriched_list[i:i + 5]
+                score_ai_filters.apply_async(
+                    args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict, True],
+                    priority=1,
+                    queue="icp_scoring",
+                    routing_key="icp_scoring",
+                )
+                # score_ai_filters(
+                #     prospect_enriched_list=chunk,
+                #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+                #     dealbreaker=dealbreaker,
+                #     individual_score=individual_score_dict,
+                #     company_score=company_score_dict,
+                #     from_archetype=True,
+                # )
 
         # score_ai_filters.delay(
         #     prospect_enriched_list,
@@ -2942,6 +2955,7 @@ def apply_segment_icp_scoring_ruleset_filters(
         client_archetype_id: int,
         segment_id: int,
         prospect_ids: Optional[list[int]] = None,
+        score_ai: Optional[bool] = None,
 ):
     try:
         """
@@ -3005,6 +3019,8 @@ def apply_segment_icp_scoring_ruleset_filters(
         max_threads = 5
 
         prospect_enriched_list = []
+        count = 0
+        length = len(entries)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             futures = []
@@ -3014,8 +3030,8 @@ def apply_segment_icp_scoring_ruleset_filters(
                 enriched_prospect_company,
             ) in tqdm(entries):
                 prospect_enriched_list.append(enriched_prospect_company.to_dict())
-                
-                if len(update_list) <= 8:
+
+                if len(update_list) <= 8 and count != length - 1:
                     update_list.append(enriched_prospect_company.prospect_id)
 
                     futures.append(
@@ -3042,6 +3058,7 @@ def apply_segment_icp_scoring_ruleset_filters(
 
                     update_list = []
             
+                count += 1
 
             concurrent.futures.wait(futures)
 
@@ -3233,24 +3250,24 @@ def apply_segment_icp_scoring_ruleset_filters(
         #     company_score=company_score_dict,
         # )
 
-        for i in range(0, len(prospect_enriched_list), 5):
-            chunk = prospect_enriched_list[i:i + 5]
-            score_ai_filters.apply_async(
-                args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict],
-                countdown=4,
-                priority=1,
-                queue="icp_scoring",
-                routing_key="icp_scoring",
-            )
-            # score_ai_filters(
-            #     chunk,
-            #     icp_scoring_ruleset.to_dict(),
-            #     dealbreaker,
-            #     individual_score_dict,
-            #     company_score_dict,
-            # )
+        if (icp_scoring_ruleset.individual_ai_filters and len(icp_scoring_ruleset.individual_ai_filters) > 0 or icp_scoring_ruleset.company_ai_filters and len(icp_scoring_ruleset.company_ai_filters) > 0) and score_ai:
+            for i in range(0, len(prospect_enriched_list), 5):
+                chunk = prospect_enriched_list[i:i + 5]
+                score_ai_filters.apply_async(
+                    args=[chunk, icp_scoring_ruleset.to_dict(), dealbreaker, individual_score_dict, company_score_dict, True],
+                    priority=1,
+                    queue="icp_scoring",
+                    routing_key="icp_scoring",
+                )
+                # score_ai_filters(
+                #     prospect_enriched_list=chunk,
+                #     icp_scoring_ruleset=icp_scoring_ruleset.to_dict(),
+                #     dealbreaker=dealbreaker,
+                #     individual_score=individual_score_dict,
+                #     company_score=company_score_dict,
+                #     from_archetype=True,
+                # )
 
-        # score_ai_filters.delay(
         #     prospect_enriched_list,
         #     icp_scoring_ruleset.to_dict(),
         #     dealbreaker,

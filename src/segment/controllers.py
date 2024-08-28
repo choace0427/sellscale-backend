@@ -7,7 +7,7 @@ from src.client.controllers import create_archetype
 from src.client.models import ClientArchetype, ClientSDR
 from src.client.services import create_client_archetype
 from src.prospecting.icp_score.models import ICPScoringRuleset
-from src.prospecting.icp_score.services import update_icp_scoring_ruleset, \
+from src.prospecting.icp_score.services import score_ai_filters, update_icp_scoring_ruleset, \
     apply_segment_icp_scoring_ruleset_filters_task
 from src.prospecting.models import Prospect, ProspectStatus, ProspectOverallStatus
 from src.segment.models import Segment
@@ -444,6 +444,10 @@ def post_score_segment_with_ruleset(client_sdr_id: int, segment_id: int):
         "selectedContacts", request, json=True, required=False
     )
 
+    score_ai = get_request_parameter(
+        "score_ai", request, json=True, required=True
+    )
+
     segment = Segment.query.filter(
         Segment.client_sdr_id == client_sdr_id,
         Segment.id == segment_id
@@ -502,6 +506,7 @@ def post_score_segment_with_ruleset(client_sdr_id: int, segment_id: int):
         client_archetype_id=client_archetype.id,
         segment_id=segment_id,
         prospect_ids=prospect_ids,
+        score_ai=score_ai,
     )
 
     if success:
