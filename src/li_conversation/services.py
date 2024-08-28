@@ -4,6 +4,7 @@ from typing import List, Union, Optional
 
 from src.ml.services import chat_ai_verify_demo_set, get_text_generation
 from src.heuristic_keywords.heuristics import demo_key_words
+from src.utils.abstract.attr_utils import deep_get
 
 from src.utils.lists import format_str_join
 from src.client.models import ClientArchetype
@@ -1608,7 +1609,7 @@ def scrape_conversations_inbox():
         ClientSDR.li_at_token is not None,
         ClientSDR.li_at_token != "INVALID",
         ClientSDR.scrape_time is not None,
-        ClientSDR.next_scrape < datetime.utcnow(),
+        ClientSDR.next_scrape < datetime.utcnow()
     ).all()
 
     for sdr in client_sdr:
@@ -1683,6 +1684,19 @@ def scrape_conversations_inbox():
                     if prospect is not None:
                         prospect.li_urn_id = profile_urn_id
                         db.session.add(prospect)
+                if prospect is None:
+                    firstName = deep_get(deep_get(convo, 'participants.0').get("com.linkedin.voyager.messaging.MessagingMember", {}), 'miniProfile.firstName')
+                    lastName = deep_get(deep_get(convo, 'participants.0').get("com.linkedin.voyager.messaging.MessagingMember", {}), 'miniProfile.lastName')
+                    query = '%{}%{}%'.format(firstName, lastName)
+                    prospect = Prospect.query.filter(
+                        Prospect.full_name.like(query),
+                        Prospect.client_sdr_id == sdr.id
+                    ).first()
+
+                    if prospect is not None:
+                        prospect.li_urn_id = profile_urn_id
+                        db.session.add(prospect)
+
                 if prospect is None:
                     continue  # Skip if prospect is not in the database
                 if prospect.client_sdr_id != sdr.id:
