@@ -96,11 +96,15 @@ def edit_session(client_sdr_id: int):
         "is_draft", request, json=True, required=False
     )
 
+    new_name = get_request_parameter(
+        "new_name", request, json=True, required=False
+    )
+
     session: SelixSession = SelixSession.query.get(session_id)
     if not session:
         return jsonify({"error": "Session not found"}), 404
 
-    success, message = update_session(session_id=session_id, client_sdr_id=client_sdr_id, new_title=new_title, new_status=new_status, new_strategy_id=new_strategy_id, new_campaign_id=new_campaign_id, is_draft=is_draft)
+    success, message = update_session(session_id=session_id, client_sdr_id=client_sdr_id, new_title=new_title, new_status=new_status, new_strategy_id=new_strategy_id, new_campaign_id=new_campaign_id, is_draft=is_draft, new_name=new_name)
 
     if not success:
         return jsonify({"error": message}), 400

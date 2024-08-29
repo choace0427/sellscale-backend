@@ -1221,7 +1221,8 @@ def update_session(
     new_status: Optional[str], 
     new_strategy_id: Optional[int],
     new_campaign_id: Optional[int],
-    is_draft: Optional[bool] = None
+    is_draft: Optional[bool] = None,
+    new_name: Optional[str] = None
 ) -> tuple[bool, str]:
     session: SelixSession = SelixSession.query.get(session_id)
     if not session:
@@ -1239,6 +1240,8 @@ def update_session(
         session.memory["campaign_id"] = new_campaign_id
     if is_draft is not None:
         session.draft_session = is_draft
+    if new_name:
+        session.session_name = new_name
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(session, "session_name")
     flag_modified(session, "status")
