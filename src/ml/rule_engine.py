@@ -400,13 +400,20 @@ def rule_no_symbols(
 
     \p{S} matches any math symbols, currency signs, dingbats, box-drawing characters, etc
     """
-    ALLOWED_SYMBOLS = ["+", "$", "|"]
-    if message_type == GeneratedMessageType.EMAIL:
-        ALLOWED_SYMBOLS.extend(["@", "<", ">"])
+    # ALLOWED_SYMBOLS = ["+", "$", "|"]
+    # if message_type == GeneratedMessageType.EMAIL:
+    #     ALLOWED_SYMBOLS.extend(["@", "<", ">"])
 
-    completion = demoji.replace(completion, "")  # Remove emojis
-    unfiltered_match = re.findall(r"[\p{S}]", completion)
-    match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+    # completion = demoji.replace(completion, "")  # Remove emojis
+    # unfiltered_match = re.findall(r"[\p{S}]", completion)
+    # match = list(filter(lambda x: x not in ALLOWED_SYMBOLS, unfiltered_match))
+
+    DISALLOWED_SYMBOLS = ["[[", "]]"]
+    match = []
+    for symbol in DISALLOWED_SYMBOLS:
+        if symbol in completion:
+            match.append(symbol)
+
     if match and len(match) > 0:
         problems.append(
             "Completion contains uncommon symbols: {}".format(", ".join(match))
