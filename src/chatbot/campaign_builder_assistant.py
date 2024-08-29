@@ -330,6 +330,81 @@ def edit_strategy(
     title = strategy.title
     description = strategy.description
 
+    messages = get_last_n_messages(SelixSession.query.get(session_id).thread_id)
+    last_message_from_user = None
+    if messages:
+        last_message_from_user = messages[-1].get('message', None)
+    
+    if last_message_from_user:
+        edit_description = last_message_from_user
+
+    changes_needed = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                You are a strategy editor. I will provide you with both a title and an 'edit description'. 
+                Based on the edit description, tell me what adjustments I need to make to the strategy title and description.
+                Only make changes if REQUIRED and do not alter more than needed.
+
+                Original Title: {}
+                Original Description: {}
+
+                Edit Description: {}
+
+                Changes Needed:""".format(
+                    title, description, edit_description
+                ),
+            }
+        ],
+        model="gpt-4o",
+        max_tokens=1000,
+        response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "changes_needed_schema",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "title_changes_needed": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "change_description": { "type": "string" },
+                                    },
+                                    "required": ["change_description"],
+                                    "additionalProperties": False
+                                }
+                            },
+                            "description_changes_needed": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "change_description": { "type": "string" },
+                                    },
+                                    "required": ["change_description"],
+                                    "additionalProperties": False
+                                }
+                            }
+                        },
+                        "required": ["title_changes_needed", "description_changes_needed"],
+                        "additionalProperties": False
+                    },
+                    "strict": True
+                }
+            }
+    )
+    
+    changes_needed = json.loads(changes_needed)
+
+    title_changes_needed = changes_needed.get("title_changes_needed", [])
+    description_changes_needed = changes_needed.get("description_changes_needed", [])
+
+    title_changes_needed_str = "\n".join([f"- {change['change_description']}" for change in title_changes_needed])
+    description_changes_needed_str = "\n".join([f"- {change['change_description']}" for change in description_changes_needed])
+
     updated_title = wrapped_chat_gpt_completion(
         messages=[
             {
@@ -345,7 +420,7 @@ def edit_strategy(
                 Edit Description: {}
 
                 New Title:""".format(
-                    title, edit_description
+                    title, title_changes_needed_str
                 ),
             }
         ],
@@ -372,7 +447,7 @@ def edit_strategy(
                 Edit Description: {}
 
                 New Description:""".format(
-                    description, edit_description
+                    description, description_changes_needed_str
                 ),
             }
         ],
@@ -403,6 +478,65 @@ def edit_strategy(
             if isinstance(value, datetime.datetime):
                 session_dict[key] = value.isoformat()
         send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
+    # Three cases
+    num_queued_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).count()
+    num_total_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id).count()
+    session_status_is_active = session.status == SelixSessionStatus.ACTIVE
+    # 1. If no tasks in Queued and session status is ACTIVE
+    if num_queued_tasks == 0 and session_status_is_active:
+        pass
+    # 2. If there are tasks in Queued, then clear all those tasks and generate new tasks from strategy and move to pending operator
+    elif num_queued_tasks > 0:
+        queued_tasks = SelixSessionTask.query.filter_by(selix_session_id=session_id, status=SelixSessionTaskStatus.QUEUED).all()
+        for task in queued_tasks:
+            task.status = SelixSessionTaskStatus.CANCELLED
+            db.session.add(task)
+            db.session.commit()
+            task_dict = task.to_dict()
+            for key, value in task_dict.items():
+                if isinstance(value, datetime.datetime):
+                    task_dict[key] = value.isoformat()
+            send_socket_message('update-task', {'task': task_dict, 'thread_id': thread_id}, thread_id)
+        
+        session.status = SelixSessionStatus.PENDING_OPERATOR
+        db.session.add(session)
+        db.session.commit()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
+        create_tasks_from_strategy(session_id=session_id)
+    # 3. If there are zero tasks in Queued and session status is not ACTIVE, mark all non complete tasks as canceled and make new adjustment tasks and a new notify & review task
+    elif num_queued_tasks == 0 and not session_status_is_active:
+        for change in title_changes_needed:
+            create_task(
+                title="Adjust: {}".format(change["change_description"]),
+                description="Adjust based on title change: {}".format(change["change_description"]),
+                session_id=session_id,
+                create_action=True
+            )
+        for change in description_changes_needed:
+            create_task(
+                title="Adjust: {}".format(change["change_description"]),
+                description="Adjust based on description change: {}".format(change["change_description"]),
+                session_id=session_id,
+                create_action=True
+            )
+        
+        sdr_name = ClientSDR.query.get(session.client_sdr_id).name
+        first_name = sdr_name.split(" ")[0]
+
+        create_task(
+            title="Notify {} for review & launch".format(first_name),
+            description="Notify {} and review the changes made to the strategy.".format(first_name),
+            session_id=session_id,
+            create_action=True
+        )
+
+        session.status = SelixSessionStatus.PENDING_OPERATOR
+        db.session.add(session)
+        db.session.commit()
+        send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
+
 
     return {"success": True}
 
