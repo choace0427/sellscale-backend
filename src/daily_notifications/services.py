@@ -374,14 +374,18 @@ def get_positive_responses(client_sdr_id: int) -> list[dict]:
     results = db.session.execute(query, {'client_id': client_id}).fetchall()
     
     positive_responses = []
+    unique_messages = set()
     for row in results:
-        positive_responses.append({
-            'prospect_id': row['id'],
-            'full_name': row['full_name'],
-            'date': row['date_created'],
-            'to_status': row['to_status'],
-            'last_msg': row['last_msg'],
-            'auth_token': row['auth_token'],
-        })
+        last_msg = row['last_msg']
+        if last_msg not in unique_messages:
+            unique_messages.add(last_msg)
+            positive_responses.append({
+                'prospect_id': row['id'],
+                'full_name': row['full_name'],
+                'date': row['date_created'],
+                'to_status': row['to_status'],
+                'last_msg': last_msg,
+                'auth_token': row['auth_token'],
+            })
     
     return positive_responses
