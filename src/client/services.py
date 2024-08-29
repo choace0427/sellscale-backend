@@ -1616,17 +1616,59 @@ def get_cta_by_archetype_id(client_sdr_id: int, archetype_id: int) -> dict:
     elif archetype.client_sdr_id != client_sdr_id:
         return {"message": "Archetype does not belong to you", "status_code": 403}
 
-    # Get CTAs belonging to the Archetype
-    ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
-        GeneratedMessageCTA.archetype_id == archetype_id
-    )
+    # # Get CTAs belonging to the Archetype
+    # ctas: list[GeneratedMessageCTA] = GeneratedMessageCTA.query.filter(
+    #     GeneratedMessageCTA.archetype_id == archetype_id
+    # )
 
-    # Convert to dict and calculate stats
+    # # Convert to dict and calculate stats
+    # cta_dicts = []
+    # for cta in ctas:
+    #     raw_cta = cta.to_dict()
+    #     raw_cta["performance"] = get_cta_stats(cta.id)
+    #     cta_dicts.append(raw_cta)
+
+    cta_data = """
+        select 
+            generated_message_cta.active,
+            generated_message_cta.archetype_id,
+            generated_message_cta.auto_mark_as_scheduling_on_acceptance,
+            generated_message_cta.cta_type,
+            generated_message_cta.expiration_date,
+            generated_message_cta.id,
+            generated_message_cta.text_value,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH') num_sent,
+            count(distinct prospect.id) filter (where prospect_status_records.to_status = 'ACCEPTED') num_converted,
+            count(distinct prospect.id) total_count
+        from generated_message_cta
+            left join generated_message on generated_message.message_cta = generated_message_cta.id
+                and generated_message.created_at > generated_message_cta.created_at
+            left join prospect on prospect.id = generated_message.prospect_id
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+                and prospect_status_records.created_at > generated_message_cta.created_at
+        where generated_message_cta.archetype_id = {}
+        group by 1,2,3,4,5,6,7;
+    """.format(archetype_id)
+
+    cta_data = db.session.execute(cta_data).fetchall()
+
     cta_dicts = []
-    for cta in ctas:
-        raw_cta = cta.to_dict()
-        raw_cta["performance"] = get_cta_stats(cta.id)
-        cta_dicts.append(raw_cta)
+    for cta in cta_data:
+        cta_dicts.append({
+            "active": cta[0],
+            "archetype_id": cta[1],
+            "auto_mark_as_scheduling_on_acceptance": cta[2],
+            "cta_type": cta[3],
+            "expiration_date": cta[4],
+            "id": cta[5],
+            "text_value": cta[6],
+            "performance": {
+                "num_sent": cta[7],
+                "num_converted": cta[8],
+                "total_count": cta[9],
+                "status_map": {}
+            }
+        })
 
     return {"message": "Success", "status_code": 200, "ctas": cta_dicts}
 
