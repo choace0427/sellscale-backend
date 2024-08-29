@@ -270,9 +270,12 @@ def create_new_campaign(client_sdr_id: int):
     prospect_ids = get_request_parameter(
         "prospect_ids", request, json=True, required=True, parameter_type=list
     )
-    num_prospects = get_request_parameter(
-        "num_prospects", request, json=True, required=True, parameter_type=int
-    )
+    if isinstance(prospect_ids, list) and len(prospect_ids) > 0:
+        num_prospects = len(prospect_ids)
+    else:
+        num_prospects = get_request_parameter(
+            "num_prospects", request, json=True, required=True, parameter_type=int
+        )
     campaign_type = get_request_parameter(
         "campaign_type", request, json=True, required=True, parameter_type=str
     )
@@ -314,7 +317,7 @@ def create_new_campaign(client_sdr_id: int):
             priority_rating=priority_rating,
             warm_emails=warm_emails,
         )
-        return jsonify({"campaign_id": campaign.id}), 200
+        return jsonify({"campaign_id": campaign.id, "campaign_uuid": campaign.uuid}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 

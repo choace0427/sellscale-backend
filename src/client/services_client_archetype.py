@@ -1354,19 +1354,13 @@ def get_total_contacts_for_archetype(client_archetype_id):
 def get_client_archetype_contacts(client_archetype_id, offset=0, limit=20, text="", include_analytics=True):
     filters = [
         Prospect.archetype_id == client_archetype_id,
-        Prospect.overall_status.notin_([
-            ProspectOverallStatus.ACTIVE_CONVO,
-            ProspectOverallStatus.DEMO,
-            ProspectOverallStatus.REMOVED,
-            ProspectOverallStatus.NURTURE,
-        ]),
         Prospect.icp_fit_score > 0,
     ]
 
     if text:
         filters.append(Prospect.full_name.ilike(f"%{text}%"))
 
-    sample_prospects = (
+    sample_prospects: list[Prospect]= (
         Prospect.query.filter(*filters)
         .order_by(Prospect.icp_fit_score.desc())
         .offset(offset)
