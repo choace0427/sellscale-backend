@@ -1813,12 +1813,17 @@ def generate_corrected_transcript(client_sdr_id: int, device_id: str, sentence_t
     client_description: str = client.description
     client_sdr_name: str = client_sdr.name
     client_sdr_title: str = client_sdr.title
+
+    all_sdrs_in_company: list[ClientSDR] = ClientSDR.query.filter_by(client_id=client.id).all()
+    #make a string comma separated list of all the sdrs in the company
+    all_sdrs_in_company = ', '.join([sdr.name for sdr in all_sdrs_in_company])
     
     system_prompt = """
 
     Here is some client information for context:
     - Company: {client_company}
     - SDR Name: {client_sdr_name}
+    - Other SDRs in the company: {all_sdrs_in_company}
 
     You are a helpful assistant for the company SellScale and their chatbot Selix.
     Your task is to correct any spelling discrepancies in the transcribed text.
@@ -1830,6 +1835,7 @@ def generate_corrected_transcript(client_sdr_id: int, device_id: str, sentence_t
     """.format(
         client_company=client_company,
         client_sdr_name=client_sdr_name,
+        all_sdrs_in_company=all_sdrs_in_company
     )
 
     response_schema = {
@@ -1865,6 +1871,6 @@ def generate_corrected_transcript(client_sdr_id: int, device_id: str, sentence_t
     response = response.get("corrected_sentence")
 
     if device_id:
-        send_socket_message('corrected-transcript', {'message': response, 'device_id': device_id}, thread_id)
+        send_socket_message('corrected-transcript', {'message': response, 'original_sentnece': sentence_to_correct, 'device_id': device_id}, thread_id)
 
     return response
