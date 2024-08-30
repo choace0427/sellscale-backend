@@ -540,6 +540,8 @@ def create_client_archetype(
             # email_seq_generation_in_progress= (True if auto_generation_payload and auto_generation_payload.write_email_sequence_draft else False),
             li_seq_generation_in_progress=False,
             email_seq_generation_in_progress=False,
+            email_open_tracking_enabled=False,
+            email_link_tracking_enabled=True,
         )
         db.session.add(client_archetype)
         db.session.commit()

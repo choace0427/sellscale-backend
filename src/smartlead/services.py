@@ -588,6 +588,7 @@ def create_smartlead_campaign(
     if (
         client_sdr.email_open_tracking_enabled is not None
         and not client_sdr.email_open_tracking_enabled
+        and not archetype.email_open_tracking_enabled
     ):
         track_settings.append("DONT_TRACK_EMAIL_OPEN")
     if (
@@ -595,6 +596,12 @@ def create_smartlead_campaign(
         and not client_sdr.email_link_tracking_enabled
     ):
         track_settings.append("DONT_TRACK_LINK_CLICK")
+
+    if archetype.email_open_tracking_enabled == False and "DONT_TRACK_EMAIL_OPEN" not in track_settings:
+        track_settings.append("DONT_TRACK_EMAIL_OPEN")
+    if archetype.email_link_tracking_enabled == False and "DONT_TRACK_LINK_CLICK" not in track_settings:
+        track_settings.append("DONT_TRACK_LINK_CLICK")
+
     if len(track_settings) == 0:
         track_settings = None
     general_settings = {"track_settings": track_settings}
