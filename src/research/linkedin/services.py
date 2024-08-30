@@ -263,7 +263,7 @@ def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
             ).first()
             if existing_contact:
                 return True
-
+            
         if (
             is_on_dnc_list_helper(client.do_not_contact_company_names, prospect.company, exact_match=True) or
             is_on_dnc_list_helper(client.do_not_contact_keywords_in_company_names, prospect.company) or
@@ -295,9 +295,7 @@ def check_and_apply_do_not_contact(client_sdr_id: int, prospect_id: int):
         db.session.add(prospect)
         db.session.commit()
     else:
-        prospect.status = ProspectStatus.PROSPECTED
-        db.session.add(prospect)
-        db.session.commit()
+        pass
 
 
 def reset_prospect_approved_status(prospect_id: int):
