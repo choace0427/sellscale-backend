@@ -1801,3 +1801,70 @@ Example Good Angle 2: 'Write a campaign targeting recently hired founding sales 
         send_socket_message('first-message-suggestion', {'messages': response, 'room_id': room_id}, room_id)
     
     return response
+
+@celery.task
+def generate_corrected_transcript(client_sdr_id: int, device_id: str, sentence_to_correct: str, thread_id: int):
+
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+
+    client: Client = client_sdr.client
+    client_company: str = client.company
+
+    client_description: str = client.description
+    client_sdr_name: str = client_sdr.name
+    client_sdr_title: str = client_sdr.title
+    
+    system_prompt = """
+
+    Here is some client information for context:
+    - Company: {client_company}
+    - SDR Name: {client_sdr_name}
+
+    You are a helpful assistant for the company SellScale and their chatbot Selix.
+    Your task is to correct any spelling discrepancies in the transcribed text.
+    Make sure that the names of the following products are spelled correctly:
+
+    Only add necessary punctuation such as periods, commas, and capitalization,
+    and use only the context provided. Do not remove or add any words, just correct the parts.
+
+    """.format(
+        client_company=client_company,
+        client_sdr_name=client_sdr_name,
+    )
+
+    response_schema = {
+        "name": "corrected_sentence",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "corrected_sentence": {"type": "string"},
+            },
+            "required": ["corrected_sentence"],
+            "additionalProperties": False
+        }
+    }
+
+    response = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": sentence_to_correct
+            }
+        ],
+        model="gpt-4o-2024-08-06",
+        max_tokens=300,
+        response_format={"type": "json_schema", "json_schema": response_schema}
+    )
+
+    response = json.loads(response)
+    response = response.get("corrected_sentence")
+
+    if device_id:
+        send_socket_message('corrected-transcript', {'message': response, 'device_id': device_id}, thread_id)
+
+    return response

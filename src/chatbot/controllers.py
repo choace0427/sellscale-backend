@@ -4,10 +4,11 @@ import requests
 from model_import import SelixSession
 from src.analytics.services_chatbot import API_URL
 from src.authentication.decorators import require_user
-from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, edit_strategy, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread, get_suggested_first_message
+from src.chatbot.campaign_builder_assistant import add_message_to_thread, adjust_selix_task_order, bulk_create_selix_tasks, chat_with_assistant, delete_selix_task, delete_session, edit_strategy, get_assistant_reply, get_last_n_messages, handle_run_thread, get_all_threads_with_tasks, handle_voice_instruction_enrichment_and_questions, update_session, create_selix_task, update_selix_task, generate_followup, add_file_to_thread, get_suggested_first_message, generate_corrected_transcript
 from src.chatbot.models import SelixActionCall
 from src.client.models import ClientSDR
 from src.utils.request_helpers import get_request_parameter
+from app import celery
 
 SELIX_BLUEPRINT = Blueprint("selix", __name__)
 
@@ -326,6 +327,27 @@ def post_generate_followup(client_sdr_id: int):
     )
 
     return jsonify({'followup_message': ''}), 200
+
+@SELIX_BLUEPRINT.route("/post_process_transcription", methods=["POST"])
+@require_user
+def post_process_transcription(client_sdr_id: int):
+    session_id = get_request_parameter(
+        "session_id", request, json=True, required=True
+    )
+    device_id = get_request_parameter(
+        "device_id", request, json=True, required=True
+    )
+    sentence_to_correct = get_request_parameter(
+        "sentence_to_correct", request, json=True, required=True
+    )
+
+    thread_id = SelixSession.query.get(session_id).thread_id
+
+    sanitized_transcript = generate_corrected_transcript.delay(
+        client_sdr_id=client_sdr_id, device_id=device_id, sentence_to_correct=sentence_to_correct, thread_id=thread_id
+    )
+
+    return jsonify({'transcript': ''}), 200
 
 @SELIX_BLUEPRINT.route("/upload_file", methods=["POST"])
 @require_user
