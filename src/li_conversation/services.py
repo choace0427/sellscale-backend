@@ -1216,7 +1216,7 @@ Output:"""
     response = get_text_generation(
         [{"role": "user", "content": prompt}],
         max_tokens=500,
-        model="gpt-4",
+        model="gpt-4o",
         type="LI_MSG_OTHER",
         prospect_id=prospect_id,
         client_sdr_id=prospect.client_sdr_id,

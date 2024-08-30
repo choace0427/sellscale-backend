@@ -531,7 +531,7 @@ def create_client_archetype(
             persona_lookalike_profile_3=lookalike_3,
             persona_lookalike_profile_4=lookalike_4,
             persona_lookalike_profile_5=lookalike_5,
-            template_mode=True if (not voice_id or template_mode) else False,
+            template_mode=True if (not voice_id and template_mode) else False,
             transformer_blocklist=transformer_blocklist,
             transformer_blocklist_initial=transformer_blocklist,
             testing_volume=2 ** 31 - 1,  #max int,

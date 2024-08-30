@@ -1012,8 +1012,11 @@ def post_generate_bump_li_message(client_sdr_id: int):
         get_request_parameter(
             "use_cache", request, json=True, required=False, parameter_type=bool
         )
-        or True
     )
+
+    if use_cache is None:
+        use_cache = True
+
     bump_framework_template_id = get_request_parameter(
         "bump_framework_template_id",
         request,
@@ -1100,6 +1103,8 @@ def post_generate_bump_li_message(client_sdr_id: int):
                         "prompt": prompt,
                         "research_str": research_str,
                         "convo_history": [c.to_dict() for c in convo_history],
+                        "bump_framework_id": bump_framework_id,
+                        "combined": [{"id": x.id, "value": x.value, "research_point_type": x.research_point_type} for x in points],
                     },
                 },
             }

@@ -161,12 +161,10 @@ class ResearchPoints(db.Model):
         from model_import import ClientArchetype, Prospect
         from src.bump_framework.models import BumpFramework, BumpFrameworkTemplates
 
-        prospect: Prospect = Prospect.query.filter_by(id=prospect_id).first()
+        prospect: Prospect = Prospect.query.get(prospect_id)
         if not prospect:
             return []
-        client_archetype: ClientArchetype = ClientArchetype.query.filter_by(
-            id=prospect.archetype_id
-        ).first()
+        client_archetype: ClientArchetype = ClientArchetype.query.get(prospect.archetype_id)
         transformer_blocklist = client_archetype.transformer_blocklist
 
         research_payloads = ResearchPayload.query.filter_by(
