@@ -57,6 +57,10 @@ def rule_no_quotes_surrounding_message(
     ):
         violations.append("Message contains quotes surrounding the message.")
         return False, "Message contains quotes surrounding the message."
+    
+    if ('----' in message):
+        violations.append("Message contains ----- surrounding the message.")
+        return False, "Message contains quotes surrounding the message."
 
     return True, "Success"
 
