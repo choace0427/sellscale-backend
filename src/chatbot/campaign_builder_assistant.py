@@ -737,7 +737,7 @@ def create_strategy(angle: str, prospects: str, offer: str, channel: str, timing
     chat_content = [
         {"sender": "user", "query": description, "id": 1}
     ]
-    strategy_response = generate_strategy_copilot_response(chat_content)
+    strategy_response = generate_strategy_copilot_response(chat_content, client_sdr_id=session.client_sdr_id)
     strategy_description = strategy_response.get("response", "").replace("html", "").replace("`", "").strip()
 
     session: SelixSession = SelixSession.query.get(session_id)

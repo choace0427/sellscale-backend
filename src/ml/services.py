@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+from src.contacts.models import SavedApolloQuery
 from src.email_outbound.models import ProspectEmailOutreachStatus
 from src.ml.openai_wrappers import (
     DEFAULT_TEMPERATURE,
@@ -1938,7 +1939,7 @@ Output:"""
     return links
 
 
-def generate_strategy_copilot_response(chat_content: List[Dict[str, str]]):
+def generate_strategy_copilot_response(chat_content: List[Dict[str, str]], client_sdr_id: Optional[int] = None):
     """
     Generate a response for the Strategy Copilot based on the chat content.
     We will grab our user prompt from the llm table and have that be our initial prompt.
@@ -1949,13 +1950,72 @@ def generate_strategy_copilot_response(chat_content: List[Dict[str, str]]):
     id: <message_id>
     :return: {"response": response}
     """
+
+     #look at icps for client, based on chat content, infer which ICP is being talked about and 
+    all_icps_in_client: list[SavedApolloQuery] = []
+    if client_sdr_id:
+        print(f"Fetching ClientSDR with ID: {client_sdr_id}")
+        client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+        print(f"ClientSDR fetched: {client_sdr}")
+        all_icps_in_client = SavedApolloQuery.query.join(ClientSDR, SavedApolloQuery.client_sdr_id == ClientSDR.id)\
+            .filter(ClientSDR.client_id == client_sdr.client_id, SavedApolloQuery.is_prefilter == True).all()
+        print(f"All ICPs in client: {all_icps_in_client}")
+        
+    icp_addition_string = ''
+        
+    if all_icps_in_client:
+        icp_prompt_string = "Here are the ICPs for this client: \n"
+        for icp in all_icps_in_client:
+            icp_prompt_string += f"ICP: {icp.custom_name}, segment description: {icp.segment_description}, value proposition: {icp.value_proposition}\n"
+        print(f"ICP Prompt String: {icp_prompt_string}")
+        
+        # Include chat content into the ICP question
+        chat_content_string = "\n".join([f"{chat['sender']}: {chat['query']}" for chat in chat_content])
+        icp_prompt_string += f"\nChat Content:\n{chat_content_string}\nWhich ICP is being talked about in this conversation and what are the titles included here?"
+        print(f"ICP Prompt String with Chat Content: {icp_prompt_string}")
+
+        response_schema = {
+        "name": "icp_determination",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "icp_title": {"type": "string"},
+                "included_titles": {"type": "string"},
+                },
+                "required": ["icp_title", "included_titles"],
+                "additionalProperties": False
+            }
+        }
+
+        print("Sending prompt to GPT model...")
+        response = wrapped_chat_gpt_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": icp_prompt_string
+                }
+            ],
+            model="gpt-4o-2024-08-06",
+            max_tokens=300,
+            response_format={"type": "json_schema", "json_schema": response_schema}
+        )
+        print(f"Response from GPT model: {response}")
+
+        response = json.loads(response)
+        icp_title = response.get("icp_title")
+        included_titles = response.get("included_titles")
+        print(f"ICP Title: {icp_title}, Included Titles: {included_titles}")
+
+        icp_addition_string = f"\n\nIn the result, also, explicitly include copy like 'ICP to match' : \"{icp_title}\"\" and \"Included Titles: {included_titles}\n\n"
+
     # Grabbing initial user prompt from database
     llm = LLM.query.filter_by(name='strategies_copilot').first()
     initial_prompt = llm.user
     model = llm.model
     max_tokens = llm.max_tokens
 
-    chat_log = [{"role": "user", "content": initial_prompt}]
+    chat_log = [{"role": "user", "content": initial_prompt + icp_addition_string}]
 
     # print('params are', chat_content, prompt, current_csv)
     # Ensure chat_content is a list of dictionaries
