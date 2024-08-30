@@ -612,6 +612,8 @@ class Prospect(db.Model):
             "email_unread_messages": self.email_unread_messages,
             "active": self.active,
             "in_icp_sample": self.in_icp_sample,
+            "approved_prospect_email_id": self.approved_prospect_email_id,
+            "approved_outreach_message_id": self.approved_outreach_message_id,
             "icp_fit_score_override": self.icp_fit_score_override,
             "contract_size": self.contract_size,
             "is_lookalike_profile": self.is_lookalike_profile,

@@ -137,6 +137,22 @@ def get_campaign_details_by_uuid(campaign_uuid: str):
     )
 
 
+@CAMPAIGN_BLUEPRINT.route("/campaigns_by_archetype/<int:archetype_id>", methods=["GET"])
+def get_campaigns_by_archetype(archetype_id: int):
+
+    """Get a list of outbound campaigns based on archetype_id."""
+    campaigns: list[OutboundCampaign] = OutboundCampaign.query.filter(
+        OutboundCampaign.client_archetype_id == archetype_id
+    ).all()
+    
+    if not campaigns:
+        return jsonify({"campaigns": []}), 200
+
+    campaigns_list = [campaign.to_dict() for campaign in campaigns]
+
+    return jsonify({"campaigns": campaigns_list}), 200
+
+
 @CAMPAIGN_BLUEPRINT.route("/all_campaigns", methods=["POST"])
 @require_user
 def get_all_campaigns(client_sdr_id: int):
