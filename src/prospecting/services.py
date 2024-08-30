@@ -1987,9 +1987,8 @@ def mark_prospects_as_queued_for_outreach(
     messages_ids = [message.id for message in messages]
 
     # Create SLA Schedules
-    load_sla_schedules(client_sdr_id=client_sdr_id)
+    load_sla_schedules.delay(client_sdr_id)
     
-
     # Update prospects
     for id in prospect_ids:
         update_prospect_status_linkedin(id, ProspectStatus.QUEUED_FOR_OUTREACH)

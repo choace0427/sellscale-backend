@@ -424,7 +424,7 @@ def automatic_sla_schedule_loader(self):
     )
     return True
 
-
+@celery.task
 def load_sla_schedules(client_sdr_id: int) -> tuple[bool, list[int]]:
     """'Loads' SLA schedules. This function will check for 3 weeks worth of SLA schedules into the future for a given
     SDR, and if there are not 5 weeks worth of SLA schedules, it will create them.
