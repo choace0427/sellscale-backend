@@ -71,3 +71,21 @@ class ActivityLog(db.Model):
             "description": self.description,
             "created_at": self.created_at,
         }
+
+class RetentionActivityLogs(db.Model):
+    __tablename__ = "retention_activity_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
+    client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
+
+    activity_tag = db.Column(db.String)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "client_sdr_id": self.client_sdr_id,
+            "activity_tag": self.activity_tag,
+            "created_at": self.created_at,
+        }
