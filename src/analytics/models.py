@@ -79,6 +79,7 @@ class RetentionActivityLogs(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("client.id"))
     client_sdr_id = db.Column(db.Integer, db.ForeignKey("client_sdr.id"))
 
+    activity_date = db.Column(db.DateTime)
     activity_tag = db.Column(db.String)
 
     def to_dict(self):
@@ -87,5 +88,6 @@ class RetentionActivityLogs(db.Model):
             "client_id": self.client_id,
             "client_sdr_id": self.client_sdr_id,
             "activity_tag": self.activity_tag,
+            "activity_date": self.activity_date,
             "created_at": self.created_at,
         }
