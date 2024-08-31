@@ -3369,7 +3369,7 @@ def list_prospects_caught_by_client_filters(client_sdr_id: int):
             or_(
                 *(
                         [
-                            Prospect.company == company
+                            Prospect.company.ilike(f"%{company}%")
                             for company in client.do_not_contact_company_names
                         ]
                         + [
