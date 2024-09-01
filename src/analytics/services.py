@@ -1123,8 +1123,8 @@ def get_retention_analytics(units: str = "weeks" or "months"):
     ]
     for client_data in retention_data:
         days = 365 if units == 'months' else 84
-        # if client_data['client_created_at'] < datetime.now() - timedelta(days=days):
-        #     continue
+        if client_data['client_created_at'] < datetime.now() - timedelta(days=days):
+            continue
 
         start_date = datetime.now() - (timedelta(days=days))
         cohort_num = (client_data["client_created_at"] - start_date).days // (7 if units == "weeks" else 30) + 1
