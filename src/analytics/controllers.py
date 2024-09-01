@@ -10,6 +10,7 @@ from src.analytics.services import (
     get_activity_logs,
     get_cycle_dates_for_campaign,
     get_retention_analytics,
+    get_retention_analytics_new,
     process_cycle_data_and_generate_report,
     get_template_analytics_for_archetype,
     get_all_campaign_analytics_for_client,
@@ -406,6 +407,6 @@ def get_retention_analytics_data(client_sdr_id: int):
     units = get_request_parameter(
         "units", request, json=False, required=False
     )
-    data = get_retention_analytics(units=units)
+    data = get_retention_analytics_new(units=units)
 
     return jsonify(data), 200

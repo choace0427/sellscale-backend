@@ -1171,3 +1171,106 @@ def get_retention_analytics(units: str = "weeks" or "months"):
     retval = convert_datetimes_to_strings(retval)
 
     return retval
+
+def get_retention_analytics_new(units: str = "weeks" or "months"):
+    all_clients: list[Client] = Client.query.all()
+    
+    first_client_created_at = min([client.created_at for client in all_clients])
+    if units == "weeks":
+        start_date = first_client_created_at.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=first_client_created_at.weekday())
+    elif units == "months":
+        start_date = first_client_created_at.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    cohort_data = [
+        {
+            "cohort_num": i,
+            "start_date": start_date + timedelta(weeks=(i - 1) * 7) if units == "weeks" else start_date + timedelta(days=(i - 1) * 30),
+            "end_date": start_date + timedelta(weeks=i * 7) if units == "weeks" else start_date + timedelta(days=i * 30),
+            "companies": [],
+            "unit_1": {"count": 0, "activity_users": []},
+            "unit_2": {"count": 0, "activity_users": []},
+            "unit_3": {"count": 0, "activity_users": []},
+            "unit_4": {"count": 0, "activity_users": []},
+            "unit_5": {"count": 0, "activity_users": []},
+            "unit_6": {"count": 0, "activity_users": []},
+            "unit_7": {"count": 0, "activity_users": []},
+            "unit_8": {"count": 0, "activity_users": []},
+            "unit_9": {"count": 0, "activity_users": []},
+            "unit_10": {"count": 0, "activity_users": []},
+            "unit_11": {"count": 0, "activity_users": []},
+            "unit_12": {"count": 0, "activity_users": []},
+        }
+        for i in range(1, (((datetime.now() - start_date).days // 7 + 1) if units == "weeks" else (datetime.now() - start_date).days // 30 + 1) + 1)
+    ]
+    for client in all_clients:
+        client_created_date = client.created_at
+        if units == "weeks":
+            cohort_num = (client_created_date - start_date).days // 7 + 1
+        elif units == "months":
+            cohort_num = (client_created_date - start_date).days // 30 + 1
+
+        cohort_start = start_date + timedelta(weeks=(cohort_num - 1) * 7) if units == "weeks" else start_date + timedelta(days=(cohort_num - 1) * 30)
+        cohort_end = cohort_start + timedelta(weeks=1) if units == "weeks" else cohort_start + timedelta(days=30)
+
+        cohort_index = cohort_num - 1
+        try:
+            cohort_data[cohort_index]["companies"].append({
+                'company': client.company,
+                'id': client.id,
+            })
+        except Exception as e:
+            import pdb; pdb.set_trace()
+            print(e)
+
+    id_to_client_map = {client.id: client for client in all_clients}
+
+    retention_logs: list[RetentionActivityLogs] = RetentionActivityLogs.query.all()
+    for log in retention_logs:
+        client_id = log.client_id
+        activity_date = log.activity_date
+        activity_tag = log.activity_tag
+
+        client = id_to_client_map.get(client_id)
+        if not client:
+            continue
+
+        # Determine the cohort number for the client
+        client_created_date = client.created_at
+        if units == "weeks":
+            cohort_num = (client_created_date - start_date).days // 7 + 1
+        elif units == "months":
+            cohort_num = (client_created_date - start_date).days // 30 + 1
+
+        key = (activity_date - client_created_date).days // (7 if units == "weeks" else 30) + 1
+        if key > 12:
+            continue
+        unit_key = f"unit_{key}"
+
+        cohort_index = cohort_num - 1
+
+        # Update the corresponding unit in the cohort
+        if unit_key in cohort_data[cohort_index]:
+            cohort_data[cohort_index][unit_key]["count"] += 1
+            cohort_data[cohort_index][unit_key]["activity_users"].append({
+                'client_id': client_id,
+                'activity_tag': activity_tag,
+                "company": client.company,
+            })
+
+    
+    retval = {
+        'cohort_data': cohort_data
+    }
+
+    def convert_datetimes_to_strings(data):
+        if isinstance(data, dict):
+            return {convert_datetimes_to_strings(k): convert_datetimes_to_strings(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [convert_datetimes_to_strings(item) for item in data]
+        elif isinstance(data, datetime):
+            return data.isoformat()
+        return data
+    
+    retval = convert_datetimes_to_strings(retval)
+
+    return cohort_data
