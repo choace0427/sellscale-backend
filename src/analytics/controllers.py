@@ -9,6 +9,7 @@ from src.analytics.services import (
     add_activity_log,
     get_activity_logs,
     get_cycle_dates_for_campaign,
+    get_retention_analytics,
     process_cycle_data_and_generate_report,
     get_template_analytics_for_archetype,
     get_all_campaign_analytics_for_client,
@@ -398,3 +399,10 @@ def get_inbox_performance(client_sdr_id: int):
         return jsonify({"message": "No data found"}), 404
 
     return jsonify({"message": "Success", "data": dict(result)}), 200
+
+@ANALYTICS_BLUEPRINT.route("/get_retention_analytics", methods=["GET"])
+@require_user
+def get_retention_analytics_data():
+    data = get_retention_analytics()
+
+    return jsonify(data), 200

@@ -1,4 +1,4 @@
-from src.analytics.models import ActivityLog, FeatureFlag
+from src.analytics.models import ActivityLog, FeatureFlag, RetentionActivityLogs
 from app import db
 from flask import jsonify
 from src.campaigns.models import OutboundCampaign
@@ -1054,3 +1054,106 @@ def process_cycle_data_and_generate_report(client_sdr_id: int, cycle_data: dict)
         result = {"report": "An error occurred while generating the report."}
 
     return result
+
+
+def get_retention_analytics(units: str = "weeks" or "months"):
+    all_clients: list[Client] = Client.query.all()
+
+    retention_data = []
+    id_to_client_name_map = {}
+    for client in all_clients:
+        client_id = client.id
+        client_name = client.company
+        id_to_client_name_map[client_id] = client_name
+        client_created_at = client.created_at
+
+        if units == "weeks":
+            logs = {
+                (client_created_at + timedelta(weeks=i)).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=(client_created_at + timedelta(weeks=i)).weekday()): {
+                    'count': 0,
+                    'activity_tags': []
+                }
+                for i in range((datetime.now() - client_created_at).days // 7 + 1)
+            }
+        elif units == "months":
+            logs = {
+                (client_created_at + timedelta(days=i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0): {
+                    'count': 0,
+                    'activity_tags': []
+                }
+                for i in range(0, (datetime.now() - client_created_at).days, 30)
+            }
+
+        retention_data.append({
+            "client_id": client_id,
+            "client_name": client_name,
+            "client_created_at": client_created_at,
+            "retention_logs": logs
+        })
+
+    retention_logs: list[RetentionActivityLogs] = RetentionActivityLogs.query.all()
+    for log_entry in retention_logs:
+        client_id = log_entry.client_id
+        client_sdr_id = log_entry.client_sdr_id
+        activity_date = log_entry.activity_date
+        activity_tag = log_entry.activity_tag
+
+        # Find the corresponding client retention data
+        for client_data in retention_data:
+            if client_data["client_id"] == client_id:
+                # Find the corresponding week start date
+                if units == "weeks":
+                    start_date = activity_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=activity_date.weekday())
+                elif units == "months":
+                    start_date = activity_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+                if start_date in client_data["retention_logs"]:
+                    if client_data['client_name'] not in client_data['retention_logs'][start_date]['activity_tags']:
+                        client_data["retention_logs"][start_date]["count"] += 1
+                        client_data["retention_logs"][start_date]["activity_tags"].append(client_data['client_name'])
+                break
+        
+    retention_graphs = [
+        {
+            "cohort_num": i,
+            "companies": [],
+            "unit_over_unit_activity": [{"count": 0, "activity_users": []} for _ in range(12)]
+        }
+        for i in range(1,13)
+    ]
+    for client_data in retention_data:
+        days = 365 if units == 'months' else 84
+        # if client_data['client_created_at'] < datetime.now() - timedelta(days=days):
+        #     continue
+
+        start_date = datetime.now() - (timedelta(days=days))
+        cohort_num = (client_data["client_created_at"] - start_date).days // (7 if units == "weeks" else 30) + 1
+
+
+        for log_date, log_data in client_data["retention_logs"].items():
+            if log_date < start_date:
+                continue
+
+            client_created_date = client_data["client_created_at"]
+
+            if units == "weeks":
+                unit_num = (log_date - client_created_date).days // 7 + 1
+            elif units == "months":
+                unit_num = (log_date - client_created_date).days // 30 + 1
+
+            print("Client Name: ", client_data["client_name"], "Cohort Number: ", cohort_num, "Unit Number: ", unit_num)
+            print("Activity Date: ", log_date, "Activity Count: ", log_data["count"], "Activity Tags: ", log_data["activity_tags"])
+            print("\n")
+
+            if cohort_num > 11 or unit_num > 11:
+                continue
+
+            retention_graphs[cohort_num]["unit_over_unit_activity"][unit_num]["count"] += log_data["count"]
+            if client_data["client_name"] not in retention_graphs[cohort_num]["companies"] and client_data['client_created_at'] >= start_date:
+                retention_graphs[cohort_num]["companies"].append(client_data["client_name"])
+            if log_data['count'] > 0:
+                retention_graphs[cohort_num]["unit_over_unit_activity"][unit_num]["activity_users"].extend([client_data["client_name"]])
+
+    return retention_data, retention_graphs
+    
+        
