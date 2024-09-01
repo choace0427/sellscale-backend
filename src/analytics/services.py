@@ -1154,6 +1154,20 @@ def get_retention_analytics(units: str = "weeks" or "months"):
             if log_data['count'] > 0:
                 retention_graphs[cohort_num]["unit_over_unit_activity"][unit_num]["activity_users"].extend([client_data["client_name"]])
 
-    return retention_data, retention_graphs
-    
-        
+    retval = {
+        'retention_data': retention_data,
+        'retention_graphs': retention_graphs
+    }
+
+    def convert_datetimes_to_strings(data):
+        if isinstance(data, dict):
+            return {convert_datetimes_to_strings(k): convert_datetimes_to_strings(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [convert_datetimes_to_strings(item) for item in data]
+        elif isinstance(data, datetime):
+            return data.isoformat()
+        return data
+
+    retval = convert_datetimes_to_strings(retval)
+
+    return retval
