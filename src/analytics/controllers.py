@@ -402,7 +402,7 @@ def get_inbox_performance(client_sdr_id: int):
 
 @ANALYTICS_BLUEPRINT.route("/get_retention_analytics", methods=["GET"])
 @require_user
-def get_retention_analytics_data():
+def get_retention_analytics_data(client_sdr_id: int):
     data = get_retention_analytics()
 
     return jsonify(data), 200
