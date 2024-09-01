@@ -1250,13 +1250,13 @@ def get_retention_analytics_new(units: str = "weeks" or "months"):
 
         # Update the corresponding unit in the cohort
         if unit_key in cohort_data[cohort_index]:
-            cohort_data[cohort_index][unit_key]["count"] += 1
-            cohort_data[cohort_index][unit_key]["activity_users"].append({
-                'client_id': client_id,
-                'activity_tag': activity_tag,
-                "company": client.company,
-            })
-
+            if any(company['id'] == client_id for company in cohort_data[cohort_index]["companies"]):
+                cohort_data[cohort_index][unit_key]["count"] += 1
+                cohort_data[cohort_index][unit_key]["activity_users"].append({
+                    'client_id': client_id,
+                    'activity_tag': activity_tag,
+                    "company": client.company,
+                })
     
     retval = {
         'cohort_data': cohort_data
