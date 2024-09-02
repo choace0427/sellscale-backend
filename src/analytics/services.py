@@ -1241,6 +1241,7 @@ def get_retention_analytics_new(units: str = "weeks" or "months"):
         elif units == "months":
             cohort_num = (client_created_date - start_date).days // 30 + 1
 
+
         key = (activity_date - client_created_date).days // (7 if units == "weeks" else 30) + 1
         if key > 12:
             continue
@@ -1251,7 +1252,8 @@ def get_retention_analytics_new(units: str = "weeks" or "months"):
         # Update the corresponding unit in the cohort
         if unit_key in cohort_data[cohort_index]:
             if any(company['id'] == client_id for company in cohort_data[cohort_index]["companies"]):
-                cohort_data[cohort_index][unit_key]["count"] += 1
+                if client_id not in [activity_user['client_id'] for activity_user in cohort_data[cohort_index][unit_key]["activity_users"]]:
+                    cohort_data[cohort_index][unit_key]["count"] += 1
                 cohort_data[cohort_index][unit_key]["activity_users"].append({
                     'client_id': client_id,
                     'activity_tag': activity_tag,
