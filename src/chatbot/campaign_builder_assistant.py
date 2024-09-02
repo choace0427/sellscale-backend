@@ -1068,8 +1068,7 @@ IMPORTANT:
 - Only add action items to the memory state if they have not already been added
 - Do not add general information or context to the memory state. Only add action items if the user indicated they will provide something but have not yet done so.
 - Do not add information that is already present in the memory state. Only add new action items
-- ONLY add items to your memory state if a user explicitly mentions they will provide something or if they ask you to pay attention to something.
-- DO NOT randomly add items to the memory state if it's not explicitly mentioned or requested by the user.
+- Remove any action items that have been completed or are no longer relevant
 - The memory state must be stored as a bullet-point list.
 
 User: {last_message_from_user}
@@ -1139,8 +1138,9 @@ def add_message_to_thread(thread_id, content, role="user", device_id=None):
 
     requests.post(f"{API_URL}/threads/{thread_id}/messages", headers=HEADERS, json=data)
 
-    session = SelixSession.query.filter_by(thread_id=thread_id).first()
-    update_and_receive_memory(session.id)
+    if role == "user":
+        session = SelixSession.query.filter_by(thread_id=thread_id).first()
+        update_and_receive_memory(session.id)
 
 
 def run_thread(thread_id, assistant_id):
