@@ -1112,8 +1112,7 @@ ACTION_MAP = {
     "search_internet": search_internet,
     "edit_strategy": edit_strategy,
     "create_tasks_from_strategy": create_tasks_from_strategy,
-    "create_icp": create_icp,
-    "update_and_receive_memory": update_and_receive_memory
+    "create_icp": create_icp
 }
 
 
@@ -1139,6 +1138,9 @@ def add_message_to_thread(thread_id, content, role="user", device_id=None):
         send_socket_message('incoming-message', {'message': content, 'thread_id': thread_id, 'role': 'user', 'device_id': device_id}, thread_id)
 
     requests.post(f"{API_URL}/threads/{thread_id}/messages", headers=HEADERS, json=data)
+
+    session = SelixSession.query.filter_by(thread_id=thread_id).first()
+    update_and_receive_memory(session.id)
 
 
 def run_thread(thread_id, assistant_id):
