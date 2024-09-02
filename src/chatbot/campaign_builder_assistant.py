@@ -537,7 +537,6 @@ def edit_strategy(
         db.session.commit()
         send_socket_message('update-session', {'session': session_dict, 'thread_id': thread_id}, thread_id)
 
-
     return {"success": True}
 
 
@@ -1044,6 +1043,64 @@ def create_icp(
     return {"success": True}
 
 
+def update_and_receive_memory(session_id):
+    messages = get_last_n_messages(SelixSession.query.get(session_id).thread_id)
+    memory_state = SelixSession.query.get(session_id).memory.get('memory_state') or ''
+
+    messages = [msg for msg in messages if 'message' in msg]
+
+    last_message_from_assistant = messages[-1]['message'] if messages else ''
+    last_message_from_user = messages[-2]['message'] if len(messages) > 1 else ''
+
+    response = wrapped_chat_gpt_completion(
+        messages=[
+            {
+                "role": "user",
+                "content": """You are a memory editor. I will provide you with the current memory state and the last few messages from the user and from the assistant.
+
+Based on the last message, make adjustments to the memory state. Things to add in the memory should be 'action items' such as:
+- "Remember to ask the user which channel they want to reach out on."
+- "Ask the user to provide you with a CSV file of their prospects."
+- "Ask if the user if they have a booth at the event."
+and other items. 
+
+IMPORTANT:
+- Only add action items to the memory state if they have not already been added
+- Do not add general information or context to the memory state. Only add action items if the user indicated they will provide something but have not yet done so.
+- Do not add information that is already present in the memory state. Only add new action items
+- ONLY add items to your memory state if a user explicitly mentions they will provide something or if they ask you to pay attention to something.
+- DO NOT randomly add items to the memory state if it's not explicitly mentioned or requested by the user.
+- The memory state must be stored as a bullet-point list.
+
+User: {last_message_from_user}
+Assistant: {last_message_from_assistant}
+        
+Current Memory State:
+{memory_state}
+
+Only respond with the updated memory state. If there's nothing new to mention, just write "- None"
+
+Updated Memory State:""".format(
+            last_message_from_assistant=last_message_from_assistant,
+            last_message_from_user=last_message_from_user,
+            memory_state=memory_state
+        )
+            }
+        ],
+        model="gpt-4o",
+        max_tokens=1000
+    )
+
+    session = SelixSession.query.get(session_id)
+    session.memory['memory_state'] = response
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(session, "memory")
+
+    db.session.add(session)
+    db.session.commit()
+
+    return {"updated_memory": response}
+
 ACTION_MAP = {
     "create_campaign": create_campaign,
     "find_prospects": find_prospects,
@@ -1056,12 +1113,12 @@ ACTION_MAP = {
     "edit_strategy": edit_strategy,
     "create_tasks_from_strategy": create_tasks_from_strategy,
     "create_icp": create_icp,
+    "update_and_receive_memory": update_and_receive_memory
 }
 
 
 def run_action(action_name, params, session_id):
     return ACTION_MAP[action_name](**params, session_id=session_id)
-
 
 # ACTIONS - END
 
