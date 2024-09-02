@@ -1068,7 +1068,7 @@ IMPORTANT:
 - Only add action items to the memory state if they have not already been added
 - Do not add general information or context to the memory state. Only add action items if the user indicated they will provide something but have not yet done so.
 - Do not add information that is already present in the memory state. Only add new action items
-- Remove any action items that have been completed or are no longer relevant
+- Remove any action items that have been completed. ONLY remove if the action item has a 100-percent certainty of completion.
 - The memory state must be stored as a bullet-point list.
 
 User: {last_message_from_user}
