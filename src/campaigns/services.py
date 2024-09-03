@@ -169,6 +169,24 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
     # Get information from the joined table
     prospects = []
     for p in joined_prospect_message:
+        prospect: Prospect = Prospect.query.get(p.prospect_id)
+        # Get the AI research for the prospect
+        ai_research_answers = db.session.execute(
+            """
+            select
+                ai_researcher_answer.*
+            from
+                ai_researcher_answer
+                join ai_researcher_question on ai_researcher_question.id = ai_researcher_answer.question_id
+            where
+                ai_researcher_answer.prospect_id = :prospect_id
+                and ai_researcher_answer.is_yes_response
+            """,
+            {"prospect_id": p.prospect_id}
+        ).fetchall()
+
+        ai_research_answers_list = [dict(row) for row in ai_research_answers]
+
         prospects.append(
             {
                 "prospect_id": p.prospect_id,
@@ -179,6 +197,8 @@ def get_outbound_campaign_details_for_edit_tool_linkedin(
                 "problems": p.problems,
                 "blocking_problems": p.blocking_problems,
                 "highlighted_words": p.highlighted_words,
+                "prospect_info": prospect.simple_to_dict() if prospect else None,
+                "ai_research_answers": ai_research_answers_list if ai_research_answers else [],
             }
         )
 
