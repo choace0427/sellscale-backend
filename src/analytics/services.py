@@ -1173,7 +1173,7 @@ def get_retention_analytics(units: str = "weeks" or "months"):
     return retval
 
 def get_retention_analytics_new(units: str = "weeks" or "months"):
-    all_clients: list[Client] = Client.query.all()
+    all_clients: list[Client] = Client.query.filter(Client.include_in_analytics == True).all()
     
     first_client_created_at = min([client.created_at for client in all_clients])
     if units == "weeks":

@@ -88,6 +88,7 @@ class Client(db.Model):
     on_reply_webhook = db.Column(db.String, nullable=True)
 
     free_client = db.Column(db.Boolean, nullable=True, default=False)
+    include_in_analytics = db.Column(db.Boolean, nullable=True, default=True)
 
     def regenerate_uuid(self) -> str:
         uuid_str = generate_uuid(base=str(self.id), salt=self.company)
