@@ -1436,6 +1436,7 @@ def regenerate_email_body(
     prompt = personalized_body.prompt
 
     # Generate the email
+    from src.message_generation.email.services import generate_email
     email_body = generate_email(prompt=prompt)
     email_body = email_body.get("body")
 

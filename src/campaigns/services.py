@@ -312,8 +312,37 @@ def get_outbound_campaign_details_for_edit_tool_email(
     ).fetchall()
 
     prospects = []
-    for entry in data:
-        prospect_id = entry[0]
+    prospect_ids = [entry[0] for entry in data]
+    prospects_data = {entry[0]: entry for entry in data}
+
+    # Fetch all prospects in a single query
+    prospects_query = Prospect.query.filter(Prospect.id.in_(prospect_ids)).all()
+    prospects_dict = {prospect.id: prospect for prospect in prospects_query}
+
+    # Fetch all AI research answers in a single query
+    ai_research_answers_query = db.session.execute(
+        """
+        select
+            ai_researcher_answer.*,
+            ai_researcher_answer.prospect_id as prospect_id
+        from
+            ai_researcher_answer
+            join ai_researcher_question on ai_researcher_question.id = ai_researcher_answer.question_id
+        where
+            ai_researcher_answer.prospect_id in :prospect_ids
+            and ai_researcher_answer.is_yes_response
+        """,
+        {"prospect_ids": tuple(prospect_ids)}
+    ).fetchall()
+
+    ai_research_answers_dict = {}
+    for row in ai_research_answers_query:
+        prospect_id = row['prospect_id']
+        if prospect_id not in ai_research_answers_dict:
+            ai_research_answers_dict[prospect_id] = []
+        ai_research_answers_dict[prospect_id].append(dict(row))
+
+    for prospect_id, entry in prospects_data.items():
         full_name = entry[1]
         personalized_subject_line_message_id = entry[2]
         personalized_subject_line_ai_approved = entry[3]
@@ -330,6 +359,10 @@ def get_outbound_campaign_details_for_edit_tool_email(
         prospect_email_id = entry[14]
         personalized_subject_line_blocking_problems = entry[15] if entry[15] else []
         personalized_body_blocking_problems = entry[16] if entry[16] else []
+
+        prospect: Prospect = prospects_dict.get(prospect_id)
+        ai_research_answers_list = ai_research_answers_dict.get(prospect_id, [])
+
         prospects.append(
             {
                 "prospect_id": prospect_id,
@@ -349,6 +382,8 @@ def get_outbound_campaign_details_for_edit_tool_email(
                 "completion_2": personalized_body_completion,
                 "highlighted_words_2": personalized_body_highlighted_words,
                 "prospect_email_id": prospect_email_id,
+                "prospect_info": prospect.simple_to_dict() if prospect else None,
+                "ai_research_answers": ai_research_answers_list,
             }
         )
 
