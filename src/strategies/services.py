@@ -76,15 +76,15 @@ def create_strategy_client_archetype_mapping(
                     task_titles=[task_title],
                     widget_type='LAUNCH_CAMPAIGN'
                 )
-                selix_task = SelixSessionTask(
-                        selix_session_id=selix_session.id,
-                        actual_completion_time=datetime.datetime.now(),
-                        title="Launch Campaign",
-                        description="Notify " + session_sdr.name + " for campaign review",
-                        status=SelixSessionTaskStatus.BLOCKED
-                    )
-                db.session.add(selix_task)
-                db.session.commit()
+                # selix_task = SelixSessionTask(
+                #         selix_session_id=selix_session.id,
+                #         actual_completion_time=datetime.datetime.now(),
+                #         title="Launch Campaign",
+                #         description="Notify " + session_sdr.name + " for campaign review",
+                #         status=SelixSessionTaskStatus.BLOCKED
+                #     )
+                # db.session.add(selix_task)
+                # db.session.commit()
                 #add selix task to review the campaign
                 if thread_id:
                     task_dict = selix_task.to_dict()
