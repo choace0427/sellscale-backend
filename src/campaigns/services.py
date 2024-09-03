@@ -1225,7 +1225,7 @@ def mark_campaigns_as_initial_review_complete(days=1):
     """
     outbound_campaigns = OutboundCampaign.query.filter(
         OutboundCampaign.status.in_([OutboundCampaignStatus.NEEDS_REVIEW, OutboundCampaignStatus.INITIAL_EDIT_COMPLETE]),
-        OutboundCampaign.created_at <= datetime.datetime.now() - datetime.timedelta(hours=3),
+        OutboundCampaign.created_at <= datetime.datetime.now() - datetime.timedelta(hours=2),
         OutboundCampaign.created_at >= datetime.datetime.now() - datetime.timedelta(days=days),
     ).all()
 
