@@ -16,7 +16,7 @@ from src.prospecting.champions.services import (
 )
 from src.prospecting.icp_score.services import append_icp_scoring_segment_ruleset_filters
 from src.prospecting.services import move_all_revival_prospects_back_to_previous_status, prospect_exists_for_client, \
-    get_prospect_duplicate_details, get_duplicate_prospects_from_csv_payload
+    get_prospect_duplicate_details, get_duplicate_prospects_from_csv_payload, send_queued_linkedin_invite
 from src.prospecting.models import ExistingContact, ProspectUploadSource
 from src.segment.models import Segment
 from src.segment.services import (
@@ -2209,3 +2209,16 @@ def post_mark_champions(client_sdr_id: int):
     if success:
         return jsonify({"message": "Success"}), 200
     return jsonify({"message": "Failed to mark champions"}), 400
+
+@PROSPECTING_BLUEPRINT.route("/send_queued_linkedin_invite", methods=["POST"])
+@require_user
+def post_send_queued_linkedin_invite(client_sdr_id: int):
+    prospect_id = get_request_parameter(
+        "prospect_id", request, json=True, required=True, parameter_type=int
+    )
+
+    success, message = send_queued_linkedin_invite(client_sdr_id, prospect_id)
+
+    if success:
+        return jsonify({"message": message}), 200
+    return jsonify({"message": message}), 400

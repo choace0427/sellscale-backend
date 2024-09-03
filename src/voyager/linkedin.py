@@ -634,7 +634,7 @@ class LinkedIn(object):
         # Validating message length (max size is 300 characters)
         if len(message) > 300:
             self.logger.info("Message too long. Max size is 300 characters")
-            return False
+            return False, "Message too long. Max size is 300 characters"
 
         if not profile_urn:
             profile_urn_string = self.get_profile(public_id=profile_public_id)[
@@ -662,7 +662,9 @@ class LinkedIn(object):
             headers={"accept": "application/vnd.linkedin.normalized+json+2.1"},
         )
 
-        return res.status_code == 201
+        success = res.status_code >= 200 and res.status_code < 300
+
+        return success, res.text if not success else "Sent connection request"
 
     def get_mail_box(self, profile_urn_id):
         # TODO: This is still in progress!

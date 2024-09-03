@@ -4179,3 +4179,47 @@ def move_all_revival_prospects_back_to_previous_status():
         prospect_id = row[1]
         move_prospect_back_to_previous_status(prospect_id)
         print(f"Moved prospect {prospect_id} back to previous status")
+
+def send_queued_linkedin_invite(client_sdr_id: int, prospect_id: int):
+    prospect: Prospect = Prospect.query.get(prospect_id)
+    if not prospect or prospect.client_sdr_id != client_sdr_id:
+        return False, "Prospect not found or not owned by client SDR"
+
+    if prospect.status != ProspectStatus.QUEUED_FOR_OUTREACH:
+        return False, "Prospect not queued for outreach"
+
+    if not prospect.approved_outreach_message_id:
+        return False, "Prospect does not have an approved outreach message"
+
+    from src.voyager.linkedin import LinkedIn
+    linkedin_client = LinkedIn(client_sdr_id)
+
+    approved_message: GeneratedMessage = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+    message = approved_message.completion
+
+    success, message = linkedin_client.add_connection(
+        profile_public_id=get_linkedin_slug_from_url(prospect.linkedin_url),
+        message=message
+    )
+
+    approved_message.pb_csv_count += 1
+    db.session.add(approved_message)
+    db.session.commit()
+
+    if success:
+        update_prospect_status_linkedin(
+            prospect_id=prospect_id,
+            new_status=ProspectStatus.SENT_OUTREACH
+        )
+        approved_message = GeneratedMessage.query.get(prospect.approved_outreach_message_id)
+        approved_message.message_status = GeneratedMessageStatus.SENT
+        db.session.add(approved_message)
+        db.session.commit()
+        
+    if not success and approved_message.pb_csv_count > 3:
+        update_prospect_status_linkedin(
+            prospect_id=prospect_id,
+            new_status=ProspectStatus.SEND_OUTREACH_FAILED
+        )
+
+    return success, message
