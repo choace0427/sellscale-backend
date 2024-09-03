@@ -40,7 +40,7 @@ def get_campaign_drilldown_data(archetype_id):
 			AND prospect_email.outreach_status NOT IN ('SENT_OUTREACH', 'EMAIL_OPENED') THEN
 			prospect_email.last_message
 		ELSE
-			'no response yet.'
+			'no response yet.###' || COALESCE(prospect.email_last_message_from_sdr, prospect.li_last_message_from_sdr)
 		END) "last_message_from_prospect",
 	max(
 		CASE WHEN prospect_email.id IS NOT NULL
