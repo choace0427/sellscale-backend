@@ -127,6 +127,11 @@ def process_email_sent_webhook(payload_id: int):
             smartlead_payload.processing_fail_reason = "No Prospect Email found"
             db.session.commit()
             return False, "No Prospect Email found"
+        
+        if payload.get("sent_message", {}).get("text"):
+            #set the message text to the last message from the sdr
+            prospect.email_last_message_from_sdr = payload.get("sent_message", {}).get("text")
+            db.session.commit()
 
         # ANALYTICS: Update the Prospect Email smartlead_sent_count.
         if not prospect_email.smartlead_sent_count:

@@ -33,15 +33,19 @@ def get_campaign_drilldown_data(archetype_id):
 	prospect.company "prospect_company",
 	client_archetype.archetype "prospect_archetype",
 	prospect.img_url "img_url",
-	max(
-		CASE WHEN prospect.li_last_message_from_prospect IS NOT NULL THEN
-			prospect.li_last_message_from_prospect
-		WHEN prospect_email.id IS NOT NULL
-			AND prospect_email.outreach_status NOT IN ('SENT_OUTREACH', 'EMAIL_OPENED') THEN
-			prospect_email.last_message
-		ELSE
-			'no response yet.###' || COALESCE(prospect.email_last_message_from_sdr, prospect.li_last_message_from_sdr)
-		END) "last_message_from_prospect",
+	COALESCE(
+		max(
+			CASE WHEN prospect.li_last_message_from_prospect IS NOT NULL THEN
+				prospect.li_last_message_from_prospect
+			WHEN prospect_email.id IS NOT NULL
+				AND prospect_email.outreach_status NOT IN ('SENT_OUTREACH', 'EMAIL_OPENED') THEN
+				prospect_email.last_message
+			ELSE
+				'no response yet.'
+			END
+		),
+		'no response yet.'
+	) "last_message_from_prospect",
 	max(
 		CASE WHEN prospect_email.id IS NOT NULL
 			AND prospect_email.outreach_status NOT IN ('SENT_OUTREACH', 'EMAIL_OPENED') THEN
