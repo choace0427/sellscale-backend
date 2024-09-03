@@ -3894,3 +3894,14 @@ def create_selix_user():
     return jsonify({"data": payload}), 200
 
     # return jsonify({"message": "Error creating user", "error": str(e)}), 500
+
+@CLIENT_BLUEPRINT.route("/toggle_include_in_analytics", methods=["POST"])
+def post_toggle_include_in_analytics():
+    client_id = get_request_parameter("client_id", request, json=True, required=True, parameter_type=int)
+
+    client: Client = Client.query.get(client_id)
+    client.include_in_analytics = not client.include_in_analytics
+    db.session.add(client)
+    db.session.commit()
+
+    return jsonify({"message": "Success"}), 200
