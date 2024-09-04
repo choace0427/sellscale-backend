@@ -1156,7 +1156,7 @@ def update_retention_analytics():
                     END) filter (
                         where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or prospect_email_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS')
                     ) AS activity_date,
-                concat('demo_set_detected_', prospect.id) AS activity_tag
+                concat('positive_response_detected_', prospect.id) AS activity_tag
             FROM
                 client 
             JOIN client_sdr ON client.id = client_sdr.client_id
