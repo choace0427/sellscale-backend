@@ -1055,6 +1055,130 @@ def process_cycle_data_and_generate_report(client_sdr_id: int, cycle_data: dict)
 
     return result
 
+def update_retention_analytics():
+    try:
+        # Delete all activity
+        print("Deleting all activity from retention_activity_logs")
+        db.session.execute("DELETE FROM retention_activity_logs;")
+        db.session.commit()
+        
+        # Add Selix Sessions to Activity
+        print("Adding Selix Sessions to Activity")
+        db.session.execute("""
+            INSERT INTO retention_activity_logs (created_at, updated_at, client_sdr_id, client_id, activity_date, activity_tag)
+            SELECT 
+                NOW() created_at,
+                NOW() updated_at,
+                client_sdr.id AS client_sdr_id,
+                client.id AS client_id,
+                selix_session.created_at AS activity_date,
+                'selix_session_created' AS activity_tag
+            FROM
+                client 
+            JOIN client_sdr ON client.id = client_sdr.client_id
+            JOIN selix_session on selix_session.client_sdr_id = client_sdr.id
+            GROUP BY client_sdr.id, client.id, selix_session.id;
+        """)
+        db.session.commit()
+        
+        # Add Campaign Activated
+        print("Adding Campaign Activated to Activity")
+        db.session.execute("""
+            INSERT INTO retention_activity_logs (created_at, updated_at, client_sdr_id, client_id, activity_date, activity_tag)
+            SELECT 
+                NOW() created_at,
+                NOW() updated_at,
+                client_sdr.id AS client_sdr_id,
+                client.id AS client_id,
+                min(CASE 
+                        WHEN prospect_status_records.created_at IS NOT NULL THEN prospect_status_records.created_at 
+                        ELSE prospect_email_status_records.created_at 
+                    END) AS activity_date,
+                'campaign_activated' AS activity_tag
+            FROM
+                client 
+            JOIN client_sdr ON client.id = client_sdr.client_id
+            JOIN client_archetype ON client_archetype.client_sdr_id = client_sdr.id
+            JOIN prospect ON prospect.archetype_id = client_archetype.id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id 
+            LEFT JOIN prospect_email ON prospect_email.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+            WHERE
+                prospect_email_status_records.to_status = 'SENT_OUTREACH' 
+                OR prospect_status_records.to_status = 'SENT_OUTREACH'
+            GROUP BY client_sdr.id, client.id, client_archetype.id;
+        """)
+        db.session.commit()
+        
+        # Add Demo Sets
+        print("Adding Demo Sets to Activity")
+        db.session.execute("""
+            INSERT INTO retention_activity_logs (created_at, updated_at, client_sdr_id, client_id, activity_date, activity_tag)
+            SELECT 
+                NOW() created_at,
+                NOW() updated_at,
+                client_sdr.id AS client_sdr_id,
+                client.id AS client_id,
+                min(CASE 
+                        WHEN prospect_status_records.created_at IS NOT NULL THEN prospect_status_records.created_at 
+                        ELSE prospect_email_status_records.created_at 
+                    END) filter (
+                        where prospect_status_records.to_status = 'DEMO_SET' or prospect_email_status_records.to_status = 'DEMO_SET'
+                    ) AS activity_date,
+                concat('demo_set_detected_', prospect.id) AS activity_tag
+            FROM
+                client 
+            JOIN client_sdr ON client.id = client_sdr.client_id
+            JOIN client_archetype ON client_archetype.client_sdr_id = client_sdr.id
+            JOIN prospect ON prospect.archetype_id = client_archetype.id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id 
+            LEFT JOIN prospect_email ON prospect_email.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+            WHERE
+                prospect_email_status_records.to_status = 'DEMO_SET' 
+                OR prospect_status_records.to_status = 'DEMO_SET'
+            GROUP BY client_sdr.id, client.id, prospect.id;
+        """)
+        db.session.commit()
+        
+        # Add Active Convo (Positive response)
+        print("Adding Active Convo (Positive response) to Activity")
+        db.session.execute("""
+            INSERT INTO retention_activity_logs (created_at, updated_at, client_sdr_id, client_id, activity_date, activity_tag)
+            SELECT 
+                NOW() created_at,
+                NOW() updated_at,
+                client_sdr.id AS client_sdr_id,
+                client.id AS client_id,
+                min(CASE 
+                        WHEN prospect_status_records.created_at IS NOT NULL THEN prospect_status_records.created_at 
+                        ELSE prospect_email_status_records.created_at 
+                    END) filter (
+                        where prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') or prospect_email_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS')
+                    ) AS activity_date,
+                concat('demo_set_detected_', prospect.id) AS activity_tag
+            FROM
+                client 
+            JOIN client_sdr ON client.id = client_sdr.client_id
+            JOIN client_archetype ON client_archetype.client_sdr_id = client_sdr.id
+            JOIN prospect ON prospect.archetype_id = client_archetype.id
+            LEFT JOIN prospect_status_records ON prospect_status_records.prospect_id = prospect.id 
+            LEFT JOIN prospect_email ON prospect_email.prospect_id = prospect.id
+            LEFT JOIN prospect_email_status_records ON prospect_email_status_records.prospect_email_id = prospect_email.id
+            WHERE
+                prospect_email_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS') 
+                OR prospect_status_records.to_status in ('ACTIVE_CONVO_SCHEDULING', 'ACTIVE_CONVO_QUESTION', 'ACTIVE_CONVO_NEXT_STEPS')
+            GROUP BY client_sdr.id, client.id, prospect.id;
+        """)
+        db.session.commit()
+
+        return True
+    except Exception as e:
+        print("An error occurred, rolling back the transaction")
+        db.session.rollback()
+
+        return False
+
 
 def get_retention_analytics(units: str = "weeks" or "months"):
     all_clients: list[Client] = Client.query.all()

@@ -19,6 +19,7 @@ from src.analytics.services import (
     get_overview_pipeline_activity,
     get_sdr_pipeline_all_details,
     get_upload_analytics_for_client,
+    update_retention_analytics,
 )
 from src.analytics.services_rejection_analysis import (
     get_rejection_analysis_data,
@@ -410,3 +411,12 @@ def get_retention_analytics_data(client_sdr_id: int):
     data = get_retention_analytics_new(units=units)
 
     return jsonify(data), 200
+
+@ANALYTICS_BLUEPRINT.route("/update_retention_analytics", methods=["POST"])
+@require_user
+def update_retention_analytics_endpoint(client_sdr_id: int):
+    success = update_retention_analytics()
+    if success:
+        return jsonify({"message": "Success"}), 200
+    else:
+        return jsonify({"message": "Error updating retention analytics"}), 500
