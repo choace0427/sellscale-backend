@@ -2268,6 +2268,58 @@ def get_outbound_data(client_sdr_id: int):
     }
     return data
 
+def get_usedcampaign_data(client_sdr_id: int):
+    client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)
+    client_id: int = client_sdr.client_id
+
+    query = """
+        select 
+            client_sdr.img_url,
+            client_sdr.name,
+            
+            case 
+                when client_archetype.active and (client_archetype.linkedin_active or client_archetype.email_active) then 'USED'
+                else 'UNUSED'
+            end used_vs_unsed,
+            concat(client_archetype.emoji, ' ', client_archetype.archetype) archetype,
+            client_archetype.setup_status campaign_status,
+            
+            max(sla_schedule.linkedin_volume) filter (where sla_schedule.start_date < NOW()) linkedin_volume,
+            max(sla_schedule.email_volume) filter (where sla_schedule.start_date < NOW()) email_volume,
+            
+            count(distinct prospect.id) filter (where prospect.approved_outreach_message_id is not null or prospect.approved_prospect_email_id is not null) num_sent,
+            count(distinct prospect.id) num_prospects,
+            
+            count(distinct client_archetype.id) filter (where client_archetype.active and (client_archetype.linkedin_active or client_archetype.email_active)) num_active_campaigns,
+            count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' and prospect_status_records.created_at > NOW() - '24 hours'::INTERVAL) + 
+                count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH' and prospect_email_status_records.created_at > NOW() - '24 hours'::INTERVAL) sent_today,
+                count(distinct prospect_status_records.prospect_id) filter (where prospect_status_records.to_status = 'SENT_OUTREACH' and prospect_status_records.created_at > NOW() - '48 hours'::INTERVAL and prospect_status_records.created_at <= NOW() - '24 hours'::INTERVAL) + 
+                count(distinct prospect_email.prospect_id) filter (where prospect_email_status_records.to_status = 'SENT_OUTREACH' and prospect_email_status_records.created_at > NOW() - '48 hours'::INTERVAL and prospect_email_status_records.created_at <= NOW() - '24 hours'::INTERVAL) sent_yesterday
+                
+        from
+            client_sdr
+            left join client_archetype on client_archetype.client_sdr_id = client_sdr.id 
+                and client_archetype.active and (client_archetype.linkedin_active or client_archetype.email_active)
+            left join prospect on prospect.client_sdr_id = client_sdr.id
+            left join prospect_status_records on prospect_status_records.prospect_id = prospect.id
+            left join prospect_email on prospect_email.prospect_id = prospect.id
+            left join prospect_email_status_records on prospect_email_status_records.prospect_email_id = prospect_email.id
+            left join sla_schedule on sla_schedule.client_sdr_id = client_sdr.id and sla_schedule.start_date > NOW() - '7 days'::INTERVAL
+        where
+            client_sdr.client_id = {CLIENT_ID} and 
+            client_sdr.active
+        group by 1,2,3,4,5
+        order by 3 asc;
+    """.format(
+        CLIENT_ID=client_id
+    )
+
+    results = db.session.execute(query).fetchall()
+
+    if results is not None:
+        results = [dict(row) for row in results]
+
+    return {"results": results}
 
 def get_account_based_data(client_sdr_id: int, offset: int):
     client_sdr: ClientSDR = ClientSDR.query.get(client_sdr_id)

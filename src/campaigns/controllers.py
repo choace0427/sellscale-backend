@@ -39,6 +39,7 @@ from src.campaigns.services import (
     payout_campaigns,
     get_account_based_data,
     create_campaign_ai_request,
+    get_usedcampaign_data
 )
 from src.campaigns.autopilot.services import (
     collect_and_generate_all_autopilot_campaigns,
@@ -838,3 +839,19 @@ def get_account_based_view_data(client_sdr_id: int):
         ),
         200,
     )
+
+@CAMPAIGN_BLUEPRINT.route("/used", methods=["POST"])
+@require_user
+def get_usedcampaignData(client_sdr_id: int):
+    data = get_usedcampaign_data(client_sdr_id)
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "data": data,
+            }
+        ),
+        200,
+    )
+
