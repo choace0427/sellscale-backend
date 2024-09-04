@@ -408,7 +408,10 @@ def get_retention_analytics_data(client_sdr_id: int):
     units = get_request_parameter(
         "units", request, json=False, required=False
     )
-    data = get_retention_analytics_new(units=units)
+    allowed_tags = get_request_parameter(
+        "allowed_tags", request, json=False, required=False
+    )
+    data = get_retention_analytics_new(units=units, allowed_tags=allowed_tags)
 
     return jsonify(data), 200
 

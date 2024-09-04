@@ -1180,7 +1180,7 @@ def update_retention_analytics():
         return False
 
 
-def get_retention_analytics(units: str = "weeks" or "months"):
+def get_retention_analytics(units: str = "weeks" or "months", allowed_tags: list[str] = []):
     all_clients: list[Client] = Client.query.all()
 
     retention_data = []
@@ -1216,6 +1216,16 @@ def get_retention_analytics(units: str = "weeks" or "months"):
         })
 
     retention_logs: list[RetentionActivityLogs] = RetentionActivityLogs.query.all()
+
+    if allowed_tags:
+        updated_retention_logs = []
+        for log_entry in retention_logs:
+            for tag in allowed_tags:
+                if tag in log_entry.activity_tag:
+                    updated_retention_logs.append(log_entry)
+                    break
+        retention_logs = updated_retention_logs
+
     for log_entry in retention_logs:
         client_id = log_entry.client_id
         client_sdr_id = log_entry.client_sdr_id
@@ -1296,7 +1306,7 @@ def get_retention_analytics(units: str = "weeks" or "months"):
 
     return retval
 
-def get_retention_analytics_new(units: str = "weeks" or "months"):
+def get_retention_analytics_new(units: str = "weeks" or "months", allowed_tags: list[str] = []):
     all_clients: list[Client] = Client.query.filter(Client.include_in_analytics == True).all()
     
     first_client_created_at = min([client.created_at for client in all_clients])
@@ -1349,6 +1359,16 @@ def get_retention_analytics_new(units: str = "weeks" or "months"):
     id_to_client_map = {client.id: client for client in all_clients}
 
     retention_logs: list[RetentionActivityLogs] = RetentionActivityLogs.query.all()
+
+    if allowed_tags:
+        updated_retention_logs = []
+        for log_entry in retention_logs:
+            for tag in allowed_tags:
+                if tag in log_entry.activity_tag:
+                    updated_retention_logs.append(log_entry)
+                    break
+        retention_logs = updated_retention_logs
+
     for log in retention_logs:
         client_id = log.client_id
         activity_date = log.activity_date
